@@ -2,7 +2,7 @@
 #-*- coding: utf-8 -*-
 
 from base64 import urlsafe_b64encode
-import StringIO
+import cStringIO
 import logging
 import logging.config
 import os
@@ -54,14 +54,12 @@ def rand_str(length):
 
 def get_jpeg_dimensions(path):
 	"""
-	Based on 
-	<a href="http://www.opensource.org/licenses/bsd-license.php">New BSD License</a>
+	Based on http://code.google.com/p/bfg-pages/source/browse/trunk/pages/getimageinfo.py
+	BSD License: http://www.opensource.org/licenses/bsd-license.php
 	"""
 	height = -1
 	width = -1
-	f = open(path, 'r')
-	jpeg = StringIO.StringIO(f.read(512))
-	f.close()
+	jpeg = open(path, 'r')
 	jpeg.read(2)
 	b = jpeg.read(1)
 	try:
@@ -83,8 +81,53 @@ def get_jpeg_dimensions(path):
 		pass
 	except ValueError:
 		pass
+	finally:
+		jpeg.close()
 	logr.debug(path + " w: " + str(width) + " h: " + str(height))
 	return (width, height)
+
+# this will like move into a class that can hold a bunch of data, but to start:
+def get_jp2_data(path):
+	"""
+	Relevant parts of the spec:
+		Overall: Annex A  (pg. 13): Codestream Syntax
+		A.1.4 (pg. 14): Marker / codestream rules
+		A.2 (pg. 15): Information in the marker segments
+		Figure A-3 (pg. 19): structure of the main header
+		A.5.1 (pg. 26): how to parse SIZ
+		A.6.1 (pg 29): how to parse COD
+		Are we worried about COC? QCD? PPM?
+	"""
+	jp2 = open(path, 'r')
+	jp2.read(2)
+	b = jp2.read(1)
+	found_siz = False
+	while found_siz == False:
+		while (ord(b) != 0xFF):	b = jp2.read(1)
+		# Read one more to get the next byte, which is the unique part of the 
+		# marker (0x51). SIZ is required to be the second marker segment (right 
+		# after COD), so the while loop isn't really necessary, but it's easier. 
+		b = jp2.read(1)
+		if (ord(b) == 0x51):
+			# print ord(b) # should print 81
+			found_siz = True # this breaks the outer while
+			jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
+			
+			width = struct.unpack(">HH", jp2.read(4))[1]
+			height = struct.unpack(">HH", jp2.read(4))[1]
+			print width, height
+#			we want: int(0x00000A86)			
+#			b = jp2.read(1)
+#			print hex(ord(b))
+#			b = jp2.read(1)
+#			print hex(ord(b))
+#			b = jp2.read(1)
+#			print hex(ord(b))
+#			b = jp2.read(1)
+#			print hex(ord(b))
+		# Now we're in the SIZ marker segment
+		
+	jp2.close()	
 
 # Do we want: http://docs.python.org/library/queue.html ?
 def expand(jp2, out=False, region=False, rotation=False, level=False):
@@ -129,8 +172,8 @@ def setup():
 if __name__ == "__main__":
 	setup()
 	jp2 = "/home/jstroop/workspace/patokah/data/src_images/00000009.jp2"
-
-	outPath = os.path.splitext(jp2.replace(SRC_IMAGES_DIR, DERIV_IMAGES_DIR))[0] + _JPG 
-#	expand(jp2, outPath, rotation=44)
+	get_jp2_data(jp2)
+#	outPath = os.path.splitext(jp2.replace(SRC_IMAGES_DIR, DERIV_IMAGES_DIR))[0] + _JPG 
+#	expand(jp2, outPath)
 #	expand(jp2, "outPath", region="\{0.3,0.2\},\{0.6,0.4\}")
-	print get_jpeg_dimensions("/home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg")
+	#print get_jpeg_dimensions("/home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg")
