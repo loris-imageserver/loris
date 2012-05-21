@@ -101,31 +101,73 @@ def get_jp2_data(path):
 	jp2 = open(path, 'r')
 	jp2.read(2)
 	b = jp2.read(1)
-	found_siz = False
-	while found_siz == False:
-		while (ord(b) != 0xFF):	b = jp2.read(1)
-		# Read one more to get the next byte, which is the unique part of the 
-		# marker (0x51). SIZ is required to be the second marker segment (right 
-		# after COD), so the while loop isn't really necessary, but it's easier. 
+	
+	# 
+	while (ord(b) != 0xFF):	b = jp2.read(1)
+	b = jp2.read(1) #skip over the SOC, 0x4F 
+	
+	while (ord(b) != 0xFF):	b = jp2.read(1)
+	b = jp2.read(1) # 0x51: The SIZ marker segment
+	if (ord(b) == 0x51):
+	
+		jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
+	
+		# Xsiz
+		width = struct.unpack(">HH", jp2.read(4))[1]
+		# Ysiz
+		height = struct.unpack(">HH", jp2.read(4))[1]
+		print "Width/height: ", width, height
+		
+		jp2.read(8) #get through XOsiz, YOsiz (32 each)
+		
+		# XTsiz
+		tile_width = struct.unpack(">HH", jp2.read(4))[1]
+		# YTsiz
+		tile_height = struct.unpack(">HH", jp2.read(4))[1]
+		print "Tile w/h:", tile_width, tile_height
+		
+		jp2.read(8) #get through XTOsiz, YTOsiz (32 each)
+		
+		csiz = struct.unpack(">H", jp2.read(2))[0]
+		print "Csiz:", csiz
+	else:
+		raise
+		# TODO: error explaining that the SIZ marker segment was not found
+		# as the second marker segment
+	
+	# Now to the COD
+	# These don't seem right, but we're in the right place. Are these the wrong
+	# element?
+	# How is Djatoka finding it?
+	
+	while (ord(b) != 0xFF):	b = jp2.read(1)
+	b = jp2.read(1) # 0x52: The COD
+	if (ord(b) == 0x52):
+		jp2.read(3) # skip over Lcod, Scod (16 + 8)
+		
+		decomp_levels = struct.unpack(">B", jp2.read(1))[0]
+		print "Decomposition levels:", decomp_levels
+		
+		jp2.read(1)
+		
+		layers = struct.unpack(">H", jp2.read(2))[0]
+		print "Number of layers:",layers
+	else:
+		raise
+
+	found_cme = False
+	while (found_cme == False):
 		b = jp2.read(1)
-		if (ord(b) == 0x51):
-			# print ord(b) # should print 81
-			found_siz = True # this breaks the outer while
-			jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
-			
-			width = struct.unpack(">HH", jp2.read(4))[1]
-			height = struct.unpack(">HH", jp2.read(4))[1]
-			print width, height
-#			we want: int(0x00000A86)			
-#			b = jp2.read(1)
-#			print hex(ord(b))
-#			b = jp2.read(1)
-#			print hex(ord(b))
-#			b = jp2.read(1)
-#			print hex(ord(b))
-#			b = jp2.read(1)
-#			print hex(ord(b))
-		# Now we're in the SIZ marker segment
+		if  ord(b) == 0x64:
+			print hex(ord(b))
+			print hex(ord(jp2.read(1)))
+			found_cme = True
+#			print "Here"
+#			size = struct.unpack(">H", jp2.read(2))[0]
+#			jp2.read(3)
+#			for n in range(1, size):
+#				print struct.unpack("c", jp2.read(1))[0]
+
 		
 	jp2.close()	
 
@@ -167,11 +209,11 @@ def expand(jp2, out=False, region=False, rotation=False, level=False):
 def setup():
 	if not os.path.exists(TMP_DIR):
 		os.mkdir(TMP_DIR)
-	logr.info("Created " + TMP_DIR)
+		logr.info("Created " + TMP_DIR)
 
 if __name__ == "__main__":
 	setup()
-	jp2 = "/home/jstroop/workspace/patokah/data/src_images/00000009.jp2"
+	jp2 = "/home/jstroop/workspace/patokah/data/src_images/00000008.jp2"
 	get_jp2_data(jp2)
 #	outPath = os.path.splitext(jp2.replace(SRC_IMAGES_DIR, DERIV_IMAGES_DIR))[0] + _JPG 
 #	expand(jp2, outPath)
