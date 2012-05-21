@@ -1,0 +1,172 @@
+2012-05-17T23:05:55 - main - INFO - Created /tmp/patokah
+2012-05-17T23:05:55 - main - INFO - Created /tmp/patokah
+2012-05-17T23:05:55 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /bin/rm /tmp/patokah/oJjk.bmp
+2012-05-17T23:05:55 - main - DEBUG - /bin/rm /tmp/patokah/oJjk.bmp
+2012-05-17T23:06:14 - main - INFO - Created /tmp/patokah
+2012-05-17T23:06:14 - main - INFO - Created /tmp/patokah
+2012-05-17T23:06:14 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /bin/rm /tmp/patokah/ERmU.bmp
+2012-05-17T23:06:14 - main - DEBUG - /bin/rm /tmp/patokah/ERmU.bmp
+2012-05-17T23:07:27 - main - INFO - Created /tmp/patokah
+2012-05-17T23:07:27 - main - INFO - Created /tmp/patokah
+2012-05-17T23:07:27 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/RUGt.bmp
+2012-05-17T23:07:27 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/RUGt.bmp
+2012-05-17T23:07:37 - main - INFO - Created /tmp/patokah
+2012-05-17T23:07:37 - main - INFO - Created /tmp/patokah
+2012-05-17T23:07:37 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FfYv.bmp
+2012-05-17T23:07:37 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FfYv.bmp
+2012-05-17T23:07:37 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FfYv.bmp
+2012-05-17T23:07:37 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FfYv.bmp
+2012-05-17T23:07:50 - main - INFO - Created /tmp/patokah
+2012-05-17T23:07:50 - main - INFO - Created /tmp/patokah
+2012-05-17T23:07:50 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Q4sm.bmp
+2012-05-17T23:07:50 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Q4sm.bmp
+2012-05-17T23:07:50 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Q4sm.bmp
+2012-05-17T23:07:50 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Q4sm.bmp
+2012-05-17T23:08:13 - main - INFO - Created /tmp/patokah
+2012-05-17T23:08:13 - main - INFO - Created /tmp/patokah
+2012-05-17T23:08:13 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /bin/rm /tmp/patokah/FnGx.bmp
+2012-05-17T23:08:13 - main - DEBUG - /bin/rm /tmp/patokah/FnGx.bmp
+2012-05-17T23:11:13 - main - INFO - Created /tmp/patokah
+2012-05-17T23:11:13 - main - INFO - Created /tmp/patokah
+2012-05-17T23:11:13 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /bin/rm /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:13 - main - DEBUG - /bin/rm /tmp/patokah/FQ_a.bmp
+2012-05-17T23:11:29 - main - INFO - Created /tmp/patokah
+2012-05-17T23:11:29 - main - INFO - Created /tmp/patokah
+2012-05-17T23:11:29 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /bin/rm /tmp/patokah/E_HG.bmp
+2012-05-17T23:11:29 - main - DEBUG - /bin/rm /tmp/patokah/E_HG.bmp
+2012-05-17T23:13:48 - main - INFO - Created /tmp/patokah
+2012-05-17T23:13:48 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/76Hx.bmp
+2012-05-17T23:13:48 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/76Hx.bmp
+2012-05-17T23:13:48 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/76Hx.bmp
+2012-05-17T23:13:48 - main - DEBUG - /bin/rm /tmp/patokah/76Hx.bmp
+2012-05-17T23:15:21 - main - INFO - Created /tmp/patokah
+2012-05-17T23:15:21 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/0GxA.bmp
+2012-05-17T23:15:21 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/0GxA.bmp
+2012-05-17T23:15:21 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/0GxA.bmp
+2012-05-17T23:15:21 - main - DEBUG - /bin/rm /tmp/patokah/0GxA.bmp
+2012-05-17T23:16:49 - main - INFO - Created /tmp/patokah
+2012-05-17T23:16:49 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/s5PV.bmp
+2012-05-17T23:16:49 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/s5PV.bmp
+2012-05-17T23:16:49 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/s5PV.bmp
+2012-05-17T23:16:49 - main - DEBUG - /bin/rm /tmp/patokah/s5PV.bmp
+2012-05-17T23:17:32 - main - INFO - Created /tmp/patokah
+2012-05-17T23:17:32 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Gb4A.bmp
+2012-05-17T23:17:32 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Gb4A.bmp
+2012-05-17T23:17:32 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/Gb4A.bmp
+2012-05-17T23:17:34 - main - DEBUG - /bin/rm /tmp/patokah/Gb4A.bmp
+2012-05-17T23:17:43 - main - INFO - Created /tmp/patokah
+2012-05-17T23:17:43 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/E16H.bmp
+2012-05-17T23:17:43 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/E16H.bmp
+2012-05-17T23:17:43 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/E16H.bmp
+2012-05-17T23:17:44 - main - DEBUG - /bin/rm /tmp/patokah/E16H.bmp
+2012-05-17T23:22:25 - main - INFO - Created /tmp/patokah
+2012-05-17T23:22:25 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/7gJu.bmp
+2012-05-17T23:22:25 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/7gJu.bmp
+2012-05-17T23:22:25 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/7gJu.bmp
+2012-05-17T23:22:26 - main - DEBUG - /bin/rm /tmp/patokah/7gJu.bmp
+2012-05-17T23:22:32 - main - INFO - Created /tmp/patokah
+2012-05-17T23:22:32 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/GamA.bmp
+2012-05-17T23:22:32 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/GamA.bmp
+2012-05-17T23:22:32 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/GamA.bmp
+2012-05-17T23:22:33 - main - DEBUG - /bin/rm /tmp/patokah/GamA.bmp
+2012-05-17 23:25:26,631 - main - INFO - Created /tmp/patokah
+2012-05-17 23:25:26,632 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/uJl4.bmp
+2012-05-17 23:25:26,634 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/uJl4.bmp
+2012-05-17 23:25:26,635 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/uJl4.bmp
+2012-05-17 23:25:27,628 - main - DEBUG - /bin/rm /tmp/patokah/uJl4.bmp
+2012-05-17 23:26:54,707 - main - INFO - Created /tmp/patokah
+2012-05-17 23:26:54,707 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Tbgb.bmp
+2012-05-17 23:26:54,710 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Tbgb.bmp
+2012-05-17 23:26:54,712 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/Tbgb.bmp
+2012-05-17 23:26:55,670 - main - DEBUG - /bin/rm /tmp/patokah/Tbgb.bmp
+2012-05-17 23:27:23,301 - main - INFO - Created /tmp/patokah
+2012-05-17 23:27:23,301 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/v1NR.bmp
+2012-05-17 23:27:23,304 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/v1NR.bmp
+2012-05-17 23:27:23,305 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/v1NR.bmp
+2012-05-17 23:27:24,309 - main - DEBUG - /bin/rm /tmp/patokah/v1NR.bmp
+2012-05-17 23:28:17,467 - main - INFO - Created /tmp/patokah
+2012-05-17 23:28:17,467 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/XeY8.bmp
+2012-05-17 23:28:17,468 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/XeY8.bmp
+2012-05-17 23:28:17,470 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/XeY8.bmp
+2012-05-17 23:28:17,471 - main - DEBUG - /bin/rm /tmp/patokah/XeY8.bmp
+2012-05-17 23:28:31,323 - main - INFO - Created /tmp/patokah
+2012-05-17 23:28:31,323 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/LR8X.bmp
+2012-05-17 23:28:31,324 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/LR8X.bmp
+2012-05-17 23:28:31,326 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/LR8X.bmp
+2012-05-17 23:28:31,327 - main - DEBUG - /bin/rm /tmp/patokah/LR8X.bmp
+2012-05-17 23:32:04,220 - main - INFO - Created /tmp/patokah
+2012-05-17 23:32:04,220 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/HSuC.bmp
+2012-05-17 23:32:04,223 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/HSuC.bmp
+2012-05-17 23:32:04,224 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/HSuC.bmp
+2012-05-17 23:32:04,225 - main - DEBUG - /bin/rm /tmp/patokah/HSuC.bmp
+2012-05-17 23:32:24,320 - main - INFO - Created /tmp/patokah
+2012-05-17 23:32:24,320 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/GPZg.bmp
+2012-05-17 23:32:24,323 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/GPZg.bmp
+2012-05-17 23:33:27,769 - main - INFO - Created /tmp/patokah
+2012-05-17 23:33:27,770 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/4XGq.bmp
+2012-05-17 23:33:27,773 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/4XGq.bmp
+2012-05-17 23:37:10,775 - main - INFO - Created /tmp/patokah
+2012-05-17 23:37:10,775 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/HzQl.bmp
+2012-05-17 23:37:10,778 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/HzQl.bmp
+2012-05-17 23:37:10,779 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/HzQl.bmp
+2012-05-17 23:37:10,780 - main - DEBUG - /bin/rm /tmp/patokah/HzQl.bmp
+2012-05-17 23:37:24,387 - main - INFO - Created /tmp/patokah
+2012-05-17 23:37:24,387 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/go2a.bmp
+2012-05-17 23:37:24,389 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/go2a.bmp
+2012-05-17 23:37:24,390 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/go2a.bmp
+2012-05-17 23:37:24,392 - main - DEBUG - /bin/rm /tmp/patokah/go2a.bmp
+2012-05-17 23:37:26,036 - main - INFO - Created /tmp/patokah
+2012-05-17 23:37:26,036 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Hubd.bmp
+2012-05-17 23:37:26,038 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Hubd.bmp
+2012-05-17 23:37:26,040 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/Hubd.bmp
+2012-05-17 23:37:26,045 - main - DEBUG - /bin/rm /tmp/patokah/Hubd.bmp
+2012-05-17 23:37:37,964 - main - INFO - Created /tmp/patokah
+2012-05-17 23:37:37,965 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/uAd_.bmp
+2012-05-17 23:37:37,971 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/uAd_.bmp
+2012-05-17 23:37:37,972 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/uAd_.bmp
+2012-05-17 23:37:37,973 - main - DEBUG - /bin/rm /tmp/patokah/uAd_.bmp
+2012-05-17 23:38:51,433 - main - INFO - Created /tmp/patokah
+2012-05-17 23:38:51,434 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/gWHw.bmp
+2012-05-17 23:38:51,436 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/gWHw.bmp
+2012-05-17 23:38:51,437 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/gWHw.bmp
+2012-05-17 23:38:51,441 - main - DEBUG - /bin/rm /tmp/patokah/gWHw.bmp
+2012-05-17 23:40:58,871 - main - INFO - Created /tmp/patokah
+2012-05-17 23:40:58,871 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/EjQM.bmp
+2012-05-17 23:40:58,873 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/EjQM.bmp
+2012-05-17 23:40:58,875 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/EjQM.bmp
+2012-05-17 23:40:59,894 - main - DEBUG - /bin/rm /tmp/patokah/EjQM.bmp
+2012-05-17 23:45:18,057 - main - INFO - Created /tmp/patokah
+2012-05-17 23:45:18,057 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FxL9.bmp
+2012-05-17 23:45:18,060 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -region \{0.3,0.2\},\{0.6,0.4\} -o /tmp/patokah/FxL9.bmp
+2012-05-17 23:45:18,061 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile outPath /tmp/patokah/FxL9.bmp
+2012-05-17 23:45:18,393 - main - DEBUG - /bin/rm /tmp/patokah/FxL9.bmp

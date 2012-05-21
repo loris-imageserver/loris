@@ -1,0 +1,185 @@
+2012-05-18 14:05:07,540 - main - INFO - Created /tmp/patokah
+2012-05-18 14:05:07,551 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/4H90.bmp
+2012-05-18 14:05:07,574 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -region \{0.3,0.2\},\{0.6,0.4\} -o /tmp/patokah/4H90.bmp
+2012-05-18 14:05:07,575 - main - DEBUG - /bin/libjpeg-progs-divert/cjpeg -quality 95 -outfile outPath /tmp/patokah/4H90.bmp
+2012-05-18 14:05:07,577 - main - DEBUG - /bin/rm /tmp/patokah/4H90.bmp
+2012-05-18 14:06:47,808 - main - INFO - Created /tmp/patokah
+2012-05-18 14:06:47,808 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/m0eX.bmp
+2012-05-18 14:06:47,812 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -region \{0.3,0.2\},\{0.6,0.4\} -o /tmp/patokah/m0eX.bmp
+2012-05-18 14:06:47,814 - main - DEBUG - /usr/bin/libjpeg-progs-divert/cjpeg -quality 95 -outfile outPath /tmp/patokah/m0eX.bmp
+2012-05-18 14:06:48,126 - main - DEBUG - /bin/rm /tmp/patokah/m0eX.bmp
+2012-05-18 14:07:03,404 - main - INFO - Created /tmp/patokah
+2012-05-18 14:07:03,404 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/gx4c.bmp
+2012-05-18 14:07:03,408 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/gx4c.bmp
+2012-05-18 14:07:03,412 - main - DEBUG - /usr/bin/libjpeg-progs-divert/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/gx4c.bmp
+2012-05-18 14:07:04,501 - main - DEBUG - /bin/rm /tmp/patokah/gx4c.bmp
+2012-05-18 14:07:06,776 - main - INFO - Created /tmp/patokah
+2012-05-18 14:07:06,777 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/egxa.bmp
+2012-05-18 14:07:06,779 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/egxa.bmp
+2012-05-18 14:07:06,781 - main - DEBUG - /usr/bin/libjpeg-progs-divert/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/egxa.bmp
+2012-05-18 14:07:07,818 - main - DEBUG - /bin/rm /tmp/patokah/egxa.bmp
+2012-05-18 14:07:42,557 - main - INFO - Created /tmp/patokah
+2012-05-18 14:07:42,558 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Khxz.bmp
+2012-05-18 14:07:42,561 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Khxz.bmp
+2012-05-18 14:07:42,562 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/Khxz.bmp
+2012-05-18 14:07:43,112 - main - DEBUG - /bin/rm /tmp/patokah/Khxz.bmp
+2012-05-18 14:07:46,418 - main - INFO - Created /tmp/patokah
+2012-05-18 14:07:46,418 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/XyK7.bmp
+2012-05-18 14:07:46,422 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/XyK7.bmp
+2012-05-18 14:07:46,423 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/XyK7.bmp
+2012-05-18 14:07:46,962 - main - DEBUG - /bin/rm /tmp/patokah/XyK7.bmp
+2012-05-18 14:07:55,852 - main - INFO - Created /tmp/patokah
+2012-05-18 14:07:55,852 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/HYSs.bmp
+2012-05-18 14:07:55,855 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/HYSs.bmp
+2012-05-18 14:07:55,856 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/HYSs.bmp
+2012-05-18 14:07:56,429 - main - DEBUG - /bin/rm /tmp/patokah/HYSs.bmp
+2012-05-18 14:07:58,735 - main - INFO - Created /tmp/patokah
+2012-05-18 14:07:58,735 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/r3dk.bmp
+2012-05-18 14:07:58,737 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/r3dk.bmp
+2012-05-18 14:07:58,738 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/r3dk.bmp
+2012-05-18 14:07:59,298 - main - DEBUG - /bin/rm /tmp/patokah/r3dk.bmp
+2012-05-18 14:08:20,782 - main - INFO - Created /tmp/patokah
+2012-05-18 14:08:20,782 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/qBa7.bmp
+2012-05-18 14:08:20,785 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 4 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/qBa7.bmp
+2012-05-18 14:08:20,786 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/qBa7.bmp
+2012-05-18 14:08:21,321 - main - DEBUG - /bin/rm /tmp/patokah/qBa7.bmp
+2012-05-18 14:08:34,025 - main - INFO - Created /tmp/patokah
+2012-05-18 14:08:34,025 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/2j95.bmp
+2012-05-18 14:08:34,028 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 2 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/2j95.bmp
+2012-05-18 14:08:34,029 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/2j95.bmp
+2012-05-18 14:08:34,600 - main - DEBUG - /bin/rm /tmp/patokah/2j95.bmp
+2012-05-18 16:00:04,001 - main - INFO - Created /tmp/patokah
+2012-05-18 16:00:04,002 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/-4DS.bmp
+2012-05-18 16:00:04,019 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 4 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -rotate 90 -o /tmp/patokah/-4DS.bmp
+2012-05-18 16:00:04,021 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/-4DS.bmp
+2012-05-18 16:00:04,726 - main - DEBUG - /bin/rm /tmp/patokah/-4DS.bmp
+2012-05-18 16:00:51,845 - main - INFO - Created /tmp/patokah
+2012-05-18 16:00:51,845 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/was=.bmp
+2012-05-18 16:00:51,850 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 4 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -rotate 0 -o /tmp/patokah/was=.bmp
+2012-05-18 16:00:51,852 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/was=.bmp
+2012-05-18 16:00:52,390 - main - DEBUG - /bin/rm /tmp/patokah/was=.bmp
+2012-05-18 19:04:20,382 - main - INFO - Created /tmp/patokah
+2012-05-18 19:14:37,699 - main - INFO - Created /tmp/patokah
+2012-05-18 19:14:37,786 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:19:08,831 - main - INFO - Created /tmp/patokah
+2012-05-18 19:19:08,831 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:19:16,105 - main - INFO - Created /tmp/patokah
+2012-05-18 19:19:26,802 - main - INFO - Created /tmp/patokah
+2012-05-18 19:19:26,802 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:19:51,820 - main - INFO - Created /tmp/patokah
+2012-05-18 19:19:51,822 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:19:57,566 - main - INFO - Created /tmp/patokah
+2012-05-18 19:19:57,568 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:20:04,845 - main - INFO - Created /tmp/patokah
+2012-05-18 19:20:04,845 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:20:11,967 - main - INFO - Created /tmp/patokah
+2012-05-18 19:20:11,967 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:20:13,019 - main - INFO - Created /tmp/patokah
+2012-05-18 19:20:13,019 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:20:13,635 - main - INFO - Created /tmp/patokah
+2012-05-18 19:20:13,635 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 19:20:14,986 - main - INFO - Created /tmp/patokah
+2012-05-18 19:20:14,986 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 20:44:01,088 - main - INFO - Created /tmp/patokah
+2012-05-18 20:44:20,013 - main - INFO - Created /tmp/patokah
+2012-05-18 20:44:20,014 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/fABq.bmp
+2012-05-18 20:44:20,032 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 4 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/fABq.bmp
+2012-05-18 20:44:20,033 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/fABq.bmp
+2012-05-18 20:44:20,659 - main - DEBUG - /bin/rm /tmp/patokah/fABq.bmp
+2012-05-18 20:44:20,661 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 20:46:28,682 - main - INFO - Created /tmp/patokah
+2012-05-18 20:46:28,682 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/Et6S.bmp
+2012-05-18 20:46:28,684 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 4 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/Et6S.bmp
+2012-05-18 20:46:28,686 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/Et6S.bmp
+2012-05-18 20:46:29,179 - main - DEBUG - /bin/rm /tmp/patokah/Et6S.bmp
+2012-05-18 20:46:29,181 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 20:47:23,039 - main - INFO - Created /tmp/patokah
+2012-05-18 20:47:23,039 - main - DEBUG - /usr/bin/mkfifo /tmp/patokah/FPAX.bmp
+2012-05-18 20:47:23,041 - main - DEBUG - /home/jstroop/workspace/patokah/bin/kdu_expand -num_threads 4 -quiet -i /home/jstroop/workspace/patokah/data/src_images/00000009.jp2 -o /tmp/patokah/FPAX.bmp
+2012-05-18 20:47:23,042 - main - DEBUG - /usr/bin/cjpeg -quality 95 -outfile /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg /tmp/patokah/FPAX.bmp
+2012-05-18 20:47:23,530 - main - DEBUG - /bin/rm /tmp/patokah/FPAX.bmp
+2012-05-18 20:47:23,532 - main - DEBUG - /home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg w: 2694 h: 3600
+2012-05-18 20:52:45,054 - main - INFO - Created /tmp/patokah
+2012-05-18 20:54:10,149 - main - INFO - Created /tmp/patokah
+2012-05-18 20:54:20,415 - main - INFO - Created /tmp/patokah
+2012-05-18 21:01:23,595 - main - INFO - Created /tmp/patokah
+2012-05-18 21:01:35,794 - main - INFO - Created /tmp/patokah
+2012-05-18 21:02:55,983 - main - INFO - Created /tmp/patokah
+2012-05-18 21:04:11,972 - main - INFO - Created /tmp/patokah
+2012-05-18 21:05:12,229 - main - INFO - Created /tmp/patokah
+2012-05-18 21:07:35,509 - main - INFO - Created /tmp/patokah
+2012-05-18 21:07:41,433 - main - INFO - Created /tmp/patokah
+2012-05-18 21:16:37,469 - main - INFO - Created /tmp/patokah
+2012-05-18 21:16:57,811 - main - INFO - Created /tmp/patokah
+2012-05-18 21:19:12,067 - main - INFO - Created /tmp/patokah
+2012-05-18 21:19:50,865 - main - INFO - Created /tmp/patokah
+2012-05-18 21:20:08,186 - main - INFO - Created /tmp/patokah
+2012-05-18 21:21:14,193 - main - INFO - Created /tmp/patokah
+2012-05-18 21:21:54,098 - main - INFO - Created /tmp/patokah
+2012-05-18 21:25:59,908 - main - INFO - Created /tmp/patokah
+2012-05-18 21:26:03,337 - main - INFO - Created /tmp/patokah
+2012-05-18 21:30:11,006 - main - INFO - Created /tmp/patokah
+2012-05-18 21:30:53,309 - main - INFO - Created /tmp/patokah
+2012-05-18 21:31:17,272 - main - INFO - Created /tmp/patokah
+2012-05-18 21:42:54,575 - main - INFO - Created /tmp/patokah
+2012-05-18 21:43:15,223 - main - INFO - Created /tmp/patokah
+2012-05-18 21:43:56,972 - main - INFO - Created /tmp/patokah
+2012-05-18 21:44:08,552 - main - INFO - Created /tmp/patokah
+2012-05-18 21:48:26,915 - main - INFO - Created /tmp/patokah
+2012-05-18 21:48:58,947 - main - INFO - Created /tmp/patokah
+2012-05-18 21:49:13,517 - main - INFO - Created /tmp/patokah
+2012-05-18 21:50:38,865 - main - INFO - Created /tmp/patokah
+2012-05-18 21:55:13,575 - main - INFO - Created /tmp/patokah
+2012-05-18 21:56:47,487 - main - INFO - Created /tmp/patokah
+2012-05-18 21:58:16,551 - main - INFO - Created /tmp/patokah
+2012-05-18 21:58:36,058 - main - INFO - Created /tmp/patokah
+2012-05-18 21:58:51,905 - main - INFO - Created /tmp/patokah
+2012-05-18 22:01:29,203 - main - INFO - Created /tmp/patokah
+2012-05-18 22:02:09,860 - main - INFO - Created /tmp/patokah
+2012-05-18 22:07:09,480 - main - INFO - Created /tmp/patokah
+2012-05-18 22:07:35,269 - main - INFO - Created /tmp/patokah
+2012-05-18 22:07:55,588 - main - INFO - Created /tmp/patokah
+2012-05-18 22:08:48,236 - main - INFO - Created /tmp/patokah
+2012-05-18 22:55:48,268 - main - INFO - Created /tmp/patokah
+2012-05-18 22:56:14,413 - main - INFO - Created /tmp/patokah
+2012-05-18 22:59:11,994 - main - INFO - Created /tmp/patokah
+2012-05-18 22:59:23,260 - main - INFO - Created /tmp/patokah
+2012-05-18 23:03:12,661 - main - INFO - Created /tmp/patokah
+2012-05-18 23:03:25,695 - main - INFO - Created /tmp/patokah
+2012-05-18 23:04:32,379 - main - INFO - Created /tmp/patokah
+2012-05-18 23:04:52,425 - main - INFO - Created /tmp/patokah
+2012-05-18 23:05:25,139 - main - INFO - Created /tmp/patokah
+2012-05-18 23:05:46,578 - main - INFO - Created /tmp/patokah
+2012-05-18 23:05:56,595 - main - INFO - Created /tmp/patokah
+2012-05-18 23:08:52,011 - main - INFO - Created /tmp/patokah
+2012-05-18 23:09:12,381 - main - INFO - Created /tmp/patokah
+2012-05-18 23:09:20,954 - main - INFO - Created /tmp/patokah
+2012-05-18 23:11:15,518 - main - INFO - Created /tmp/patokah
+2012-05-18 23:11:38,452 - main - INFO - Created /tmp/patokah
+2012-05-18 23:12:41,166 - main - INFO - Created /tmp/patokah
+2012-05-18 23:12:53,971 - main - INFO - Created /tmp/patokah
+2012-05-18 23:13:21,179 - main - INFO - Created /tmp/patokah
+2012-05-18 23:14:11,291 - main - INFO - Created /tmp/patokah
+2012-05-18 23:15:58,455 - main - INFO - Created /tmp/patokah
+2012-05-18 23:16:14,312 - main - INFO - Created /tmp/patokah
+2012-05-18 23:16:58,802 - main - INFO - Created /tmp/patokah
+2012-05-18 23:17:53,295 - main - INFO - Created /tmp/patokah
+2012-05-18 23:18:03,665 - main - INFO - Created /tmp/patokah
+2012-05-18 23:18:11,448 - main - INFO - Created /tmp/patokah
+2012-05-18 23:18:18,284 - main - INFO - Created /tmp/patokah
+2012-05-18 23:19:02,852 - main - INFO - Created /tmp/patokah
+2012-05-18 23:20:16,802 - main - INFO - Created /tmp/patokah
+2012-05-18 23:20:34,515 - main - INFO - Created /tmp/patokah
+2012-05-18 23:20:48,077 - main - INFO - Created /tmp/patokah
+2012-05-18 23:24:55,102 - main - INFO - Created /tmp/patokah
+2012-05-18 23:26:20,777 - main - INFO - Created /tmp/patokah
+2012-05-18 23:26:31,810 - main - INFO - Created /tmp/patokah
+2012-05-18 23:28:08,019 - main - INFO - Created /tmp/patokah
+2012-05-18 23:28:14,899 - main - INFO - Created /tmp/patokah
+2012-05-18 23:28:33,873 - main - INFO - Created /tmp/patokah
+2012-05-18 23:28:53,654 - main - INFO - Created /tmp/patokah
+2012-05-18 23:29:12,506 - main - INFO - Created /tmp/patokah
+2012-05-18 23:35:40,285 - main - INFO - Created /tmp/patokah
+2012-05-18 23:36:40,169 - main - INFO - Created /tmp/patokah
+2012-05-18 23:36:46,870 - main - INFO - Created /tmp/patokah
+2012-05-18 23:37:13,469 - main - INFO - Created /tmp/patokah
