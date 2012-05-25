@@ -2,107 +2,79 @@
 #-*- coding: utf-8 -*-
 
 from base64 import urlsafe_b64encode
-import cStringIO
 import logging
 import logging.config
 import os
 import random
 import struct
 import subprocess
-
-# Directories. TODO: At least some of this should be in a config file. We'll
-# also need to check permissions; maybe be able to create, etc.
-#LOG_DIR = "log/"
-
-TMP_DIR = "/tmp/patokah" # this is just going to hold FIFOs
-DERIV_IMAGES_DIR = "/data/deriv_images"
-SRC_IMAGES_DIR = "/data/src_images"
-
-# Utility dependencies. TODO: probably in a config as well.
-#CJPEG = "/usr/bin/libjpeg-progs-divert/cjpeg -quality 95"
-CJPEG = "/usr/bin/cjpeg -quality 95" # can we make this faster
-MKFIFO = "/usr/bin/mkfifo"
-RM = "/bin/rm"
+import ConfigParser
 
 # Private Static Constants 
 _BMP = ".bmp"
 _JPG = ".jpg"
+_JP2 = ".jp2"
 _LIB = os.getcwd() + "/lib"
 _BIN = os.getcwd() + "/bin"
 _ETC = os.getcwd() + "/etc"
-_LOGGING_CONF = _ETC + "/logging.conf"
 _ENV = {"LD_LIBRARY_PATH":_LIB, "PATH":_LIB + ":$PATH"}
 
 # For shellouts:
-KDU_EXPAND = _BIN + "/kdu_expand -num_threads 4 -quiet" # we could consider -record if things get too complex
+KDU_EXPAND = _BIN + "/kdu_expand -num_threads 4 -quiet"
 
-# Logging
-logging.config.fileConfig(_LOGGING_CONF)
-logr = logging.getLogger('main')
+def setup():
+	global TMP_DIR
+	global CACHE_ROOT
+	global SRC_IMAGES_ROOT
+	global CJPEG
+	global MKFIFO
+	global RM
+	global logr
 
-def rand_str(length):
+	# Logging
+	logging.config.fileConfig(_ETC + '/logging.conf')
+	logr = logging.getLogger('main')
+	
+	# Main configuration
+	conf = ConfigParser.RawConfigParser()
+	conf.read(_ETC + '/main.conf')
+	
+	TMP_DIR = conf.get('directories', 'tmp')
+	CACHE_ROOT = conf.get('directories', 'cache_root')
+	SRC_IMAGES_ROOT = conf.get('directories', 'src_img_root')
+	for d in (TMP_DIR, CACHE_ROOT):
+		if not os.path.exists(d):
+			os.makedirs(d, 0755)
+			logr.info("Created " + d)
+			
+	# TODO: raise if SRC_IMAGES_ROOT is not a dir, does not exist, or is not readable 
+	
+	CJPEG = conf.get('utilities', 'cjpeg')
+	MKFIFO = conf.get('utilities', 'mkfifo')
+	RM = conf.get('utilities', 'rm')
+
+
+def rand_str():
 	"""
-	From: http://stackoverflow.com/questions/785058/random-strings-in-python-2-6-is-this-ok
+	based on http://stackoverflow.com/questions/785058/random-strings-in-python-2-6-is-this-ok
 	"""
+	length = 4
 	nbits = length * 6 + 1
-	random.randint
 	bits = random.getrandbits(nbits)
 	uc = u"%0x" % bits
 	newlen = int(len(uc) / 2) * 2 # we have to make the string an even length
 	ba = bytearray.fromhex(uc[:newlen])
 	return urlsafe_b64encode(str(ba))[:length]
 
-def get_jpeg_dimensions(path):
-	"""
-	Based on http://code.google.com/p/bfg-pages/source/browse/trunk/pages/getimageinfo.py
-	BSD License: http://www.opensource.org/licenses/bsd-license.php
-	"""
-	height = -1
-	width = -1
-	jpeg = open(path, 'r')
-	jpeg.read(2)
-	b = jpeg.read(1)
-	try:
-		while (b and ord(b) != 0xDA):
-			while (ord(b) != 0xFF): b = jpeg.read(1)
-			while (ord(b) == 0xFF): b = jpeg.read(1)
-			
-			if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-				jpeg.read(3)
-				h, w = struct.unpack(">HH", jpeg.read(4))
-				break
-			else:
-				jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-				
-			b = jpeg.read(1)
-		width = int(w)
-		height = int(h)
-	except struct.error:
-		pass
-	except ValueError:
-		pass
-	finally:
-		jpeg.close()
-	logr.debug(path + " w: " + str(width) + " h: " + str(height))
-	return (width, height)
-
-# this will like move into a class that can hold a bunch of data, but to start:
 def get_jp2_data(path):
 	"""
-	Relevant parts of the spec:
-		Overall: Annex A  (pg. 13): Codestream Syntax
-		A.1.4 (pg. 14): Marker / codestream rules
-		A.2 (pg. 15): Information in the marker segments
-		Figure A-3 (pg. 19): structure of the main header
-		A.5.1 (pg. 26): how to parse SIZ
-		A.6.1 (pg 29): how to parse COD
-		Are we worried about COC? QCD? PPM?
+	Get the dimenstions of a JP2.
+	@return: (width, height)
 	"""
-	jp2 = open(path, 'r')
+	jp2 = open(path, 'rb')
 	jp2.read(2)
 	b = jp2.read(1)
 	
-	# 
 	while (ord(b) != 0xFF):	b = jp2.read(1)
 	b = jp2.read(1) #skip over the SOC, 0x4F 
 	
@@ -113,69 +85,55 @@ def get_jp2_data(path):
 		jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
 	
 		# Xsiz
-		width = struct.unpack(">HH", jp2.read(4))[1]
+		width = int(struct.unpack(">HH", jp2.read(4))[1])
 		# Ysiz
-		height = struct.unpack(">HH", jp2.read(4))[1]
-		print "Width/height: ", width, height
-		
-		jp2.read(8) #get through XOsiz, YOsiz (32 each)
-		
-		# XTsiz
-		tile_width = struct.unpack(">HH", jp2.read(4))[1]
-		# YTsiz
-		tile_height = struct.unpack(">HH", jp2.read(4))[1]
-		print "Tile w/h:", tile_width, tile_height
-		
-		jp2.read(8) #get through XTOsiz, YTOsiz (32 each)
-		
-		csiz = struct.unpack(">H", jp2.read(2))[0]
-		print "Csiz:", csiz
-	else:
-		raise
-		# TODO: error explaining that the SIZ marker segment was not found
-		# as the second marker segment
+		height = int(struct.unpack(">HH", jp2.read(4))[1])
 	
-	# Now to the COD
-	# These don't seem right, but we're in the right place. Are these the wrong
-	# element?
-	# How is Djatoka finding it?
+	jp2.close()
+	logr.debug(path + " dims: w: " + str(width) + " h: " + str(height))
+	return (width, height)	
+
+def get_jpeg_dimensions(path):
+	"""
+	Get the dimensions of a JPEG
+	@return: (width, height)
+	"""
+	jpeg = open(path, 'rb')
+	jpeg.read(2)
+	b = jpeg.read(1)
+	while (b and ord(b) != 0xDA):
+		while (ord(b) != 0xFF): b = jpeg.read(1)
+		while (ord(b) == 0xFF): b = jpeg.read(1)
+		
+		if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+			jpeg.read(3)
+			h, w = struct.unpack(">HH", jpeg.read(4))
+			break
+		else:
+			jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
+			
+		b = jpeg.read(1)
+		
+	width = int(w)
+	height = int(h)
 	
-	while (ord(b) != 0xFF):	b = jp2.read(1)
-	b = jp2.read(1) # 0x52: The COD
-	if (ord(b) == 0x52):
-		jp2.read(3) # skip over Lcod, Scod (16 + 8)
-		
-		decomp_levels = struct.unpack(">B", jp2.read(1))[0]
-		print "Decomposition levels:", decomp_levels
-		
-		jp2.read(1)
-		
-		layers = struct.unpack(">H", jp2.read(2))[0]
-		print "Number of layers:",layers
-	else:
-		raise
-
-	found_cme = False
-	while (found_cme == False):
-		b = jp2.read(1)
-		if  ord(b) == 0x64:
-			print hex(ord(b))
-			print hex(ord(jp2.read(1)))
-			found_cme = True
-#			print "Here"
-#			size = struct.unpack(">H", jp2.read(2))[0]
-#			jp2.read(3)
-#			for n in range(1, size):
-#				print struct.unpack("c", jp2.read(1))[0]
-
-		
-	jp2.close()	
+	jpeg.close()
+	logr.debug(path + " dims: w: " + str(width) + " h: " + str(height))
+	return (width, height)
 
 # Do we want: http://docs.python.org/library/queue.html ?
-def expand(jp2, out=False, region=False, rotation=False, level=False):
-	# Use a named pipe to give kdu and cjpeg format info.
+def expand(id, region='full', size='full', rotation=0, quality='native', format='.jpg'):
+	"""
+	@return the path to the new image.
+	"""
+	jp2 = resolve_identifier(id)
+	rotation = str(90 * int(rotation / 90)) # round to closest factor of 90
 	
-	fifopath = os.path.join(TMP_DIR, rand_str(4) + _BMP)
+	out_dir = os.path.join(CACHE_ROOT, id, region, size, rotation)
+	out = os.path.join(out_dir, quality) + format  
+	
+	# Use a named pipe to give kdu and cjpeg format info.
+	fifopath = os.path.join(TMP_DIR, rand_str() + _BMP)
 	mkfifo_cmd = MKFIFO + " " + fifopath
 	logr.debug(mkfifo_cmd) 
 	mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
@@ -183,9 +141,8 @@ def expand(jp2, out=False, region=False, rotation=False, level=False):
 	
 	# Build the kdu_expand call
 	kdu_cmd = KDU_EXPAND + " -i " + jp2 
-	if level: kdu_cmd = kdu_cmd + " -reduce " + level
-	if region: kdu_cmd = kdu_cmd + " -region " + region
-	if rotation:  kdu_cmd = kdu_cmd + " -rotate " + str(90 * int(rotation / 90)) # round to closest factor of 90
+	if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
+	if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
 	kdu_cmd = kdu_cmd + " -o " + fifopath
 	logr.debug(kdu_cmd)
 	kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
@@ -195,27 +152,50 @@ def expand(jp2, out=False, region=False, rotation=False, level=False):
 	# data flowing into the pipe when the next process (below) starts we're 
 	# just fine.
 	
-	cjpeg_cmd = CJPEG
-	if out: 
-		cjpeg_cmd = cjpeg_cmd + " -outfile " + out
-	cjpeg_cmd = cjpeg_cmd + " " + fifopath
+	# TODO: if format is not jpg, [do something] (see spec)
+	# TODO: quality, probably in the recipe below
+	
+	if not os.path.exists(out_dir):
+		os.makedirs(out_dir, 0755)
+		logr.info("Made directory: " + out_dir)
+	cjpeg_cmd = CJPEG + " -outfile " + out + " " + fifopath 
 	logr.debug(cjpeg_cmd)
 	cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
+	logr.info("Made file: " + out)
 
 	rm_cmd = RM + " " + fifopath
 	logr.debug(rm_cmd)
 	rm_proc = subprocess.Popen(rm_cmd, shell=True)
+	
+	return out
 
-def setup():
-	if not os.path.exists(TMP_DIR):
-		os.mkdir(TMP_DIR)
-		logr.info("Created " + TMP_DIR)
+def check_cache():
+	pass
+
+
+def resolve_identifier(ident):
+	"""
+	Given the identifier of an image, resolve it to an actual path. This would 
+	probably need to be overridden to suit different environments.
+	
+	This simple version just prepends a constant path to the identfier supplied,
+	and appends a file extension, resulting in an absolute path on the filesystem
+	"""
+	return os.path.join(SRC_IMAGES_ROOT, ident + _JP2)
+
 
 if __name__ == "__main__":
+	# Making the jpeg is over 4x faster when reading from the local file system.
+	# Change the config file to prove it.
+	
 	setup()
-	jp2 = "/home/jstroop/workspace/patokah/data/src_images/00000008.jp2"
-	get_jp2_data(jp2)
-#	outPath = os.path.splitext(jp2.replace(SRC_IMAGES_DIR, DERIV_IMAGES_DIR))[0] + _JPG 
-#	expand(jp2, outPath)
-#	expand(jp2, "outPath", region="\{0.3,0.2\},\{0.6,0.4\}")
+	id = "pudl0001/4609321/s42/00000004"
+	jp2 = resolve_identifier(id)
+#	get_jp2_data(jp2)
+	# check the cache for a match
+	# if its there, return it
+	# else, parse the path and call expand()
+	expand(id, rotation=90)
+# TODO: make expand handle iiif syntax for regions, parse that to look like below:
+#	expand(id, region="\{0.3,0.2\},\{0.6,0.4\}") 
 	#print get_jpeg_dimensions("/home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg")
