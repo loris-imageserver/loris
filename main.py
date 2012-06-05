@@ -88,12 +88,19 @@ def get_jp2_data(path):
 		width = int(struct.unpack(">HH", jp2.read(4))[1])
 		# Ysiz
 		height = int(struct.unpack(">HH", jp2.read(4))[1])
+		logr.debug(path + " w: " + str(width) + " h: " + str(height))
 	
-	jp2.close()
-	logr.debug(path + " dims: w: " + str(width) + " h: " + str(height))
+	while (ord(b) != 0xFF):	b = jp2.read(1)
+	b = jp2.read(1) # 0x52: The COD marker segment
+	if (ord(b) == 0x52):
+		jp2.read(7) # through Lcod, Scod, SGcod (16 + 8 + 32 = 56 bits)
+		levels = int(struct.unpack(">B", jp2.read(1))[0])
+		logr.debug("levels: " + str(levels)) 
+	
+	jp2.close()	
 	return (width, height)	
 
-def get_jpeg_dimensions(path):
+def get_jpeg_data(path):
 	"""
 	Get the dimensions of a JPEG
 	@return: (width, height)
@@ -191,11 +198,11 @@ if __name__ == "__main__":
 	setup()
 	id = "pudl0001/4609321/s42/00000004"
 	jp2 = resolve_identifier(id)
-#	get_jp2_data(jp2)
+	get_jp2_data(jp2)
 	# check the cache for a match
 	# if its there, return it
 	# else, parse the path and call expand()
-	expand(id, rotation=90)
+	#expand(id, rotation=90)
 # TODO: make expand handle iiif syntax for regions, parse that to look like below:
 #	expand(id, region="\{0.3,0.2\},\{0.6,0.4\}") 
-	#print get_jpeg_dimensions("/home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg")
+	#print get_jpeg_data("/home/jstroop/workspace/patokah/data/deriv_images/00000009.jpg")
