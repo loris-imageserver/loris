@@ -98,7 +98,11 @@ def get_jp2_data(path):
 		logr.debug("levels: " + str(levels)) 
 	
 	jp2.close()	
-	return (width, height)	
+	return {
+		"w" : width, 
+		"h" : height, 
+		"l" : levels
+	}
 
 def get_jpeg_data(path):
 	"""
