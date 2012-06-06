@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<info xmlns="http://library.stanford.edu/iiif/image-api/ns/">
+  <identifier>pudl0001/4609321/s42/00000004</identifier>
+  <width>2717</width>
+  <height>3600</height>
+  <scale_factors>
+    <scale_factor>1</scale_factor>
+    <scale_factor>2</scale_factor>
+    <scale_factor>3</scale_factor>
+    <scale_factor>4</scale_factor>
+  </scale_factors>
+  <tile_width>256</tile_width>
+  <tile_height>256</tile_height>
+  <formats>
+    <format>jpg</format>
+  </formats>
+  <qualities>
+    <quality>native</quality>
+  </qualities>
+</info>
