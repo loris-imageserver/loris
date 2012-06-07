@@ -4,6 +4,6 @@
 
 .settings/
 
-data/deriv_images/
+data/patoka/cache
 
 *.pyc

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from werkzeug.exceptions import HTTPException, NotFound
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response
 from werkzeug.wsgi import SharedDataMiddleware
@@ -11,6 +11,7 @@ import logging.config
 import os
 import struct
 import urlparse
+import werkzeug
 
 # Private Static Constants 
 DOT_BMP = ".bmp"
@@ -59,10 +60,9 @@ class Patokah(object):
 
 		self.url_map = Map([
 #			Rule('/', endpoint='???'),
-			Rule('/<path:ident>/<region>/<size>/<int:rotation>/<quality><format>', endpoint='get_img'),
-			Rule('/<path:id>/info<extension>', endpoint='get_img_metadata'),
-			
-		])
+			Rule('/<path:id>/info.<extension>', endpoint='get_img_metadata', ),
+			Rule('/<path:ident>/<region:region>/<size>/<int:rotation>/<quality>.<format>', endpoint='get_img')
+		], converters={'region': RegionConverter})
 	
 	def dispatch_request(self, request):
 		adapter = self.url_map.bind_to_environ(request.environ)
@@ -74,20 +74,20 @@ class Patokah(object):
 		except HTTPException, e:
 			return e
 
-	def on_get_img_metadata(self, request, id, extension='.xml'):
+	def on_get_img_metadata(self, request, id, extension='xml'):
 		# TODO: all of these MIMEs should be constants, and probably support application/* as well
 		mime = None
 		resp_code = None
-		if extension == '.xml': 
+		if extension == 'xml': 
 			mime = 'text/xml'
-		elif extension == '.json': 
+		elif extension == 'json': 
 			mime = 'text/json'
 		else: # support conneg as well.
 			mime = request.accept_mimetypes.best_match(['text/json', 'text/xml'])
 			if mime == 'text/json': 
-				extension = '.json'
+				extension = 'json'
 			else: 
-				mime = '.xml'
+				mime = 'xml'
 			
 		img_path = self._resolve_identifier(id)
 		
@@ -102,7 +102,7 @@ class Patokah(object):
 		if not os.path.exists(cache_dir):
 			os.makedirs(cache_dir, 0755)
 			logr.debug('made ' + cache_dir)
-		cache_path = os.path.join(cache_dir, 'info') + extension
+		cache_path = os.path.join(cache_dir, 'info.') + extension
 		
 		if os.path.exists(cache_path):
 			resp = file(cache_path)
@@ -125,8 +125,8 @@ class Patokah(object):
 	# Do we want: http://docs.python.org/library/queue.html ?
 
 
-	def on_get_img(self, request, ident, region='full', size='full', rotation=0, quality='native', format='.jpg'):
-		return Response(ident + ' ' + region + ' ' + size + ' ' + str(rotation) + ' ' + quality + ' ' + format)
+	def on_get_img(self, request, ident, region, size, rotation, quality, format):
+		return Response(ident + '\n' + str(region) + '\n' + size + '\n' + str(rotation) + '\n' + quality + '\n' + format)
 
 	def x_on_get_img(self, ident, region='full', size='full', rotation=0, quality='native', format='.jpg'):
 		"""
@@ -201,6 +201,37 @@ class Patokah(object):
 	def __call__(self, environ, start_response):
 		return self.wsgi_app(environ, start_response)
 
+class RegionConverter(BaseConverter):
+	"""
+	@return: dictionary with these entries: is_full, is_pct, x, y, w, h.
+	The is_* entries are bools, the remaining are ints
+	
+	"""
+	def __init__(self, url_map):
+		super(RegionConverter, self).__init__(url_map)
+		self.regex = '(full|(pre:)?\d+,\d+,\d+,\d+)'
+
+	def to_python(self, value):
+		keys = ('is_full', 'is_pct', 'x','y','w','h')
+		if value == 'full':
+			params = {}.fromkeys(keys)
+			params['is_full'] = True
+			return params
+		else:
+			is_full = False
+			is_pct = value.startswith('pre:')
+			logr.debug("is_pct: " + str(is_pct))
+			if is_pct: 
+				value = value.split(':')[1]
+			logr.debug("region tokens: " + value)
+			
+			keys = ('is_full', 'is_pct', 'x','y','w','h')
+			values = [is_full, is_pct] + [int(n) for n in value.split(',')] 
+			return dict(zip(keys, values)) 
+
+	def to_url(self, value):
+		return str(value) # ??
+
 
 class ImgInfo(object):
 	# TODO: look at color info in the file and figure out qualities
@@ -261,15 +292,15 @@ class ImgInfo(object):
 		x = x + '  <height>' + str(self.height) + '</height>' + os.linesep
 		x = x + '  <scale_factors>' + os.linesep
 		for s in range(1, self.levels):
-			x = x + '    <scale_factor>' + str(s) + '</scale_factor>' + os.linesep
+			x = x + '	<scale_factor>' + str(s) + '</scale_factor>' + os.linesep
 		x = x + '  </scale_factors>' + os.linesep
 		x = x + '  <tile_width>' + str(self.tile_width) + '</tile_width>' + os.linesep
 		x = x + '  <tile_height>' + str(self.tile_height) + '</tile_height>' + os.linesep
 		x = x + '  <formats>' + os.linesep
-		x = x + '    <format>jpg</format>' + os.linesep
+		x = x + '	<format>jpg</format>' + os.linesep
 		x = x + '  </formats>' + os.linesep
   		x = x + '  <qualities>' + os.linesep
-  		x = x + '    <quality>native</quality>' + os.linesep
+  		x = x + '	<quality>native</quality>' + os.linesep
   		x = x + '  </qualities>' + os.linesep
   		x = x + '</info>' + os.linesep
 		return x
@@ -289,7 +320,6 @@ class ImgInfo(object):
 		return j
 
 if __name__ == '__main__':
-    from werkzeug.serving import run_simple
-    app = create_app()
-    run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
-
+	from werkzeug.serving import run_simple
+	app = create_app()
+	run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)

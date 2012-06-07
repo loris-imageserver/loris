@@ -1,0 +1,10 @@
+{
+  "identifier" : "pudl0001/4609321/s42/00000004",
+  "width" : 2717,
+  "height" : 3600,
+  "scale_factors" : [1, 2, 3, 4],
+  "tile_width" : 256,
+  "tile_height" : 256,
+  "formats" : [ "jpg" ],
+  "quality" : [ "native" ]
+}
