@@ -56,12 +56,12 @@ class Patokah(object):
 			if not os.path.exists(d):
 				os.makedirs(d, 0755)
 				logr.info("Created " + d)
-		
+
 		self.url_map = Map([
-#			Rule('/', endpoint='new_url'),
+#			Rule('/', endpoint='???'),
+			Rule('/<path:ident>/<region>/<size>/<int:rotation>/<quality><format>', endpoint='get_img'),
 			Rule('/<path:id>/info<extension>', endpoint='get_img_metadata'),
-			Rule('/<path:id>/info', endpoint='get_img_metadata'),
-			Rule('/<short_id>+', endpoint='get_img')
+			
 		])
 	
 	def dispatch_request(self, request):
@@ -122,17 +122,68 @@ class Patokah(object):
 			
 		return Response(resp, mimetype=mime,)
 	
-	def on_get_img(self, id):
-		pass
+	# Do we want: http://docs.python.org/library/queue.html ?
+
+
+	def on_get_img(self, request, ident, region='full', size='full', rotation=0, quality='native', format='.jpg'):
+		return Response(ident + ' ' + region + ' ' + size + ' ' + str(rotation) + ' ' + quality + ' ' + format)
+
+	def x_on_get_img(self, ident, region='full', size='full', rotation=0, quality='native', format='.jpg'):
+		"""
+		@return the path to the new image.
+		"""
+		jp2 = resolve_identifier(id)
+		rotation = str(90 * int(rotation / 90)) # round to closest factor of 90
+		
+		out_dir = os.path.join(self.CACHE_ROOT, id, region, size, rotation)
+		out = os.path.join(out_dir, quality) + format  
+		
+		# Use a named pipe to give kdu and cjpeg format info.
+		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
+		mkfifo_cmd = self.MKFIFO + " " + fifopath
+		logr.debug(mkfifo_cmd) 
+		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
+		mkfifo_proc.wait()
+		
+		# Build the kdu_expand call
+		kdu_cmd = KDU_EXPAND + " -i " + jp2 
+		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
+		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
+		kdu_cmd = kdu_cmd + " -o " + fifopath
+		logr.debug(kdu_cmd)
+		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
+	
+		# What are the implications of not being able to wait here (not sure why
+		# we can't, but it hangs when we try). I *think* that as long as there's 
+		# data flowing into the pipe when the next process (below) starts we're 
+		# just fine.
+		
+		# TODO: if format is not jpg, [do something] (see spec)
+		# TODO: quality, probably in the recipe below
+		
+		if not os.path.exists(out_dir):
+			os.makedirs(out_dir, 0755)
+			self.logr.info("Made directory: " + out_dir)
+		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
+		logr.debug(cjpeg_cmd)
+		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
+		self.logr.info("Made file: " + out)
+	
+		rm_cmd = self.RM + " " + fifopath
+		logr.debug(rm_cmd)
+		rm_proc = subprocess.Popen(rm_cmd, shell=True)
+		
+		return out
 
 	# static?
 	def _resolve_identifier(self, ident):
 		"""
-		Given the identifier of an image, resolve it to an actual path. This would 
-		probably need to be overridden to suit different environments.
+		Given the identifier of an image, resolve it to an actual path. This
+		would need to be overridden to suit different environments.
 		
-		This simple version just prepends a constant path to the identfier supplied,
-		and appends a file extension, resulting in an absolute path on the filesystem
+		This simple version just prepends a constant path to the identfier
+		supplied, and appends a file extension, resulting in an absolute path 
+		on the filesystem.
 		"""
 		return os.path.join(self.SRC_IMAGES_ROOT, ident + DOT_JP2)
 
