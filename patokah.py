@@ -31,21 +31,14 @@ logr = logging.getLogger('main')
 logr.info("Logging initialized")
 
 def create_app():
-	# this is where--I think--we'd read in configuration, set dirs, etc.
 	app = Patokah()
-	
-#	app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-#			'/cache':  os.path.join(os.path.dirname(__file__), 'cache') # I think the val could be read from conf.
-#		})
 	return app
+
+# Note when we start to stream big files from the filesystem, see:
+# http://stackoverflow.com/questions/5166129/how-do-i-stream-a-file-using-werkzeug
 
 class Patokah(object):
 	def __init__(self):
-#		conf_file = os.path.join(_ETC, 'patokah.conf')
-		# Configuration - Logging
-#		logging.config.fileConfig(conf_file)
-#		logr = logging.getLogger('main')
-#		logr.info("Logging initialized")
 		
 		# Configuration - Everything else
 		_conf = ConfigParser.RawConfigParser()
@@ -89,7 +82,7 @@ class Patokah(object):
 			mime = 'text/xml'
 		elif extension == '.json': 
 			mime = 'text/json'
-		else: 
+		else: # support conneg as well.
 			mime = request.accept_mimetypes.best_match(['text/json', 'text/xml'])
 			if mime == 'text/json': 
 				extension = '.json'
@@ -159,6 +152,7 @@ class Patokah(object):
 
 
 class ImgInfo(object):
+	# TODO: look at color info in the file and figure out qualities
 	def __init__(self):
 		self.id = None
 		self.width = None
@@ -230,7 +224,18 @@ class ImgInfo(object):
 		return x
 	
 	def toJSON(self):
-		pass
+		# cheaper!
+		j = '{' + os.linesep
+		j = j + '  "identifier" : "' + self.id + '",' + os.linesep
+		j = j + '  "width" : ' + str(self.width) + ',' + os.linesep
+		j = j + '  "height" : ' + str(self.height) + ',' + os.linesep
+		j = j + '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels)) + '],' + os.linesep
+		j = j + '  "tile_width" : ' + str(self.tile_width) + ',' + os.linesep
+		j = j + '  "tile_height" : ' + str(self.tile_height) + ',' + os.linesep
+		j = j + '  "formats" : [ "jpg" ],' + os.linesep
+		j = j + '  "quality" : [ "native" ]' + os.linesep
+		j = j + '}'
+		return j
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
