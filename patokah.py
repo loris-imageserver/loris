@@ -28,8 +28,9 @@ _ENV = {"LD_LIBRARY_PATH":_LIB, "PATH":_LIB + ":$PATH"}
 
 conf_file = os.path.join(_ETC, 'patokah.conf')
 logging.config.fileConfig(conf_file)
-logr = logging.getLogger('main')
+logr = logging.getLogger('patokah')
 logr.info("Logging initialized")
+
 
 def create_app():
 	app = Patokah()
@@ -58,11 +59,17 @@ class Patokah(object):
 				os.makedirs(d, 0755)
 				logr.info("Created " + d)
 
+		converters = {
+				'region' : RegionConverter,
+				'size' : SizeConverter,
+				'rotation' : RotationConverter
+			}
 		self.url_map = Map([
 #			Rule('/', endpoint='???'),
-			Rule('/<path:id>/info.<extension>', endpoint='get_img_metadata', ),
-			Rule('/<path:ident>/<region:region>/<size>/<int:rotation>/<quality>.<format>', endpoint='get_img')
-		], converters={'region': RegionConverter})
+			Rule('/<path:id>/info.<extension>', endpoint='get_img_metadata',),
+			#Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='get_img'),
+			Rule('/ctests/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='converter_test')
+		], converters=converters)
 	
 	def dispatch_request(self, request):
 		adapter = self.url_map.bind_to_environ(request.environ)
@@ -125,55 +132,62 @@ class Patokah(object):
 	# Do we want: http://docs.python.org/library/queue.html ?
 
 
-	def on_get_img(self, request, ident, region, size, rotation, quality, format):
-		return Response(ident + '\n' + str(region) + '\n' + size + '\n' + str(rotation) + '\n' + quality + '\n' + format)
+	def on_converter_test(self, request, ident, region, size, rotation, quality, format):
+		"""
+		Helper for our testConverters unit test. 
+		"""
+		r = {}
+		r['region'] = region
+		r['size'] = size
+		r['rotation'] = rotation
+		return Response(str(r))
 
-	def x_on_get_img(self, ident, region='full', size='full', rotation=0, quality='native', format='.jpg'):
-		"""
-		@return the path to the new image.
-		"""
-		jp2 = resolve_identifier(id)
-		rotation = str(90 * int(rotation / 90)) # round to closest factor of 90
-		
-		out_dir = os.path.join(self.CACHE_ROOT, id, region, size, rotation)
-		out = os.path.join(out_dir, quality) + format  
-		
-		# Use a named pipe to give kdu and cjpeg format info.
-		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
-		mkfifo_cmd = self.MKFIFO + " " + fifopath
-		logr.debug(mkfifo_cmd) 
-		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
-		mkfifo_proc.wait()
-		
-		# Build the kdu_expand call
-		kdu_cmd = KDU_EXPAND + " -i " + jp2 
-		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
-		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
-		kdu_cmd = kdu_cmd + " -o " + fifopath
-		logr.debug(kdu_cmd)
-		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
-	
-		# What are the implications of not being able to wait here (not sure why
-		# we can't, but it hangs when we try). I *think* that as long as there's 
-		# data flowing into the pipe when the next process (below) starts we're 
-		# just fine.
-		
-		# TODO: if format is not jpg, [do something] (see spec)
-		# TODO: quality, probably in the recipe below
-		
-		if not os.path.exists(out_dir):
-			os.makedirs(out_dir, 0755)
-			self.logr.info("Made directory: " + out_dir)
-		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
-		logr.debug(cjpeg_cmd)
-		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
-		self.logr.info("Made file: " + out)
-	
-		rm_cmd = self.RM + " " + fifopath
-		logr.debug(rm_cmd)
-		rm_proc = subprocess.Popen(rm_cmd, shell=True)
-		
-		return out
+#	def on_get_img(self, request, ident, region, size, rotation, quality, format):
+#		"""
+#		@return the path to the new image.
+#		"""
+#		jp2 = self.resolve_identifier(ident)
+#		rotation = str(90 * int(rotation / 90)) # round to closest factor of 90
+#		
+#		out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
+#		out = os.path.join(out_dir, quality) + format  
+#		
+#		# Use a named pipe to give kdu and cjpeg format info.
+#		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
+#		mkfifo_cmd = self.MKFIFO + " " + fifopath
+#		logr.debug(mkfifo_cmd) 
+#		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
+#		mkfifo_proc.wait()
+#		
+#		# Build the kdu_expand call
+#		kdu_cmd = KDU_EXPAND + " -i " + jp2 
+#		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
+#		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
+#		kdu_cmd = kdu_cmd + " -o " + fifopath
+#		logr.debug(kdu_cmd)
+#		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
+#	
+#		# What are the implications of not being able to wait here (not sure why
+#		# we can't, but it hangs when we try). I *think* that as long as there's 
+#		# data flowing into the pipe when the next process (below) starts we're 
+#		# just fine.
+#		
+#		# TODO: if format is not jpg, [do something] (see spec)
+#		# TODO: quality, probably in the recipe below
+#		
+#		if not os.path.exists(out_dir):
+#			os.makedirs(out_dir, 0755)
+#			self.logr.info("Made directory: " + out_dir)
+#		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
+#		logr.debug(cjpeg_cmd)
+#		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
+#		self.logr.info("Made file: " + out)
+#	
+#		rm_cmd = self.RM + " " + fifopath
+#		logr.debug(rm_cmd)
+#		rm_proc = subprocess.Popen(rm_cmd, shell=True)
+#		
+#		return out
 
 	# static?
 	def _resolve_identifier(self, ident):
@@ -203,35 +217,131 @@ class Patokah(object):
 
 class RegionConverter(BaseConverter):
 	"""
-	@return: dictionary with these entries: is_full, is_pct, x, y, w, h.
-	The is_* entries are bools, the remaining are ints
+	Custom converter for the region paramaters as specified.
+	
+	@see http://library.stanford.edu/iiif/image-api/#region
+	
+	@return: dictionary with these entries: is_full, is_pct, x, y, w, h. The 
+	is_* entries are bools, the remaining are ints.
 	
 	"""
 	def __init__(self, url_map):
 		super(RegionConverter, self).__init__(url_map)
-		self.regex = '(full|(pre:)?\d+,\d+,\d+,\d+)'
+		self.regex = '[^/]+'
 
 	def to_python(self, value):
-		keys = ('is_full', 'is_pct', 'x','y','w','h')
+		keys = ('is_full', 'is_pct', 'x', 'y', 'w', 'h')
 		if value == 'full':
 			params = {}.fromkeys(keys)
 			params['is_full'] = True
-			return params
+			params['is_pct'] = False
 		else:
-			is_full = False
-			is_pct = value.startswith('pre:')
-			logr.debug("is_pct: " + str(is_pct))
-			if is_pct: 
-				value = value.split(':')[1]
-			logr.debug("region tokens: " + value)
-			
-			keys = ('is_full', 'is_pct', 'x','y','w','h')
-			values = [is_full, is_pct] + [int(n) for n in value.split(',')] 
-			return dict(zip(keys, values)) 
+			try:
+				is_full = False
+				is_pct = value.startswith('pct:')
+				if is_pct: 
+					value = value.split(':')[1]
+					values = [is_full, is_pct] + [float(d) for d in value.split(',')]
+					if any(n > 100.0 for n in values):
+						msg = 'Percentages must be less than 100.0.'
+						raise BadRegionPctException(400, 'pct:' + value, msg)
+					# TODO raise if any number is > 100.0
+				else:
+					values = [is_full, is_pct] + [int(d) for d in value.split(',')]
+				
+				params = dict(zip(keys, values))
+			except Exception, e :
+				raise BadRegionSyntaxException(400, value, 'Region syntax not valid. ' + e.message)
+
+		return params
+
+	def to_url(self, value):
+		return str(value)
+
+class SizeConverter(BaseConverter):
+	"""
+	Custom converter for the size paramaters as specified.
+	
+	We also support the syntax 'level:int', where int a decomposition level of 
+	a JP2. Per the JP2 spec this must by <= 32. This is not part of the IIIF 
+	spec.
+	
+	Note that force_aspect is only supplied when we have a w and h, otherwise it
+	is None.
+	
+	@see http://library.stanford.edu/iiif/image-api/#size
+	
+	@return: dictionary with these entries: is_full, force_aspect, pct, 
+	level, w, h. The is_full and force_aspect entries are bools, the remaining 
+	are ints.
+	
+	"""
+	def __init__(self, url_map):
+		super(SizeConverter, self).__init__(url_map)
+		self.regex = '[^/]+'
+	
+	def to_python(self, value):
+		params = {}.fromkeys(('is_full', 'force_aspect', 'w', 'h', 'pct', 'level'))
+		try:
+			if value == 'full':
+				params['is_full'] = True
+			elif value.startswith('pct:'):
+				params['pct'] = int(value.split(':')[1])
+			elif value.startswith('level:'):
+				l = int(value.split(':')[1])
+				if l < +32:
+					params['level'] = int(value.split(':')[1])
+				else:
+					raise BadSizeSyntaxException(400, value, 'Level parameters must be less than or equal to 32')
+			elif value.startswith(','):
+				params['h'] = int(value[1:])
+			elif value.endswith(','):
+				params['w'] = int(value[:-1])
+			elif value.startswith(','):
+				params['h'] = int(value[1:])
+			elif value.startswith('!'):
+				params['force_aspect'] = False
+				params['w'], params['h'] = (int(d) for d in value[1:].split(','))
+			else:
+				params['force_aspect'] = True
+				params['w'], params['h'] = (int(d) for d in value.split(','))
+		except Exception, e:
+			raise BadSizeSyntaxException(400, value, 'Bad size syntax. ' + e.message)
+#		elif wh_regex.match(value) != None:
+#			params['force_aspect'] = True
+#			params['w'], params['h'] = (int(d) for d in value.split(','))
+#		else:
+#			#TODO
+#			raise Exception('Size syntax not valid: ' + value)
+		
+		if params['is_full'] == None: params['is_full'] = False
+		
+		return params
 
 	def to_url(self, value):
 		return str(value) # ??
 
+class RotationConverter(BaseConverter):
+	"""
+	Custom converter for the rotation paramater.
+	
+	@see http://library.stanford.edu/iiif/image-api/#rotation
+	
+	@return: the nearest multiple of 90 as an int
+	
+	"""
+	def __init__(self, url_map):
+		super(RotationConverter, self).__init__(url_map)
+		self.regex = '\d+'
+
+	def to_python(self, value):
+		nearest90 = int(90 * round(float(value) / 90))
+		if nearest90 > 270: nearest90 = 0 
+		return nearest90
+
+
+	def to_url(self, value):
+		return str(value)
 
 class ImgInfo(object):
 	# TODO: look at color info in the file and figure out qualities
@@ -318,6 +428,22 @@ class ImgInfo(object):
 		j = j + '  "quality" : [ "native" ]' + os.linesep
 		j = j + '}'
 		return j
+
+class ConverterException(Exception):
+	def __init__(self, http_status=404, supplied_value='', msg=''):
+		"""
+		"""
+		super(ConverterException, self).__init__(msg)
+		self.http_status = http_status
+		self.supplied_value = supplied_value
+		
+	def to_xml(self):
+		pass
+	
+class BadRegionPctException(ConverterException): pass
+class BadRegionSyntaxException(ConverterException): pass
+class BadSizeSyntaxException(ConverterException): pass
+
 
 if __name__ == '__main__':
 	from werkzeug.serving import run_simple
