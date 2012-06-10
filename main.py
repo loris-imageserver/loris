@@ -62,6 +62,34 @@ class Patokah(object):
 		ba = bytearray.fromhex(uc[:newlen])
 		return urlsafe_b64encode(str(ba))[:length]
 
+	def get_jpeg_dimensions(self,path):
+	   jpeg = open(path, 'r')
+	   jpeg.read(2)
+	   b = jpeg.read(1)
+	   try:
+		   while (b and ord(b) != 0xDA):
+			   while (ord(b) != 0xFF): b = jpeg.read(1)
+			   while (ord(b) == 0xFF): b = jpeg.read(1)
+			   
+			   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+				   jpeg.read(3)
+				   h, w = struct.unpack(">HH", jpeg.read(4))
+				   break
+			   else:
+				   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
+				   
+			   b = jpeg.read(1)
+		   width = int(w)
+		   height = int(h)
+	   except struct.error:
+		   pass
+	   except ValueError:
+		   pass
+	   finally:
+		   jpeg.close()
+	   logr.debug(path + " w: " + str(width) + " h: " + str(height))
+	   return (width, height)
+
 	def get_jp2_data(self, path):
 		"""
 		Get the dimensions and levels of a JP2.
