@@ -34,20 +34,32 @@ class TestPatokah(unittest.TestCase):
 				'region' :{'is_pct':True, 'is_full':False, 'x':10, 'y':10, 'w':70, 'h':80},
 				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':True, 'w':None, 'h':None},
 				'rotation':0
-			}
-			# TODO: size and rotation
-		}
-		fail_queries = {
-			'region_pct_fail':{
-				'uri' :'/ctests/pudl0001/4609321/s42/00000004/pct:101,10,70,80/full/0/native.jpg',
-				'raises': BadRegionSyntaxException
 			},
-			'region_syntax_fail':{
-				'uri' :'/ctests/pudl0001/4609321/s42/00000004/NaN,10,70,80/full/0/native.jpg',
-				'raises': BadRegionSyntaxException
-			}
-			# TODO: size (lots) and rotation		
-					
+			'rotation_exact' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/180/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':180
+			},
+			'rotation_round_up' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/46/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':90
+			},
+			'rotation_round_down' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/280/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':270
+			},
+			'rotation_gt_314' :{ # would round to 360, which == 0
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/315/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':0
+			},
+			# TODO: size and rotation
 		}
 		c = Client(self.app, BaseResponse)
 		for q in pass_queries:
@@ -62,10 +74,27 @@ class TestPatokah(unittest.TestCase):
 			self.assertEqual(elements['size'], pass_queries[q]['size'], fail_msg)
 			fail_msg = 'Query key "' + q + '"\'s rotation unexpected'
 			self.assertEqual(elements['rotation'], pass_queries[q]['rotation'], fail_msg)
-			
+				
+	def test_converter_exceptions(self):
+		fail_queries = {
+			'region_pct_fail':{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/pct:101,10,70,80/full/0/native.jpg',
+				'raises': BadRegionSyntaxException
+			},
+			'region_syntax_fail':{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/NaN,10,70,80/full/0/native.jpg',
+				'raises': BadRegionSyntaxException
+			}
+			# TODO: size (lots) and rotation
+			# note that we still need rotation exceptions		
+					
+		}
+
+		c = Client(self.app, BaseResponse)	
 		for q in fail_queries:
 			with self.assertRaises(fail_queries[q]['raises'],):
 				c.get(fail_queries[q]['uri'])
+
 	
 	def test_img_info(self):
 		# be sure to test content and XML and json validity
