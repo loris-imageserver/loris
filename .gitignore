@@ -4,6 +4,6 @@
 
 .settings/
 
-data/patoka/cache/*
+cache/
 
 *.pyc
