@@ -39,6 +39,8 @@ def create_app():
 # Note when we start to stream big files from the filesystem, see:
 # http://stackoverflow.com/questions/5166129/how-do-i-stream-a-file-using-werkzeug
 
+# TODO: do we need a format converter? Would like to support png as well.
+
 class Patokah(object):
 	def __init__(self):
 		
@@ -67,7 +69,7 @@ class Patokah(object):
 		self.url_map = Map([
 #			Rule('/', endpoint='???'),
 			Rule('/<path:id>/info.<extension>', endpoint='get_img_metadata',),
-			#Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='get_img'),
+			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='get_img'),
 			Rule('/ctests/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='converter_test')
 		], converters=converters)
 	
@@ -142,52 +144,62 @@ class Patokah(object):
 		r['rotation'] = rotation
 		return Response(str(r))
 
-#	def on_get_img(self, request, ident, region, size, rotation, quality, format):
-#		"""
-#		@return the path to the new image.
-#		"""
-#		jp2 = self.resolve_identifier(ident)
-#		rotation = str(90 * int(rotation / 90)) # round to closest factor of 90
-#		
-#		out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
-#		out = os.path.join(out_dir, quality) + format  
-#		
-#		# Use a named pipe to give kdu and cjpeg format info.
-#		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
-#		mkfifo_cmd = self.MKFIFO + " " + fifopath
-#		logr.debug(mkfifo_cmd) 
-#		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
-#		mkfifo_proc.wait()
-#		
-#		# Build the kdu_expand call
-#		kdu_cmd = KDU_EXPAND + " -i " + jp2 
-#		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
-#		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
-#		kdu_cmd = kdu_cmd + " -o " + fifopath
-#		logr.debug(kdu_cmd)
-#		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
-#	
-#		# What are the implications of not being able to wait here (not sure why
-#		# we can't, but it hangs when we try). I *think* that as long as there's 
-#		# data flowing into the pipe when the next process (below) starts we're 
-#		# just fine.
-#		
-#		# TODO: if format is not jpg, [do something] (see spec)
-#		# TODO: quality, probably in the recipe below
-#		
-#		if not os.path.exists(out_dir):
-#			os.makedirs(out_dir, 0755)
-#			self.logr.info("Made directory: " + out_dir)
-#		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
-#		logr.debug(cjpeg_cmd)
-#		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
-#		self.logr.info("Made file: " + out)
-#	
-#		rm_cmd = self.RM + " " + fifopath
-#		logr.debug(rm_cmd)
-#		rm_proc = subprocess.Popen(rm_cmd, shell=True)
-#		
-#		return out
+	def on_get_img(self, request, ident, region, size, rotation, quality, format):
+		# TODO: 
+		"""
+		Get an image based on the values or dictionaries returned by our 
+		converters.
+		"""
+		
+		if format in ('jpg','jpeg'):
+			mime = 'image/jpeg'
+			ext = 'jpg'
+		
+		jp2 = self.resolve_identifier(ident)
+		
+		# TODO: we probably don't want to read this from the file every time.
+		# Runtime cache? db?
+		info = ImgInfo.fromJP2(jp2)
+		
+		out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
+		out = os.path.join(out_dir, quality) + '.' + ext  
+		
+		# Use a named pipe to give kdu and cjpeg format info.
+		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
+		mkfifo_cmd = self.MKFIFO + " " + fifopath
+		logr.debug(mkfifo_cmd) 
+		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
+		mkfifo_proc.wait()
+		
+		# Build the kdu_expand call
+		kdu_cmd = KDU_EXPAND + " -i " + jp2 
+		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
+		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
+		kdu_cmd = kdu_cmd + " -o " + fifopath
+		logr.debug(kdu_cmd)
+		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
+	
+		# What are the implications of not being able to wait here (not sure why
+		# we can't, but it hangs when we try). I *think* that as long as there's 
+		# data flowing into the pipe when the next process (below) starts we're 
+		# just fine.
+		
+		# TODO: if format is not jpg, [do something] (see spec)
+		# TODO: quality, probably in the recipe below
+		
+		if not os.path.exists(out_dir):
+			os.makedirs(out_dir, 0755)
+			self.logr.info("Made directory: " + out_dir)
+		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
+		logr.debug(cjpeg_cmd)
+		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
+		self.logr.info("Made file: " + out)
+	
+		rm_cmd = self.RM + " " + fifopath
+		logr.debug(rm_cmd)
+		rm_proc = subprocess.Popen(rm_cmd, shell=True)
+		
+		return out
 
 	# static?
 	def _resolve_identifier(self, ident):
@@ -230,24 +242,28 @@ class RegionConverter(BaseConverter):
 		self.regex = '[^/]+'
 
 	def to_python(self, value):
-		keys = ('is_full', 'is_pct', 'x', 'y', 'w', 'h')
+		keys = ('is_full', 'is_pct', 'value', 'x', 'y', 'w', 'h')
 		if value == 'full':
 			params = {}.fromkeys(keys)
 			params['is_full'] = True
 			params['is_pct'] = False
+			params['value'] = str(value)
 		else:
 			try:
 				is_full = False
 				is_pct = value.startswith('pct:')
 				if is_pct: 
-					value = value.split(':')[1]
-					values = [is_full, is_pct] + [float(d) for d in value.split(',')]
-					if any(n > 100.0 for n in values):
+					
+					norm_value = value.split(':')[1]
+					logr.debug(norm_value)
+					dims = [float(d) for d in norm_value.split(',')]
+					
+					if any(n > 100.0 for n in dims):
 						msg = 'Percentages must be less than 100.0.'
-						raise BadRegionPctException(400, 'pct:' + value, msg)
-					# TODO raise if any number is > 100.0
+						raise BadRegionPctException(400, value, msg)
+					values = [is_full, is_pct, str(value)] + dims
 				else:
-					values = [is_full, is_pct] + [int(d) for d in value.split(',')]
+					values = [is_full, is_pct, value] + [int(d) for d in value.split(',')]
 				
 				params = dict(zip(keys, values))
 			except Exception, e :
@@ -281,7 +297,8 @@ class SizeConverter(BaseConverter):
 		self.regex = '[^/]+'
 	
 	def to_python(self, value):
-		params = {}.fromkeys(('is_full', 'force_aspect', 'w', 'h', 'pct', 'level'))
+		params = {}.fromkeys(('is_full', 'force_aspect', 'value', 'w', 'h', 'pct', 'level'))
+		params['value'] = value
 		try:
 			if value == 'full':
 				params['is_full'] = True

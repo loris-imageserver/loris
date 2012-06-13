@@ -21,92 +21,92 @@ class TestPatokah(unittest.TestCase):
 				# if my request is ...
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/0/native.jpg',
 				# my converter responses should be ...
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'value':'full', 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':0
 			},
 			'region_pixels':{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/80,50,16,75/full/0/native.jpg',
-				'region' :{'is_pct':False, 'is_full':False, 'x':80, 'y':50, 'w':16, 'h':75},
-				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':True, 'w':None, 'h':None},
+				'region' :{'is_pct':False, 'is_full':False, 'value':'80,50,16,75', 'x':80, 'y':50, 'w':16, 'h':75},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'pct':None, 'is_full':True, 'w':None, 'h':None},
 				'rotation':0
 			},
 			'region_pct':{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/pct:10,10,70,80/full/0/native.jpg',
-				'region' :{'is_pct':True, 'is_full':False, 'x':10, 'y':10, 'w':70, 'h':80},
-				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':True, 'w':None, 'h':None},
+				'region' :{'is_pct':True, 'is_full':False, 'value':'pct:10,10,70,80', 'x':10, 'y':10, 'w':70, 'h':80},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'pct':None, 'is_full':True, 'w':None, 'h':None},
 				'rotation':0
 			},
 			'rotation_exact' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/180/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':180
 			},
 			'rotation_round_up' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/46/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':90
 			},
 			'rotation_round_down' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/280/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':270
 			},
 			'rotation_gt_314' :{ # would round to 360, which == 0
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/315/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':360
 			},
 			'negative_rotation' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/-92/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'value':'full', 'pct':None, 'is_full':True, 'w':None},
 				'rotation':-90
 			},
 			'negative_rotation_lt_neg314' :{ # would round to 360, which == 0
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/-315/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'value':'full', 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':-360
 			},
 			'size_50_pct' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/pct:50/0/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'pct':50, 'is_full':False, 'w':None, 'h':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'pct':50, 'value':'pct:50', 'is_full':False, 'w':None, 'h':None},
 				'rotation':0
 			},
 			'size_100_w' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/100,/0/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':False, 'w':100, 'h':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'pct':None, 'value':'100,', 'is_full':False, 'w':100, 'h':None},
 				'rotation':0
 			},
 			'size_100_h' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/,100/0/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':False, 'w':None, 'h':100},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'pct':None, 'value':',100', 'is_full':False, 'w':None, 'h':100},
 				'rotation':0
 			},
 			'size_wh_forced' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/150,75/0/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':True, 'level':None, 'pct':None, 'is_full':False, 'w':150, 'h':75},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':True, 'level':None, 'pct':None, 'value':'150,75', 'is_full':False, 'w':150, 'h':75},
 				'rotation':0
 			},
 			'size_wh_unforced' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/!150,75/0/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':False, 'level':None, 'pct':None, 'is_full':False, 'w':150, 'h':75},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':False, 'level':None, 'pct':None, 'value':'!150,75', 'is_full':False, 'w':150, 'h':75},
 				'rotation':0
 			},
 			'level' :{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/level:5/0/native.jpg',
-				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
-				'size':{'force_aspect':None, 'level':5, 'pct':None, 'is_full':False, 'w':None, 'h':None},
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'value':'full', 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':5, 'pct':None, 'value':'level:5', 'is_full':False, 'w':None, 'h':None},
 				'rotation':0
 			}
 		}
