@@ -266,7 +266,7 @@ class SizeConverter(BaseConverter):
 	a JP2. Per the JP2 spec this must by <= 32. This is not part of the IIIF 
 	spec.
 	
-	Note that force_aspect is only supplied when we have a w and h, otherwise it
+	Note that force_aspect is only supplied when we have a w AND h, otherwise it
 	is None.
 	
 	@see http://library.stanford.edu/iiif/image-api/#size
@@ -286,33 +286,56 @@ class SizeConverter(BaseConverter):
 			if value == 'full':
 				params['is_full'] = True
 			elif value.startswith('pct:'):
-				params['pct'] = int(value.split(':')[1])
+				try:
+					pct = int(value.split(':')[1])
+					if pct > 100:
+						raise Exception('Percentage supplied is greater than 100. Upsampling is not supported.')
+					else:
+						params['pct'] = pct
+				except:
+					raise
 			elif value.startswith('level:'):
-				l = int(value.split(':')[1])
-				if l < +32:
-					params['level'] = int(value.split(':')[1])
-				else:
-					raise BadSizeSyntaxException(400, value, 'Level parameters must be less than or equal to 32')
-			elif value.startswith(','):
-				params['h'] = int(value[1:])
+				try:
+					l = int(value.split(':')[1])
+					if l < +32:
+						params['level'] = int(value.split(':')[1])
+					else:
+						raise Exception('Level parameters must be less than or equal to 32')
+				except:
+					raise
 			elif value.endswith(','):
-				params['w'] = int(value[:-1])
+				try:
+					params['w'] = int(value[:-1])
+				except:
+					raise
 			elif value.startswith(','):
-				params['h'] = int(value[1:])
+				try:
+					params['h'] = int(value[1:])
+				except:
+					raise
 			elif value.startswith('!'):
 				params['force_aspect'] = False
-				params['w'], params['h'] = (int(d) for d in value[1:].split(','))
+				try:
+					params['w'], params['h'] = (int(d) for d in value[1:].split(','))
+				except:
+					raise
 			else:
 				params['force_aspect'] = True
-				params['w'], params['h'] = (int(d) for d in value.split(','))
+				try:
+					params['w'], params['h'] = (int(d) for d in value.split(','))
+				except:
+					raise
+		except ValueError, e:
+			msg = 'Bad size syntax. '
+			msg = msg + 'Check that the supplied width and/or height or\n'
+			msg = msg + 'percentage are integers, and that a comma (",") is '
+			msg = msg + 'used as the w,h separator. \nOriginal error message: '
+			raise BadSizeSyntaxException(400, value,  msg + e.message)
 		except Exception, e:
 			raise BadSizeSyntaxException(400, value, 'Bad size syntax. ' + e.message)
-#		elif wh_regex.match(value) != None:
-#			params['force_aspect'] = True
-#			params['w'], params['h'] = (int(d) for d in value.split(','))
-#		else:
-#			#TODO
-#			raise Exception('Size syntax not valid: ' + value)
+		
+		if any((dim < 1 and dim != None) for dim in (params['w'], params['h'])):
+			raise BadSizeSyntaxException(400, value, 'Width and height must both be positive numbers')
 		
 		if params['is_full'] == None: params['is_full'] = False
 		
@@ -332,11 +355,11 @@ class RotationConverter(BaseConverter):
 	"""
 	def __init__(self, url_map):
 		super(RotationConverter, self).__init__(url_map)
-		self.regex = '\d+'
+		self.regex = '\-?\d+'
 
 	def to_python(self, value):
-		nearest90 = int(90 * round(float(value) / 90))
-		if nearest90 > 270: nearest90 = 0 
+		# Round. kdu can handle negatives, > 360 and < -360
+		nearest90 = int(90 * round(float(value) / 90)) 
 		return nearest90
 
 

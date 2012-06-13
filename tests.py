@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from patokah import create_app, BadRegionPctException, BadRegionSyntaxException
+from patokah import create_app, BadSizeSyntaxException, BadRegionSyntaxException
 from werkzeug.test import Client
 from werkzeug.testapp import test_app
 from werkzeug.wrappers import BaseResponse
@@ -18,7 +18,9 @@ class TestPatokah(unittest.TestCase):
 		# queries are based on the examples in the region, rotation and size sections
 		pass_queries = {
 			'simple' :{
+				# if my request is ...
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/0/native.jpg',
+				# my converter responses should be ...
 				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
 				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
 				'rotation':0
@@ -57,9 +59,56 @@ class TestPatokah(unittest.TestCase):
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/315/native.jpg',
 				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
 				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':360
+			},
+			'negative_rotation' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/-92/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':-90
+			},
+			'negative_rotation_lt_neg314' :{ # would round to 360, which == 0
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/full/-315/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'h':None, 'pct':None, 'is_full':True, 'w':None},
+				'rotation':-360
+			},
+			'size_50_pct' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/pct:50/0/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'pct':50, 'is_full':False, 'w':None, 'h':None},
 				'rotation':0
 			},
-			# TODO: size and rotation
+			'size_100_w' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/100,/0/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':False, 'w':100, 'h':None},
+				'rotation':0
+			},
+			'size_100_h' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/,100/0/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':None, 'pct':None, 'is_full':False, 'w':None, 'h':100},
+				'rotation':0
+			},
+			'size_wh_forced' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/150,75/0/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':True, 'level':None, 'pct':None, 'is_full':False, 'w':150, 'h':75},
+				'rotation':0
+			},
+			'size_wh_unforced' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/!150,75/0/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':False, 'level':None, 'pct':None, 'is_full':False, 'w':150, 'h':75},
+				'rotation':0
+			},
+			'level' :{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/level:5/0/native.jpg',
+				'region' :{'is_pct':False, 'h':None, 'is_full':True, 'w':None, 'y':None, 'x':None},
+				'size':{'force_aspect':None, 'level':5, 'pct':None, 'is_full':False, 'w':None, 'h':None},
+				'rotation':0
+			}
 		}
 		c = Client(self.app, BaseResponse)
 		for q in pass_queries:
@@ -78,12 +127,30 @@ class TestPatokah(unittest.TestCase):
 	def test_converter_exceptions(self):
 		fail_queries = {
 			'region_pct_fail':{
+				# if my request is:
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/pct:101,10,70,80/full/0/native.jpg',
+				# ____ should be raised:
 				'raises': BadRegionSyntaxException
 			},
 			'region_syntax_fail':{
 				'uri' :'/ctests/pudl0001/4609321/s42/00000004/NaN,10,70,80/full/0/native.jpg',
 				'raises': BadRegionSyntaxException
+			},
+			'size_level_fail':{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/level:33/0/native.jpg',
+				'raises': BadSizeSyntaxException
+			},
+			'lt_1_width_fail':{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/-2,/0/native.jpg',
+				'raises': BadSizeSyntaxException
+			},
+			'lt_1_height_fail':{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/,-2/0/native.jpg',
+				'raises': BadSizeSyntaxException
+			},
+			'upsample_pct_fail':{
+				'uri' :'/ctests/pudl0001/4609321/s42/00000004/full/pct:101/0/native.jpg',
+				'raises': BadSizeSyntaxException
 			}
 			# TODO: size (lots) and rotation
 			# note that we still need rotation exceptions		
