@@ -26,6 +26,8 @@ _BIN = os.path.join(os.path.dirname(__file__), 'bin')
 _ETC = os.path.join(os.path.dirname(__file__), 'etc')
 _ENV = {"LD_LIBRARY_PATH":_LIB, "PATH":_LIB + ":$PATH"}
 
+INFO_CACHE={}
+
 conf_file = os.path.join(_ETC, 'patokah.conf')
 logging.config.fileConfig(conf_file)
 logr = logging.getLogger('patokah')
@@ -87,10 +89,8 @@ class Patokah(object):
 		# TODO: all of these MIMEs should be constants, and probably support application/* as well
 		mime = None
 		resp_code = None
-		if extension == 'xml': 
-			mime = 'text/xml'
-		elif extension == 'json': 
-			mime = 'text/json'
+		if extension == 'xml': 	mime = 'text/xml'
+		elif extension == 'json': mime = 'text/json'
 		else: # support conneg as well.
 			mime = request.accept_mimetypes.best_match(['text/json', 'text/xml'])
 			if mime == 'text/json': 
@@ -123,7 +123,7 @@ class Patokah(object):
 			else:
 				resp = info.toJSON()
 			
-			# we could fork this off...
+			# we could fork this off... http://www.doughellmann.com/PyMOTW/threading/
 			f = open(cache_path, 'w')
 			f.write(resp)
 			f.close()
@@ -179,7 +179,9 @@ class Patokah(object):
 			
 		
 		# TODO: we probably don't want to read this from the file every time.
-		# Runtime cache? db?
+		# Runtime cache? db? in memory dicts and Shelve/pickle are not thread 
+		# safe for writing.
+		# ZODB? : http://www.zodb.org/
 		info = ImgInfo.fromJP2(jp2)
 		
 		out_dir = os.path.join(self.CACHE_ROOT, ident, str(region['value']), str(size['value']), str(rotation))
