@@ -13,14 +13,6 @@ import struct
 import urlparse
 import werkzeug
 
-# Private Static Constants 
-DOT_BMP = ".bmp"
-DOT_JPG = ".jpg"
-DOT_JPGS = ('.jpg', 'jpeg')
-DOT_JP2 = ".jp2"
-DOT_JSON = ".json"
-DOT_XML = ".xml"
-
 _LIB = os.path.join(os.path.dirname(__file__), 'lib')
 _BIN = os.path.join(os.path.dirname(__file__), 'bin')
 _ETC = os.path.join(os.path.dirname(__file__), 'etc')
@@ -31,9 +23,8 @@ logging.config.fileConfig(conf_file)
 logr = logging.getLogger('patokah')
 logr.info("Logging initialized")
 
-
-def create_app():
-	app = Patokah()
+def create_app(test=False):
+	app = Patokah(test)
 	return app
 
 # Note when we start to stream big files from the filesystem, see:
@@ -42,19 +33,31 @@ def create_app():
 # TODO: do we need a format converter? Would like to support png as well.
 
 class Patokah(object):
-	def __init__(self):
+	def __init__(self, test=False):
+		"""
+		@param test: changes our dispatch methods. 
+		"""
 		
 		# Configuration - Everything else
 		_conf = ConfigParser.RawConfigParser()
 		_conf.read(conf_file)
+
+		self.test=test
 
 		self.CJPEG = _conf.get('utilities', 'cjpeg')
 		self.MKFIFO = _conf.get('utilities', 'mkfifo')
 		self.RM = _conf.get('utilities', 'rm')
 		
 		self.TMP_DIR = _conf.get('directories', 'tmp')
+		
+		# TODO: need a cache test
 		self.CACHE_ROOT = _conf.get('directories', 'cache_root')
-		self.SRC_IMAGES_ROOT = _conf.get('directories', 'src_img_root')
+		
+		self.SRC_IMAGES_ROOT = ""
+		if self.test:
+			self.SRC_IMAGES_ROOT = os.path.join(os.path.dirname(__file__), 'test_img') 
+		else:
+			self.SRC_IMAGES_ROOT = _conf.get('directories', 'src_img_root')
 		
 		for d in (self.TMP_DIR, self.CACHE_ROOT):
 			if not os.path.exists(d):
@@ -67,63 +70,65 @@ class Patokah(object):
 				'rotation' : RotationConverter
 			}
 		self.url_map = Map([
-#			Rule('/', endpoint='???'),
-			Rule('/<path:id>/info.<extension>', endpoint='get_img_metadata',),
-			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='get_img'),
-			Rule('/ctests/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<quality>.<format>', endpoint='converter_test')
+			Rule('/<path:ident>/info.<any(json, xml):extension>', endpoint='get_img_metadata'),
+			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img')
 		], converters=converters)
 	
 	def dispatch_request(self, request):
+		"""
+		Dispatch the request to the proper method. By convention, the endpoint,
+		(i.e. the method to be called) is named 'on_<method>'.
+		"""
 		adapter = self.url_map.bind_to_environ(request.environ)
 		try:
 			endpoint, values = adapter.match()
-			return getattr(self, 'on_' + endpoint)(request, **values)
+			dispatch_to_method = ''
+			 
+			if self.test: dispatch_to_method = 'test_' + endpoint 
+			else: dispatch_to_method = 'on_' + endpoint
+			
+			logr.debug('Dispatching to ' + dispatch_to_method)
+			return getattr(self, dispatch_to_method)(request, **values)
 		except NotFound, e:
 			return self.error_404(e.description)
 		except HTTPException, e:
 			return e
 
-	def on_get_img_metadata(self, request, id, extension='xml'):
+	def on_get_img_metadata(self, request, ident, extension):
 		# TODO: all of these MIMEs should be constants, and probably support application/* as well
 		mime = None
 		resp_code = None
-		if extension == 'xml': 
-			mime = 'text/xml'
-		elif extension == 'json': 
+		if extension == 'json': 
 			mime = 'text/json'
-		else: # support conneg as well.
-			mime = request.accept_mimetypes.best_match(['text/json', 'text/xml'])
-			if mime == 'text/json': 
-				extension = 'json'
-			else: 
-				mime = 'xml'
+		elif extension == 'xml': 
+			mime = 'text/xml'
+		else:
+			pass
+			# TODO: raise (406 or something like that...format not supported)
 			
-		img_path = self._resolve_identifier(id)
-		
-		# TODO: check for a file to return from the cache first, only if not do
-		# we make a new one.
+		img_path = self._resolve_identifier(ident)
 		
 		if not os.path.exists(img_path):
-			raise NotFound('"' + id + '" does not resolve to an image.')
+			raise NotFound('"' + ident + '" does not resolve to an image.')
 		
-		# check the cache
-		cache_dir = os.path.join(self.CACHE_ROOT, id)
-		if not os.path.exists(cache_dir):
-			os.makedirs(cache_dir, 0755)
-			logr.debug('made ' + cache_dir)
+		
+		cache_dir = os.path.join(self.CACHE_ROOT, ident)
 		cache_path = os.path.join(cache_dir, 'info.') + extension
 		
+		# check the cache
 		if os.path.exists(cache_path):
 			resp = file(cache_path)
 		else:
 			info = ImgInfo.fromJP2(img_path)
-			info.id = id
+			info.id = ident
 			if mime == 'text/xml':
 				resp = info.toXML()
 			else:
 				resp = info.toJSON()
 			
 			# we could fork this off...
+			if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
+			logr.debug('made ' + cache_dir)
 			f = open(cache_path, 'w')
 			f.write(resp)
 			f.close()
@@ -134,9 +139,10 @@ class Patokah(object):
 	# Do we want: http://docs.python.org/library/queue.html ?
 
 
-	def on_converter_test(self, request, ident, region, size, rotation, quality, format):
+	def test_get_img(self, request, ident, region, size, rotation, quality, format):
 		"""
-		Helper for our testConverters unit test. 
+		Helper for our testConverters unit test. The response is a dictionary of 
+		dictionaries that are returned from our converters' to_python methods.
 		"""
 		r = {}
 		r['region'] = region
@@ -151,21 +157,31 @@ class Patokah(object):
 		converters.
 		"""
 		
-		if format in ('jpg','jpeg'):
+		if format == 'jpg':
 			mime = 'image/jpeg'
-			ext = 'jpg'
+			ext = format
+			
+		if format == 'png':
+			mime = 'image/png'
+			ext = format
 		
-		jp2 = self.resolve_identifier(ident)
+		jp2 = self._resolve_identifier(ident)
 		
 		# TODO: we probably don't want to read this from the file every time.
 		# Runtime cache? db?
 		info = ImgInfo.fromJP2(jp2)
 		
 		out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
-		out = os.path.join(out_dir, quality) + '.' + ext  
+		out = os.path.join(out_dir, quality) + '.' + ext
+		
+		# 8/16/2012: start here, nothing below this is actual implementation.
+		# approach: make functions that take an ImgInfo object and one of the
+		# dictionaries returned from the converters and build the appropriate
+		# part of the shellout.
+		  
 		
 		# Use a named pipe to give kdu and cjpeg format info.
-		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
+		fifopath = os.path.join(self.TMP_DIR, rand_str() + '.bmp')
 		mkfifo_cmd = self.MKFIFO + " " + fifopath
 		logr.debug(mkfifo_cmd) 
 		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
@@ -211,7 +227,7 @@ class Patokah(object):
 		supplied, and appends a file extension, resulting in an absolute path 
 		on the filesystem.
 		"""
-		return os.path.join(self.SRC_IMAGES_ROOT, ident + DOT_JP2)
+		return os.path.join(self.SRC_IMAGES_ROOT, ident + '.jp2')
 
 	#TODO: http://library.stanford.edu/iiif/image-api/#errors
 	def error_404(self, message):
@@ -278,10 +294,6 @@ class SizeConverter(BaseConverter):
 	"""
 	Custom converter for the size paramaters as specified.
 	
-	We also support the syntax 'level:int', where int a decomposition level of 
-	a JP2. Per the JP2 spec this must by <= 32. This is not part of the IIIF 
-	spec.
-	
 	Note that force_aspect is only supplied when we have a w AND h, otherwise it
 	is None.
 	
@@ -297,7 +309,7 @@ class SizeConverter(BaseConverter):
 		self.regex = '[^/]+'
 	
 	def to_python(self, value):
-		params = {}.fromkeys(('is_full', 'force_aspect', 'value', 'w', 'h', 'pct', 'level'))
+		params = {}.fromkeys(('is_full', 'force_aspect', 'value', 'w', 'h', 'pct'))
 		params['value'] = value
 		try:
 			if value == 'full':
@@ -309,15 +321,6 @@ class SizeConverter(BaseConverter):
 						raise Exception('Percentage supplied is greater than 100. Upsampling is not supported.')
 					else:
 						params['pct'] = pct
-				except:
-					raise
-			elif value.startswith('level:'):
-				try:
-					l = int(value.split(':')[1])
-					if l < +32:
-						params['level'] = int(value.split(':')[1])
-					else:
-						raise Exception('Level parameters must be less than or equal to 32')
 				except:
 					raise
 			elif value.endswith(','):
@@ -344,9 +347,9 @@ class SizeConverter(BaseConverter):
 					raise
 		except ValueError, e:
 			msg = 'Bad size syntax. '
-			msg = msg + 'Check that the supplied width and/or height or\n'
-			msg = msg + 'percentage are integers, and that a comma (",") is '
-			msg = msg + 'used as the w,h separator. \nOriginal error message: '
+			msg += 'Check that the supplied width and/or height or\n'
+			msg += 'percentage are integers, and that a comma (",") is '
+			msg += 'used as the w,h separator. \nOriginal error message: '
 			raise BadSizeSyntaxException(400, value,  msg + e.message)
 		except Exception, e:
 			raise BadSizeSyntaxException(400, value, 'Bad size syntax. ' + e.message)
@@ -375,10 +378,9 @@ class RotationConverter(BaseConverter):
 		self.regex = '\-?\d+'
 
 	def to_python(self, value):
-		# Round. kdu can handle negatives, > 360 and < -360
+		# Round. kdu can handle negatives values > 360 and < -360
 		nearest90 = int(90 * round(float(value) / 90)) 
 		return nearest90
-
 
 	def to_url(self, value):
 		return str(value)
@@ -392,6 +394,8 @@ class ImgInfo(object):
 		self.tile_width = None
 		self.tile_height = None
 		self.levels = None
+	
+	# other fromXXX methods can be defined, you see...
 	
 	@staticmethod
 	def fromJP2(path):
@@ -436,37 +440,37 @@ class ImgInfo(object):
 	def toXML(self):
 		# cheap!
 		x = '<?xml version="1.0" encoding="UTF-8"?>' + os.linesep
-		x = x + '<info xmlns="http://library.stanford.edu/iiif/image-api/ns/">' + os.linesep
-		x = x + '  <identifier>' + self.id + '</identifier>' + os.linesep
-		x = x + '  <width>' + str(self.width) + '</width>' + os.linesep
-		x = x + '  <height>' + str(self.height) + '</height>' + os.linesep
-		x = x + '  <scale_factors>' + os.linesep
+		x += '<info xmlns="http://library.stanford.edu/iiif/image-api/ns/">' + os.linesep
+		x += '  <identifier>' + self.id + '</identifier>' + os.linesep
+		x += '  <width>' + str(self.width) + '</width>' + os.linesep
+		x += '  <height>' + str(self.height) + '</height>' + os.linesep
+		x += '  <scale_factors>' + os.linesep
 		for s in range(1, self.levels):
-			x = x + '	<scale_factor>' + str(s) + '</scale_factor>' + os.linesep
-		x = x + '  </scale_factors>' + os.linesep
-		x = x + '  <tile_width>' + str(self.tile_width) + '</tile_width>' + os.linesep
-		x = x + '  <tile_height>' + str(self.tile_height) + '</tile_height>' + os.linesep
-		x = x + '  <formats>' + os.linesep
-		x = x + '	<format>jpg</format>' + os.linesep
-		x = x + '  </formats>' + os.linesep
-  		x = x + '  <qualities>' + os.linesep
-  		x = x + '	<quality>native</quality>' + os.linesep
-  		x = x + '  </qualities>' + os.linesep
-  		x = x + '</info>' + os.linesep
+			x += '	<scale_factor>' + str(s) + '</scale_factor>' + os.linesep
+		x += '  </scale_factors>' + os.linesep
+		x += '  <tile_width>' + str(self.tile_width) + '</tile_width>' + os.linesep
+		x += '  <tile_height>' + str(self.tile_height) + '</tile_height>' + os.linesep
+		x += '  <formats>' + os.linesep
+		x += '	<format>jpg</format>' + os.linesep
+		x += '  </formats>' + os.linesep
+		x += '  <qualities>' + os.linesep
+		x += '	<quality>native</quality>' + os.linesep
+		x += '  </qualities>' + os.linesep
+		x += '</info>' + os.linesep
 		return x
 	
 	def toJSON(self):
 		# cheaper!
 		j = '{' + os.linesep
-		j = j + '  "identifier" : "' + self.id + '",' + os.linesep
-		j = j + '  "width" : ' + str(self.width) + ',' + os.linesep
-		j = j + '  "height" : ' + str(self.height) + ',' + os.linesep
-		j = j + '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels)) + '],' + os.linesep
-		j = j + '  "tile_width" : ' + str(self.tile_width) + ',' + os.linesep
-		j = j + '  "tile_height" : ' + str(self.tile_height) + ',' + os.linesep
-		j = j + '  "formats" : [ "jpg" ],' + os.linesep
-		j = j + '  "quality" : [ "native" ]' + os.linesep
-		j = j + '}'
+		j += '  "identifier" : "' + self.id + '",' + os.linesep
+		j += '  "width" : ' + str(self.width) + ',' + os.linesep
+		j += '  "height" : ' + str(self.height) + ',' + os.linesep
+		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels)) + '],' + os.linesep
+		j += '  "tile_width" : ' + str(self.tile_width) + ',' + os.linesep
+		j += '  "tile_height" : ' + str(self.tile_height) + ',' + os.linesep
+		j += '  "formats" : [ "jpg" ],' + os.linesep
+		j += '  "quality" : [ "native" ]' + os.linesep
+		j += '}'
 		return j
 
 class ConverterException(Exception):
@@ -486,6 +490,7 @@ class BadSizeSyntaxException(ConverterException): pass
 
 
 if __name__ == '__main__':
+	'Run the development server'
 	from werkzeug.serving import run_simple
-	app = create_app()
+	app = create_app(test=False)
 	run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
