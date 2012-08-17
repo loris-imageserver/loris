@@ -249,8 +249,7 @@ class RegionConverter(BaseConverter):
 	
 	@see http://library.stanford.edu/iiif/image-api/#region
 	
-	@return: dictionary with these entries: is_full, is_pct, x, y, w, h. The 
-	is_* entries are bools, the remaining are ints.
+	@return: A new RegionParameter object.
 	
 	"""
 	def __init__(self, url_map):
@@ -258,37 +257,53 @@ class RegionConverter(BaseConverter):
 		self.regex = '[^/]+'
 
 	def to_python(self, value):
-		keys = ('is_full', 'is_pct', 'value', 'x', 'y', 'w', 'h')
-		if value == 'full':
-			params = {}.fromkeys(keys)
-			params['is_full'] = True
-			params['is_pct'] = False
-			params['value'] = str(value)
-		else:
-			try:
-				is_full = False
-				is_pct = value.startswith('pct:')
-				if is_pct: 
-					
-					norm_value = value.split(':')[1]
-					logr.debug(norm_value)
-					dims = [float(d) for d in norm_value.split(',')]
-					
-					if any(n > 100.0 for n in dims):
-						msg = 'Percentages must be less than 100.0.'
-						raise BadRegionPctException(400, value, msg)
-					values = [is_full, is_pct, str(value)] + dims
-				else:
-					values = [is_full, is_pct, value] + [int(d) for d in value.split(',')]
-				
-				params = dict(zip(keys, values))
-			except Exception, e :
-				raise BadRegionSyntaxException(400, value, 'Region syntax not valid. ' + e.message)
-
 		return params
 
 	def to_url(self, value):
-		return str(value)
+		return RegionParameter(value)
+
+class RegionParameter(object):
+	"""
+	self.mode is always one of 'full', 'pct', or 'pixel'
+	"""
+	def __init__(self, url_value):
+		self.url_value = url_value
+		self.mode = ''
+		self.x, self.y, self.w, self.y = [None, None, None, None]
+
+		if self.url_value == 'full':
+			self.mode = 'full'
+		else:
+			try:
+				if url_value.split(':')[0] == 'pct':
+					self.mode = 'pct'
+					pct_value = url_value.split(':')[1]
+					logr.debug('Percent dimensions request: ' + pct_value)
+					# floats!
+					dimensions = [float(d) for d in pct_value.split(',')]
+					if any(n > 100.0 for n in dimensions):
+						msg = 'Percentages must be less than 100.0.'
+						raise BadRegionSyntaxException(400, url_value, msg)
+					if len(dimensions) != 4:
+						msg = 'Exactly (4) coordinates must be supplied'
+						raise BadRegionSyntaxException(400, url_value, msg)
+					self.x,	self.y, self.w,	self.h = dimensions
+				else:
+					self.mode = 'pixel'
+					logr.debug('Pixel dimensions request: ' + url_value)
+					# ints only!
+					dimensions = [int(d) for d in url_value.split(',')]
+					if len(dimensions) != 4:
+						msg = 'Exactly (4) coordinates must be supplied'
+						raise BadRegionSyntaxException(400, url_value, msg)
+					self.x,	self.y, self.w,	self.h = dimensions
+			except Exception, e :
+				msg = 'Region syntax not valid. ' + e.message
+				raise BadRegionSyntaxException(400, url_value, msg)
+
+	def to_kdu_arg(self, img_info):
+		pass
+		
 
 class SizeConverter(BaseConverter):
 	"""
@@ -484,7 +499,6 @@ class ConverterException(Exception):
 	def to_xml(self):
 		pass
 	
-class BadRegionPctException(ConverterException): pass
 class BadRegionSyntaxException(ConverterException): pass
 class BadSizeSyntaxException(ConverterException): pass
 
