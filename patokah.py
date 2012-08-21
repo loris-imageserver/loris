@@ -84,8 +84,7 @@ class Patokah(object):
 			endpoint, values = adapter.match()
 			dispatch_to_method = ''
 			 
-			if self.test: dispatch_to_method = 'test_' + endpoint 
-			else: dispatch_to_method = 'on_' + endpoint
+			dispatch_to_method = 'on_' + endpoint
 			
 			logr.debug('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
@@ -138,23 +137,30 @@ class Patokah(object):
 	
 	# Do we want: http://docs.python.org/library/queue.html ?
 
-
-	def test_get_img(self, request, ident, region, size, rotation, quality, format):
-		"""
-		Helper for our testConverters unit test. The response is a dictionary of 
-		dictionaries that are returned from our converters' to_python methods.
-		"""
-		r = {}
-		r['region'] = region
-		r['size'] = size
-		r['rotation'] = rotation
-		return Response(str(r))
-
+	# 08/20/2012, start here.
 	def on_get_img(self, request, ident, region, size, rotation, quality, format):
 		# TODO: 
 		"""
-		Get an image based on the values or dictionaries returned by our 
+		Get an image based on the *Parameter objects and values returned by our 
 		converters.
+
+		@param ident: the image identifier
+		@type ident: string
+
+		@param region
+		@type region: RegionParameter
+
+		@param size
+		@type size: SizeParameter
+
+		@param rotation: rotation of the image, multiples of 90 for now
+		@type rotation: integer
+
+		@param quality: 'native', 'color', 'grey', 'bitonal'
+		@type quality: string
+
+		@param format - 'jpg' or 'png' (for now)
+		@type format: string
 		"""
 		
 		if format == 'jpg':
@@ -168,13 +174,18 @@ class Patokah(object):
 		jp2 = self._resolve_identifier(ident)
 		
 		# TODO: we probably don't want to read this from the file every time.
-		# Runtime cache? db?
+		# Runtime cache? db? Python dictionaries are not thread-safe for 
+		# writing.
 		info = ImgInfo.fromJP2(jp2)
 		
 		out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
 		out = os.path.join(out_dir, quality) + '.' + ext
 		
-		# 8/16/2012: start here, nothing below this is actual implementation.
+		# 8/16/2012: start here, 
+		# * Write Unit tests for ImgInfo
+		# * Implement to_kdu_arg() methods
+		# * Write command line
+		#nothing below this is actual implementation.
 		# approach: make functions that take an ImgInfo object and one of the
 		# dictionaries returned from the converters and build the appropriate
 		# part of the shellout.
@@ -257,10 +268,10 @@ class RegionConverter(BaseConverter):
 		self.regex = '[^/]+'
 
 	def to_python(self, value):
-		return params
+		return RegionParameter(value)
 
 	def to_url(self, value):
-		return RegionParameter(value)
+		return str(value)
 
 class RegionParameter(object):
 	"""
@@ -324,69 +335,81 @@ class SizeConverter(BaseConverter):
 		self.regex = '[^/]+'
 	
 	def to_python(self, value):
-		params = {}.fromkeys(('is_full', 'force_aspect', 'value', 'w', 'h', 'pct'))
-		params['value'] = value
-		try:
-			if value == 'full':
-				params['is_full'] = True
-			elif value.startswith('pct:'):
-				try:
-					pct = int(value.split(':')[1])
-					if pct > 100:
-						raise Exception('Percentage supplied is greater than 100. Upsampling is not supported.')
-					else:
-						params['pct'] = pct
-				except:
-					raise
-			elif value.endswith(','):
-				try:
-					params['w'] = int(value[:-1])
-				except:
-					raise
-			elif value.startswith(','):
-				try:
-					params['h'] = int(value[1:])
-				except:
-					raise
-			elif value.startswith('!'):
-				params['force_aspect'] = False
-				try:
-					params['w'], params['h'] = (int(d) for d in value[1:].split(','))
-				except:
-					raise
-			else:
-				params['force_aspect'] = True
-				try:
-					params['w'], params['h'] = (int(d) for d in value.split(','))
-				except:
-					raise
-		except ValueError, e:
-			msg = 'Bad size syntax. '
-			msg += 'Check that the supplied width and/or height or\n'
-			msg += 'percentage are integers, and that a comma (",") is '
-			msg += 'used as the w,h separator. \nOriginal error message: '
-			raise BadSizeSyntaxException(400, value,  msg + e.message)
-		except Exception, e:
-			raise BadSizeSyntaxException(400, value, 'Bad size syntax. ' + e.message)
-		
-		if any((dim < 1 and dim != None) for dim in (params['w'], params['h'])):
-			raise BadSizeSyntaxException(400, value, 'Width and height must both be positive numbers')
-		
-		if params['is_full'] == None: params['is_full'] = False
-		
-		return params
+		return SizeParameter(value)
 
 	def to_url(self, value):
 		return str(value) # ??
 
+class SizeParameter(object):
+	"""
+	self.mode is always one of 'full', 'pct', or 'pixel'
+	"""
+	def __init__(self, url_value):
+		self.url_value = url_value
+		self.mode = 'pixel'
+		self.force_aspect = None
+		self.pct = None
+		self.w, self.h = [None, None]
+		try:
+			if self.url_value == 'full':
+				self.mode = 'full'
+
+			elif self.url_value.startswith('pct:'):
+				self.mode = 'pct'
+				try:
+					self.pct = float(self.url_value.split(':')[1])
+					if self.pct > 100:
+						msg = 'Percentage supplied is greater than 100. '
+						msg += 'Upsampling is not supported.'
+						raise BadSizeSyntaxException(400, self.url_value, msg)
+					if self.pct <= 0:
+						msg = 'Percentage supplied is less than 0. '
+						raise BadSizeSyntaxException(400, self.url_value, msg)
+				except:
+					raise
+			elif self.url_value.endswith(','):
+				try:
+					self.w = int(self.url_value[:-1])
+				except:
+					raise
+			elif self.url_value.startswith(','):
+				try:
+					self.h = int(self.url_value[1:])
+				except:
+					raise
+			elif self.url_value.startswith('!'):
+				self.force_aspect = False
+				try:
+					self.w, self.h = [int(d) for d in self.url_value[1:].split(',')]
+				except:
+					raise
+			else:
+				self.force_aspect = True
+				try:
+					self.w, self.h = [int(d) for d in self.url_value.split(',')]
+				except:
+					raise
+		except ValueError, e:
+			msg = 'Bad size syntax. ' + e.message
+			raise BadSizeSyntaxException(400, self.url_value, msg)
+		except Exception, e:
+			msg = 'Bad size syntax. ' + e.message
+			raise BadSizeSyntaxException(400, self.url_value, msg)
+		
+		if any((dim < 1 and dim != None) for dim in (self.w, self.h)):
+			msg = 'Width and height must both be positive numbers'
+			raise BadSizeSyntaxException(400, self.url_value, msg)
+		
+	def to_kdu_arg(self, img_info):
+		pass
+
 class RotationConverter(BaseConverter):
 	"""
-	Custom converter for the rotation paramater.
+	Custom converter for the rotation parameter.
 	
-	@see http://library.stanford.edu/iiif/image-api/#rotation
-	
-	@return: the nearest multiple of 90 as an int
-	
+	@see: http://library.stanford.edu/iiif/image-api/#rotation
+
+	@return: a RotationParameter
 	"""
 	def __init__(self, url_map):
 		super(RotationConverter, self).__init__(url_map)
@@ -394,11 +417,23 @@ class RotationConverter(BaseConverter):
 
 	def to_python(self, value):
 		# Round. kdu can handle negatives values > 360 and < -360
-		nearest90 = int(90 * round(float(value) / 90)) 
-		return nearest90
+		return RotationParameter(value)
 
 	def to_url(self, value):
 		return str(value)
+
+class RotationParameter(object):
+	"""docstring
+	"""
+	def __init__(self, url_value):
+		self.url_value = url_value
+		try:
+			self.nearest_90 = int(90 * round(float(self.url_value) / 90))
+		except Exception, e:
+			raise BadRotationSyntaxException(400, self.url_value, e.message)
+
+	def to_kdu_arg(self):
+		return '-rotate ' + str(self.nearest_90) if self.nearest_90 % 360 != 0 else ''
 
 class ImgInfo(object):
 	# TODO: look at color info in the file and figure out qualities
@@ -501,7 +536,7 @@ class ConverterException(Exception):
 	
 class BadRegionSyntaxException(ConverterException): pass
 class BadSizeSyntaxException(ConverterException): pass
-
+class BadRotationSyntaxException(ConverterException): pass
 
 if __name__ == '__main__':
 	'Run the development server'
