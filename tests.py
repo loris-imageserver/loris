@@ -1,39 +1,58 @@
-# parameter_tests.py
-# Tests for Parameter classes.
+# tests.py
+# Tests for Patokah.
 
-from patokah import RegionParameter
-from patokah import SizeParameter
-from patokah import RotationParameter
+from os import path
 from patokah import BadRegionSyntaxException
 from patokah import BadSizeSyntaxException
 from patokah import create_app
-from os import path
-
+from patokah import ImgInfo
+from patokah import RegionParameter
+from patokah import RotationParameter
+from patokah import SizeParameter
+from werkzeug.test import Client
+from werkzeug.wrappers import BaseResponse
 import unittest
 
+TEST_IMG_DIR = 'test_img' # relative to this file.
+
 class Tests(unittest.TestCase):
-	def __init__(self):
-		# TODO: create an instance of the app here that we can use in tests
-		self.app = create_app(test=True)
-		## with self.app we can do, e.g.:
-		# c = Client(self.app, BaseResponse)
-		# resp = c.get('/pudl0001/4609321/s42/00000004/NaN,10,70,80/full/0/native.jpg')
-		## and then test the response.
-		## see http://werkzeug.pocoo.org/docs/test/
-		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
-		self.test_jp2_path = os.path.join(os.path.dirname(__file__), 'lib')
-		pass
 
 	def setUp(self):
 		unittest.TestCase.setUp(self)
+		# TODO: create an instance of the app here that we can use in tests
+		self.app = create_app(test=True)
+		# with self.app we can do, e.g.:
+		self.client = Client(self.app, BaseResponse)
+		# self.client = c.get('/pudl0001/4609321/s42/00000004/60,10,70,80/full/0/native.jpg')
+		# and then test the response.
+		# see http://werkzeug.pocoo.org/docs/test/
+		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
 		
 
-	def test_resolve_id(self):
+	def test_Patoka_resolve_id(self):
+		expected_path = path.join(path.dirname(__file__), TEST_IMG_DIR, self.test_jp2_id  + '.jp2')
+		resolved_path = self.app._resolve_identifier(self.test_jp2_id)
+		self.assertEqual(expected_path, resolved_path)
+		self.assertTrue(path.isfile(resolved_path))
+
+	def test_img_info(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+
+		self.assertEqual(info.width, 2717)
+		self.assertEqual(info.height, 3600)
+		self.assertEqual(info.tile_width, 256)
+		self.assertEqual(info.tile_height, 256)
+		self.assertEqual(info.levels, 5)
+		self.assertEqual(info.id, self.test_jp2_id)
+
+	def test_info_json(self):
+		#TODO; use the client
 		pass
 
-	def test_img_info:
+	def test_info_xml(self):
+		#TODO; use the client
 		pass
-
 
 	def test_region_full(self):
 		url_segment = 'full'

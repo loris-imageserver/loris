@@ -184,7 +184,8 @@ class Patokah(object):
 		# 8/16/2012: start here, 
 		# * Write Unit tests for ImgInfo
 		# * Implement to_kdu_arg() methods
-		# * Write command line
+		# * Write to_kdu_arg() tests
+		# * Build comm
 		#nothing below this is actual implementation.
 		# approach: make functions that take an ImgInfo object and one of the
 		# dictionaries returned from the converters and build the appropriate
@@ -438,18 +439,20 @@ class RotationParameter(object):
 class ImgInfo(object):
 	# TODO: look at color info in the file and figure out qualities
 	def __init__(self):
-		self.id = None
+		self.id = id
 		self.width = None
 		self.height = None
 		self.tile_width = None
 		self.tile_height = None
 		self.levels = None
 	
-	# other fromXXX methods can be defined, you see...
+	# Other fromXXX methods could be defined
 	
 	@staticmethod
-	def fromJP2(path):
+	def fromJP2(path, img_id):
 		info = ImgInfo()
+		info.id = img_id
+
 		"""
 		Get the dimensions and levels of a JP2. There's enough going on here;
 		make sure the file is available (exists and readable) before passing it.
