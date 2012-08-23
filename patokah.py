@@ -18,6 +18,8 @@ _BIN = os.path.join(os.path.dirname(__file__), 'bin')
 _ETC = os.path.join(os.path.dirname(__file__), 'etc')
 _ENV = {"LD_LIBRARY_PATH":_LIB, "PATH":_LIB + ":$PATH"}
 
+INFO_CACHE={}
+
 conf_file = os.path.join(_ETC, 'patokah.conf')
 logging.config.fileConfig(conf_file)
 logr = logging.getLogger('patokah')
@@ -127,7 +129,9 @@ class Patokah(object):
 			
 			# we could fork this off...
 			if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
+
 			logr.debug('made ' + cache_dir)
+
 			f = open(cache_path, 'w')
 			f.write(resp)
 			f.close()
@@ -137,7 +141,14 @@ class Patokah(object):
 	
 	# Do we want: http://docs.python.org/library/queue.html ?
 
-	# 08/20/2012, start here.
+	def err_to_xml(self, param, text):
+		r = '<?xml version="1.0" encoding="UTF-8" ?>\n'
+		r += '<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">\n'
+		r += '  <parameter>' + param + '</parameter>\n'
+		r += '  <text>' + text + '</text>\n'
+		r += '</error>\n'
+		return r
+
 	def on_get_img(self, request, ident, region, size, rotation, quality, format):
 		# TODO: 
 		"""
@@ -162,6 +173,11 @@ class Patokah(object):
 		@param format - 'jpg' or 'png' (for now)
 		@type format: string
 		"""
+		# This method should always return a Response.
+		
+		#TODO: ulitmately wrap this is try/catches. Most exceptions/messages
+		# will come from raises by the converters, but we may have to add a few
+		# more 4xx responses based on image dimensions. 
 		
 		if format == 'jpg':
 			mime = 'image/jpeg'
@@ -226,8 +242,68 @@ class Patokah(object):
 		rm_cmd = self.RM + " " + fifopath
 		logr.debug(rm_cmd)
 		rm_proc = subprocess.Popen(rm_cmd, shell=True)
+
+		# TODO: needs unit test
+		if not os.path.exists(jp2):
+			
+			msg = 'Image specified by this identifier does not exist.'
+			logr.error(msg + ': ' + ident)
+			r = self.err_to_xml(ident, msg)
+			return Response(r,status=404,mimetype='text/xml')
+			
 		
-		return out
+		# TODO: we probably don't want to read this from the file every time.
+		# Runtime cache? db? in memory dicts and Shelve/pickle are not thread 
+		# safe for writing.
+		# ZODB? : http://www.zodb.org/
+		info = ImgInfo.fromJP2(jp2)
+		
+		out_dir = os.path.join(self.CACHE_ROOT, ident, str(region['value']), str(size['value']), str(rotation))
+		# hold off making the above dir until we succee
+		out_path = os.path.join(out_dir, quality) + '.' + ext
+		
+		logr.debug('output path: ' + out_path)
+		
+		return Response(out_path)
+
+
+#		# Use a named pipe to give kdu and cjpeg format info.
+#		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
+#		mkfifo_cmd = self.MKFIFO + " " + fifopath
+#		logr.debug(mkfifo_cmd) 
+#		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
+#		mkfifo_proc.wait()
+#		
+#		# Build the kdu_expand call - this should be in a function that takes 
+#		#the image info plus the region, size, rotation
+#		kdu_cmd = KDU_EXPAND + " -i " + jp2 
+#		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
+#		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
+#		kdu_cmd = kdu_cmd + " -o " + fifopath
+#		logr.debug(kdu_cmd)
+#		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
+#	
+#		# What are the implications of not being able to wait here (not sure why
+#		# we can't, but it hangs when we try). I *think* that as long as there's 
+#		# data flowing into the pipe when the next process (below) starts we're 
+#		# just fine.
+#		
+#		# TODO: if format is not jpg, [do something] (see spec)
+#		# TODO: quality, probably in the recipe below
+#		
+#		if not os.path.exists(out_dir):
+#			os.makedirs(out_dir, 0755)
+#			self.logr.info("Made directory: " + out_dir)
+#		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
+#		logr.debug(cjpeg_cmd)
+#		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
+#		self.logr.info("Made file: " + out)
+#	
+#		rm_cmd = self.RM + " " + fifopath
+#		logr.debug(rm_cmd)
+#		rm_proc = subprocess.Popen(rm_cmd, shell=True)
+#		
+#		return out
 
 	# static?
 	def _resolve_identifier(self, ident):
