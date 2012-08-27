@@ -2,6 +2,8 @@
 # Tests for Patokah.
 
 from os import path
+from os import listdir
+from shutil import rmtree
 from patokah import BadRegionSyntaxException
 from patokah import BadSizeSyntaxException
 from patokah import create_app
@@ -11,6 +13,8 @@ from patokah import RotationParameter
 from patokah import SizeParameter
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
+from xml.dom.minidom import parseString
+from json import loads
 import unittest
 
 TEST_IMG_DIR = 'test_img' # relative to this file.
@@ -27,6 +31,11 @@ class Tests(unittest.TestCase):
 		# and then test the response.
 		# see http://werkzeug.pocoo.org/docs/test/
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
+		
+	def tearDown(self):
+		# empty the cache
+		for d in listdir(self.app.CACHE_ROOT):
+			rmtree(path.join(self.app.CACHE_ROOT, d))
 		
 
 	def test_Patoka_resolve_id(self):
@@ -47,12 +56,59 @@ class Tests(unittest.TestCase):
 		self.assertEqual(info.id, self.test_jp2_id)
 
 	def test_info_json(self):
-		#TODO; use the client
-		pass
+		# Do it once, make sure we get a 201
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
+		self.assertEqual(resp.status_code, 201)
+
+		# Do it once, make sure we get a 200
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
+		self.assertEqual(resp.status_code, 200)
+		# header parsing: http://werkzeug.pocoo.org/docs/datastructures/#http-datastructures
+		
+		self.assertEqual(resp.headers.get('Content-Type'), 'text/json; charset=utf-8')
+		self.assertEqual(resp.headers.get('Content-Length'), '310')
+
+		resp_json = loads(resp.data)
+		self.assertTrue(resp_json.has_key(u'identifier'))
+		self.assertEqual(resp_json.get(u'identifier'), u'pudl0001/4609321/s42/00000004')
+		self.assertTrue(resp_json.has_key(u'width'))
+		self.assertEqual(resp_json.get(u'width'), 2717)
+		self.assertTrue(resp_json.has_key(u'height'))
+		self.assertEqual(resp_json.get(u'height'), 3600)
+		self.assertTrue(resp_json.has_key(u'scale_factors'))
+		self.assertEqual(resp_json.get(u'scale_factors'), [1,2,3,4,5])
+		self.assertTrue(resp_json.has_key(u'tile_width'))
+		self.assertEqual(resp_json.get(u'tile_width'), 256)
+		self.assertTrue(resp_json.has_key(u'tile_height'))
+		self.assertEqual(resp_json.get(u'tile_height'), 256)
+		self.assertTrue(resp_json.has_key(u'formats'))
+		self.assertEqual(resp_json.get(u'formats'), [u'jpg'])
+		self.assertTrue(resp_json.has_key(u'qualities'))
+		self.assertEqual(resp_json.get(u'qualities'), [u'native'])
+		self.assertTrue(resp_json.has_key(u'profile'))
+		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
+
 
 	def test_info_xml(self):
-		#TODO; use the client
-		pass
+		# Do it once, make sure we get a 201
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
+		self.assertEqual(resp.status_code, 201)
+
+		# Do it once, make sure we get a 200
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
+		self.assertEqual(resp.status_code, 200)
+
+		self.assertEqual(resp.headers.get('Content-Type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.headers.get('Content-Length'), '684')
+
+		dom = parseString(resp.data)
+		self.assertEqual(dom.documentElement.tagName, 'info')
+		# We'll stop here. values are tested with the object. This is parsable
+		# and info is the root
+
+		
+
+
 
 	def test_region_full(self):
 		url_segment = 'full'

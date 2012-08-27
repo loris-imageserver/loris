@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.utils import redirect
@@ -17,8 +18,6 @@ _LIB = os.path.join(os.path.dirname(__file__), 'lib')
 _BIN = os.path.join(os.path.dirname(__file__), 'bin')
 _ETC = os.path.join(os.path.dirname(__file__), 'etc')
 _ENV = {"LD_LIBRARY_PATH":_LIB, "PATH":_LIB + ":$PATH"}
-
-INFO_CACHE={}
 
 conf_file = os.path.join(_ETC, 'patokah.conf')
 logging.config.fileConfig(conf_file)
@@ -54,6 +53,8 @@ class Patokah(object):
 		
 		# TODO: need a cache test
 		self.CACHE_ROOT = _conf.get('directories', 'cache_root')
+
+		self.COMPLIANCE = _conf.get('compliance', 'uri')
 		
 		self.SRC_IMAGES_ROOT = ""
 		if self.test:
@@ -84,8 +85,6 @@ class Patokah(object):
 		adapter = self.url_map.bind_to_environ(request.environ)
 		try:
 			endpoint, values = adapter.match()
-			dispatch_to_method = ''
-			 
 			dispatch_to_method = 'on_' + endpoint
 			
 			logr.debug('Dispatching to ' + dispatch_to_method)
@@ -96,7 +95,11 @@ class Patokah(object):
 			return e
 
 	def on_get_img_metadata(self, request, ident, extension):
-		# TODO: all of these MIMEs should be constants, and probably support application/* as well
+		## TODO:
+		## Note that we can pickle response objects:
+		## http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
+		## Would this be faster than reading from the FS?
+
 		mime = None
 		resp_code = None
 		if extension == 'json': 
@@ -118,15 +121,21 @@ class Patokah(object):
 		
 		# check the cache
 		if os.path.exists(cache_path):
+			status = 200
 			resp = file(cache_path)
+			length = len(file(cache_path).read())
+			logr.info('Read: ' + cache_path)
 		else:
-			info = ImgInfo.fromJP2(img_path)
+			status = 201
+			info = ImgInfo.fromJP2(img_path, ident)
 			info.id = ident
 			if mime == 'text/xml':
 				resp = info.toXML()
 			else:
 				resp = info.toJSON()
-			
+
+			length = len(resp)
+
 			# we could fork this off...
 			if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
 
@@ -136,11 +145,18 @@ class Patokah(object):
 			f.write(resp)
 			f.close()
 			logr.info('Created: ' + cache_path)
-			
-		return Response(resp, mimetype=mime,)
+		
+		headers = Headers()
+		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+		headers.add('Content-Length', length)
+		r = Response(resp, status=status, mimetype=mime, headers=headers)
+		
+		# return Response(resp, status=status, mimetype=mime, headers=headers)
+		return r
 	
 	# Do we want: http://docs.python.org/library/queue.html ?
 
+	# TODO: below needs a test and needs to be used wherever we raise
 	def err_to_xml(self, param, text):
 		r = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 		r += '<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">\n'
@@ -197,8 +213,7 @@ class Patokah(object):
 		out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
 		out = os.path.join(out_dir, quality) + '.' + ext
 		
-		# 8/16/2012: start here, 
-		# * Write Unit tests for ImgInfo
+		# 8/27/2012: start here, 
 		# * Implement to_kdu_arg() methods
 		# * Write to_kdu_arg() tests
 		# * Build comm
@@ -237,7 +252,7 @@ class Patokah(object):
 		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
 		logr.debug(cjpeg_cmd)
 		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
-		self.logr.info("Made file: " + out)
+		self.logr.info("Read: " + out)
 	
 		rm_cmd = self.RM + " " + fifopath
 		logr.debug(rm_cmd)
@@ -259,12 +274,16 @@ class Patokah(object):
 		info = ImgInfo.fromJP2(jp2)
 		
 		out_dir = os.path.join(self.CACHE_ROOT, ident, str(region['value']), str(size['value']), str(rotation))
-		# hold off making the above dir until we succee
+		# hold off making the above dir until we succeed??
 		out_path = os.path.join(out_dir, quality) + '.' + ext
 		
 		logr.debug('output path: ' + out_path)
 		
-		return Response(out_path)
+		headers = Headers()
+		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+		# TODO: Content-Length
+
+		return Response(out_path, mimetype=mime, headers=headers)
 
 
 #		# Use a named pipe to give kdu and cjpeg format info.
@@ -574,17 +593,18 @@ class ImgInfo(object):
 		x += '  <width>' + str(self.width) + '</width>' + os.linesep
 		x += '  <height>' + str(self.height) + '</height>' + os.linesep
 		x += '  <scale_factors>' + os.linesep
-		for s in range(1, self.levels):
-			x += '	<scale_factor>' + str(s) + '</scale_factor>' + os.linesep
+		for s in range(1, self.levels+1):
+			x += '    <scale_factor>' + str(s) + '</scale_factor>' + os.linesep
 		x += '  </scale_factors>' + os.linesep
 		x += '  <tile_width>' + str(self.tile_width) + '</tile_width>' + os.linesep
 		x += '  <tile_height>' + str(self.tile_height) + '</tile_height>' + os.linesep
 		x += '  <formats>' + os.linesep
-		x += '	<format>jpg</format>' + os.linesep
+		x += '    <format>jpg</format>' + os.linesep
 		x += '  </formats>' + os.linesep
 		x += '  <qualities>' + os.linesep
-		x += '	<quality>native</quality>' + os.linesep
+		x += '    <quality>native</quality>' + os.linesep
 		x += '  </qualities>' + os.linesep
+		x += '  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>' + os.linesep
 		x += '</info>' + os.linesep
 		return x
 	
@@ -594,12 +614,13 @@ class ImgInfo(object):
 		j += '  "identifier" : "' + self.id + '",' + os.linesep
 		j += '  "width" : ' + str(self.width) + ',' + os.linesep
 		j += '  "height" : ' + str(self.height) + ',' + os.linesep
-		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels)) + '],' + os.linesep
+		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels+1)) + '],' + os.linesep
 		j += '  "tile_width" : ' + str(self.tile_width) + ',' + os.linesep
 		j += '  "tile_height" : ' + str(self.tile_height) + ',' + os.linesep
 		j += '  "formats" : [ "jpg" ],' + os.linesep
-		j += '  "quality" : [ "native" ]' + os.linesep
-		j += '}'
+		j += '  "qualities" : [ "native" ],' + os.linesep
+		j += '  "profile" : "http://library.stanford.edu/iiif/image-api/compliance.html#level1"' + os.linesep
+		j += '}' + os.linesep
 		return j
 
 class ConverterException(Exception):
@@ -621,4 +642,4 @@ if __name__ == '__main__':
 	'Run the development server'
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5003, app, use_debugger=True, use_reloader=True)
