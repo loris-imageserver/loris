@@ -376,7 +376,7 @@ class RegionParameter(object):
 	def __init__(self, url_value):
 		self.url_value = url_value
 		self.mode = ''
-		self.x, self.y, self.w, self.y = [None, None, None, None]
+		self.x, self.y, self.w, self.h = [None, None, None, None]
 
 		if self.url_value == 'full':
 			self.mode = 'full'
@@ -387,9 +387,9 @@ class RegionParameter(object):
 					pct_value = url_value.split(':')[1]
 					logr.debug('Percent dimensions request: ' + pct_value)
 					# floats!
-					dimensions = [float(d) for d in pct_value.split(',')]
-					if any(n > 100.0 for n in dimensions):
-						msg = 'Percentages must be less than 100.0.'
+					dimensions = map(float, pct_value.split(','))
+					if any((n > 100.0 or n <= 0) for n in dimensions):
+						msg = 'Percentages must be between 0 and 100.'
 						raise BadRegionSyntaxException(400, url_value, msg)
 					if len(dimensions) != 4:
 						msg = 'Exactly (4) coordinates must be supplied'
@@ -398,8 +398,16 @@ class RegionParameter(object):
 				else:
 					self.mode = 'pixel'
 					logr.debug('Pixel dimensions request: ' + url_value)
+					
+					try:
+						dimensions = map(int, url_value.split(','))
 					# ints only!
-					dimensions = [int(d) for d in url_value.split(',')]
+					except ValueError, v :
+						v.message += ' (Pixel dimensions must be integers.)'
+						raise
+					if any(n <= 0 for n in dimensions[2:]):
+						msg = 'Width and height must be greater than 0'
+						raise BadRegionSyntaxException(400, url_value, msg)
 					if len(dimensions) != 4:
 						msg = 'Exactly (4) coordinates must be supplied'
 						raise BadRegionSyntaxException(400, url_value, msg)
@@ -409,7 +417,55 @@ class RegionParameter(object):
 				raise BadRegionSyntaxException(400, url_value, msg)
 
 	def to_kdu_arg(self, img_info):
-		pass
+		"""kdu wants \{<top>,<left>\},\{<height>,<width>\} (shell syntax), as 
+		decimals between 0 and 1.
+		IIIF supplies left[x], top[y], witdth[w], height[h].
+		"""
+		# width and height
+		#if any(dim < 1 for )
+		cmd = ''
+		if self.mode != 'full':
+			cmd = '-region '
+
+			# First: convert into decimals (we'll pass these to kdu after)
+			# we test them
+
+			top = self.y * 0.01 if self.mode == 'pct' else float(self.y) / img_info.height
+			left = self.x * 0.01 if self.mode == 'pct' else float(self.x) / img_info.width
+			height = self.h * 0.01 if self.mode == 'pct' else float(self.h) / img_info.height
+			width = self.w * 0.01 if self.mode == 'pct' else float(self.w) / img_info.width
+			# TODO: THESE CONVERSIONS CAN LEAVE US OFF BY A PIXEL.... 
+			# try 0,0,1358,1800. Result is 1359 wide.
+			# What to do?
+
+			# "If the request specifies a region which extends beyond the 
+			# dimensions of the source image, then the service should return an 
+			# image cropped at the boundary of the source image."
+			if (width + left) > 1.0: width = 1.0 - left
+			logr.debug('Width adjusted to %s' % width)
+			if (top + height) > 1.0: height = 1.0 - top
+			logr.debug('Height adjusted to %s' % height)
+			# Catch OOB errors:
+			# top and left
+			if any(axis < 0 for axis in (top, left)):
+				msg = 'x and y region paramaters must be 0 or greater'
+				raise BadRegionRequestException(400, self.url_value, msg)
+			if left >= 1.0:
+				msg = 'Region x parameter is out of bounds.\n'
+				msg += self.x + ' was supplied and image width is ' 
+				msg += img_info.width
+				raise BadRegionRequestException(400, self.url_value, msg)
+			if top >= 1.0:
+				msg = 'Region y parameter is out of bounds.\n'
+				msg += self.y + ' was supplied and image height is ' 
+				msg += img_info.height
+				raise BadRegionRequestException(400, self.url_value, msg)
+			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, width, height)
+			logr.debug('kdu region parameter: ' + cmd)
+		return cmd
+
+
+
 		
 
 class SizeConverter(BaseConverter):
@@ -623,20 +679,21 @@ class ImgInfo(object):
 		j += '}' + os.linesep
 		return j
 
-class ConverterException(Exception):
+class PatokahException(Exception):
 	def __init__(self, http_status=404, supplied_value='', msg=''):
 		"""
 		"""
-		super(ConverterException, self).__init__(msg)
+		super(PatokahException, self).__init__(msg)
 		self.http_status = http_status
 		self.supplied_value = supplied_value
 		
 	def to_xml(self):
 		pass
 	
-class BadRegionSyntaxException(ConverterException): pass
-class BadSizeSyntaxException(ConverterException): pass
-class BadRotationSyntaxException(ConverterException): pass
+class BadRegionSyntaxException(PatokahException): pass
+class BadRegionRequestException(PatokahException): pass
+class BadSizeSyntaxException(PatokahException): pass
+class BadRotationSyntaxException(PatokahException): pass
 
 if __name__ == '__main__':
 	'Run the development server'

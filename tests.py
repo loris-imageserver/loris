@@ -166,6 +166,26 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadRegionSyntaxException):
 			RegionParameter(url_segment)
 
+	
+	def test_pixel_to_kdu_hw(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = '0,0,1358,1800'
+		region_parameter = RegionParameter(url_segment)
+		expected_kdu = '-region \{0.0,0.0\},\{0.4998159735,0.5\}'
+		self.assertEqual(region_parameter.to_kdu_arg(info), expected_kdu)
+
+	def test_pixel_to_kdu_tl(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = '1358,1800,1359,1800'
+		region_parameter = RegionParameter(url_segment)
+		expected_kdu = '-region \{0.5,0.4998159735\},\{0.5001840265,0.5\}'
+		self.assertEqual(region_parameter.to_kdu_arg(info), expected_kdu)
+
+	# START HERE - need tests for exceptions and percents
+	# also need to figure out how to keep kdu from rounding up...
+
 	def test_size_full(self):
 		url_segment = 'full'
 		expected_mode = 'full'
