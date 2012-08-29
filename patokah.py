@@ -430,21 +430,25 @@ class RegionParameter(object):
 			# First: convert into decimals (we'll pass these to kdu after)
 			# we test them
 
-			top = self.y * 0.01 if self.mode == 'pct' else float(self.y) / img_info.height
-			left = self.x * 0.01 if self.mode == 'pct' else float(self.x) / img_info.width
-			height = self.h * 0.01 if self.mode == 'pct' else float(self.h) / img_info.height
-			width = self.w * 0.01 if self.mode == 'pct' else float(self.w) / img_info.width
-			# TODO: THESE CONVERSIONS CAN LEAVE US OFF BY A PIXEL.... 
+			top = self.y / 100.0 if self.mode == 'pct' else float(self.y) / img_info.height
+			left = self.x / 100.0 if self.mode == 'pct' else float(self.x) / img_info.width
+			height = self.h / 100.0 if self.mode == 'pct' else float(self.h) / img_info.height
+			width = self.w / 100.0 if self.mode == 'pct' else float(self.w) / img_info.width
+			
+			# THESE CONVERSIONS CAN LEAVE US OFF BY A PIXEL.... 
 			# try 0,0,1358,1800. Result is 1359 wide.
 			# What to do?
+			# 
 
 			# "If the request specifies a region which extends beyond the 
 			# dimensions of the source image, then the service should return an 
 			# image cropped at the boundary of the source image."
-			if (width + left) > 1.0: width = 1.0 - left
-			logr.debug('Width adjusted to %s' % width)
-			if (top + height) > 1.0: height = 1.0 - top
-			logr.debug('Height adjusted to %s' % height)
+			if (width + left) > 1.0: 
+				width = 1.0 - left
+				logr.debug('Width adjusted to %s' % width)
+			if (top + height) > 1.0: 
+				height = 1.0 - top
+				logr.debug('Height adjusted to %s' % height)
 			# Catch OOB errors:
 			# top and left
 			if any(axis < 0 for axis in (top, left)):
@@ -460,7 +464,7 @@ class RegionParameter(object):
 				msg += self.y + ' was supplied and image height is ' 
 				msg += img_info.height
 				raise BadRegionRequestException(400, self.url_value, msg)
-			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, width, height)
+			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
 			logr.debug('kdu region parameter: ' + cmd)
 		return cmd
 

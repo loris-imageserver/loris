@@ -172,7 +172,7 @@ class Tests(unittest.TestCase):
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 		url_segment = '0,0,1358,1800'
 		region_parameter = RegionParameter(url_segment)
-		expected_kdu = '-region \{0.0,0.0\},\{0.4998159735,0.5\}'
+		expected_kdu = '-region \{0.0,0.0\},\{0.5,0.4998159735\}'
 		self.assertEqual(region_parameter.to_kdu_arg(info), expected_kdu)
 
 	def test_pixel_to_kdu_tl(self):
