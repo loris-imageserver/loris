@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal, getcontext
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule, BaseConverter
@@ -25,6 +26,7 @@ logr = logging.getLogger('patokah')
 logr.info("Logging initialized")
 
 def create_app(test=False):
+	getcontext().prec = 32 # precision for Decimal objects
 	app = Patokah(test)
 	return app
 
@@ -388,8 +390,11 @@ class RegionParameter(object):
 					logr.debug('Percent dimensions request: ' + pct_value)
 					# floats!
 					dimensions = map(float, pct_value.split(','))
-					if any((n > 100.0 or n <= 0) for n in dimensions):
-						msg = 'Percentages must be between 0 and 100.'
+					if any(n > 100.0 for n in dimensions):
+						msg = 'Percentages must be less than or equal to 100.'
+						raise BadRegionSyntaxException(400, url_value, msg)
+					if any((n <= 0) for n in dimensions[2:]):
+						msg = 'Width and Height Percentages must be greater than 0.'
 						raise BadRegionSyntaxException(400, url_value, msg)
 					if len(dimensions) != 4:
 						msg = 'Exactly (4) coordinates must be supplied'
@@ -427,50 +432,43 @@ class RegionParameter(object):
 		if self.mode != 'full':
 			cmd = '-region '
 
-			# First: convert into decimals (we'll pass these to kdu after)
-			# we test them
-
-			top = self.y / 100.0 if self.mode == 'pct' else float(self.y) / img_info.height
-			left = self.x / 100.0 if self.mode == 'pct' else float(self.x) / img_info.width
-			height = self.h / 100.0 if self.mode == 'pct' else float(self.h) / img_info.height
-			width = self.w / 100.0 if self.mode == 'pct' else float(self.w) / img_info.width
-			
-			# THESE CONVERSIONS CAN LEAVE US OFF BY A PIXEL.... 
-			# try 0,0,1358,1800. Result is 1359 wide.
-			# What to do?
-			# 
+			# First: convert into decimals (we'll pass these to kdu after
+			# we test them)
+			top = Decimal(self.y) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.y) / img_info.height
+			left = Decimal(self.x) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.x) / img_info.width
+			height = Decimal(self.h) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.h) / img_info.height
+			width = Decimal(self.w) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.w) / img_info.width
+			# Re: above, Decimal is set to be precise to 32 places. float() was 
+			# frequently off by 1
 
 			# "If the request specifies a region which extends beyond the 
 			# dimensions of the source image, then the service should return an 
 			# image cropped at the boundary of the source image."
-			if (width + left) > 1.0: 
-				width = 1.0 - left
+			if (width + left) > Decimal(1.0): 
+				width = Decimal(1.0) - Decimal(left)
 				logr.debug('Width adjusted to %s' % width)
-			if (top + height) > 1.0: 
-				height = 1.0 - top
+			if (top + height) > Decimal(1.0): 
+				height = Decimal(1.0) - Decimal(top)
 				logr.debug('Height adjusted to %s' % height)
 			# Catch OOB errors:
 			# top and left
 			if any(axis < 0 for axis in (top, left)):
 				msg = 'x and y region paramaters must be 0 or greater'
 				raise BadRegionRequestException(400, self.url_value, msg)
-			if left >= 1.0:
+			if left >= Decimal(1.0):
 				msg = 'Region x parameter is out of bounds.\n'
-				msg += self.x + ' was supplied and image width is ' 
-				msg += img_info.width
+				msg += str(self.x) + ' was supplied and image width is ' 
+				msg += str(img_info.width)
 				raise BadRegionRequestException(400, self.url_value, msg)
-			if top >= 1.0:
+			if top >= Decimal(1.0):
 				msg = 'Region y parameter is out of bounds.\n'
-				msg += self.y + ' was supplied and image height is ' 
-				msg += img_info.height
+				msg += str(self.y) + ' was supplied and image height is ' 
+				msg += str(img_info.height)
 				raise BadRegionRequestException(400, self.url_value, msg)
 			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
 			logr.debug('kdu region parameter: ' + cmd)
 		return cmd
-
-
-
-		
+	
 
 class SizeConverter(BaseConverter):
 	"""

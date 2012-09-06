@@ -1,10 +1,12 @@
 # tests.py
 # Tests for Patokah.
 
+
 from os import path
 from os import listdir
 from shutil import rmtree
 from patokah import BadRegionSyntaxException
+from patokah import BadRegionRequestException
 from patokah import BadSizeSyntaxException
 from patokah import create_app
 from patokah import ImgInfo
@@ -106,10 +108,6 @@ class Tests(unittest.TestCase):
 		# We'll stop here. values are tested with the object. This is parsable
 		# and info is the root
 
-		
-
-
-
 	def test_region_full(self):
 		url_segment = 'full'
 		expected_mode = 'full'
@@ -166,25 +164,68 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadRegionSyntaxException):
 			RegionParameter(url_segment)
 
-	
+	def test_xpixel_oob_exception(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = '2717,0,1,1'
+		region_parameter = RegionParameter(url_segment)
+		with self.assertRaises(BadRegionRequestException):
+			region_arg = region_parameter.to_kdu_arg(info)
+
+	def test_ypixel_oob_exception(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = '0,3600,1,1'
+		region_parameter = RegionParameter(url_segment)
+		with self.assertRaises(BadRegionRequestException):
+			region_arg = region_parameter.to_kdu_arg(info)
+
 	def test_pixel_to_kdu_hw(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 		url_segment = '0,0,1358,1800'
 		region_parameter = RegionParameter(url_segment)
-		expected_kdu = '-region \{0.0,0.0\},\{0.5,0.4998159735\}'
-		self.assertEqual(region_parameter.to_kdu_arg(info), expected_kdu)
+		expected_kdu = '-region \{0,0\},\{0.5,0.49981597350018402649981597350018\}'
+		region_arg = region_parameter.to_kdu_arg(info)
+		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pixel_to_kdu_tl(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
-		url_segment = '1358,1800,1359,1800'
+		url_segment = '1358,1800,200,658'
 		region_parameter = RegionParameter(url_segment)
-		expected_kdu = '-region \{0.5,0.4998159735\},\{0.5001840265,0.5\}'
-		self.assertEqual(region_parameter.to_kdu_arg(info), expected_kdu)
+		expected_kdu = '-region \{0.5,0.49981597350018402649981597350018\},\{0.18277777777777777777777777777778,0.073610599926389400073610599926389\}'
+		region_arg = region_parameter.to_kdu_arg(info)
+		self.assertEqual(region_arg, expected_kdu)
+
+	def test_pct_to_kdu_hw(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = 'pct:0,0,50,50'
+		region_parameter = RegionParameter(url_segment)
+		expected_kdu = '-region \{0,0\},\{0.5,0.5\}'
+		region_arg = region_parameter.to_kdu_arg(info)
+		self.assertEqual(region_arg, expected_kdu)
+
+	def test_pct_to_kdu_tl(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = 'pct:50,50,50,50'
+		region_parameter = RegionParameter(url_segment)
+		expected_kdu = '-region \{0.5,0.5\},\{0.5,0.5\}'
+		region_arg = region_parameter.to_kdu_arg(info)
+		self.assertEqual(region_arg, expected_kdu)
+
+	def test_pct_to_kdu_adjust(self):
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = 'pct:20,20,100,100'
+		region_parameter = RegionParameter(url_segment)
+		expected_kdu = '-region \{0.2,0.2\},\{0.8,0.8\}'
+		region_arg = region_parameter.to_kdu_arg(info)
+		self.assertEqual(region_arg, expected_kdu)
 
 	# START HERE - need tests for exceptions and percents
-	# also need to figure out how to keep kdu from rounding up...
 
 	def test_size_full(self):
 		url_segment = 'full'
@@ -311,6 +352,35 @@ class Tests(unittest.TestCase):
 		rotation_parameter = RotationParameter(url_segment)
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
 		self.assertEqual(rotation_parameter.to_kdu_arg(), expected_kdu_arg)
+
+	# TODO: use this to test arbitrary complete image requests.
+	def get_jpeg_dimensions(self, path):
+	   jpeg = open(path, 'r')
+	   jpeg.read(2)
+	   b = jpeg.read(1)
+	   try:
+		   while (b and ord(b) != 0xDA):
+			   while (ord(b) != 0xFF): b = jpeg.read(1)
+			   while (ord(b) == 0xFF): b = jpeg.read(1)
+			   
+			   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+				   jpeg.read(3)
+				   h, w = struct.unpack(">HH", jpeg.read(4))
+				   break
+			   else:
+				   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
+				   
+			   b = jpeg.read(1)
+		   width = int(w)
+		   height = int(h)
+	   except struct.error:
+		   pass
+	   except ValueError:
+		   pass
+	   finally:
+		   jpeg.close()
+	   logr.debug(path + " w: " + str(width) + " h: " + str(height))
+	   return (width, height)
 
 if __name__ == "__main__":
 	unittest.main()
