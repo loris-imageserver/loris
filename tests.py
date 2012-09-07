@@ -1,13 +1,14 @@
 # tests.py
 # Tests for Patokah.
 
-
+from decimal import getcontext
 from os import path
 from os import listdir
 from shutil import rmtree
 from patokah import BadRegionSyntaxException
 from patokah import BadRegionRequestException
 from patokah import BadSizeSyntaxException
+from patokah import PctRegionException
 from patokah import create_app
 from patokah import ImgInfo
 from patokah import RegionParameter
@@ -27,6 +28,7 @@ class Tests(unittest.TestCase):
 		unittest.TestCase.setUp(self)
 		# TODO: create an instance of the app here that we can use in tests
 		self.app = create_app(test=True)
+		getcontext().prec = 32 # set this explicitly in case it gets changed in the conf
 		# with self.app we can do, e.g.:
 		self.client = Client(self.app, BaseResponse)
 		# self.client = c.get('/pudl0001/4609321/s42/00000004/60,10,70,80/full/0/native.jpg')
@@ -170,7 +172,7 @@ class Tests(unittest.TestCase):
 		url_segment = '2717,0,1,1'
 		region_parameter = RegionParameter(url_segment)
 		with self.assertRaises(BadRegionRequestException):
-			region_arg = region_parameter.to_kdu_arg(info)
+			region_arg = region_parameter.to_kdu_arg(info, False)
 
 	def test_ypixel_oob_exception(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
@@ -178,7 +180,7 @@ class Tests(unittest.TestCase):
 		url_segment = '0,3600,1,1'
 		region_parameter = RegionParameter(url_segment)
 		with self.assertRaises(BadRegionRequestException):
-			region_arg = region_parameter.to_kdu_arg(info)
+			region_arg = region_parameter.to_kdu_arg(info, False)
 
 	def test_pixel_to_kdu_hw(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
@@ -186,7 +188,7 @@ class Tests(unittest.TestCase):
 		url_segment = '0,0,1358,1800'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0,0\},\{0.5,0.49981597350018402649981597350018\}'
-		region_arg = region_parameter.to_kdu_arg(info)
+		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pixel_to_kdu_tl(self):
@@ -195,7 +197,7 @@ class Tests(unittest.TestCase):
 		url_segment = '1358,1800,200,658'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.5,0.49981597350018402649981597350018\},\{0.18277777777777777777777777777778,0.073610599926389400073610599926389\}'
-		region_arg = region_parameter.to_kdu_arg(info)
+		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pct_to_kdu_hw(self):
@@ -204,7 +206,7 @@ class Tests(unittest.TestCase):
 		url_segment = 'pct:0,0,50,50'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0,0\},\{0.5,0.5\}'
-		region_arg = region_parameter.to_kdu_arg(info)
+		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pct_to_kdu_tl(self):
@@ -213,7 +215,7 @@ class Tests(unittest.TestCase):
 		url_segment = 'pct:50,50,50,50'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.5,0.5\},\{0.5,0.5\}'
-		region_arg = region_parameter.to_kdu_arg(info)
+		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pct_to_kdu_adjust(self):
@@ -222,10 +224,26 @@ class Tests(unittest.TestCase):
 		url_segment = 'pct:20,20,100,100'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.2,0.2\},\{0.8,0.8\}'
-		region_arg = region_parameter.to_kdu_arg(info)
+		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
-	# START HERE - need tests for exceptions and percents
+	def test_cache_px_only(self):
+		self.app.cache_px_only = True
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = 'pct:20,20,100,100'
+		region_parameter = RegionParameter(url_segment)
+		try:
+			region_arg = region_parameter.to_kdu_arg(info, True)
+		except PctRegionException as e:
+			self.assertEquals(e.new_region_param.url_value, '543,720,2717,3600')
+			expected_kdu = '-region \{0.2,0.19985277880014722119985277880015\},\{0.8,0.80014722119985277880014722119985\}'
+			self.assertEquals(e.new_region_param.to_kdu_arg(info, True), expected_kdu)
+
+		# catch and test!
+		
+
+
 
 	def test_size_full(self):
 		url_segment = 'full'
