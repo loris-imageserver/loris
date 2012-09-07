@@ -240,24 +240,24 @@ class Tests(unittest.TestCase):
 			expected_kdu = '-region \{0.2,0.19985277880014722119985277880015\},\{0.8,0.80014722119985277880014722119985\}'
 			self.assertEquals(e.new_region_param.to_kdu_arg(info, True), expected_kdu)
 
-		# catch and test!
-		
-
-
 
 	def test_size_full(self):
 		url_segment = 'full'
 		expected_mode = 'full'
+		expected_convert = ''
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.mode, expected_mode)
+		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
 	def test_size_pct(self):
 		url_segment = 'pct:50'
 		expected_mode = 'pct'
 		expected_pct = 50.0
+		expected_convert = '-resize 50.0%'
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.mode, expected_mode)
 		self.assertEqual(size_parameter.pct, expected_pct)
+		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
 	def test_size_gtlt_100_pct_exception(self):
 		url_segment = 'pct:101'
@@ -272,42 +272,50 @@ class Tests(unittest.TestCase):
 		url_segment = ',100'
 		expected_mode = 'pixel'
 		expected_height = 100
+		expected_convert = '-resize x100'
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.h, expected_height)
 		self.assertEqual(size_parameter.w, None)
 		self.assertEqual(size_parameter.mode, expected_mode)
+		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
 	def test_size_w_only(self):
 		url_segment = '500,'
 		expected_mode = 'pixel'
 		expected_width = 500
+		expected_convert = '-resize 500'
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.w, expected_width)
 		self.assertEqual(size_parameter.h, None)
 		self.assertEqual(size_parameter.force_aspect, None)
 		self.assertEqual(size_parameter.mode, expected_mode)
+		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
 	def test_size_force_aspect(self):
 		url_segment = '500,100'
 		expected_mode = 'pixel'
 		expected_width = 500
 		expected_height = 100
+		expected_convert = '-resize 500x100!'
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.w, expected_width)
 		self.assertEqual(size_parameter.h, expected_height)
 		self.assertEqual(size_parameter.force_aspect, True)
 		self.assertEqual(size_parameter.mode, expected_mode)
+		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
 	def test_size_not_force_aspect(self):
 		url_segment = '!500,100'
 		expected_mode = 'pixel'
 		expected_width = 500
 		expected_height = 100
+		expected_convert = '-resize 500x100\>'
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.w, expected_width)
 		self.assertEqual(size_parameter.h, expected_height)
 		self.assertEqual(size_parameter.force_aspect, False)
 		self.assertEqual(size_parameter.mode, expected_mode)
+		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
 	def test_dimension_lt_1_px_exception(self):
 		url_segment = '-1,500'

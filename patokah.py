@@ -230,6 +230,9 @@ class Patokah(object):
 				# Should only be raised if cache_px_only is set to True.
 
 
+			# TODO: don't forget color profiles!
+			# TODO: don't forget -quality 90
+
 			# 8/27/2012: start here, 
 			# * Implement to_kdu_arg() methods
 			# * Write to_kdu_arg() tests
@@ -586,11 +589,28 @@ class SizeParameter(object):
 			msg = 'Width and height must both be positive numbers'
 			raise BadSizeSyntaxException(400, self.url_value, msg)
 		
-	def to_convert_arg(self, img_info):
+	def to_convert_arg(self):
+
 		cmd = ''
 		if self.url_value != 'full':
-			cmd = '-resize'
+			cmd = '-resize '
+			if self.mode == 'pct':
+				cmd += str(self.pct) + '%'
+			elif self.w and not self.h:
+				cmd += str(self.w)
+			elif self.h and not self.w:
+				cmd += 'x' + str(self.h)
+			# Note that IIIF and Imagmagick use '!' in opposite ways: to IIIF, 
+			# the presense of ! means that the aspect ratio should be preserved,
+			# to convert it means that it should be ignored
+			elif self.w and self.h and not self.force_aspect:
+				cmd += '%sx%s\>' % (self.w, self.h) # Don't upsample. Should this be configurable?
+			elif self.w and self.h and self.force_aspect:
+				cmd += '%sx%s!' % (self.w, self.h)
 
+			else:
+				msg = 'Could not construct a convert argument from ' + self.url_value
+				raise BadSizeRequestException(500, msg)
 		return cmd
 
 class RotationConverter(BaseConverter):
@@ -717,8 +737,6 @@ class ImgInfo(object):
 		j += '}' + os.linesep
 		return j
 
-
-
 class PatokahException(Exception):
 	def __init__(self, http_status=404, supplied_value='', msg=''):
 		"""
@@ -738,6 +756,7 @@ class PatokahException(Exception):
 class BadRegionSyntaxException(PatokahException): pass
 class BadRegionRequestException(PatokahException): pass
 class BadSizeSyntaxException(PatokahException): pass
+class BadSizeRequestException(PatokahException): pass
 class BadRotationSyntaxException(PatokahException): pass
 
 class PctRegionException(Exception):
