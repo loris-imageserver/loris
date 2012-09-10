@@ -128,6 +128,19 @@ class Tests(unittest.TestCase):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'text/json; charset=utf-8')
 
+		# These last two fail (by asking for txt), and we get back a 415 and a 
+		# message as XML
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.status_code, 415)
+
+		headers.clear()
+		headers.add('accept', 'text/plain')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.status_code, 415)
+
+
 	def test_format_conneg(self):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jpg')
 		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')

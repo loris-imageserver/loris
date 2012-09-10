@@ -82,7 +82,7 @@ class Patokah(object):
 				'rotation' : RotationConverter
 			}
 		self.url_map = Map([
-			Rule('/<path:ident>/info.<any(json, xml):format>', endpoint='get_img_metadata'),
+			Rule('/<path:ident>/info.<format>', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/info', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img')
@@ -110,64 +110,71 @@ class Patokah(object):
 		## Note that we can pickle response objects:
 		## http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
 		## Would this be faster than reading from the FS?
-
+		resp = None
+		status = None
 		mime = None
-		resp_code = None
-		if format == 'json': 
-			mime = 'text/json'
-		elif format == 'xml': 
-			mime = 'text/xml'
-		elif request.headers.get('accept') == 'text/json':
-			format = 'json'
-			mime = 'text/json'
-		elif request.headers.get('accept') == 'text/xml':
-			format = 'xml'
-			mime = 'text/xml'
-		else:
-			msg = 'Only XML or json are available'
-			raise FormatNotSupportedException(415, format, msg)
-			
-		img_path = self._resolve_identifier(ident)
-		
-		if not os.path.exists(img_path):
-			raise NotFound('"' + ident + '" does not resolve to an image.')
-		
-		
-		cache_dir = os.path.join(self.CACHE_ROOT, ident)
-		cache_path = os.path.join(cache_dir, 'info.') + format
-		
-		# check the cache
-		if os.path.exists(cache_path):
-			status = 200
-			resp = file(cache_path)
-			length = len(file(cache_path).read())
-			logr.info('Read: ' + cache_path)
-		else:
-			status = 201 if self.use_201 else 200
-			info = ImgInfo.fromJP2(img_path, ident)
-			info.id = ident
-			if mime == 'text/xml':
-				resp = info.toXML()
-			else:
-				resp = info.toJSON()
-
-			length = len(resp)
-
-			# we could fork this off...
-			if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
-
-			logr.debug('made ' + cache_dir)
-
-			f = open(cache_path, 'w')
-			f.write(resp)
-			f.close()
-			logr.info('Created: ' + cache_path)
-		
 		headers = Headers()
 		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
-		headers.add('Content-Length', length)
-		r = Response(resp, status=status, mimetype=mime, headers=headers)
-		return r
+
+		try:
+			if format == 'json': 
+				mime = 'text/json'
+			elif format == 'xml': 
+				mime = 'text/xml'
+			elif request.headers.get('accept') == 'text/json':
+				format = 'json'
+				mime = 'text/json'
+			elif request.headers.get('accept') == 'text/xml':
+				format = 'xml'
+				mime = 'text/xml'
+			else:
+				msg = 'Only XML or json are available'
+				raise FormatNotSupportedException(415, format, msg)
+				
+			img_path = self._resolve_identifier(ident)
+			
+			if not os.path.exists(img_path):
+				raise PatokahException(404, ident, 'Identifier does not resolve to an image.')
+			
+			cache_dir = os.path.join(self.CACHE_ROOT, ident)
+			cache_path = os.path.join(cache_dir, 'info.') + format
+			
+			# check the cache
+			if os.path.exists(cache_path):
+				status = 200
+				resp = file(cache_path)
+				length = len(file(cache_path).read())
+				logr.info('Read: ' + cache_path)
+			else:
+				status = 201 if self.use_201 else 200
+				info = ImgInfo.fromJP2(img_path, ident)
+				info.id = ident
+				if format == 'xml':
+					resp = info.toXML()
+				else: # format == 'json':
+					resp = info.toJSON()
+
+				length = len(resp)
+
+				# we could fork this off...
+				if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
+
+				logr.debug('made ' + cache_dir)
+
+				f = open(cache_path, 'w')
+				f.write(resp)
+				f.close()
+				logr.info('Created: ' + cache_path)
+
+			headers.add('Content-Length', length)
+
+		except PatokahException as e:
+		 	mime = 'text/xml'
+		 	status = e.http_status
+		 	resp = e.to_xml()
+
+		finally:
+			return Response(resp, status=status, mimetype=mime, headers=headers)
 	
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		# TODO: 
@@ -190,115 +197,114 @@ class Patokah(object):
 		@param quality: 'native', 'color', 'grey', 'bitonal'
 		@type quality: string
 
-		@param format - 'jpg' or 'png' (for now)
+		@param format - 'jpg', 'png', or 'jp2'
 		@type format: string
 		"""
 			# This method should always return a Response.
-			
 			#TODO: ulitmately wrap this is try/catches. Most exceptions/messages
 			# will come from raises by the Converter and Parameter objects.
-		# try:
-		resp = None
-		status = None
-		mime = None
-		headers = Headers()
-		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
 
-		# Support accept headers and poor-mans conneg by file extension. 
-		# By configuration we allow either a default format, or the option to
-		# return a 415 if neither a file extension or Accept header are 
-		# supplied.
-		# Cf. 4.5: ... If the format is not specified in the URI ....
-		if not format and not self.use_415:	format = self.default_format
+		try:
+			resp = None
+			status = None
+			mime = None
+			headers = Headers()
+			headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
 
-		if format == 'jpg':
-			mime = 'image/jpeg'
-		elif format == 'png':
-			mime = 'image/png'
-		elif format == 'jp2':
-			mime = 'image/jp2'
-		elif request.headers.get('accept') == 'image/jpeg':
-			format = 'jpg'
-			mime = 'image/jpeg'
-		elif request.headers.get('accept') == 'image/png':
-			format = 'png'
-			mime = 'image/png'
-		elif request.headers.get('accept') == 'image/jp2':
-			format = 'jp2'
-			mime = 'image/jp2'
-		else:
-			msg = 'The format requested is not supported by this service.'
-			raise FormatNotSupportedException(415, format, msg)
+			# Support accept headers and poor-mans conneg by file extension. 
+			# By configuration we allow either a default format, or the option to
+			# return a 415 if neither a file extension or Accept header are 
+			# supplied.
+			# Cf. 4.5: ... If the format is not specified in the URI ....
+			if not format and not self.use_415:	format = self.default_format
 
-		img_dir = os.path.join(self.CACHE_ROOT, ident, region.url_value, size.url_value, rotation.url_value)
-		img_path = quality + '.' + format
-		logr.debug('img_dir: ' + img_dir)
-		logr.debug('img_path: ' + img_path)
+			if format == 'jpg':
+				mime = 'image/jpeg'
+			elif format == 'png':
+				mime = 'image/png'
+			elif format == 'jp2':
+				mime = 'image/jp2'
+			elif request.headers.get('accept') == 'image/jpeg':
+				format = 'jpg'
+				mime = 'image/jpeg'
+			elif request.headers.get('accept') == 'image/png':
+				format = 'png'
+				mime = 'image/png'
+			elif request.headers.get('accept') == 'image/jp2':
+				format = 'jp2'
+				mime = 'image/jp2'
+			else:
+				msg = 'The format requested is not supported by this service.'
+				raise FormatNotSupportedException(415, format, msg)
 
-		# check the cache
-		if os.path.exists(img_path):
-			status = 200
-			resp = file(img_path)
-			length = len(file(img_path).read()) 
-			headers.add('Content-Length', length) # do we want to bother? might be expensive
-			logr.info('Read: ' + img_path)
-		else:
-			status = 201 if self.use_201 else 200
-			jp2 = self._resolve_identifier(ident)
-			
-			# We may not want to read this from the file every time, though it 
-			# is pretty fast. Runtime cache? In memory dicts and Shelve/pickle 
-			# are not thread safe for writing.
-			# ZODB? : http://www.zodb.org/
-			info = ImgInfo.fromJP2(jp2, ident)
-			
-			try:
-				region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
-			except PctRegionException as e: # TODO: Untested!
-				logr.info(e.msg)
-				self.on_get_img(self, request, ident, e.new_region_param, size, rotation, quality, format)
-				# Should only be raised if cache_px_only is set to True.
+			img_dir = os.path.join(self.CACHE_ROOT, ident, region.url_value, size.url_value, rotation.url_value)
+			img_path = quality + '.' + format
+			logr.debug('img_dir: ' + img_dir)
+			logr.debug('img_path: ' + img_path)
 
-
-			# TODO: don't forget color profiles!
-			# TODO: don't forget -quality 90
-
-			# 8/27/2012: start here, 
-			# * Implement to_kdu_arg() methods
-			# * Write to_kdu_arg() tests
-			# * Build comm
-			#nothing below this is actual implementation.
-			# approach: make functions that take an ImgInfo object and one of the
-			# dictionaries returned from the converters and build the appropriate
-			# part of the shellout.
-			  
-			
-			# Use a named pipe to give kdu and cjpeg format info.
-			# fifopath = os.path.join(self.TMP_DIR, rand_str() + '.bmp')
-			# mkfifo_cmd = self.MKFIFO + " " + fifopath
-			# logr.debug(mkfifo_cmd) 
-			# mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
-			# mkfifo_proc.wait()
-
-			
-
-			
-			
-			# hold off making the above dir until we succeed??
-			
-			
-			
-			
-
-		# except PatokahException as e:
-		# 	mime = 'text/xml'
-		# 	status = e.status
-		# 	resp = e.to_xml()
-
-		# finally:
+			# check the cache
+			if os.path.exists(img_path):
+				status = 200
+				resp = file(img_path)
+				length = len(file(img_path).read()) 
+				headers.add('Content-Length', length) # do we want to bother?
+				logr.info('Read: ' + img_path)
+			else:
+				status = 201 if self.use_201 else 200
+				jp2 = self._resolve_identifier(ident)
+				
+				# We may not want to read this from the file every time, though 
+				# it is pretty fast. Runtime cache? In memory dicts and Shelve/
+				# pickle are not thread safe for writing and probably wouldn't
+				# scale anyway.
+				# ZODB? : http://www.zodb.org/
+				info = ImgInfo.fromJP2(jp2, ident)
+				
+				try:
+					region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
+					# This happens when cache_px_only=True; we re-call the 
+					# method with a new RegionParameter object that is included
+					# with the PctRegionException
+				except PctRegionException as e:
+					logr.info(e.msg)
+					self.on_get_img(self, request, ident, e.new_region_param, size, rotation, quality, format)
+					# Should only be raised if cache_px_only is set to True.
 
 
-		return Response(resp, status=status, mimetype=mime, headers=headers)
+				# TODO: don't forget color profiles!
+				# TODO: don't forget -quality 90
+
+				# 8/27/2012: start here, 
+				# * Implement to_kdu_arg() methods
+				# * Write to_kdu_arg() tests
+				# * Build comm
+				#nothing below this is actual implementation.
+				# approach: make functions that take an ImgInfo object and one of the
+				# dictionaries returned from the converters and build the appropriate
+				# part of the shellout.
+				  
+				
+				# Use a named pipe to give kdu and cjpeg format info.
+				# fifopath = os.path.join(self.TMP_DIR, rand_str() + '.bmp')
+				# mkfifo_cmd = self.MKFIFO + " " + fifopath
+				# logr.debug(mkfifo_cmd) 
+				# mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
+				# mkfifo_proc.wait()
+
+				
+
+				
+				
+				# hold off making the above dir until we succeed??
+
+		# TODO: make sure all PatokahException subclasses bubble up to here:
+		except PatokahException as e:
+		 	mime = 'text/xml'
+		 	status = e.http_status
+		 	resp = e.to_xml()
+
+		finally:
+			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 
 #		# Use a named pipe to give kdu and cjpeg format info.
