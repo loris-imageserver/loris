@@ -14,6 +14,7 @@ from patokah import ImgInfo
 from patokah import RegionParameter
 from patokah import RotationParameter
 from patokah import SizeParameter
+from werkzeug.datastructures import Headers
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 from xml.dom.minidom import parseString
@@ -31,7 +32,7 @@ class Tests(unittest.TestCase):
 		getcontext().prec = 32 # set this explicitly in case it gets changed in the conf
 		# with self.app we can do, e.g.:
 		self.client = Client(self.app, BaseResponse)
-		# self.client = c.get('/pudl0001/4609321/s42/00000004/60,10,70,80/full/0/native.jpg')
+		# resp = c.get('/pudl0001/4609321/s42/00000004/60,10,70,80/full/0/native.jpg')
 		# and then test the response.
 		# see http://werkzeug.pocoo.org/docs/test/
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
@@ -109,6 +110,48 @@ class Tests(unittest.TestCase):
 		self.assertEqual(dom.documentElement.tagName, 'info')
 		# We'll stop here. values are tested with the object. This is parsable
 		# and info is the root
+
+	def test_info(self):
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+
+		headers = Headers()
+		headers.add('accept', 'text/xml')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
+		self.assertEqual(resp.headers.get('content-type'), 'text/json; charset=utf-8')
+
+		headers.clear()
+		headers.add('accept', 'text/json')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'text/json; charset=utf-8')
+
+	def test_format_conneg(self):
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jpg')
+		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
+
+		headers = Headers()
+		headers.add('accept', 'image/jpeg')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
+
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.png')
+		self.assertEqual(resp.headers.get('content-type'), 'image/png')
+
+		headers.clear()
+		headers.add('accept', 'image/png')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'image/png')
+
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jp2')
+		self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
+
+		headers.clear()
+		headers.add('accept', 'image/jp2')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
 
 	def test_region_full(self):
 		url_segment = 'full'

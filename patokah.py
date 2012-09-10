@@ -49,6 +49,8 @@ class Patokah(object):
 		getcontext().prec = self.decimal_precision
 		self.use_201 = bool(_conf.get('options', 'use_201'))
 		self.cache_px_only = bool(_conf.get('options', 'cache_px_only'))
+		self.use_415 = bool(_conf.get('options', 'use_415'))
+		self.default_format = _conf.get('options', 'default_format')
 
 		# utilities
 		self.test=test
@@ -80,8 +82,10 @@ class Patokah(object):
 				'rotation' : RotationConverter
 			}
 		self.url_map = Map([
-			Rule('/<path:ident>/info.<any(json, xml):extension>', endpoint='get_img_metadata'),
-			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img')
+			Rule('/<path:ident>/info.<any(json, xml):format>', endpoint='get_img_metadata'),
+			Rule('/<path:ident>/info', endpoint='get_img_metadata'),
+			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
+			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img')
 		], converters=converters)
 	
 	def dispatch_request(self, request):
@@ -101,7 +105,7 @@ class Patokah(object):
 		except HTTPException, e:
 			return e
 
-	def on_get_img_metadata(self, request, ident, extension):
+	def on_get_img_metadata(self, request, ident, format=None):
 		## TODO:
 		## Note that we can pickle response objects:
 		## http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
@@ -109,13 +113,19 @@ class Patokah(object):
 
 		mime = None
 		resp_code = None
-		if extension == 'json': 
+		if format == 'json': 
 			mime = 'text/json'
-		elif extension == 'xml': 
+		elif format == 'xml': 
+			mime = 'text/xml'
+		elif request.headers.get('accept') == 'text/json':
+			format = 'json'
+			mime = 'text/json'
+		elif request.headers.get('accept') == 'text/xml':
+			format = 'xml'
 			mime = 'text/xml'
 		else:
-			pass
-			# TODO: raise (406 or something like that...format not supported)
+			msg = 'Only XML or json are available'
+			raise FormatNotSupportedException(415, format, msg)
 			
 		img_path = self._resolve_identifier(ident)
 		
@@ -124,7 +134,7 @@ class Patokah(object):
 		
 		
 		cache_dir = os.path.join(self.CACHE_ROOT, ident)
-		cache_path = os.path.join(cache_dir, 'info.') + extension
+		cache_path = os.path.join(cache_dir, 'info.') + format
 		
 		# check the cache
 		if os.path.exists(cache_path):
@@ -159,11 +169,7 @@ class Patokah(object):
 		r = Response(resp, status=status, mimetype=mime, headers=headers)
 		return r
 	
-	# Do we want: http://docs.python.org/library/queue.html ?
-
-
-
-	def on_get_img(self, request, ident, region, size, rotation, quality, format):
+	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		# TODO: 
 		"""
 		Get an image based on the *Parameter objects and values returned by our 
@@ -187,43 +193,67 @@ class Patokah(object):
 		@param format - 'jpg' or 'png' (for now)
 		@type format: string
 		"""
-		# This method should always return a Response.
-		
-		#TODO: ulitmately wrap this is try/catches. Most exceptions/messages
-		# will come from raises by the Converter and Parameter objects. 
+			# This method should always return a Response.
+			
+			#TODO: ulitmately wrap this is try/catches. Most exceptions/messages
+			# will come from raises by the Converter and Parameter objects.
+		# try:
+		resp = None
+		status = None
+		mime = None
+		headers = Headers()
+		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+
+		# Support accept headers and poor-mans conneg by file extension. 
+		# By configuration we allow either a default format, or the option to
+		# return a 415 if neither a file extension or Accept header are 
+		# supplied.
+		# Cf. 4.5: ... If the format is not specified in the URI ....
+		if not format and not self.use_415:	format = self.default_format
+
 		if format == 'jpg':
 			mime = 'image/jpeg'
-			ext = format
-			
-		if format == 'png':
+		elif format == 'png':
 			mime = 'image/png'
-			ext = format
+		elif format == 'jp2':
+			mime = 'image/jp2'
+		elif request.headers.get('accept') == 'image/jpeg':
+			format = 'jpg'
+			mime = 'image/jpeg'
+		elif request.headers.get('accept') == 'image/png':
+			format = 'png'
+			mime = 'image/png'
+		elif request.headers.get('accept') == 'image/jp2':
+			format = 'jp2'
+			mime = 'image/jp2'
+		else:
+			msg = 'The format requested is not supported by this service.'
+			raise FormatNotSupportedException(415, format, msg)
 
-		# TODO: Check the cache first
-		cache_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
-		cache_path = quality + '.' + format
-		logr.debug('cache_path: %s' % cache_path)
+		img_dir = os.path.join(self.CACHE_ROOT, ident, region.url_value, size.url_value, rotation.url_value)
+		img_path = quality + '.' + format
+		logr.debug('img_dir: ' + img_dir)
+		logr.debug('img_path: ' + img_path)
 
 		# check the cache
-		if os.path.exists(cache_path):
+		if os.path.exists(img_path):
 			status = 200
-			resp = file(cache_path)
-			length = len(file(cache_path).read())
-			logr.info('Read: ' + cache_path)
+			resp = file(img_path)
+			length = len(file(img_path).read()) 
+			headers.add('Content-Length', length) # do we want to bother? might be expensive
+			logr.info('Read: ' + img_path)
 		else:
 			status = 201 if self.use_201 else 200
 			jp2 = self._resolve_identifier(ident)
 			
-			# TODO: we probably don't want to read this from the file every time.
-			# Runtime cache? db? Python dictionaries are not thread-safe for 
-			# writing.
-			info = ImgInfo.fromJP2(jp2)
-			
-			out_dir = os.path.join(self.CACHE_ROOT, ident, region, size, rotation)
-			out = os.path.join(out_dir, quality) + '.' + ext
+			# We may not want to read this from the file every time, though it 
+			# is pretty fast. Runtime cache? In memory dicts and Shelve/pickle 
+			# are not thread safe for writing.
+			# ZODB? : http://www.zodb.org/
+			info = ImgInfo.fromJP2(jp2, ident)
 			
 			try:
-				region_kdu_arg = region.to_kdu_arg(self.cache_px_only)
+				region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
 			except PctRegionException as e: # TODO: Untested!
 				logr.info(e.msg)
 				self.on_get_img(self, request, ident, e.new_region_param, size, rotation, quality, format)
@@ -244,66 +274,31 @@ class Patokah(object):
 			  
 			
 			# Use a named pipe to give kdu and cjpeg format info.
-			fifopath = os.path.join(self.TMP_DIR, rand_str() + '.bmp')
-			mkfifo_cmd = self.MKFIFO + " " + fifopath
-			logr.debug(mkfifo_cmd) 
-			mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
-			mkfifo_proc.wait()
-			
-			# Build the kdu_expand call
-			kdu_cmd = KDU_EXPAND + " -i " + jp2 
-			if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
-			if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
-			kdu_cmd = kdu_cmd + " -o " + fifopath
-			logr.debug(kdu_cmd)
-			kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
-		
-			# What are the implications of not being able to wait here (not sure why
-			# we can't, but it hangs when we try). I *think* that as long as there's 
-			# data flowing into the pipe when the next process (below) starts we're 
-			# just fine.
-			
-			# TODO: if format is not jpg, [do something] (see spec)
-			# TODO: quality, probably in the recipe below
-			
-			if not os.path.exists(out_dir):
-				os.makedirs(out_dir, 0755)
-				self.logr.info("Made directory: " + out_dir)
-			cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
-			logr.debug(cjpeg_cmd)
-			cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
-			self.logr.info("Read: " + out)
-		
-			rm_cmd = self.RM + " " + fifopath
-			logr.debug(rm_cmd)
-			rm_proc = subprocess.Popen(rm_cmd, shell=True)
+			# fifopath = os.path.join(self.TMP_DIR, rand_str() + '.bmp')
+			# mkfifo_cmd = self.MKFIFO + " " + fifopath
+			# logr.debug(mkfifo_cmd) 
+			# mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
+			# mkfifo_proc.wait()
 
-			# TODO: needs unit test
-			if not os.path.exists(jp2):
-				msg = 'Image specified by this identifier does not exist.'
-				logr.error(msg + ': ' + ident)
-				r = self.err_to_xml(ident, msg)
-				return Response(r,status=404,mimetype='text/xml')
 			
-			# We may not want to read this from the file every time, though it 
-			# is pretty fast.
-			# Runtime cache? In memory dicts and Shelve/pickle are not thread 
-			# safe for writing.
-			# ZODB? : http://www.zodb.org/
-			info = ImgInfo.fromJP2(jp2)
+
 			
-			out_dir = os.path.join(self.CACHE_ROOT, ident, str(region['value']), str(size['value']), str(rotation))
+			
 			# hold off making the above dir until we succeed??
-			out_path = os.path.join(out_dir, quality) + '.' + ext
 			
-			logr.debug('output path: ' + out_path)
-		
-		headers = Headers()
-		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
-		# TODO: Content-Length
+			
+			
+			
 
-		r = Response(resp, status=status, mimetype=mime, headers=headers)
-		return r
+		# except PatokahException as e:
+		# 	mime = 'text/xml'
+		# 	status = e.status
+		# 	resp = e.to_xml()
+
+		# finally:
+
+
+		return Response(resp, status=status, mimetype=mime, headers=headers)
 
 
 #		# Use a named pipe to give kdu and cjpeg format info.
@@ -737,6 +732,8 @@ class ImgInfo(object):
 		j += '}' + os.linesep
 		return j
 
+# This seems easier than http://werkzeug.pocoo.org/docs/exceptions/ because we
+# have this custom XML body.
 class PatokahException(Exception):
 	def __init__(self, http_status=404, supplied_value='', msg=''):
 		"""
@@ -758,6 +755,7 @@ class BadRegionRequestException(PatokahException): pass
 class BadSizeSyntaxException(PatokahException): pass
 class BadSizeRequestException(PatokahException): pass
 class BadRotationSyntaxException(PatokahException): pass
+class FormatNotSupportedException(PatokahException): pass
 
 class PctRegionException(Exception):
 	"""To raise when regions are requested by percentage."""
