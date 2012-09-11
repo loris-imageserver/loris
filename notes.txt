@@ -1,5 +1,0 @@
-# Differences with IIIF 1.0:
-
- * If a derivative image is created (as opposed to read from the cache), the 
- HTTP response is 201 (Created) instead of 200. See 
- http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10.2.2 

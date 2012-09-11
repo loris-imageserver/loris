@@ -37,10 +37,10 @@ class Tests(unittest.TestCase):
 		# see http://werkzeug.pocoo.org/docs/test/
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
 		
-	# def tearDown(self):
-	# 	# empty the cache
-	# 	for d in listdir(self.app.cache_root):
-	# 		rmtree(path.join(self.app.cache_root, d))
+	def tearDown(self):
+		# empty the cache
+		for d in listdir(self.app.cache_root):
+			rmtree(path.join(self.app.cache_root, d))
 		
 
 	def test_Patoka_resolve_id(self):

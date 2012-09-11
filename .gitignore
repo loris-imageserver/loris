@@ -1,9 +1,4 @@
-.project
 
-.pydevproject
-
-.settings/
-
-cache/
+dev_cache/
 
 *.pyc
