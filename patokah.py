@@ -4,23 +4,20 @@ from decimal import Decimal, getcontext
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule, BaseConverter
-from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response
-from werkzeug.wsgi import SharedDataMiddleware
 import ConfigParser
 import logging
 import logging.config
 import os
+from random import choice
+from string import ascii_lowercase, digits
+import subprocess
 import struct
 import urlparse
-import werkzeug
 
-_LIB = os.path.join(os.path.dirname(__file__), 'lib')
-_BIN = os.path.join(os.path.dirname(__file__), 'bin')
-_ETC = os.path.join(os.path.dirname(__file__), 'etc')
-_ENV = {"LD_LIBRARY_PATH":_LIB, "PATH":_LIB + ":$PATH"}
 
-conf_file = os.path.join(_ETC, 'patokah.conf')
+
+conf_file = os.path.join(os.path.dirname(__file__), 'patokah.conf') 
 logging.config.fileConfig(conf_file)
 logr = logging.getLogger('patokah')
 logr.info("Logging initialized")
@@ -31,8 +28,6 @@ def create_app(test=False):
 
 # Note when we start to stream big files from the filesystem, see:
 # http://stackoverflow.com/questions/5166129/how-do-i-stream-a-file-using-werkzeug
-
-# TODO: do we need a format converter? Would like to support png as well.
 
 class Patokah(object):
 	def __init__(self, test=False):
@@ -54,24 +49,27 @@ class Patokah(object):
 
 		# utilities
 		self.test=test
-		self.CONVERT = _conf.get('utilities', 'convert')
-		self.MKFIFO = _conf.get('utilities', 'mkfifo')
-		self.KDU_EXPAND = _conf.get('utilities', 'kdu_expand')
-		self.RM = _conf.get('utilities', 'rm')
+		self.convert_cmd = _conf.get('utilities', 'convert')
+		self.mkfifo_cmd = _conf.get('utilities', 'mkfifo')
+		self.kdu_expand_cmd = _conf.get('utilities', 'kdu_expand')
+		self.kdu_compress_cmd = _conf.get('utilities', 'kdu_compress')
+		self.rm_cmd = _conf.get('utilities', 'rm')
 
 		# dirs		
-		self.TMP_DIR = _conf.get('directories', 'tmp')
-		self.CACHE_ROOT = _conf.get('directories', 'cache_root')
-		self.SRC_IMAGES_ROOT = ""
+		self.tmp_dir= _conf.get('directories', 'tmp')
+		self.cache_root = _conf.get('directories', 'cache_root')
+		self.src_images_root = ''
 		if self.test:
-			self.SRC_IMAGES_ROOT = os.path.join(os.path.dirname(__file__), 'test_img') 
+			self.src_images_root = os.path.join(os.path.dirname(__file__), 'test_img') 
 		else:
-			self.SRC_IMAGES_ROOT = _conf.get('directories', 'src_img_root')
+			self.src_images_root = _conf.get('directories', 'src_img_root')
+
+		self.patoka_data_dir = os.path.join(os.path.dirname(__file__), 'data')
 
 		# compliance
 		self.COMPLIANCE = _conf.get('compliance', 'uri')
 
-		for d in (self.TMP_DIR, self.CACHE_ROOT):
+		for d in (self.tmp_dir, self.cache_root):
 			if not os.path.exists(d):
 				os.makedirs(d, 0755)
 				logr.info("Created " + d)
@@ -85,7 +83,8 @@ class Patokah(object):
 			Rule('/<path:ident>/info.<format>', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/info', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
-			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img')
+			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
+			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=converters)
 	
 	def dispatch_request(self, request):
@@ -93,17 +92,27 @@ class Patokah(object):
 		Dispatch the request to the proper method. By convention, the endpoint,
 		(i.e. the method to be called) is named 'on_<method>'.
 		"""
+		# TODO: exception handling. 
 		adapter = self.url_map.bind_to_environ(request.environ)
 		try:
 			endpoint, values = adapter.match()
 			dispatch_to_method = 'on_' + endpoint
 			
-			logr.debug('Dispatching to ' + dispatch_to_method)
+			logr.info('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
-		except NotFound, e:
-			return self.error_404(e.description)
-		except HTTPException, e:
-			return e
+
+		except PatokahException, e:
+		 	mime = 'text/xml'
+		 	status = e.http_status
+		 	resp = e.to_xml()
+		 	headers = Headers()
+			headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+			return Response(resp, status=status, mimetype=mime, headers=headers)
+
+	def on_get_favicon(self, request):
+		f = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+		return Response(f, content_type='image/x-icon')
+		
 
 	def on_get_img_metadata(self, request, ident, format=None):
 		## TODO:
@@ -136,7 +145,7 @@ class Patokah(object):
 			if not os.path.exists(img_path):
 				raise PatokahException(404, ident, 'Identifier does not resolve to an image.')
 			
-			cache_dir = os.path.join(self.CACHE_ROOT, ident)
+			cache_dir = os.path.join(self.cache_root, ident)
 			cache_path = os.path.join(cache_dir, 'info.') + format
 			
 			# check the cache
@@ -168,14 +177,17 @@ class Patokah(object):
 
 			headers.add('Content-Length', length)
 
+		# except Exception as e:
+		# 	raise PatokahException(500, '', e.message)
 		except PatokahException as e:
 		 	mime = 'text/xml'
 		 	status = e.http_status
 		 	resp = e.to_xml()
 
 		finally:
+			# TODO - caching headers 
 			return Response(resp, status=status, mimetype=mime, headers=headers)
-	
+
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		# TODO: 
 		"""
@@ -197,13 +209,9 @@ class Patokah(object):
 		@param quality: 'native', 'color', 'grey', 'bitonal'
 		@type quality: string
 
-		@param format - 'jpg', 'png', or 'jp2'
+		@param format - 'jpg' or 'png'
 		@type format: string
 		"""
-			# This method should always return a Response.
-			#TODO: ulitmately wrap this is try/catches. Most exceptions/messages
-			# will come from raises by the Converter and Parameter objects.
-
 		try:
 			resp = None
 			status = None
@@ -218,27 +226,26 @@ class Patokah(object):
 			# Cf. 4.5: ... If the format is not specified in the URI ....
 			if not format and not self.use_415:	format = self.default_format
 
-			if format == 'jpg':
+			if format == 'jpg':	
 				mime = 'image/jpeg'
-			elif format == 'png':
+			elif format == 'png': 
 				mime = 'image/png'
-			elif format == 'jp2':
-				mime = 'image/jp2'
 			elif request.headers.get('accept') == 'image/jpeg':
 				format = 'jpg'
 				mime = 'image/jpeg'
 			elif request.headers.get('accept') == 'image/png':
 				format = 'png'
 				mime = 'image/png'
-			elif request.headers.get('accept') == 'image/jp2':
-				format = 'jp2'
-				mime = 'image/jp2'
 			else:
 				msg = 'The format requested is not supported by this service.'
 				raise FormatNotSupportedException(415, format, msg)
 
-			img_dir = os.path.join(self.CACHE_ROOT, ident, region.url_value, size.url_value, rotation.url_value)
-			img_path = quality + '.' + format
+			if quality == 'bitonal':
+				msg = 'Bitonal image requests are not supported by this server.'
+				raise PatokahException(501, quality, msg)
+
+			img_dir = os.path.join(self.cache_root, ident, region.url_value, size.url_value, rotation.url_value)
+			img_path = os.path.join(img_dir, quality + '.' + format)
 			logr.debug('img_dir: ' + img_dir)
 			logr.debug('img_path: ' + img_path)
 
@@ -260,6 +267,7 @@ class Patokah(object):
 				# ZODB? : http://www.zodb.org/
 				info = ImgInfo.fromJP2(jp2, ident)
 				
+				# We do this early to avoid even starting to build the script
 				try:
 					region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
 					# This happens when cache_px_only=True; we re-call the 
@@ -270,32 +278,85 @@ class Patokah(object):
 					self.on_get_img(self, request, ident, e.new_region_param, size, rotation, quality, format)
 					# Should only be raised if cache_px_only is set to True.
 
+				# Build a script based on everything we know.
+				os.makedirs(img_dir, 0755)
+				logr.info('Made directory: ' + img_dir)
 
-				# TODO: don't forget color profiles!
-				# TODO: don't forget -quality 90
+				# eventually we may want to get more sophisticated here, e.g. 
+				# use cjpeg for jpegs, jp2 levels for certain sizes, etc.
 
-				# 8/27/2012: start here, 
-				# * Implement to_kdu_arg() methods
-				# * Write to_kdu_arg() tests
-				# * Build comm
-				#nothing below this is actual implementation.
-				# approach: make functions that take an ImgInfo object and one of the
-				# dictionaries returned from the converters and build the appropriate
-				# part of the shellout.
-				  
-				
-				# Use a named pipe to give kdu and cjpeg format info.
-				# fifopath = os.path.join(self.TMP_DIR, rand_str() + '.bmp')
-				# mkfifo_cmd = self.MKFIFO + " " + fifopath
-				# logr.debug(mkfifo_cmd) 
-				# mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
-				# mkfifo_proc.wait()
+				# make a named pipe for the temporary bitmap
+				fifo_path = os.path.join(self.tmp_dir, self.random_str(5) + '.bmp')
+				mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
+				try:
+					logr.debug('Calling ' + mkfifo_call)
+					subprocess.check_call(mkfifo_call, shell=True)
+					logr.debug('Done (' + mkfifo_call + ')')
 
-				
+					# make and call the kdu_expand cmd
+					kdu_expand_call = ''
+					kdu_expand_call += self.kdu_expand_cmd + ' -quiet '
+					kdu_expand_call += '-i ' + jp2 
+					kdu_expand_call += ' -o ' + fifo_path
+					kdu_expand_call += ' ' + region_kdu_arg
+					
+					# TODO: we need a way to catch errors here, but if we wait, it
+					# hangs
+					# try:
+					logr.debug('Calling ' + kdu_expand_call)
+					kdu_expand_proc = subprocess.Popen(kdu_expand_call, shell=True, bufsize=-1)
+					# except CalledProcessError as cpe:
+					# 	msg = cpe.cmd + ' exited with ' + cpe.returncode
+					# 	logr.error(cpe.cmd + ' exited with ' + cpe.returncode)
+					# 	raise PatokahException(500, '', msg)
 
+					# make and call the convert command
+					convert_call = ''
+					convert_call = self.convert_cmd + ' '
+					convert_call += fifo_path + ' '
+					convert_call += size.to_convert_arg() + ' '
+					convert_call += rotation.to_convert_arg() + ' '
+					if format == 'jpg':
+					 	convert_call += '-quality 90 '
+					 	# TODO: more thought. For now, asking for a color image
+					 	# gets you a color profile, where native will not. If 
+					 	# the image is greyscale natively...
+					 	if quality == 'color':
+					 		convert_call += '-profile '
+					 		convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
+					if format == 'png':
+						convert_call += '-quality 00 ' # This is tricky...
+
+					if quality == 'grey':
+						# see: http://www.imagemagick.org/Usage/color_mods/
+						convert_call += '-colorspace Gray '
+
+					convert_call += img_path
 				
+					logr.debug('Calling ' + convert_call)
+					subprocess.check_call(convert_call, shell=True, bufsize=-1)
+					logr.debug('Done (' + convert_call + ')')
 				
-				# hold off making the above dir until we succeed??
+					kdu_expand_proc.terminate()
+					logr.debug('Terminated ' + kdu_expand_call)
+
+					logr.info("Created: " + img_path)
+
+					resp = file(img_path)
+
+				except CalledProcessError as cpe:
+					msg = cpe.cmd + ' exited with ' + cpe.returncode
+					logr.error(cpe.cmd + ' exited with ' + cpe.returncode)
+					raise PatokahException(500, '', msg)
+
+				# TODO: other exceptions
+
+				finally:
+					# make and call rm $fifo
+					rm_fifo_call = self.rm_cmd + ' ' + fifo_path
+					logr.debug('Calling ' + rm_fifo_call)
+					subprocess.call(rm_fifo_call, shell=True)
+					logr.debug('Done (' + rm_fifo_call + ')')
 
 		# TODO: make sure all PatokahException subclasses bubble up to here:
 		except PatokahException as e:
@@ -304,46 +365,8 @@ class Patokah(object):
 		 	resp = e.to_xml()
 
 		finally:
+			# TODO - caching headers 
 			return Response(resp, status=status, mimetype=mime, headers=headers)
-
-
-#		# Use a named pipe to give kdu and cjpeg format info.
-#		fifopath = os.path.join(self.TMP_DIR, rand_str() + _BMP)
-#		mkfifo_cmd = self.MKFIFO + " " + fifopath
-#		logr.debug(mkfifo_cmd) 
-#		mkfifo_proc = subprocess.Popen(mkfifo_cmd, shell=True)
-#		mkfifo_proc.wait()
-#		
-#		# Build the kdu_expand call - this should be in a function that takes 
-#		#the image info plus the region, size, rotation
-#		kdu_cmd = KDU_EXPAND + " -i " + jp2 
-#		if region != 'full': kdu_cmd = kdu_cmd + " -region " + region
-#		if rotation != 0:  kdu_cmd = kdu_cmd + " -rotate " + rotation
-#		kdu_cmd = kdu_cmd + " -o " + fifopath
-#		logr.debug(kdu_cmd)
-#		kdu_proc = subprocess.Popen(kdu_cmd, env=_ENV, shell=True)
-#	
-#		# What are the implications of not being able to wait here (not sure why
-#		# we can't, but it hangs when we try). I *think* that as long as there's 
-#		# data flowing into the pipe when the next process (below) starts we're 
-#		# just fine.
-#		
-#		# TODO: if format is not jpg, [do something] (see spec)
-#		# TODO: quality, probably in the recipe below
-#		
-#		if not os.path.exists(out_dir):
-#			os.makedirs(out_dir, 0755)
-#			self.logr.info("Made directory: " + out_dir)
-#		cjpeg_cmd = self.CJPEG + " -outfile " + out + " " + fifopath 
-#		logr.debug(cjpeg_cmd)
-#		cjpeg_proc = subprocess.call(cjpeg_cmd, shell=True)
-#		self.logr.info("Made file: " + out)
-#	
-#		rm_cmd = self.RM + " " + fifopath
-#		logr.debug(rm_cmd)
-#		rm_proc = subprocess.Popen(rm_cmd, shell=True)
-#		
-#		return out
 
 	def _resolve_identifier(self, ident):
 		"""
@@ -354,13 +377,11 @@ class Patokah(object):
 		supplied, and appends a file extension, resulting in an absolute path 
 		on the filesystem.
 		"""
-		return os.path.join(self.SRC_IMAGES_ROOT, ident + '.jp2')
+		return os.path.join(self.src_images_root, ident + '.jp2')
 
-	#TODO: http://library.stanford.edu/iiif/image-api/#errors
-	def error_404(self, message):
-		response = Response(message, mimetype='text/plain')
-		response.status_code = 404
-		return response
+	def random_str(self, size):
+		chars = ascii_lowercase + digits
+		return ''.join(choice(chars) for x in range(size))
 
 	def wsgi_app(self, environ, start_response):
 		request = Request(environ)
@@ -462,15 +483,14 @@ class RegionParameter(object):
 			# Re: above, Decimal is set to be precise to 32 places. float() was 
 			# frequently off by 1
 			if self.mode == 'pct' and cache_px_only:
-				print #################### HERE ###############################
 				top_px = int(round(Decimal(self.y) * img_info.height / Decimal(100.0)))
-				logr.debug('top_px %s' % top_px)
+				logr.debug('top_px: ' + str(top_px))
 				left_px = int(round(Decimal(self.x) * img_info.width / Decimal(100.0)))
-				logr.debug('left_px %s' % left_px)
+				logr.debug('left_px: ' + str(left_px))
 				height_px = int(round(Decimal(self.h) * img_info.height / Decimal(100.0)))
-				logr.debug('height_px %s' % height_px)
+				logr.debug('height_px: ' + str(height_px))
 				width_px = int(round(Decimal(self.w) * img_info.width / Decimal(100.0)))
-				logr.debug('width_px %s' % width_px)
+				logr.debug('width_px: ' + str(width_px))
 				new_url_value = '%s,%s,%s,%s' % (left_px, top_px, width_px, height_px)
 				new_region_param = RegionParameter(new_url_value)
 				msg = '%s revised to %s' % (self.url_value, new_url_value)
@@ -482,10 +502,10 @@ class RegionParameter(object):
 			# image cropped at the boundary of the source image."
 			if (width + left) > Decimal(1.0): 
 				width = Decimal(1.0) - Decimal(left)
-				logr.debug('Width adjusted to %s' % width)
+				logr.debug('Width adjusted to: ' + str(width))
 			if (top + height) > Decimal(1.0): 
 				height = Decimal(1.0) - Decimal(top)
-				logr.debug('Height adjusted to %s' % height)
+				logr.debug('Height adjusted to: ' + str(height))
 			# Catch OOB errors:
 			# top and left
 			if any(axis < 0 for axis in (top, left)):
@@ -605,9 +625,9 @@ class SizeParameter(object):
 			# the presense of ! means that the aspect ratio should be preserved,
 			# to convert it means that it should be ignored
 			elif self.w and self.h and not self.force_aspect:
-				cmd += '%sx%s\>' % (self.w, self.h) # Don't upsample. Should this be configurable?
+				cmd +=  str(self.w) + 'x' + str(self.h) + '\>' # Don't upsample. Should this be configurable?
 			elif self.w and self.h and self.force_aspect:
-				cmd += '%sx%s!' % (self.w, self.h)
+				cmd += str(self.w) + 'x' + str(self.h) + '!'
 
 			else:
 				msg = 'Could not construct a convert argument from ' + self.url_value
@@ -643,7 +663,7 @@ class RotationParameter(object):
 		except Exception, e:
 			raise BadRotationSyntaxException(400, self.url_value, e.message)
 
-	def to_kdu_arg(self):
+	def to_convert_arg(self):
 		return '-rotate ' + str(self.nearest_90) if self.nearest_90 % 360 != 0 else ''
 
 class ImgInfo(object):
@@ -718,6 +738,8 @@ class ImgInfo(object):
 		x += '  </formats>' + os.linesep
 		x += '  <qualities>' + os.linesep
 		x += '    <quality>native</quality>' + os.linesep
+		x += '    <quality>color</quality>' + os.linesep
+		x += '    <quality>grey</quality>' + os.linesep
 		x += '  </qualities>' + os.linesep
 		x += '  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>' + os.linesep
 		x += '</info>' + os.linesep
@@ -748,11 +770,11 @@ class PatokahException(Exception):
 		self.http_status = http_status
 		self.supplied_value = supplied_value
 		
-	def to_xml():
+	def to_xml(self):
 		r = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 		r += '<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">\n'
 		r += '  <parameter>' + self.supplied_value  + '</parameter>\n'
-		r += '  <text>' + self.msg + '</text>\n'
+		r += '  <text>' + self.message + '</text>\n'
 		r += '</error>\n'
 		return r
 
@@ -774,4 +796,4 @@ if __name__ == '__main__':
 	'Run the development server'
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5004, app, use_debugger=True, use_reloader=True)

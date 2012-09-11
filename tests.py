@@ -37,10 +37,10 @@ class Tests(unittest.TestCase):
 		# see http://werkzeug.pocoo.org/docs/test/
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
 		
-	def tearDown(self):
-		# empty the cache
-		for d in listdir(self.app.CACHE_ROOT):
-			rmtree(path.join(self.app.CACHE_ROOT, d))
+	# def tearDown(self):
+	# 	# empty the cache
+	# 	for d in listdir(self.app.cache_root):
+	# 		rmtree(path.join(self.app.cache_root, d))
 		
 
 	def test_Patoka_resolve_id(self):
@@ -158,13 +158,13 @@ class Tests(unittest.TestCase):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'image/png')
 
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jp2')
-		self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
+		# resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jp2')
+		# self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
 
-		headers.clear()
-		headers.add('accept', 'image/jp2')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
+		# headers.clear()
+		# headers.add('accept', 'image/jp2')
+		# resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
+		# self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
 
 	def test_region_full(self):
 		url_segment = 'full'
@@ -401,7 +401,7 @@ class Tests(unittest.TestCase):
 		expected_kdu_arg = ''
 		rotation_parameter = RotationParameter(url_segment)
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
-		self.assertEqual(rotation_parameter.to_kdu_arg(), expected_kdu_arg)
+		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
 	def test_rotation_neg_75(self):
 		url_segment = '-75'
@@ -409,7 +409,7 @@ class Tests(unittest.TestCase):
 		expected_kdu_arg = '-rotate -90'
 		rotation_parameter = RotationParameter(url_segment)
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
-		self.assertEqual(rotation_parameter.to_kdu_arg(), expected_kdu_arg)
+		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
 	def test_rotation_91(self):
 		url_segment = '91'
@@ -417,7 +417,7 @@ class Tests(unittest.TestCase):
 		expected_kdu_arg = '-rotate 90'
 		rotation_parameter = RotationParameter(url_segment)
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
-		self.assertEqual(rotation_parameter.to_kdu_arg(), expected_kdu_arg)
+		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
 	def test_rotation_314(self):
 		url_segment = '314'
@@ -425,7 +425,7 @@ class Tests(unittest.TestCase):
 		expected_kdu_arg = '-rotate 270'
 		rotation_parameter = RotationParameter(url_segment)
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
-		self.assertEqual(rotation_parameter.to_kdu_arg(), expected_kdu_arg)
+		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
 	def test_rotation_315(self):
 		url_segment = '315'
@@ -433,7 +433,12 @@ class Tests(unittest.TestCase):
 		expected_kdu_arg = ''
 		rotation_parameter = RotationParameter(url_segment)
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
-		self.assertEqual(rotation_parameter.to_kdu_arg(), expected_kdu_arg)
+		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
+
+	def test_z_debug_script_render(self):
+		# resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,256,256/full/0/color.jpg')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,1359,1800/pct:50/90/grey.jpg')
+		
 
 	# TODO: use this to test arbitrary complete image requests.
 	def get_jpeg_dimensions(self, path):
