@@ -31,15 +31,13 @@ class Tests(unittest.TestCase):
 
 	def setUp(self):
 		unittest.TestCase.setUp(self)
-		# TODO: create an instance of the app here that we can use in tests
+		# create an instance of the app here that we can use in tests
+		# see http://werkzeug.pocoo.org/docs/test/
 		self.app = create_app(test=True)
 		getcontext().prec = 32 # set this explicitly in case it gets changed in the conf
-		# with self.app we can do, e.g.:
 		self.client = Client(self.app, BaseResponse)
-		# resp = c.get('/pudl0001/4609321/s42/00000004/60,10,70,80/full/0/native.jpg')
-		# and then test the response.
-		# see http://werkzeug.pocoo.org/docs/test/
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
+		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001'
 		
 	def tearDown(self):
 		# empty the cache
@@ -77,7 +75,7 @@ class Tests(unittest.TestCase):
 		# header parsing: http://werkzeug.pocoo.org/docs/datastructures/#http-datastructures
 		
 		self.assertEqual(resp.headers.get('Content-Type'), 'text/json; charset=utf-8')
-		self.assertEqual(resp.headers.get('Content-Length'), '310')
+		self.assertEqual(resp.headers.get('Content-Length'), '332')
 
 		resp_json = loads(resp.data)
 		self.assertTrue(resp_json.has_key(u'identifier'))
@@ -93,9 +91,9 @@ class Tests(unittest.TestCase):
 		self.assertTrue(resp_json.has_key(u'tile_height'))
 		self.assertEqual(resp_json.get(u'tile_height'), 256)
 		self.assertTrue(resp_json.has_key(u'formats'))
-		self.assertEqual(resp_json.get(u'formats'), [u'jpg'])
+		self.assertEqual(resp_json.get(u'formats'), [u'jpg', u'png'])
 		self.assertTrue(resp_json.has_key(u'qualities'))
-		self.assertEqual(resp_json.get(u'qualities'), [u'native'])
+		self.assertEqual(resp_json.get(u'qualities'), [u'native', u'grey', u'color'])
 		self.assertTrue(resp_json.has_key(u'profile'))
 		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
 
@@ -110,7 +108,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(resp.status_code, 200)
 
 		self.assertEqual(resp.headers.get('Content-Type'), 'text/xml; charset=utf-8')
-		self.assertEqual(resp.headers.get('Content-Length'), '684')
+		self.assertEqual(resp.headers.get('Content-Length'), '766')
 
 		dom = parseString(resp.data)
 		self.assertEqual(dom.documentElement.tagName, 'info')
@@ -153,7 +151,7 @@ class Tests(unittest.TestCase):
 
 		headers = Headers()
 		headers.add('accept', 'image/jpeg')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
 
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.png')

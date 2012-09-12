@@ -37,8 +37,8 @@ Developed on (machine specs)
 IIIF 1.0 Compliance
 -------------------
 PatokaH aims to be [IIIF Level] [4] 1 compliant, with all of the Level 2 
-Region and Size parameters and features supported. The easiest way to understand 
-the request syntax and features is to read the spec.
+Region, Size, and Rotation parameters and features supported. The easiest way 
+to understand the request [URL syntax] [2] is to read the spec.
 
 There are some configuration options that could break compliance, 
 (specifically, see use_415 and use_201 in `patokah.conf`)

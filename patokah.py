@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from collections import deque
 from decimal import Decimal, getcontext
 from random import choice
 from string import ascii_lowercase, digits
@@ -11,15 +12,15 @@ from werkzeug.wrappers import Request, Response
 import ConfigParser
 import logging
 import logging.config
-import os # TODO: only using makedirs, linsep, and path (I think)
+import os
 import struct
 import subprocess
 import urlparse
+
 abs_path = os.path.abspath(os.path.dirname(__file__))
 conf_file = os.path.join(abs_path, 'patokah.conf') 
 logging.config.fileConfig(conf_file)
 logr = logging.getLogger('patokah')
-logr.info("Logging initialized")
 
 def create_app(test=False):
 	app = Patokah(test)
@@ -52,10 +53,10 @@ class Patokah(object):
 		self.convert_cmd = _conf.get('utilities', 'convert')
 		self.mkfifo_cmd = _conf.get('utilities', 'mkfifo')
 		self.kdu_expand_cmd = _conf.get('utilities', 'kdu_expand')
-		self.kdu_compress_cmd = _conf.get('utilities', 'kdu_compress')
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
-		# dirs		
+		# dirs
+		abs_path = os.path.abspath(os.path.dirname(__file__))
 		self.tmp_dir= _conf.get('directories', 'tmp')
 		self.cache_root = _conf.get('directories', 'cache_root')
 		self.src_images_root = ''
@@ -64,7 +65,6 @@ class Patokah(object):
 			self.src_images_root = os.path.join(abs_path, 'test_img') 
 		else:
 			self.src_images_root = _conf.get('directories', 'src_img_root')
-
 
 		self.patoka_data_dir = os.path.join(abs_path, 'data')
 
@@ -283,7 +283,7 @@ class Patokah(object):
 					# Should only be raised if cache_px_only is set to True.
 
 				# Build a script based on everything we know.
-				os.makedirs(img_dir, 0755)
+				if not os.path.exists(img_dir):	os.makedirs(img_dir, 0755)
 				logr.info('Made directory: ' + img_dir)
 
 				# This could get a lot more sophisticated, e.g. use cjpeg for 
@@ -321,24 +321,31 @@ class Patokah(object):
 					convert_call += fifo_path + ' '
 					convert_call += size.to_convert_arg() + ' '
 					convert_call += rotation.to_convert_arg() + ' '
+
+
+# TODO: start here. We need a QualityParameter object (or something) that can 
+# raise Exceptions when an unsupported quality is
+# requested
 					if format == 'jpg':
 					 	convert_call += '-quality 90 '
 					 	# TODO: more thought. For now, asking for a color image
 					 	# gets you a color profile, where native will not. If 
 					 	# the image is greyscale natively...this makes no sense.
 					 	# Need data about the source image.
-					 	if quality == 'color':
-					 		convert_call += '-profile '
-					 		convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
+					 	# if quality == 'color':
+					 	# 	convert_call += '-profile '
+					 	# 	convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
 					if format == 'png':
-						convert_call += '-quality 00 ' # This is tricky...
+						# convert_call += '-quality 00 ' # This is tricky...
+						# convert_call += '-quality 00 ' # This is tricky...
+						convert_call += '-colors 256 ' # This is tricky...
 
-					if quality == 'grey':
-						# see: http://www.imagemagick.org/Usage/color_mods/
-						# convert_call += '-colorspace Gray '
-						# TODO: this doesn't actually reduce the bit-depth (right?)
-						convert_call += '-profile '
-					 	convert_call += os.path.join(self.patoka_data_dir, 'gray22.icc') + ' '
+					# if quality == 'grey':
+					# 	# see: http://www.imagemagick.org/Usage/color_mods/
+					# 	convert_call += '-colorspace Gray '
+					# 	# TODO: this doesn't actually reduce the bit-depth (right?)
+					# 	# convert_call += '-profile '
+					#  #   	convert_call += os.path.join(self.patoka_data_dir, 'gray22.icc ')
 
 					convert_call += img_path
 				
@@ -684,6 +691,7 @@ class ImgInfo(object):
 		self.tile_width = None
 		self.tile_height = None
 		self.levels = None
+		self.qualities = []
 	
 	# Other fromXXX methods could be defined
 	
@@ -691,6 +699,7 @@ class ImgInfo(object):
 	def fromJP2(path, img_id):
 		info = ImgInfo()
 		info.id = img_id
+		info.qualities = ['native']
 
 		"""
 		Get the dimensions and levels of a JP2. There's enough going on here;
@@ -699,9 +708,29 @@ class ImgInfo(object):
 		@see:  http://library.stanford.edu/iiif/image-api/#info
 		"""
 		jp2 = open(path, 'rb')
-		jp2.read(2)
 		b = jp2.read(1)
-		
+
+		# Figure out color or greyscale. 
+		# Right now we're depending color profiles, so this is a little fragile
+		# see: JP2 I.5.3.3 Colour Specification box
+		chars =  deque([], 4)
+		while ''.join(chars) != 'colr':
+			b = jp2.read(1)
+			c = struct.unpack('c', b)[0]
+			chars.append(c)
+
+		b = jp2.read(1)
+		meth = struct.unpack('B', b)[0]
+		jp2.read(2) # over PREC and APPROX, 1 byte each
+		if meth == 1: # Enumerated Colourspace
+			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
+			if enum_cs == 16:
+				info.qualities += ['grey', 'color']
+			elif enum_cs == 17:
+				info.qualities += ['grey']
+		logr.debug('qualities: ' + str(info.qualities))
+
+		b = jp2.read(1)
 		while (ord(b) != 0xFF):	b = jp2.read(1)
 		b = jp2.read(1) #skip over the SOC, 0x4F 
 		
@@ -711,20 +740,20 @@ class ImgInfo(object):
 			jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
 			info.width = int(struct.unpack(">HH", jp2.read(4))[1]) # Xsiz (32)
 			info.height = int(struct.unpack(">HH", jp2.read(4))[1]) # Ysiz (32)
-			logr.debug(path + " w: " + str(info.width))
-			logr.debug(path + " h: " + str(info.height))
+			logr.debug("width: " + str(info.width))
+			logr.debug("height: " + str(info.height))
 			jp2.read(8) # get through XOsiz , YOsiz  (32 bits each)
 			info.tile_width = int(struct.unpack(">HH", jp2.read(4))[1]) # XTsiz (32)
 			info.tile_height = int(struct.unpack(">HH", jp2.read(4))[1]) # YTsiz (32)
-			logr.debug(path + " tw: " + str(info.tile_width))
-			logr.debug(path + " th: " + str(info.tile_height))
+			logr.debug("tile width: " + str(info.tile_width))
+			logr.debug("tile height: " + str(info.tile_height))	
 
 		while (ord(b) != 0xFF):	b = jp2.read(1)
 		b = jp2.read(1) # 0x52: The COD marker segment
 		if (ord(b) == 0x52):
 			jp2.read(7) # through Lcod, Scod, SGcod (16 + 8 + 32 = 56 bits)
 			info.levels = int(struct.unpack(">B", jp2.read(1))[0])
-			logr.debug(path + " l: " + str(info.levels)) 
+			logr.debug("levels: " + str(info.levels)) 
 		jp2.close()
 			
 		return info
@@ -744,9 +773,11 @@ class ImgInfo(object):
 		x += '  <tile_height>' + str(self.tile_height) + '</tile_height>' + os.linesep
 		x += '  <formats>' + os.linesep
 		x += '    <format>jpg</format>' + os.linesep
+		x += '    <format>png</format>' + os.linesep
 		x += '  </formats>' + os.linesep
 		x += '  <qualities>' + os.linesep
-		x += '    <quality>native</quality>' + os.linesep
+		for q in self.qualities:
+		 	x += '    <quality>' + q + '</quality>' + os.linesep
 		x += '  </qualities>' + os.linesep
 		x += '  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>' + os.linesep
 		x += '</info>' + os.linesep
@@ -761,8 +792,8 @@ class ImgInfo(object):
 		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels+1)) + '],' + os.linesep
 		j += '  "tile_width" : ' + str(self.tile_width) + ',' + os.linesep
 		j += '  "tile_height" : ' + str(self.tile_height) + ',' + os.linesep
-		j += '  "formats" : [ "jpg" ],' + os.linesep
-		j += '  "qualities" : [ "native" ],' + os.linesep
+		j += '  "formats" : [ "jpg", "png" ],' + os.linesep
+		j += '  "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '],' + os.linesep
 		j += '  "profile" : "http://library.stanford.edu/iiif/image-api/compliance.html#level1"' + os.linesep
 		j += '}' + os.linesep
 		return j
@@ -800,7 +831,7 @@ class PctRegionException(Exception):
 		
 
 if __name__ == '__main__':
-	'Run the development server'
+	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5004, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5005, app, use_debugger=True, use_reloader=True)
