@@ -1,6 +1,9 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from decimal import Decimal, getcontext
+from random import choice
+from string import ascii_lowercase, digits
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule, BaseConverter
@@ -8,16 +11,12 @@ from werkzeug.wrappers import Request, Response
 import ConfigParser
 import logging
 import logging.config
-import os
-from random import choice
-from string import ascii_lowercase, digits
-import subprocess
+import os # TODO: only using makedirs, linsep, and path (I think)
 import struct
+import subprocess
 import urlparse
-
-
-
-conf_file = os.path.join(os.path.dirname(__file__), 'patokah.conf') 
+abs_path = os.path.abspath(os.path.dirname(__file__))
+conf_file = os.path.join(abs_path, 'patokah.conf') 
 logging.config.fileConfig(conf_file)
 logr = logging.getLogger('patokah')
 logr.info("Logging initialized")
@@ -26,15 +25,16 @@ def create_app(test=False):
 	app = Patokah(test)
 	return app
 
-# Note when we start to stream big files from the filesystem, see:
+# TODO: when we start to stream big files from the filesystem, see:
 # http://stackoverflow.com/questions/5166129/how-do-i-stream-a-file-using-werkzeug
+
+# TODO: make sure this is executable from the shell - tests had path trouble
 
 class Patokah(object):
 	def __init__(self, test=False):
 		"""
-		@param test: changes our dispatch methods. 
+		@param test: For unit tests, changes from configured dirs to test dirs. 
 		"""
-
 		# Configuration - Everything else
 		_conf = ConfigParser.RawConfigParser()
 		_conf.read(conf_file)
@@ -60,11 +60,13 @@ class Patokah(object):
 		self.cache_root = _conf.get('directories', 'cache_root')
 		self.src_images_root = ''
 		if self.test:
-			self.src_images_root = os.path.join(os.path.dirname(__file__), 'test_img') 
+			abs_path = os.path.abspath(os.path.dirname(__file__))
+			self.src_images_root = os.path.join(abs_path, 'test_img') 
 		else:
 			self.src_images_root = _conf.get('directories', 'src_img_root')
 
-		self.patoka_data_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+		self.patoka_data_dir = os.path.join(abs_path, 'data')
 
 		# compliance
 		self.COMPLIANCE = _conf.get('compliance', 'uri')
@@ -110,7 +112,7 @@ class Patokah(object):
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def on_get_favicon(self, request):
-		f = os.path.join(os.path.dirname(__file__), 'favicon.ico')
+		f = os.path.join(abs_path, 'favicon.ico')
 		return Response(f, content_type='image/x-icon')
 		
 
@@ -191,8 +193,10 @@ class Patokah(object):
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		# TODO: 
 		"""
-		Get an image based on the *Parameter objects and values returned by our 
+		Get an image based on the *Parameter objects and values returned by the 
 		converters.
+		@param request: a werkzeug Request object
+		@type request: Request
 
 		@param ident: the image identifier
 		@type ident: string
@@ -203,7 +207,7 @@ class Patokah(object):
 		@param size
 		@type size: SizeParameter
 
-		@param rotation: rotation of the image, multiples of 90 for now
+		@param rotation: rotation of the image (multiples of 90 for now)
 		@type rotation: integer
 
 		@param quality: 'native', 'color', 'grey', 'bitonal'
@@ -219,9 +223,9 @@ class Patokah(object):
 			headers = Headers()
 			headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
 
-			# Support accept headers and poor-mans conneg by file extension. 
-			# By configuration we allow either a default format, or the option to
-			# return a 415 if neither a file extension or Accept header are 
+			# Support accept headers and poor-man's conneg by file extension. 
+			# By configuration we allow either a default format, or the option
+			# to return a 415 if neither a file extension or Accept header are 
 			# supplied.
 			# Cf. 4.5: ... If the format is not specified in the URI ....
 			if not format and not self.use_415:	format = self.default_format
@@ -262,12 +266,12 @@ class Patokah(object):
 				
 				# We may not want to read this from the file every time, though 
 				# it is pretty fast. Runtime cache? In memory dicts and Shelve/
-				# pickle are not thread safe for writing and probably wouldn't
-				# scale anyway.
+				# pickle are not thread safe for writing (and probably wouldn't
+				# scale anyway)
 				# ZODB? : http://www.zodb.org/
 				info = ImgInfo.fromJP2(jp2, ident)
 				
-				# We do this early to avoid even starting to build the script
+				# Do this early to avoid even starting to build the shell outs
 				try:
 					region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
 					# This happens when cache_px_only=True; we re-call the 
@@ -282,11 +286,12 @@ class Patokah(object):
 				os.makedirs(img_dir, 0755)
 				logr.info('Made directory: ' + img_dir)
 
-				# eventually we may want to get more sophisticated here, e.g. 
-				# use cjpeg for jpegs, jp2 levels for certain sizes, etc.
+				# This could get a lot more sophisticated, e.g. use cjpeg for 
+				# jpegs, jp2 levels for certain sizes, etc., different utils for
+				# different formats, etc.
 
 				# make a named pipe for the temporary bitmap
-				fifo_path = os.path.join(self.tmp_dir, self.random_str(5) + '.bmp')
+				fifo_path = os.path.join(self.tmp_dir, self.random_str(8) + '.bmp')
 				mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
 				try:
 					logr.debug('Calling ' + mkfifo_call)
@@ -320,7 +325,8 @@ class Patokah(object):
 					 	convert_call += '-quality 90 '
 					 	# TODO: more thought. For now, asking for a color image
 					 	# gets you a color profile, where native will not. If 
-					 	# the image is greyscale natively...
+					 	# the image is greyscale natively...this makes no sense.
+					 	# Need data about the source image.
 					 	if quality == 'color':
 					 		convert_call += '-profile '
 					 		convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
@@ -329,7 +335,10 @@ class Patokah(object):
 
 					if quality == 'grey':
 						# see: http://www.imagemagick.org/Usage/color_mods/
-						convert_call += '-colorspace Gray '
+						# convert_call += '-colorspace Gray '
+						# TODO: this doesn't actually reduce the bit-depth (right?)
+						convert_call += '-profile '
+					 	convert_call += os.path.join(self.patoka_data_dir, 'gray22.icc') + ' '
 
 					convert_call += img_path
 				
@@ -738,8 +747,6 @@ class ImgInfo(object):
 		x += '  </formats>' + os.linesep
 		x += '  <qualities>' + os.linesep
 		x += '    <quality>native</quality>' + os.linesep
-		x += '    <quality>color</quality>' + os.linesep
-		x += '    <quality>grey</quality>' + os.linesep
 		x += '  </qualities>' + os.linesep
 		x += '  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>' + os.linesep
 		x += '</info>' + os.linesep

@@ -1,27 +1,31 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # tests.py
-# Tests for Patokah.
+# Unit Tests for Patokah.
 
 from decimal import getcontext
-from os import path
+from json import loads
 from os import listdir
-from shutil import rmtree
-from patokah import BadRegionSyntaxException
+from os import path
 from patokah import BadRegionRequestException
+from patokah import BadRegionSyntaxException
 from patokah import BadSizeSyntaxException
-from patokah import PctRegionException
-from patokah import create_app
 from patokah import ImgInfo
+from patokah import PctRegionException
 from patokah import RegionParameter
 from patokah import RotationParameter
 from patokah import SizeParameter
+from patokah import create_app
+from shutil import rmtree
 from werkzeug.datastructures import Headers
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 from xml.dom.minidom import parseString
-from json import loads
+import subprocess
 import unittest
 
-TEST_IMG_DIR = 'test_img' # relative to this file.
+abs_path = path.abspath(path.dirname(__file__))
+TEST_IMG_DIR = path.join(abs_path, 'test_img')
 
 class Tests(unittest.TestCase):
 
@@ -41,10 +45,12 @@ class Tests(unittest.TestCase):
 		# empty the cache
 		for d in listdir(self.app.cache_root):
 			rmtree(path.join(self.app.cache_root, d))
+		rmtree(self.app.cache_root)
 		
 
 	def test_Patoka_resolve_id(self):
-		expected_path = path.join(path.dirname(__file__), TEST_IMG_DIR, self.test_jp2_id  + '.jp2')
+		abs_path = path.abspath(path.dirname(__file__))
+		expected_path = path.join(TEST_IMG_DIR, self.test_jp2_id  + '.jp2')
 		resolved_path = self.app._resolve_identifier(self.test_jp2_id)
 		self.assertEqual(expected_path, resolved_path)
 		self.assertTrue(path.isfile(resolved_path))
@@ -435,10 +441,26 @@ class Tests(unittest.TestCase):
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
 		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
+	def test_shell_out_utils(self):
+		"""Just make sure they exist and are executable. TODO: Some minimal 
+		version requirements might be useful as well.
+		"""
+		# convert
+		self.assertTrue(path.exists(self.app.convert_cmd))
+		convert_version = self.app.convert_cmd + ' -version'
+		convert_version_exit = subprocess.call(convert_version, shell=True)
+		self.assertEqual(convert_version_exit, 0)
+
+		# kdu_expand
+		self.assertTrue(path.exists(self.app.kdu_expand_cmd))
+		kdu_v = self.app.kdu_expand_cmd + ' -v'
+		kdu_v_exit = subprocess.call(kdu_v, shell=True)
+		self.assertEqual(kdu_v_exit, 0)
+
+
 	def test_z_debug_script_render(self):
-		# resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,256,256/full/0/color.jpg')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,1359,1800/pct:50/90/grey.jpg')
-		
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,256,256/full/0/color.jpg')
+		# resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,1359,1800/pct:50/90/grey.jpg')
 
 	# TODO: use this to test arbitrary complete image requests.
 	def get_jpeg_dimensions(self, path):
