@@ -74,7 +74,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(resp.status_code, 200)
 		# header parsing: http://werkzeug.pocoo.org/docs/datastructures/#http-datastructures
 		
-		self.assertEqual(resp.headers.get('Content-Type'), 'text/json; charset=utf-8')
+		self.assertEqual(resp.headers.get('Content-Type'), 'text/json')
 		self.assertEqual(resp.headers.get('Content-Length'), '332')
 
 		resp_json = loads(resp.data)
@@ -107,7 +107,7 @@ class Tests(unittest.TestCase):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
 		self.assertEqual(resp.status_code, 200)
 
-		self.assertEqual(resp.headers.get('Content-Type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.headers.get('Content-Type'), 'text/xml')
 		self.assertEqual(resp.headers.get('Content-Length'), '766')
 
 		dom = parseString(resp.data)
@@ -117,31 +117,31 @@ class Tests(unittest.TestCase):
 
 	def test_info(self):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
 
 		headers = Headers()
 		headers.add('accept', 'text/xml')
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
 
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
-		self.assertEqual(resp.headers.get('content-type'), 'text/json; charset=utf-8')
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 
 		headers.clear()
 		headers.add('accept', 'text/json')
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/json; charset=utf-8')
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 
 		# These last two fail (by asking for txt), and we get back a 415 and a 
 		# message as XML
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
 		self.assertEqual(resp.status_code, 415)
 
 		headers.clear()
 		headers.add('accept', 'text/plain')
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml; charset=utf-8')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
 		self.assertEqual(resp.status_code, 415)
 
 
@@ -154,12 +154,12 @@ class Tests(unittest.TestCase):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
 
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.png')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native.png')
 		self.assertEqual(resp.headers.get('content-type'), 'image/png')
 
 		headers.clear()
 		headers.add('accept', 'image/png')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'image/png')
 
 		# resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jp2')

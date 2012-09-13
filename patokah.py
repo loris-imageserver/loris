@@ -41,12 +41,13 @@ class Patokah(object):
 		_conf.read(conf_file)
 
 		# options
-		self.decimal_precision = int(_conf.get('options', 'decimal_precision'))
+		self.decimal_precision = _conf.getint('options', 'decimal_precision')
 		getcontext().prec = self.decimal_precision
-		self.use_201 = bool(_conf.get('options', 'use_201'))
-		self.cache_px_only = bool(_conf.get('options', 'cache_px_only'))
-		self.use_415 = bool(_conf.get('options', 'use_415'))
+		self.use_201 = _conf.getboolean('options', 'use_201')
+		self.cache_px_only = _conf.getboolean('options', 'cache_px_only')
+		self.use_415 = _conf.getboolean('options', 'use_415')
 		self.default_format = _conf.get('options', 'default_format')
+		self.enable_cache = _conf.getboolean('options', 'enable_cache')
 
 		# utilities
 		self.test=test
@@ -179,16 +180,21 @@ class Patokah(object):
 
 			headers.add('Content-Length', length)
 
-		# except Exception as e:
-		# 	raise PatokahException(500, '', e.message)
 		except PatokahException as e:
 		 	mime = 'text/xml'
 		 	status = e.http_status
 		 	resp = e.to_xml()
 
+		except Exception as e:
+			# should be safe to assume it's the server's fault.
+		 	pe = PatokahException(500, '', e.message)
+		 	mime = 'text/xml'
+		 	status = pe.http_status
+		 	resp = pe.to_xml()
+
 		finally:
 			# TODO - caching headers 
-			return Response(resp, status=status, mimetype=mime, headers=headers)
+			return Response(resp, status=status, content_type=mime, headers=headers)
 
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		# TODO: 
@@ -244,17 +250,13 @@ class Patokah(object):
 				msg = 'The format requested is not supported by this service.'
 				raise FormatNotSupportedException(415, format, msg)
 
-			if quality == 'bitonal':
-				msg = 'Bitonal image requests are not supported by this server.'
-				raise PatokahException(501, quality, msg)
-
 			img_dir = os.path.join(self.cache_root, ident, region.url_value, size.url_value, rotation.url_value)
 			img_path = os.path.join(img_dir, quality + '.' + format)
 			logr.debug('img_dir: ' + img_dir)
 			logr.debug('img_path: ' + img_path)
 
 			# check the cache
-			if os.path.exists(img_path):
+			if  self.enable_cache == True and os.path.exists(img_path):
 				status = 200
 				resp = file(img_path)
 				length = len(file(img_path).read()) 
@@ -269,119 +271,113 @@ class Patokah(object):
 				# pickle are not thread safe for writing (and probably wouldn't
 				# scale anyway)
 				# ZODB? : http://www.zodb.org/
+				# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
 				info = ImgInfo.fromJP2(jp2, ident)
-				
-				# Do this early to avoid even starting to build the shell outs
+
+				# Do some checking early to avoid starting to build the shell 
+				# outs
+				if quality not in info.qualities:
+					msg = 'This quality is not available for this image.'
+					raise PatokahException(400, quality, msg)
+
 				try:
 					region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
+				except PctRegionException as e:
 					# This happens when cache_px_only=True; we re-call the 
 					# method with a new RegionParameter object that is included
-					# with the PctRegionException
-				except PctRegionException as e:
+					# with the PctRegionException.
 					logr.info(e.msg)
 					self.on_get_img(self, request, ident, e.new_region_param, size, rotation, quality, format)
-					# Should only be raised if cache_px_only is set to True.
 
-				# Build a script based on everything we know.
+				# Start building and executing commands.
+				# This could get a lot more sophisticated, jp2 levels for 
+				# certain sizes, etc.; different utils for different formats, 
+				# use cjpeg for jpegs, and so on.
+
+				# Make a named pipe for the temporary bitmap
+				fifo_path = os.path.join(self.tmp_dir, self.random_str(10) + '.bmp')
+				mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
+				
+				logr.debug('Calling ' + mkfifo_call)
+				subprocess.check_call(mkfifo_call, shell=True)
+				logr.debug('Done (' + mkfifo_call + ')')
+
+				# Make and call the kdu_expand cmd
+				kdu_expand_call = ''
+				kdu_expand_call += self.kdu_expand_cmd + ' -quiet '
+				kdu_expand_call += '-i ' + jp2 
+				kdu_expand_call += ' -o ' + fifo_path
+				kdu_expand_call += ' ' + region_kdu_arg
+				
+				# TODO: we need a way to catch errors here, but if we wait, it
+				# hangs
+				# try:
+				logr.debug('Calling ' + kdu_expand_call)
+				kdu_expand_proc = subprocess.Popen(kdu_expand_call, shell=True, bufsize=-1, stderr=subprocess.PIPE)
+
+				# make and call the convert command
+				# This is as far as we can get before we need to make
+				# an output directory.
 				if not os.path.exists(img_dir):	os.makedirs(img_dir, 0755)
 				logr.info('Made directory: ' + img_dir)
 
-				# This could get a lot more sophisticated, e.g. use cjpeg for 
-				# jpegs, jp2 levels for certain sizes, etc., different utils for
-				# different formats, etc.
+				convert_call = ''
+				convert_call = self.convert_cmd + ' '
+				convert_call += fifo_path + ' '
+				convert_call += size.to_convert_arg() + ' '
+				convert_call += rotation.to_convert_arg() + ' '
 
-				# make a named pipe for the temporary bitmap
-				fifo_path = os.path.join(self.tmp_dir, self.random_str(8) + '.bmp')
-				mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
-				try:
-					logr.debug('Calling ' + mkfifo_call)
-					subprocess.check_call(mkfifo_call, shell=True)
-					logr.debug('Done (' + mkfifo_call + ')')
+				if format == 'jpg':
+				 	convert_call += '-quality 90 '
+				if format == 'png':
+					# This needs more development; not sure if convert is
+					# the best utility
+					convert_call += '-colors 256 -quality 00 ' 
 
-					# make and call the kdu_expand cmd
-					kdu_expand_call = ''
-					kdu_expand_call += self.kdu_expand_cmd + ' -quiet '
-					kdu_expand_call += '-i ' + jp2 
-					kdu_expand_call += ' -o ' + fifo_path
-					kdu_expand_call += ' ' + region_kdu_arg
-					
-					# TODO: we need a way to catch errors here, but if we wait, it
-					# hangs
-					# try:
-					logr.debug('Calling ' + kdu_expand_call)
-					kdu_expand_proc = subprocess.Popen(kdu_expand_call, shell=True, bufsize=-1)
-					# except CalledProcessError as cpe:
-					# 	msg = cpe.cmd + ' exited with ' + cpe.returncode
-					# 	logr.error(cpe.cmd + ' exited with ' + cpe.returncode)
-					# 	raise PatokahException(500, '', msg)
+			 	# TODO: confirm that color profiles are getting through
+			 	# convert_call += '-profile '
+			 	# convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
+				# convert_call += '-profile '
+				# convert_call += os.path.join(self.patoka_data_dir, 'gray22.icc ')
 
-					# make and call the convert command
-					convert_call = ''
-					convert_call = self.convert_cmd + ' '
-					convert_call += fifo_path + ' '
-					convert_call += size.to_convert_arg() + ' '
-					convert_call += rotation.to_convert_arg() + ' '
+				if quality == 'grey' and info.native_quality != 'grey':
+					convert_call += '-colorspace gray -depth 8 '
+				if quality == 'bitonal' and info.native_quality != 'bitonal':
+					convert_call += '-colorspace gray -depth 1 '
 
-
-# TODO: start here. We need a QualityParameter object (or something) that can 
-# raise Exceptions when an unsupported quality is
-# requested
-					if format == 'jpg':
-					 	convert_call += '-quality 90 '
-					 	# TODO: more thought. For now, asking for a color image
-					 	# gets you a color profile, where native will not. If 
-					 	# the image is greyscale natively...this makes no sense.
-					 	# Need data about the source image.
-					 	# if quality == 'color':
-					 	# 	convert_call += '-profile '
-					 	# 	convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
-					if format == 'png':
-						# convert_call += '-quality 00 ' # This is tricky...
-						# convert_call += '-quality 00 ' # This is tricky...
-						convert_call += '-colors 256 ' # This is tricky...
-
-					# if quality == 'grey':
-					# 	# see: http://www.imagemagick.org/Usage/color_mods/
-					# 	convert_call += '-colorspace Gray '
-					# 	# TODO: this doesn't actually reduce the bit-depth (right?)
-					# 	# convert_call += '-profile '
-					#  #   	convert_call += os.path.join(self.patoka_data_dir, 'gray22.icc ')
-
-					convert_call += img_path
+				convert_call += img_path
 				
-					logr.debug('Calling ' + convert_call)
-					subprocess.check_call(convert_call, shell=True, bufsize=-1)
-					logr.debug('Done (' + convert_call + ')')
+				logr.debug('Calling ' + convert_call)
+				convert_proc = subprocess.Popen(convert_call, shell=True, bufsize=-1, stderr=subprocess.PIPE)
 				
-					kdu_expand_proc.terminate()
-					logr.debug('Terminated ' + kdu_expand_call)
-
-					logr.info("Created: " + img_path)
-
-					resp = file(img_path)
-
-				except CalledProcessError as cpe:
-					msg = cpe.cmd + ' exited with ' + cpe.returncode
-					logr.error(cpe.cmd + ' exited with ' + cpe.returncode)
+				convert_exit = convert_proc.wait()
+				if convert_exit != 0:
+					msg = '. '.join(convert_proc.stderr)
+					raise PatokahException(500, '', msg)
+				logr.debug('Done (' + convert_call + ')')
+				
+				kdu_exit = kdu_expand_proc.wait()
+				if kdu_exit != 0:
+					msg = '. '.join(kdu_expand_proc.stderr)
 					raise PatokahException(500, '', msg)
 
-				# TODO: other exceptions
+				logr.debug('Terminated ' + kdu_expand_call)
+				logr.info("Created: " + img_path)
 
-				finally:
-					# make and call rm $fifo
-					rm_fifo_call = self.rm_cmd + ' ' + fifo_path
-					logr.debug('Calling ' + rm_fifo_call)
-					subprocess.call(rm_fifo_call, shell=True)
-					logr.debug('Done (' + rm_fifo_call + ')')
+				resp = file(img_path)
 
-		# TODO: make sure all PatokahException subclasses bubble up to here:
-		except PatokahException as e:
+		except PatokahException, e:
+			logr.debug("hello 3")
 		 	mime = 'text/xml'
 		 	status = e.http_status
 		 	resp = e.to_xml()
 
 		finally:
-			# TODO - caching headers 
+			# Make and call rm $fifo
+			rm_fifo_call = self.rm_cmd + ' ' + fifo_path
+			logr.debug('Calling ' + rm_fifo_call)
+			subprocess.call(rm_fifo_call, shell=True)
+			logr.debug('Done (' + rm_fifo_call + ')')
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def _resolve_identifier(self, ident):
@@ -692,32 +688,34 @@ class ImgInfo(object):
 		self.tile_height = None
 		self.levels = None
 		self.qualities = []
+		self.native_quality = None
 	
 	# Other fromXXX methods could be defined
 	
 	@staticmethod
 	def fromJP2(path, img_id):
-		info = ImgInfo()
-		info.id = img_id
-		info.qualities = ['native']
-
 		"""
-		Get the dimensions and levels of a JP2. There's enough going on here;
+		Get info about a JP2. There's enough going on here;
 		make sure the file is available (exists and readable) before passing it.
 		
 		@see:  http://library.stanford.edu/iiif/image-api/#info
 		"""
+		info = ImgInfo()
+		info.id = img_id
+		info.qualities = ['native', 'bitonal']
+
 		jp2 = open(path, 'rb')
 		b = jp2.read(1)
 
 		# Figure out color or greyscale. 
-		# Right now we're depending color profiles, so this is a little fragile
+		# Depending color profiles; there's probably a better way (or more than
+		# one anyway.)
 		# see: JP2 I.5.3.3 Colour Specification box
-		chars =  deque([], 4)
-		while ''.join(chars) != 'colr':
+		window =  deque([], 4)
+		while ''.join(window) != 'colr':
 			b = jp2.read(1)
 			c = struct.unpack('c', b)[0]
-			chars.append(c)
+			window.append(c)
 
 		b = jp2.read(1)
 		meth = struct.unpack('B', b)[0]
@@ -725,8 +723,10 @@ class ImgInfo(object):
 		if meth == 1: # Enumerated Colourspace
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
 			if enum_cs == 16:
+				info.native_quality = 'color'
 				info.qualities += ['grey', 'color']
 			elif enum_cs == 17:
+				info.native_quality = 'grey'
 				info.qualities += ['grey']
 		logr.debug('qualities: ' + str(info.qualities))
 
@@ -828,10 +828,10 @@ class PctRegionException(Exception):
 	def __init__(self, new_region_param, msg):
 		super(PctRegionException, self).__init__(msg)
 		self.new_region_param = new_region_param
-		
+
 
 if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5005, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5011, app, use_debugger=True, use_reloader=True)

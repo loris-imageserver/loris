@@ -219,7 +219,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td></td>
+      <td><span style="color: red;">x</span></td>
     </tr>
     <tr>
       <td><strong>Format</strong></td>
