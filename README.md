@@ -1,19 +1,19 @@
-PatokaH JPEG 2000 Server
+Loris JPEG 2000 Server
 ========================
 It's a dumb name, but you probably know how to pronounce it.
 
-PatokaH is a lightweight implementation of the 
+Loris is a lightweight implementation of the 
 [International Image Interoperability Framework: Image API 1.0] [1]. More about 
 this is discussed under IIIF 1.0 Compliance [link!] below.
 
 Design
 ------
-PatokaH is designed to stand on the shoulders of giants. Essentially, all it 
+Loris is designed to stand on the shoulders of giants. Essentially, all it 
 does is parse [IIIF URLs] [2] into a set of objects (in the source these are 
 the `RegionParameter`, `SizeParameter`, and `RotationParameter` classes) that 
 are then used to build utility command lines that are shelled out.
 
-The [Werkzeug Python WSGI Utility Library] [3]. 
+The [Werkzeug Python WSGI Utility Library] [3]....
 
 Deployment
 ----------
@@ -40,12 +40,12 @@ Hardware / OS
 
 IIIF 1.0 Compliance
 -------------------
-PatokaH aims to be [IIIF Level] [4] 1 compliant, with all of the Level 2 
+Loris aims to be [IIIF Level] [4] 1 compliant, with all of the Level 2 
 Region, Size, and Rotation parameters and features supported. The easiest way 
 to understand the request [URL syntax] [2] is to read the spec.
 
 There are some configuration options that could break compliance, 
-(specifically, see use_415 and use_201 in `patokah.conf`)
+(specifically, see use_415 and use_201 in `loris.conf`)
 
 <table>
   <tbody>
@@ -55,7 +55,7 @@ There are some configuration options that could break compliance,
       <th>Level 1</th>
       <th>Level 2</th>
       <th>Optional</th>
-      <th><span style="color: red;">PatokaH</span></th>
+      <th><span style="color: red;">Loris</span></th>
     </tr>
     <tr>
       <td><strong>Region</strong></td>

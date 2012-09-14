@@ -20,15 +20,15 @@ import subprocess
 import urlparse
 
 abs_path = os.path.abspath(os.path.dirname(__file__))
-conf_file = os.path.join(abs_path, 'patokah.conf') 
+conf_file = os.path.join(abs_path, 'loris.conf') 
 logging.config.fileConfig(conf_file)
-logr = logging.getLogger('patokah')
+logr = logging.getLogger('loris')
 
 def create_app(test=False):
-	app = Patokah(test)
+	app = Loris(test)
 	return app
 
-class Patokah(object):
+class Loris(object):
 	def __init__(self, test=False):
 		"""
 		@param test: For unit tests, changes from configured dirs to test dirs. 
@@ -108,7 +108,7 @@ class Patokah(object):
 
 		# Any exceptions related to parsing the requests into parameter objects
 		# should end up here.
-		except PatokahException, e:
+		except LorisException, e:
 		 	mime = 'text/xml'
 		 	status = e.http_status
 		 	resp = e.to_xml()
@@ -117,7 +117,7 @@ class Patokah(object):
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 		except Exception, e:
-			pe = PatokahException(400, '', e.message)
+			pe = LorisException(400, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
 		 	resp = pe.to_xml()
@@ -161,7 +161,7 @@ class Patokah(object):
 			img_path = self._resolve_identifier(ident)
 			
 			if not os.path.exists(img_path):
-				raise PatokahException(404, ident, 'Identifier does not resolve to an image.')
+				raise LorisException(404, ident, 'Identifier does not resolve to an image.')
 			
 			cache_dir = os.path.join(self.cache_root, ident)
 			cache_path = os.path.join(cache_dir, 'info.') + format
@@ -203,14 +203,14 @@ class Patokah(object):
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', length)
 
-		except PatokahException as e:
+		except LorisException as e:
 		 	mime = 'text/xml'
 		 	status = e.http_status
 		 	resp = e.to_xml()
 
 		except Exception as e:
 			# should be safe to assume it's the server's fault.
-		 	pe = PatokahException(500, '', e.message)
+		 	pe = LorisException(500, '', e.message)
 		 	mime = 'text/xml'
 		 	status = pe.http_status
 		 	resp = pe.to_xml()
@@ -311,7 +311,7 @@ class Patokah(object):
 				# outs
 				if quality not in info.qualities:
 					msg = 'This quality is not available for this image.'
-					raise PatokahException(400, quality, msg)
+					raise LorisException(400, quality, msg)
 
 				try:
 					region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
@@ -375,13 +375,13 @@ class Patokah(object):
 				convert_exit = convert_proc.wait()
 				if convert_exit != 0:
 					msg = '. '.join(convert_proc.stderr)
-					raise PatokahException(500, '', msg)
+					raise LorisException(500, '', msg)
 				logr.debug('Done (' + convert_call + ')')
 				
 				kdu_exit = kdu_expand_proc.wait()
 				if kdu_exit != 0:
 					msg = '. '.join(kdu_expand_proc.stderr)
-					raise PatokahException(500, '', msg)
+					raise LorisException(500, '', msg)
 
 				logr.debug('Terminated ' + kdu_expand_call)
 				logr.info("Created: " + img_path)
@@ -391,7 +391,7 @@ class Patokah(object):
 				headers.add('Content-Length', os.path.getsize(img_path))
 				resp = file(img_path)
 
-			except PatokahException, e:
+			except LorisException, e:
 				headers.remove('Last-Modified')
 				mime = 'text/xml'
 			 	status = e.http_status
@@ -831,11 +831,11 @@ class ImgInfo(object):
 
 # This seems easier than http://werkzeug.pocoo.org/docs/exceptions/ because we
 # have this custom XML body.
-class PatokahException(Exception):
+class LorisException(Exception):
 	def __init__(self, http_status=404, supplied_value='', msg=''):
 		"""
 		"""
-		super(PatokahException, self).__init__(msg)
+		super(LorisException, self).__init__(msg)
 		self.http_status = http_status
 		self.supplied_value = supplied_value
 
@@ -847,12 +847,12 @@ class PatokahException(Exception):
 		r += '</error>\n'
 		return r
 
-class BadRegionSyntaxException(PatokahException): pass
-class BadRegionRequestException(PatokahException): pass
-class BadSizeSyntaxException(PatokahException): pass
-class BadSizeRequestException(PatokahException): pass
-class BadRotationSyntaxException(PatokahException): pass
-class FormatNotSupportedException(PatokahException): pass
+class BadRegionSyntaxException(LorisException): pass
+class BadRegionRequestException(LorisException): pass
+class BadSizeSyntaxException(LorisException): pass
+class BadSizeRequestException(LorisException): pass
+class BadRotationSyntaxException(LorisException): pass
+class FormatNotSupportedException(LorisException): pass
 
 class PctRegionException(Exception):
 	"""To raise when regions are requested by percentage."""
