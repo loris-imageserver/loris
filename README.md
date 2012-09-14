@@ -17,7 +17,7 @@ routing and supplies a few other conveniences.
 
 Deployment
 ----------
-# TODO
+TODO
 
 Tests
 -----
@@ -25,7 +25,7 @@ Run `./tests.py`.
 
 Source JPEG 2000 Images
 -----------------------
-# TODO - give PUL sample recipes.
+TODO - give PUL sample recipes.
 
 Return Formats
 --------------
@@ -38,23 +38,23 @@ Resolving Identifiers
 The method for resolving identifiers to images is about as simple as it could 
 be. In a request that looks like this 
 
-  http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+    http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
 
 The portion between the path the to service on the host server and the region, 
 i.e.:
 
-  http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
-                           \________________/
+    http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+                              \_______________/
 
 will be joined to the `src_img_root` property, and have `.jp2` appended. So if
 
-  [directories]
-  ...
-  src_img_root=/usr/local/share/images
+    [directories]
+    ...
+    src_img_root=/usr/local/share/images
 
 then this file must exist:
 
-  /usr/local/share/images/some/img/dir/0004.jp2 
+    /usr/local/share/images/some/img/dir/0004.jp2 
 
 This can be revised to fit other environments by replacing the 
 `Loris#_resolve_identifier(self, ident)` method.
