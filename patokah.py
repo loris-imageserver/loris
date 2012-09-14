@@ -69,8 +69,13 @@ class Patokah(object):
 
 		self.patoka_data_dir = os.path.join(abs_path, 'data')
 
-		# compliance
-		self.COMPLIANCE = _conf.get('compliance', 'uri')
+		
+		# compliance and help
+		compliance_uri = _conf.get('compliance', 'uri')
+		help_uri = _conf.get('compliance', 'help_uri')
+		self.link_hdr = '<' + compliance_uri  + '>;rel=profile,'
+		self.link_hdr += '<' + help_uri + '>;rel=help'
+
 
 		for d in (self.tmp_dir, self.cache_root):
 			if not os.path.exists(d):
@@ -109,7 +114,7 @@ class Patokah(object):
 		 	status = e.http_status
 		 	resp = e.to_xml()
 		 	headers = Headers()
-			headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+			headers.add('Link', self.link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def on_get_favicon(self, request):
@@ -126,7 +131,8 @@ class Patokah(object):
 		status = None
 		mime = None
 		headers = Headers()
-		headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+		headers.add('Link', self.link_hdr)
+		headers.add('Cache-Control', 'public')
 
 		try:
 			if format == 'json': 
@@ -227,7 +233,8 @@ class Patokah(object):
 			status = None
 			mime = None
 			headers = Headers()
-			headers.add('Link', '<' + self.COMPLIANCE + '>;rel=profile')
+			headers.add('Link', self.link_hdr)
+			headers.add('Cache-Control', 'public')
 
 			# Support accept headers and poor-man's conneg by file extension. 
 			# By configuration we allow either a default format, or the option
@@ -257,11 +264,14 @@ class Patokah(object):
 
 			# check the cache
 			if  self.enable_cache == True and os.path.exists(img_path):
+				# if if-mod-since and the date on the file is after:
 				status = 200
 				resp = file(img_path)
 				length = len(file(img_path).read()) 
-				headers.add('Content-Length', length) # do we want to bother?
+				headers.add('Content-Length', length)
+				# TODO: add last modified
 				logr.info('Read: ' + img_path)
+				# else 304
 			else:
 				status = 201 if self.use_201 else 200
 				jp2 = self._resolve_identifier(ident)
@@ -834,4 +844,4 @@ if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5011, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5005, app, use_debugger=True, use_reloader=True)
