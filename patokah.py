@@ -135,6 +135,7 @@ class Patokah(object):
 		headers = Headers()
 		headers.add('Link', self.link_hdr)
 		headers.add('Cache-Control', 'public')
+		
 
 		try:
 			if format == 'json': 
@@ -159,11 +160,13 @@ class Patokah(object):
 			cache_dir = os.path.join(self.cache_root, ident)
 			cache_path = os.path.join(cache_dir, 'info.') + format
 			
+
 			# check the cache
 			if os.path.exists(cache_path) and self.enable_cache == True:
+
 				last_change = datetime.utcfromtimestamp(os.path.getmtime(cache_path))
 				ims = parse_date(request.headers.get('If-Modified-Since'))
-				if ims and ims < last_change:
+				if (ims and ims < last_change) or not ims:
 					status = 200
 					resp = file(cache_path)
 					length = len(file(cache_path).read())
@@ -172,6 +175,7 @@ class Patokah(object):
 					logr.info('Read: ' + cache_path)
 				else:
 					status = 304
+					headers.remove('Content-Type')
 					headers.remove('Cache-Control')
 					resp = None
 			else:
@@ -278,7 +282,7 @@ class Patokah(object):
 		if  self.enable_cache == True and os.path.exists(img_path):
 			last_change = datetime.utcfromtimestamp(os.path.getmtime(img_path))
 			ims = parse_date(request.headers.get('If-Modified-Since'))
-			if ims and ims < last_change:
+			if (ims and ims < last_change) or not ims:
 				status = 200
 				resp = file(img_path)
 				length = len(file(img_path).read()) 
@@ -287,6 +291,7 @@ class Patokah(object):
 				logr.info('Read: ' + img_path)
 			else:
 				status = 304
+				headers.remove('Content-Type')
 				headers.remove('Cache-Control')
 				resp = None
 		else:
@@ -409,7 +414,7 @@ class Patokah(object):
 				subprocess.call(rm_fifo_call, shell=True)
 				logr.debug('Done (' + rm_fifo_call + ')')
 
-		return Response(resp, status=status, mimetype=mime, headers=headers)
+		return Response(resp, status=status, content_type=mime, headers=headers)
 
 	def _resolve_identifier(self, ident):
 		"""
@@ -865,4 +870,4 @@ if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5008, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5010, app, use_debugger=True, use_reloader=True)

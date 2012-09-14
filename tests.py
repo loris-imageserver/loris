@@ -3,6 +3,7 @@
 # tests.py
 # Unit Tests for Patokah.
 
+from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
 from os import listdir
@@ -18,8 +19,9 @@ from patokah import SizeParameter
 from patokah import create_app
 from shutil import rmtree
 from werkzeug.datastructures import Headers
+from werkzeug.http import http_date, parse_date
 from werkzeug.test import Client
-from werkzeug.wrappers import BaseResponse
+from werkzeug.wrappers import BaseResponse, Request
 from xml.dom.minidom import parseString
 import subprocess
 import unittest
@@ -36,9 +38,9 @@ class Tests(unittest.TestCase):
 		self.app = create_app(test=True)
 		getcontext().prec = 32 # set this explicitly in case it gets changed in the conf
 		self.client = Client(self.app, BaseResponse)
-		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
-		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001'
-		self.test_jp2_2_id = 'AC044/c0002/00000043'
+		self.test_jp2_id = 'pudl0001/4609321/s42/00000004' # color; 2717 x 3600
+		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001' # color; 5283 x 7200
+		self.test_jp2_2_id = 'AC044/c0002/00000043' # grey; 2477 x 3200
 		
 	def tearDown(self):
 		# empty the cache
@@ -76,7 +78,6 @@ class Tests(unittest.TestCase):
 		# header parsing: http://werkzeug.pocoo.org/docs/datastructures/#http-datastructures
 		
 		self.assertEqual(resp.headers.get('Content-Type'), 'text/json')
-		self.assertEqual(resp.headers.get('Content-Length'), '332')
 
 		resp_json = loads(resp.data)
 		self.assertTrue(resp_json.has_key(u'identifier'))
@@ -94,22 +95,21 @@ class Tests(unittest.TestCase):
 		self.assertTrue(resp_json.has_key(u'formats'))
 		self.assertEqual(resp_json.get(u'formats'), [u'jpg', u'png'])
 		self.assertTrue(resp_json.has_key(u'qualities'))
-		self.assertEqual(resp_json.get(u'qualities'), [u'native', u'grey', u'color'])
+		self.assertEqual(resp_json.get(u'qualities'), [u'native', u'bitonal', u'grey', u'color'])
 		self.assertTrue(resp_json.has_key(u'profile'))
 		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
 
 
 	def test_info_xml(self):
 		# Do it once, make sure we get a 201
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')	
 		self.assertEqual(resp.status_code, 201)
 
-		# Do it once, make sure we get a 200
+		# Do it again, make sure we get a 200
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
 		self.assertEqual(resp.status_code, 200)
 
 		self.assertEqual(resp.headers.get('Content-Type'), 'text/xml')
-		self.assertEqual(resp.headers.get('Content-Length'), '766')
 
 		dom = parseString(resp.data)
 		self.assertEqual(dom.documentElement.tagName, 'info')
@@ -457,9 +457,56 @@ class Tests(unittest.TestCase):
 		self.assertEqual(kdu_v_exit, 0)
 
 
-	def test_z_debug_script_render(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,256,256/full/0/color.jpg')
-		# resp = self.client.get('/pudl0001/4609321/s42/00000004/0,0,1359,1800/pct:50/90/grey.jpg')
+	def test_img_caching(self):
+		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
+		# get once
+	 	resp = self.client.get(url)
+	 	self.assertEquals(resp.status_code, 201)
+	 	self.assertTrue(resp.headers.has_key('last-modified'))
+
+	 	# get again
+	 	resp = self.client.get(url)
+	 	self.assertEquals(resp.status_code, 200)
+	 	self.assertTrue(resp.headers.has_key('last-modified'))
+
+	 	headers = Headers()
+	 	yesterday = http_date(datetime.utcnow() - timedelta(days=1))
+	 	headers.add('if-modified-since', yesterday)
+	 	resp = self.client.get(url, headers=headers)
+	 	self.assertEquals(resp.status_code, 200)
+
+	 	headers.clear()
+	 	tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
+	 	headers.add('if-modified-since', tomorrow)
+	 	resp = self.client.get(url, headers=headers)
+	 	self.assertEquals(resp.status_code, 304)
+
+
+	def test_info_caching(self):
+		url = '/pudl0033/2008/0132/00000001/info.json'
+		# get once
+	 	resp = self.client.get(url)
+	 	self.assertEquals(resp.status_code, 201)
+	 	self.assertTrue(resp.headers.has_key('last-modified'))
+
+	 	# get again
+	 	resp = self.client.get(url)
+	 	self.assertEquals(resp.status_code, 200)
+	 	self.assertTrue(resp.headers.has_key('last-modified'))
+
+	 	headers = Headers()
+	 	yesterday = http_date(datetime.utcnow() - timedelta(days=1))
+	 	headers.add('if-modified-since', yesterday)
+	 	resp = self.client.get(url, headers=headers)
+	 	self.assertEquals(resp.status_code, 200)
+
+	 	headers.clear()
+	 	tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
+	 	headers.add('if-modified-since', tomorrow)
+	 	resp = self.client.get(url, headers=headers)
+	 	self.assertEquals(resp.status_code, 304)
+
+
 
 	# TODO: use this to test arbitrary complete image requests.
 	def get_jpeg_dimensions(self, path):
