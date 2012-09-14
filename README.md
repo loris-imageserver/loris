@@ -86,7 +86,7 @@ directories. The directories must exist and be writable.
 The Name
 --------
 Could stand for __Lightweight Open Repository Image Server__ or not. Thanks to
-[shaune](https://github.com/sdellis, 'Shaun Ellis') for coming up with it.
+[shaune](https://github.com/sdellis "Shaun Ellis") for coming up with it.
 
 IIIF 1.0 Compliance
 -------------------
