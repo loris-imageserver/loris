@@ -441,8 +441,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
 	def test_shell_out_utils(self):
-		"""Just make sure they exist and are executable. TODO: Some minimal 
-		version requirements might be useful as well.
+		"""Just make sure they exist and are executable.
 		"""
 		# convert
 		self.assertTrue(path.exists(self.app.convert_cmd))
@@ -459,12 +458,10 @@ class Tests(unittest.TestCase):
 
 	def test_img_caching(self):
 		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
-		# get once
-	 	resp = self.client.get(url)
+		resp = self.client.get(url)
 	 	self.assertEquals(resp.status_code, 201)
 	 	self.assertTrue(resp.headers.has_key('last-modified'))
 
-	 	# get again
 	 	resp = self.client.get(url)
 	 	self.assertEquals(resp.status_code, 200)
 	 	self.assertTrue(resp.headers.has_key('last-modified'))
@@ -508,7 +505,7 @@ class Tests(unittest.TestCase):
 
 
 
-	# TODO: use this to test arbitrary complete image requests.
+	# use this to test arbitrary complete image requests.
 	def get_jpeg_dimensions(self, path):
 	   jpeg = open(path, 'r')
 	   jpeg.read(2)

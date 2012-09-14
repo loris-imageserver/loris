@@ -28,11 +28,6 @@ def create_app(test=False):
 	app = Patokah(test)
 	return app
 
-# TODO: when we start to stream big files from the filesystem, see:
-# http://stackoverflow.com/questions/5166129/how-do-i-stream-a-file-using-werkzeug
-
-# TODO: make sure this is executable from the shell - tests had path trouble
-
 class Patokah(object):
 	def __init__(self, test=False):
 		"""
@@ -72,7 +67,7 @@ class Patokah(object):
 		self.patoka_data_dir = os.path.join(abs_path, 'data')
 
 		
-		# compliance and help
+		# compliance and help links
 		compliance_uri = _conf.get('compliance', 'uri')
 		help_uri = _conf.get('compliance', 'help_uri')
 		self.link_hdr = '<' + compliance_uri  + '>;rel=profile,'
@@ -102,7 +97,7 @@ class Patokah(object):
 		Dispatch the request to the proper method. By convention, the endpoint,
 		(i.e. the method to be called) is named 'on_<method>'.
 		"""
-		# TODO: exception handling. 
+
 		adapter = self.url_map.bind_to_environ(request.environ)
 		try:
 			endpoint, values = adapter.match()
@@ -111,6 +106,8 @@ class Patokah(object):
 			logr.info('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
 
+		# Any exceptions related to parsing the requests into parameter objects
+		# should end up here.
 		except PatokahException, e:
 		 	mime = 'text/xml'
 		 	status = e.http_status
@@ -118,6 +115,16 @@ class Patokah(object):
 		 	headers = Headers()
 			headers.add('Link', self.link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
+
+		except Exception, e:
+			pe = PatokahException(400, '', e.message)
+			mime = 'text/xml'
+			status = pe.http_status
+		 	resp = pe.to_xml()
+		 	headers = Headers()
+			headers.add('Link', self.link_hdr)
+			return Response(resp, status=status, mimetype=mime, headers=headers)
+
 
 	def on_get_favicon(self, request):
 		f = os.path.join(abs_path, 'favicon.ico')
@@ -135,7 +142,6 @@ class Patokah(object):
 		headers = Headers()
 		headers.add('Link', self.link_hdr)
 		headers.add('Cache-Control', 'public')
-		
 
 		try:
 			if format == 'json': 
@@ -169,8 +175,7 @@ class Patokah(object):
 				if (ims and ims < last_change) or not ims:
 					status = 200
 					resp = file(cache_path)
-					length = len(file(cache_path).read())
-					headers.add('Content-Length', length)
+					headers.add('Content-Length', os.path.getsize(cache_path))
 					headers.add('Last-Modified', http_date(last_change))
 					logr.info('Read: ' + cache_path)
 				else:
@@ -182,15 +187,11 @@ class Patokah(object):
 				status = 201 if self.use_201 else 200
 				info = ImgInfo.fromJP2(img_path, ident)
 				info.id = ident
-				if format == 'xml':
-					resp = info.toXML()
-				else: # format == 'json':
-					resp = info.toJSON()
-
+				resp = info.marshal(to=format)
 				length = len(resp)
 
-				# we could fork this off...
-				if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
+				if not os.path.exists(cache_dir): 
+					os.makedirs(cache_dir, 0755)
 
 				logr.debug('made ' + cache_dir)
 
@@ -218,7 +219,6 @@ class Patokah(object):
 			return Response(resp, status=status, content_type=mime, headers=headers)
 
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
-		# TODO: 
 		"""
 		Get an image based on the *Parameter objects and values returned by the 
 		converters.
@@ -285,7 +285,7 @@ class Patokah(object):
 			if (ims and ims < last_change) or not ims:
 				status = 200
 				resp = file(img_path)
-				length = len(file(img_path).read()) 
+				length = length = os.path.getsize(img_path) 
 				headers.add('Content-Length', length)
 				headers.add('Last-Modified', http_date(last_change))
 				logr.info('Read: ' + img_path)
@@ -342,9 +342,6 @@ class Patokah(object):
 				kdu_expand_call += ' -o ' + fifo_path
 				kdu_expand_call += ' ' + region_kdu_arg
 				
-				# TODO: we need a way to catch errors here, but if we wait, it
-				# hangs
-				# try:
 				logr.debug('Calling ' + kdu_expand_call)
 				kdu_expand_proc = subprocess.Popen(kdu_expand_call, shell=True, bufsize=-1, stderr=subprocess.PIPE)
 
@@ -363,15 +360,7 @@ class Patokah(object):
 				if format == 'jpg':
 				 	convert_call += '-quality 90 '
 				if format == 'png':
-					# This needs more development; not sure if convert is
-					# the best utility
 					convert_call += '-colors 256 -quality 00 ' 
-
-			 	# TODO: confirm that color profiles are getting through
-			 	# convert_call += '-profile '
-			 	# convert_call += os.path.join(self.patoka_data_dir, 'sRGB.icc') + ' '
-				# convert_call += '-profile '
-				# convert_call += os.path.join(self.patoka_data_dir, 'gray22.icc ')
 
 				if quality == 'grey' and info.native_quality != 'grey':
 					convert_call += '-colorspace gray -depth 8 '
@@ -399,6 +388,7 @@ class Patokah(object):
 
 				# last_mod = os.path.getmtime(img_path)
 				headers.add('Last-Modified', http_date()) # now
+				headers.add('Content-Length', os.path.getsize(img_path))
 				resp = file(img_path)
 
 			except PatokahException, e:
@@ -715,7 +705,6 @@ class RotationParameter(object):
 		return '-rotate ' + str(self.nearest_90) if self.nearest_90 % 360 != 0 else ''
 
 class ImgInfo(object):
-	# TODO: look at color info in the file and figure out qualities
 	def __init__(self):
 		self.id = id
 		self.width = None
@@ -794,7 +783,13 @@ class ImgInfo(object):
 			
 		return info
 	
-	def toXML(self):
+	def marshal(self, to):
+		if to == 'xml': return self._to_xml()
+		elif to == 'json': return self._to_json()
+		else:
+			raise Exception('Argument to marshal must be \'xml\' or \'json\'')
+
+	def _to_xml(self):
 		# cheap!
 		x = '<?xml version="1.0" encoding="UTF-8"?>' + os.linesep
 		x += '<info xmlns="http://library.stanford.edu/iiif/image-api/ns/">' + os.linesep
@@ -819,7 +814,7 @@ class ImgInfo(object):
 		x += '</info>' + os.linesep
 		return x
 	
-	def toJSON(self):
+	def _to_json(self):
 		# cheaper!
 		j = '{' + os.linesep
 		j += '  "identifier" : "' + self.id + '",' + os.linesep
@@ -843,7 +838,7 @@ class PatokahException(Exception):
 		super(PatokahException, self).__init__(msg)
 		self.http_status = http_status
 		self.supplied_value = supplied_value
-		
+
 	def to_xml(self):
 		r = '<?xml version="1.0" encoding="UTF-8" ?>\n'
 		r += '<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">\n'

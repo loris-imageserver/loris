@@ -21,6 +21,9 @@ Deployment
 Source JPEG 2000 Images
 -----------------------
 
+Return Formats
+--------------
+
 Resolving Identifiers
 ---------------------
 TODO (ascii art!)
