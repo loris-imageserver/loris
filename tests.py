@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # tests.py
-# Unit Tests for Patokah.
+# Unit Tests for Loris.
 
 from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
 from os import listdir
 from os import path
-from patokah import BadRegionRequestException
-from patokah import BadRegionSyntaxException
-from patokah import BadSizeSyntaxException
-from patokah import ImgInfo
-from patokah import PctRegionException
-from patokah import RegionParameter
-from patokah import RotationParameter
-from patokah import SizeParameter
-from patokah import create_app
+from loris import BadRegionRequestException
+from loris import BadRegionSyntaxException
+from loris import BadSizeSyntaxException
+from loris import ImgInfo
+from loris import PctRegionException
+from loris import RegionParameter
+from loris import RotationParameter
+from loris import SizeParameter
+from loris import create_app
 from shutil import rmtree
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date, parse_date

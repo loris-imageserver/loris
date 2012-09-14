@@ -1,6 +1,5 @@
 Loris JPEG 2000 Server
 ========================
-It's a dumb name, but you probably know how to pronounce it.
 
 Loris is a lightweight implementation of the 
 [International Image Interoperability Framework: Image API 1.0] [1]. More about 
@@ -13,30 +12,78 @@ does is parse [IIIF URLs] [2] into a set of objects (in the source these are
 the `RegionParameter`, `SizeParameter`, and `RotationParameter` classes) that 
 are then used to build utility command lines that are shelled out.
 
-The [Werkzeug Python WSGI Utility Library] [3]....
+The [Werkzeug Python WSGI Utility Library] [3] handles the URL parsing and 
+routing and supplies a few other conveniences.
 
 Deployment
 ----------
+# TODO
+
+Tests
+-----
+Run `./tests.py`.
 
 Source JPEG 2000 Images
 -----------------------
+# TODO - give PUL sample recipes.
 
 Return Formats
 --------------
+Right now `jpg` and `png` are supported. The latter is underdeveloped and not 
+terribly performant, but is in place so that all of the necessary branching in 
+the content negotiation and rendering could be put in place and tested.
 
 Resolving Identifiers
 ---------------------
-TODO (ascii art!)
+The method for resolving identifiers to images is about as simple as it could 
+be. In a request that looks like this 
+
+  http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+
+The portion between the path the to service on the host server and the region, 
+i.e.:
+
+  http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+                           \________________/
+
+will be joined to the `src_img_root` property, and have `.jp2` appended. So if
+
+  [directories]
+  ...
+  src_img_root=/usr/local/share/images
+
+then this file must exist:
+
+  /usr/local/share/images/some/img/dir/0004.jp2 
+
+This can be revised to fit other environments by replacing the 
+`Loris#_resolve_identifier(self, ident)` method.
 
 Dependencies
 ------------
- * Werkzeug
- * Utilities
+Addition Python libraries:
+ * [Werkzeug] [3] ([Installation] [5])
 
-Hardware / OS
--------------
- * Developed on (machine specs)
+System Utilites
+ * `kdu_expand`
+ * `convert` (ImageMagick)
 
+
+Both of the above should be on your PATH and executable from the command line.
+
+Loris was developed on Ubuntu 12.04 with Python 2.7.2 and has only been tested
+in that environment.
+
+Logging
+-------
+Logging is set up in `loris.conf` and is extremely loud by default. Then 
+handlers configured near the bottom of that file control the levels and 
+directories. The directories must exist and be writable.
+
+The Name
+--------
+Could stand for __Lightweight Open Repository Image Server__ or not. Thanks to
+[shaune](https://github.com/sdellis, 'Shaun Ellis') for coming up with it.
 
 IIIF 1.0 Compliance
 -------------------
@@ -312,3 +359,4 @@ There are some configuration options that could break compliance,
 [2]: http://www-sul.stanford.edu/iiif/image-api/#url_syntax "IIIF URL Syntax"
 [3]: http://werkzeug.pocoo.org/ "Werkzeug Python WSGI Utility Library"
 [4]: http://www-sul.stanford.edu/iiif/image-api/compliance.html "IIIF Levels"
+[5]: http://werkzeug.pocoo.org/docs/installation/ "Werkzeug Installation"
