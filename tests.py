@@ -38,6 +38,7 @@ class Tests(unittest.TestCase):
 		self.client = Client(self.app, BaseResponse)
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004'
 		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001'
+		self.test_jp2_2_id = 'AC044/c0002/00000043'
 		
 	def tearDown(self):
 		# empty the cache

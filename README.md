@@ -32,7 +32,8 @@ Dependencies
 
 Hardware / OS
 -------------
-Developed on (machine specs)
+ * Developed on (machine specs)
+
 
 IIIF 1.0 Compliance
 -------------------

@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 from collections import deque
+from datetime import datetime
 from decimal import Decimal, getcontext
 from random import choice
 from string import ascii_lowercase, digits
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
+from werkzeug.http import http_date, parse_date
 from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.wrappers import Request, Response
 import ConfigParser
@@ -158,11 +160,20 @@ class Patokah(object):
 			cache_path = os.path.join(cache_dir, 'info.') + format
 			
 			# check the cache
-			if os.path.exists(cache_path):
-				status = 200
-				resp = file(cache_path)
-				length = len(file(cache_path).read())
-				logr.info('Read: ' + cache_path)
+			if os.path.exists(cache_path) and self.enable_cache == True:
+				last_change = datetime.utcfromtimestamp(os.path.getmtime(cache_path))
+				ims = parse_date(request.headers.get('If-Modified-Since'))
+				if ims and ims < last_change:
+					status = 200
+					resp = file(cache_path)
+					length = len(file(cache_path).read())
+					headers.add('Content-Length', length)
+					headers.add('Last-Modified', http_date(last_change))
+					logr.info('Read: ' + cache_path)
+				else:
+					status = 304
+					headers.remove('Cache-Control')
+					resp = None
 			else:
 				status = 201 if self.use_201 else 200
 				info = ImgInfo.fromJP2(img_path, ident)
@@ -184,7 +195,8 @@ class Patokah(object):
 				f.close()
 				logr.info('Created: ' + cache_path)
 
-			headers.add('Content-Length', length)
+				headers.add('Last-Modified', http_date())
+				headers.add('Content-Length', length)
 
 		except PatokahException as e:
 		 	mime = 'text/xml'
@@ -199,7 +211,6 @@ class Patokah(object):
 		 	resp = pe.to_xml()
 
 		finally:
-			# TODO - caching headers 
 			return Response(resp, status=status, content_type=mime, headers=headers)
 
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
@@ -228,51 +239,58 @@ class Patokah(object):
 		@param format - 'jpg' or 'png'
 		@type format: string
 		"""
-		try:
-			resp = None
-			status = None
-			mime = None
-			headers = Headers()
-			headers.add('Link', self.link_hdr)
-			headers.add('Cache-Control', 'public')
 
-			# Support accept headers and poor-man's conneg by file extension. 
-			# By configuration we allow either a default format, or the option
-			# to return a 415 if neither a file extension or Accept header are 
-			# supplied.
-			# Cf. 4.5: ... If the format is not specified in the URI ....
-			if not format and not self.use_415:	format = self.default_format
+		resp = None
+		status = None
+		mime = None
+		headers = Headers()
+		headers.add('Link', self.link_hdr)
+		headers.add('Cache-Control', 'public')
 
-			if format == 'jpg':	
-				mime = 'image/jpeg'
-			elif format == 'png': 
-				mime = 'image/png'
-			elif request.headers.get('accept') == 'image/jpeg':
-				format = 'jpg'
-				mime = 'image/jpeg'
-			elif request.headers.get('accept') == 'image/png':
-				format = 'png'
-				mime = 'image/png'
-			else:
-				msg = 'The format requested is not supported by this service.'
-				raise FormatNotSupportedException(415, format, msg)
+		# Support accept headers and poor-man's conneg by file extension. 
+		# By configuration we allow either a default format, or the option
+		# to return a 415 if neither a file extension or Accept header are 
+		# supplied.
+		# Cf. 4.5: ... If the format is not specified in the URI ....
+		if not format and not self.use_415:	format = self.default_format
 
-			img_dir = os.path.join(self.cache_root, ident, region.url_value, size.url_value, rotation.url_value)
-			img_path = os.path.join(img_dir, quality + '.' + format)
-			logr.debug('img_dir: ' + img_dir)
-			logr.debug('img_path: ' + img_path)
+		if format == 'jpg':	
+			mime = 'image/jpeg'
+		elif format == 'png': 
+			mime = 'image/png'
+		elif request.headers.get('accept') == 'image/jpeg':
+			format = 'jpg'
+			mime = 'image/jpeg'
+		elif request.headers.get('accept') == 'image/png':
+			format = 'png'
+			mime = 'image/png'
+		else:
+			msg = 'The format requested is not supported by this service.'
+			raise FormatNotSupportedException(415, format, msg)
 
-			# check the cache
-			if  self.enable_cache == True and os.path.exists(img_path):
-				# if if-mod-since and the date on the file is after:
+		img_dir = os.path.join(self.cache_root, ident, region.url_value, size.url_value, rotation.url_value)
+		img_path = os.path.join(img_dir, quality + '.' + format)
+		logr.debug('img_dir: ' + img_dir)
+		logr.debug('img_path: ' + img_path)
+
+
+		# check the cache
+		if  self.enable_cache == True and os.path.exists(img_path):
+			last_change = datetime.utcfromtimestamp(os.path.getmtime(img_path))
+			ims = parse_date(request.headers.get('If-Modified-Since'))
+			if ims and ims < last_change:
 				status = 200
 				resp = file(img_path)
 				length = len(file(img_path).read()) 
 				headers.add('Content-Length', length)
-				# TODO: add last modified
+				headers.add('Last-Modified', http_date(last_change))
 				logr.info('Read: ' + img_path)
-				# else 304
 			else:
+				status = 304
+				headers.remove('Cache-Control')
+				resp = None
+		else:
+			try:
 				status = 201 if self.use_201 else 200
 				jp2 = self._resolve_identifier(ident)
 				
@@ -374,21 +392,24 @@ class Patokah(object):
 				logr.debug('Terminated ' + kdu_expand_call)
 				logr.info("Created: " + img_path)
 
+				# last_mod = os.path.getmtime(img_path)
+				headers.add('Last-Modified', http_date()) # now
 				resp = file(img_path)
 
-		except PatokahException, e:
-			logr.debug("hello 3")
-		 	mime = 'text/xml'
-		 	status = e.http_status
-		 	resp = e.to_xml()
+			except PatokahException, e:
+				headers.remove('Last-Modified')
+				mime = 'text/xml'
+			 	status = e.http_status
+			 	resp = e.to_xml()
 
-		finally:
-			# Make and call rm $fifo
-			rm_fifo_call = self.rm_cmd + ' ' + fifo_path
-			logr.debug('Calling ' + rm_fifo_call)
-			subprocess.call(rm_fifo_call, shell=True)
-			logr.debug('Done (' + rm_fifo_call + ')')
-			return Response(resp, status=status, mimetype=mime, headers=headers)
+			finally:
+				# Make and call rm $fifo
+				rm_fifo_call = self.rm_cmd + ' ' + fifo_path
+				logr.debug('Calling ' + rm_fifo_call)
+				subprocess.call(rm_fifo_call, shell=True)
+				logr.debug('Done (' + rm_fifo_call + ')')
+
+		return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def _resolve_identifier(self, ident):
 		"""
@@ -844,4 +865,4 @@ if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=False)
-	run_simple('127.0.0.1', 5005, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5008, app, use_debugger=True, use_reloader=True)
