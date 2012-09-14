@@ -68,11 +68,14 @@ System Utilites
  * `kdu_expand`
  * `convert` (ImageMagick)
 
-
-Both of the above should be on your PATH and executable from the command line.
+Both of the above should be on your PATH and executable from the command line. 
 
 Loris was developed on Ubuntu 12.04 with Python 2.7.2 and has only been tested
 in that environment.
+
+Configuration
+-------------
+Please read through `loris.conf`. Properties and options are explained there.
 
 Logging
 -------
