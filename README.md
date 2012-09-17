@@ -17,7 +17,6 @@ routing and supplies a few other conveniences.
 
 Deployment
 ----------
-## Deploying Loris Notes
 
 __Note:__ All commands given are for deploying on Ubuntu.  Your mileage may vary.
 ### Check it out:
