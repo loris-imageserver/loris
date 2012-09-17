@@ -8,17 +8,12 @@
 				padding: 0;
 			}
 			table {
-				margin: 3%;
+				margin: 2%;
 				table-layout: fixed;
 				border-spacing: 0;
 				border-collapse: collapse;
-			}
-			table, tr, td {
-				/*border: 1px solid #000;*/
-			}
-			tr, td {
-				width: 128px;
-				height: 128px;
+				line-height: 0;
+				/*border: 5px solid gray;*/
 			}
 		</style>
 	</head>
@@ -28,14 +23,14 @@
 		<script type="text/javascript">
 			// external?
 			var img_id = "pudl0033/2008/0132/00000001";
-			var size_pct = 50;
+			var size_pct = 100;
 
 
 			var img_svc = "http://localhost:5010";
 			var tile_w = 256;
 			var tile_h = 256;
 			var rotation = 0;
-			var qual_fmt = "native.jpg"
+			var qual_fmt = "native.jpg";
 			
 			var info_json = '{ \
 				"identifier" : "pudl0033/2008/0132/00000001", \
@@ -48,20 +43,20 @@
 				"qualities" : ["native", "bitonal", "grey", "color"], \
 				"profile" : "http://library.stanford.edu/iiif/image-api/compliance.html#level1"	\
 			}';
-			var info = JSON.parse(info_json); //eval('(' + info_json + ')');
+			var info = JSON.parse(info_json);
 
 			t = document.getElementById("tiles");
 			for (y = 0; y < info.height; y = y + tile_w + 1) {
 				// document.write(y + '\n');
 				row = document.createElement("tr");
 				for (x = 0; x < info.width; x = x + tile_h + 1) {
+					height = tile_h * size_pct * 0.01;
+					width = tile_w * size_pct * 0.01;
 					col = document.createElement("td");
 					row.appendChild(col);
 					img = document.createElement("img")
 					region = x+','+y+','+tile_w+','+tile_h;
 					img_uri = [img_svc, img_id, region, "pct:"+size_pct, rotation, qual_fmt].join("/");
-					img.setAttribute("height", tile_h * size_pct * 0.01);
-					img.setAttribute("width", tile_w * size_pct * 0.01);
 					img.setAttribute("src", img_uri);
 					col.appendChild(img)
 				};
