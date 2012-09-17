@@ -52,6 +52,8 @@ class Loris(object):
 		self.convert_cmd = _conf.get('utilities', 'convert')
 		self.mkfifo_cmd = _conf.get('utilities', 'mkfifo')
 		self.kdu_expand_cmd = _conf.get('utilities', 'kdu_expand')
+		self.kdu_libs = _conf.get('utilities', 'kdu_libs')
+		
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
 		# dirs
@@ -360,7 +362,11 @@ class Loris(object):
 				kdu_expand_call += ' ' + region_kdu_arg
 				
 				logr.debug('Calling ' + kdu_expand_call)
-				kdu_expand_proc = subprocess.Popen(kdu_expand_call, shell=True, bufsize=-1, stderr=subprocess.PIPE)
+				kdu_expand_proc = subprocess.Popen(kdu_expand_call, \
+					shell=True, \
+					bufsize=-1, \
+					stderr=subprocess.PIPE,\
+					env={"LD_LIBRARY_PATH" : self.kdu_libs})
 
 				# make and call the convert command
 				# This is as far as we can get before we need to make
