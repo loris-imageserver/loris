@@ -170,10 +170,9 @@ class Loris(object):
 			# check the cache
 			if os.path.exists(cache_path) and self.enable_cache == True:
 
-				last_change = datetime.utcfromtimestamp(os.path.getmtime(cache_path))
+				last_change = datetime.utcfromtimestamp(os.path.getctime(cache_path))
 				ims = parse_date(request.headers.get('If-Modified-Since'))
-				if (ims and ims < last_change) or not ims:
-					status = 200
+				if (ims and last_change < ims) or not ims:
 					resp = file(cache_path)
 					headers.add('Content-Length', os.path.getsize(cache_path))
 					headers.add('Last-Modified', http_date(last_change))
@@ -280,10 +279,12 @@ class Loris(object):
 
 		# check the cache
 		if  self.enable_cache == True and os.path.exists(img_path):
-			last_change = datetime.utcfromtimestamp(os.path.getmtime(img_path))
-			ims = parse_date(request.headers.get('If-Modified-Since'))
-			if (ims and ims < last_change) or not ims:
+			last_change = datetime.utcfromtimestamp(os.path.getctime(img_path))
+			ims_hdr = request.headers.get('If-Modified-Since')
+			ims = parse_date(ims_hdr)
+			if (ims and ims > last_change) or not ims:
 				status = 200
+				logr.debug('################ ' + str(ims_hdr))
 				resp = file(img_path)
 				length = length = os.path.getsize(img_path) 
 				headers.add('Content-Length', length)
@@ -386,7 +387,7 @@ class Loris(object):
 				logr.debug('Terminated ' + kdu_expand_call)
 				logr.info("Created: " + img_path)
 
-				# last_mod = os.path.getmtime(img_path)
+				# last_mod = os.path.getctime(img_path)
 				headers.add('Last-Modified', http_date()) # now
 				headers.add('Content-Length', os.path.getsize(img_path))
 				resp = file(img_path)

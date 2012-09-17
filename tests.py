@@ -470,13 +470,13 @@ class Tests(unittest.TestCase):
 	 	yesterday = http_date(datetime.utcnow() - timedelta(days=1))
 	 	headers.add('if-modified-since', yesterday)
 	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 200)
+	 	self.assertEquals(resp.status_code, 304)
 
 	 	headers.clear()
 	 	tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
 	 	headers.add('if-modified-since', tomorrow)
 	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 304)
+	 	self.assertEquals(resp.status_code, 200)
 
 
 	def test_info_caching(self):
@@ -495,15 +495,13 @@ class Tests(unittest.TestCase):
 	 	yesterday = http_date(datetime.utcnow() - timedelta(days=1))
 	 	headers.add('if-modified-since', yesterday)
 	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 200)
+	 	self.assertEquals(resp.status_code, 304)
 
 	 	headers.clear()
 	 	tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
 	 	headers.add('if-modified-since', tomorrow)
 	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 304)
-
-
+	 	self.assertEquals(resp.status_code, 200)
 
 	# use this to test arbitrary complete image requests.
 	def get_jpeg_dimensions(self, path):
