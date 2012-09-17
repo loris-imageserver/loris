@@ -6,6 +6,7 @@ from datetime import datetime
 from decimal import Decimal, getcontext
 from random import choice
 from string import ascii_lowercase, digits
+from sys import exit
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.http import http_date, parse_date
@@ -55,8 +56,27 @@ class Loris(object):
 
 		# dirs
 		abs_path = os.path.abspath(os.path.dirname(__file__))
-		self.tmp_dir= _conf.get('directories', 'tmp')
+		self.tmp_dir = _conf.get('directories', 'tmp')
 		self.cache_root = _conf.get('directories', 'cache_root')
+
+		try:
+			for d in (self.tmp_dir, self.cache_root):
+				if not os.path.exists(d):
+					os.makedirs(d, 0755)
+					logr.info("Created " + d)
+			if not os.access(self.tmp_dir, os.R_OK) and os.access(self.tmp_dir, os.W_OK):
+				raise Exception(self.tmp_dir + ' must exist and be readable and writable')
+
+			if not os.access(self.cache_root, os.R_OK) and os.access(self.cache_root, os.W_OK):
+				raise Exception(self.cache_root + ' must exist and be readable and writable')
+
+		except Exception, e:
+			msg = 'Exception setting up directories: ' 
+			msg += e.message
+			logr.fatal(msg)
+			exit(1)
+
+
 		self.src_images_root = ''
 		if self.test:
 			abs_path = os.path.abspath(os.path.dirname(__file__))
@@ -65,7 +85,6 @@ class Loris(object):
 			self.src_images_root = _conf.get('directories', 'src_img_root')
 
 		self.patoka_data_dir = os.path.join(abs_path, 'data')
-
 		
 		# compliance and help links
 		compliance_uri = _conf.get('compliance', 'uri')
@@ -74,10 +93,7 @@ class Loris(object):
 		self.link_hdr += '<' + help_uri + '>;rel=help'
 
 
-		for d in (self.tmp_dir, self.cache_root):
-			if not os.path.exists(d):
-				os.makedirs(d, 0755)
-				logr.info("Created " + d)
+
 
 		converters = {
 				'region' : RegionConverter,
@@ -817,17 +833,17 @@ class ImgInfo(object):
 	
 	def _to_json(self):
 		# cheaper!
-		j = '{' + os.linesep
-		j += '  "identifier" : "' + self.id + '",' + os.linesep
-		j += '  "width" : ' + str(self.width) + ',' + os.linesep
-		j += '  "height" : ' + str(self.height) + ',' + os.linesep
-		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels+1)) + '],' + os.linesep
-		j += '  "tile_width" : ' + str(self.tile_width) + ',' + os.linesep
-		j += '  "tile_height" : ' + str(self.tile_height) + ',' + os.linesep
-		j += '  "formats" : [ "jpg", "png" ],' + os.linesep
-		j += '  "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '],' + os.linesep
-		j += '  "profile" : "http://library.stanford.edu/iiif/image-api/compliance.html#level1"' + os.linesep
-		j += '}' + os.linesep
+		j = '{'
+		j += '  "identifier" : "' + self.id + '", '
+		j += '  "width" : ' + str(self.width) + ', '
+		j += '  "height" : ' + str(self.height) + ', '
+		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels+1)) + '], '
+		j += '  "tile_width" : ' + str(self.tile_width) + ', '
+		j += '  "tile_height" : ' + str(self.tile_height) + ', '
+		j += '  "formats" : [ "jpg", "png" ], '
+		j += '  "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
+		j += '  "profile" : "http://library.stanford.edu/iiif/image-api/compliance.html#level1"'
+		j += '}'
 		return j
 
 # This seems easier than http://werkzeug.pocoo.org/docs/exceptions/ because we
