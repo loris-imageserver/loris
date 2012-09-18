@@ -1,4 +1,4 @@
-Loris JPEG 2000 Server
+![loris icon](https://github.com/pulibrary/loris/blob/master/icons/loris-icon-name.png?raw=true) Loris JPEG 2000 Server
 ========================
 
 Loris is a lightweight implementation of the 
