@@ -3,11 +3,10 @@
 # tests.py
 # Unit Tests for Loris.
 
+
 from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
-from os import listdir
-from os import path
 from loris import BadRegionRequestException
 from loris import BadRegionSyntaxException
 from loris import BadSizeSyntaxException
@@ -17,45 +16,55 @@ from loris import RegionParameter
 from loris import RotationParameter
 from loris import SizeParameter
 from loris import create_app
+from os import listdir, path
 from shutil import rmtree
+from sys import stderr, stdout
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date, parse_date
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
 from xml.dom.minidom import parseString
+import struct
 import subprocess
 import unittest
 
-abs_path = path.abspath(path.dirname(__file__))
-TEST_IMG_DIR = path.join(abs_path, 'test_img')
 
-class Tests(unittest.TestCase):
 
+class LorisTest(unittest.TestCase):
 	def setUp(self):
 		unittest.TestCase.setUp(self)
 		# create an instance of the app here that we can use in tests
 		# see http://werkzeug.pocoo.org/docs/test/
 		self.app = create_app(test=True)
-		getcontext().prec = 32 # set this explicitly in case it gets changed in the conf
+		getcontext().prec = self.app.decimal_precision
 		self.client = Client(self.app, BaseResponse)
+		abs_path = path.abspath(path.dirname(__file__))
+		self.test_img_dir = path.join(abs_path, 'test_img')
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004' # color; 2717 x 3600
 		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001' # color; 5283 x 7200
 		self.test_jp2_2_id = 'AC044/c0002/00000043' # grey; 2477 x 3200
-		
+
 	def tearDown(self):
 		# empty the cache
 		for d in listdir(self.app.cache_root):
 			rmtree(path.join(self.app.cache_root, d))
 		rmtree(self.app.cache_root)
-		
 
-	def test_Patoka_resolve_id(self):
+
+class Test_A_ResolveId(LorisTest):
+	"""Test that the ID resolver works"""
+
+	def test_loris_resolve_id(self):
 		abs_path = path.abspath(path.dirname(__file__))
-		expected_path = path.join(TEST_IMG_DIR, self.test_jp2_id  + '.jp2')
+		expected_path = path.join(self.test_img_dir, self.test_jp2_id  + '.jp2')
 		resolved_path = self.app._resolve_identifier(self.test_jp2_id)
 		self.assertEqual(expected_path, resolved_path)
 		self.assertTrue(path.isfile(resolved_path))
 
+class Test_B_InfoExtraction(LorisTest):
+	"""Here we extract info from JPEG 2000 files.
+	"""
+	
 	def test_img_info(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
@@ -65,20 +74,36 @@ class Tests(unittest.TestCase):
 		self.assertEqual(info.tile_width, 256)
 		self.assertEqual(info.tile_height, 256)
 		self.assertEqual(info.levels, 5)
+		self.assertEqual(info.qualities, ['native', 'bitonal', 'grey', 'color'])
 		self.assertEqual(info.id, self.test_jp2_id)
+	
+	def test_img_info_1(self):
+		img = self.app._resolve_identifier(self.test_jp2_1_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_1_id)
+
+		self.assertEqual(info.width, 5283)
+		self.assertEqual(info.height, 7200)
+		self.assertEqual(info.tile_width, 256)
+		self.assertEqual(info.tile_height, 256)
+		self.assertEqual(info.levels, 7)
+		self.assertEqual(info.qualities, ['native', 'bitonal', 'grey', 'color'])
+		self.assertEqual(info.id, self.test_jp2_1_id)
+
+	def test_img_info_2(self):
+		img = self.app._resolve_identifier(self.test_jp2_2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_2_id)
+
+		self.assertEqual(info.width, 2477)
+		self.assertEqual(info.height, 3200)
+		self.assertEqual(info.tile_width, 256)
+		self.assertEqual(info.tile_height, 256)
+		self.assertEqual(info.levels, 6)
+		self.assertEqual(info.qualities, ['native', 'bitonal', 'grey'])
+		self.assertEqual(info.id, self.test_jp2_2_id)
 
 	def test_info_json(self):
 		# Do it once, make sure we get a 201
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
-		self.assertEqual(resp.status_code, 201)
-
-		# Do it once, make sure we get a 200
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
-		self.assertEqual(resp.status_code, 200)
-		# header parsing: http://werkzeug.pocoo.org/docs/datastructures/#http-datastructures
-		
-		self.assertEqual(resp.headers.get('Content-Type'), 'text/json')
-
 		resp_json = loads(resp.data)
 		self.assertTrue(resp_json.has_key(u'identifier'))
 		self.assertEqual(resp_json.get(u'identifier'), u'pudl0001/4609321/s42/00000004')
@@ -99,85 +124,28 @@ class Tests(unittest.TestCase):
 		self.assertTrue(resp_json.has_key(u'profile'))
 		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
 
-
 	def test_info_xml(self):
 		# Do it once, make sure we get a 201
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')	
-		self.assertEqual(resp.status_code, 201)
-
-		# Do it again, make sure we get a 200
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
-		self.assertEqual(resp.status_code, 200)
-
-		self.assertEqual(resp.headers.get('Content-Type'), 'text/xml')
-
+		#This is parsable
 		dom = parseString(resp.data)
+		# info is the root
 		self.assertEqual(dom.documentElement.tagName, 'info')
-		# We'll stop here. values are tested with the object. This is parsable
-		# and info is the root
 
-	def test_info(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
+		# TODO: finish. Right now values are tested with the object and json, 
+		# but not here
 
-		headers = Headers()
-		headers.add('accept', 'text/xml')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
-
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
-		self.assertEqual(resp.headers.get('content-type'), 'text/json')
-
-		headers.clear()
-		headers.add('accept', 'text/json')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/json')
-
-		# These last two fail (by asking for txt), and we get back a 415 and a 
-		# message as XML
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
-		self.assertEqual(resp.status_code, 415)
-
-		headers.clear()
-		headers.add('accept', 'text/plain')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
-		self.assertEqual(resp.status_code, 415)
-
-
-	def test_format_conneg(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jpg')
-		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
-
-		headers = Headers()
-		headers.add('accept', 'image/jpeg')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
-
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native.png')
-		self.assertEqual(resp.headers.get('content-type'), 'image/png')
-
-		headers.clear()
-		headers.add('accept', 'image/png')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'image/png')
-
-		# resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jp2')
-		# self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
-
-		# headers.clear()
-		# headers.add('accept', 'image/jp2')
-		# resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native', headers=headers)
-		# self.assertEqual(resp.headers.get('content-type'), 'image/jp2')
-
-	def test_region_full(self):
+class Test_C_RegionParameter(LorisTest):
+	"""Here we construct RegionParameter objects from would-be URI slices and
+	test their attributes and methods.
+	"""
+	def test_full(self):
 		url_segment = 'full'
 		expected_mode = 'full'
 		region_parameter = RegionParameter(url_segment)
 		self.assertEqual(region_parameter.mode, expected_mode)
 
-	def test_region_pct(self):
+	def test_pct(self):
 		url_segment = 'pct:10,11,70.5,80'
 
 		expected_mode = 'pct'
@@ -193,7 +161,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(region_parameter.w, expected_w)
 		self.assertEqual(region_parameter.h, expected_h)
 
-	def test_region_pixel(self):
+	def test_pixel(self):
 		url_segment = '80,50,16,75'
 
 		expected_mode = 'pixel'
@@ -218,7 +186,7 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadRegionSyntaxException):
 			RegionParameter(url_segment)
 
-	def test_missing_dim_exception(self):
+	def test_missing_dim(self):
 		url_segment = 'pct:101,70,50'
 		with self.assertRaises(BadRegionSyntaxException):
 			RegionParameter(url_segment)
@@ -227,7 +195,7 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadRegionSyntaxException):
 			RegionParameter(url_segment)
 
-	def test_xpixel_oob_exception(self):
+	def test_xpixel_oob(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 		url_segment = '2717,0,1,1'
@@ -235,7 +203,7 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadRegionRequestException):
 			region_arg = region_parameter.to_kdu_arg(info, False)
 
-	def test_ypixel_oob_exception(self):
+	def test_ypixel_oob(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 		url_segment = '0,3600,1,1'
@@ -243,12 +211,13 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadRegionRequestException):
 			region_arg = region_parameter.to_kdu_arg(info, False)
 
+
 	def test_pixel_to_kdu_hw(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 		url_segment = '0,0,1358,1800'
 		region_parameter = RegionParameter(url_segment)
-		expected_kdu = '-region \{0,0\},\{0.5,0.49981597350018402649981597350018\}'
+		expected_kdu = '-region \{0,0\},\{0.5,0.49981597350018402650\}'
 		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
@@ -257,7 +226,7 @@ class Tests(unittest.TestCase):
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 		url_segment = '1358,1800,200,658'
 		region_parameter = RegionParameter(url_segment)
-		expected_kdu = '-region \{0.5,0.49981597350018402649981597350018\},\{0.18277777777777777777777777777778,0.073610599926389400073610599926389\}'
+		expected_kdu = '-region \{0.5,0.49981597350018402650\},\{0.18277777777777777778,0.073610599926389400074\}'
 		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
@@ -288,21 +257,11 @@ class Tests(unittest.TestCase):
 		region_arg = region_parameter.to_kdu_arg(info, False)
 		self.assertEqual(region_arg, expected_kdu)
 
-	def test_cache_px_only(self):
-		self.app.cache_px_only = True
-		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
-		url_segment = 'pct:20,20,100,100'
-		region_parameter = RegionParameter(url_segment)
-		try:
-			region_arg = region_parameter.to_kdu_arg(info, True)
-		except PctRegionException as e:
-			self.assertEquals(e.new_region_param.url_value, '543,720,2717,3600')
-			expected_kdu = '-region \{0.2,0.19985277880014722119985277880015\},\{0.8,0.80014722119985277880014722119985\}'
-			self.assertEquals(e.new_region_param.to_kdu_arg(info, True), expected_kdu)
-
-
-	def test_size_full(self):
+class Test_D_SizeParameter(LorisTest):
+	"""Here we construct SizeParameter objects from would-be URI slices and
+	test their attributes and methods.
+	"""
+	def test_full(self):
 		url_segment = 'full'
 		expected_mode = 'full'
 		expected_convert = ''
@@ -310,7 +269,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(size_parameter.mode, expected_mode)
 		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
-	def test_size_pct(self):
+	def test_pct(self):
 		url_segment = 'pct:50'
 		expected_mode = 'pct'
 		expected_pct = 50.0
@@ -320,7 +279,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(size_parameter.pct, expected_pct)
 		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
-	def test_size_gtlt_100_pct_exception(self):
+	def test_gtlt_100_pct_exception(self):
 		url_segment = 'pct:101'
 		with self.assertRaises(BadSizeSyntaxException):
 			SizeParameter(url_segment)
@@ -329,7 +288,7 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadSizeSyntaxException):
 			SizeParameter(url_segment)
 
-	def test_size_h_only(self):
+	def test_h_only(self):
 		url_segment = ',100'
 		expected_mode = 'pixel'
 		expected_height = 100
@@ -340,7 +299,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(size_parameter.mode, expected_mode)
 		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
-	def test_size_w_only(self):
+	def test_w_only(self):
 		url_segment = '500,'
 		expected_mode = 'pixel'
 		expected_width = 500
@@ -352,7 +311,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(size_parameter.mode, expected_mode)
 		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
-	def test_size_force_aspect(self):
+	def test_force_aspect(self):
 		url_segment = '500,100'
 		expected_mode = 'pixel'
 		expected_width = 500
@@ -365,7 +324,7 @@ class Tests(unittest.TestCase):
 		self.assertEqual(size_parameter.mode, expected_mode)
 		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
-	def test_size_not_force_aspect(self):
+	def test_do_not_force_aspect(self):
 		url_segment = '!500,100'
 		expected_mode = 'pixel'
 		expected_width = 500
@@ -399,7 +358,12 @@ class Tests(unittest.TestCase):
 		with self.assertRaises(BadSizeSyntaxException):
 			SizeParameter(url_segment)
 
-	# rotation tests also test the kdu args since we don't need any image info
+	#TODO: do we need tests about up-sampling?
+
+class Test_E_RotationParameter(LorisTest):
+	"""Here we construct RotationParameter objects from would-be URI slices and
+	test their attributes and methods.
+	"""
 	def test_rotation_0(self):
 		url_segment = '0'
 		expected_rotation = 0
@@ -440,22 +404,112 @@ class Tests(unittest.TestCase):
 		self.assertEqual(rotation_parameter.nearest_90, expected_rotation)
 		self.assertEqual(rotation_parameter.to_convert_arg(), expected_kdu_arg)
 
-	def test_shell_out_utils(self):
-		"""Just make sure they exist and are executable.
-		"""
+class Test_F_Utilities(LorisTest):
+	"""Here we exercise the shell utilities and make sure they work.
+	"""
+	def test_convert(self):
 		# convert
 		self.assertTrue(path.exists(self.app.convert_cmd))
-		convert_version = self.app.convert_cmd + ' -version'
-		convert_version_exit = subprocess.call(convert_version, shell=True)
-		self.assertEqual(convert_version_exit, 0)
 
+		convert_version = self.app.convert_cmd + ' -version'
+		proc = subprocess.Popen(convert_version, shell=True, \
+				stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+		exit_status = proc.wait()
+
+		stdout.write('\n')
+		for line in proc.stdout:
+			stdout.write(line)
+		for line in proc.stderr:
+			stderr.write(line)
+		stderr.write('\n')
+		self.assertEqual(exit_status, 0)
+
+
+	def test_kdu(self):
 		# kdu_expand
 		self.assertTrue(path.exists(self.app.kdu_expand_cmd))
 		kdu_v = self.app.kdu_expand_cmd + ' -v'
-		kdu_v_exit = subprocess.call(kdu_v, shell=True)
-		self.assertEqual(kdu_v_exit, 0)
+
+		proc = subprocess.Popen(kdu_v, shell=True, \
+			stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+		exit_status = proc.wait()
+
+		stdout.write('\n')
+		for line in proc.stdout:
+			stdout.write(line)
+		for line in proc.stderr:
+			stderr.write(line)
+		stderr.write('\n')
+		self.assertEqual(exit_status, 0)
+
+class Test_G_ContentNegotiation(LorisTest):
+	"""Here we make requests for different content types using both HTTP headers
+	and poor-mans conneg (via file-like extensions).
+	"""
+	def test_info(self):
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
+
+		headers = Headers()
+		headers.add('accept', 'text/xml')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
+
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
+
+		headers.clear()
+		headers.add('accept', 'text/json')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
+
+		# These last two fail (by asking for txt), and we get back a 415 and a 
+		# message as XML
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
+		self.assertEqual(resp.status_code, 415)
+
+		headers.clear()
+		headers.add('accept', 'text/plain')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
+		self.assertEqual(resp.status_code, 415)
+
+	def test_img(self):
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jpg')
+		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
+
+		headers = Headers()
+		headers.add('accept', 'image/jpeg')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
+
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native.png')
+		self.assertEqual(resp.headers.get('content-type'), 'image/png')
+
+		headers.clear()
+		headers.add('accept', 'image/png')
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
+		self.assertEqual(resp.headers.get('content-type'), 'image/png')
 
 
+class Test_H_Caching(LorisTest):
+	"""Here we make requests for different content types using both HTTP headers
+	and poor-mans conneg (file-like extensions).
+	"""
+
+	def test_cache_px_only(self):
+		self.app.cache_px_only = True
+		img = self.app._resolve_identifier(self.test_jp2_id)
+		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		url_segment = 'pct:20,20,100,100'
+		region_parameter = RegionParameter(url_segment)
+		try:
+			region_arg = region_parameter.to_kdu_arg(info, True)
+		except PctRegionException as e:
+			self.assertEquals(e.new_region_param.url_value, '543,720,2717,3600')
+			expected_kdu = '-region \{0.2,0.19985277880014722120\},\{0.8,0.80014722119985277880\}'
+			self.assertEquals(e.new_region_param.to_kdu_arg(info, True), expected_kdu)
 	def test_img_caching(self):
 		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
 		resp = self.client.get(url)
@@ -503,34 +557,101 @@ class Tests(unittest.TestCase):
 	 	resp = self.client.get(url, headers=headers)
 	 	self.assertEquals(resp.status_code, 200)
 
-	# use this to test arbitrary complete image requests.
-	def get_jpeg_dimensions(self, path):
-	   jpeg = open(path, 'r')
-	   jpeg.read(2)
-	   b = jpeg.read(1)
-	   try:
-		   while (b and ord(b) != 0xDA):
-			   while (ord(b) != 0xFF): b = jpeg.read(1)
-			   while (ord(b) == 0xFF): b = jpeg.read(1)
+class Test_I_ResultantImg(LorisTest):
+	"""Here we make a table of tiles (left to right, top to bottom) at various 
+	request sizes and check the actual size of each tile. If an image is off
+	by one or two pixels, it's likely a decimal precision issue (which can be 
+	increased in the conf file). Otherwise it's something else.
+	"""
+	def test_region_precision(self):
+		stdout.write('This one takes a while ...')
+		ident = self.test_jp2_1_id
+		jp2 = self.app._resolve_identifier(ident)
+		info = ImgInfo.fromJP2(jp2, ident)
+		test_sizes = [128,256,512,1024,2048]
+		cy = 0
+		y = 0
+		for tile_size in test_sizes:
+			while y <= info.height:
+				stdout.write('.')
+				# This compensates for tiles at the bottom, which might not be
+				# a full tile_size high
+				result_tile_height = min(info.height-(cy*(tile_size + 1)), tile_size)
+				cx = 0
+				x = 0 
+				while x <= info.width:
+					# Similarly, for tiles at the far right, which might not be
+					# a full tile_size wide
+					result_tile_width = min(info.width-(cx*(tile_size + 1)), tile_size)
+					region = ','.join(map(str, (x,y,tile_size,tile_size)))
+					uri = '/' + self.test_jp2_1_id + '/' + region + '/full/0/native.jpg'
+					resp = self.client.get(uri)
+					f_name = path.join(self.app.tmp_dir, 'result.jpg')
+					f = open(f_name, 'w')
+					f.write(resp.data)
+					f.close()
+					dims = get_jpeg_dimensions(f_name)
+
+					self.assertEquals(dims, (result_tile_width, result_tile_height))
+
+					x += tile_size + 1
+					cx += 1
+				y += tile_size + 1
+				cy += 1
+
+
+# use this to test arbitrary complete image requests.
+def get_jpeg_dimensions(path):
+   jpeg = open(path, 'r')
+   jpeg.read(2)
+   b = jpeg.read(1)
+   try:
+	   while (b and ord(b) != 0xDA):
+		   while (ord(b) != 0xFF): b = jpeg.read(1)
+		   while (ord(b) == 0xFF): b = jpeg.read(1)
+		   
+		   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+			   jpeg.read(3)
+			   h, w = struct.unpack(">HH", jpeg.read(4))
+			   break
+		   else:
+			   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
 			   
-			   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-				   jpeg.read(3)
-				   h, w = struct.unpack(">HH", jpeg.read(4))
-				   break
-			   else:
-				   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-				   
-			   b = jpeg.read(1)
-		   width = int(w)
-		   height = int(h)
-	   except struct.error:
-		   pass
-	   except ValueError:
-		   pass
-	   finally:
-		   jpeg.close()
-	   logr.debug(path + " w: " + str(width) + " h: " + str(height))
-	   return (width, height)
+		   b = jpeg.read(1)
+	   width = int(w)
+	   height = int(h)
+   except struct.error:
+	   pass
+   except ValueError:
+	   pass
+   finally:
+	   jpeg.close()
+   return (width, height)
 
 if __name__ == "__main__":
-	unittest.main()
+
+	tl = unittest.TestLoader()
+	test_suites = []
+	
+	# These should be in a reasonably useful order.
+	# If we can't resolve ids to images
+	test_suites.append(tl.loadTestsFromTestCase(Test_A_ResolveId))
+	# we can't get extract information from them (like dimensions)
+	test_suites.append(tl.loadTestsFromTestCase(Test_B_InfoExtraction))
+	# and if we can't get the dimensions of an image we can't translate
+	# IIIF URI segments into commands
+	test_suites.append(tl.loadTestsFromTestCase(Test_C_RegionParameter))
+	test_suites.append(tl.loadTestsFromTestCase(Test_D_SizeParameter))
+	test_suites.append(tl.loadTestsFromTestCase(Test_E_RotationParameter))
+	#. If we can't make the shell utilities work:
+	test_suites.append(tl.loadTestsFromTestCase(Test_F_Utilities))	
+	# we can make images, and therefore we can't accurately 
+	test_suites.append(tl.loadTestsFromTestCase(Test_G_ContentNegotiation))
+	test_suites.append(tl.loadTestsFromTestCase(Test_H_Caching))
+	test_suites.append(tl.loadTestsFromTestCase(Test_I_ResultantImg))
+	#.
+
+	meta_suite = unittest.TestSuite(test_suites)
+	unittest.TextTestRunner(verbosity=2).run(meta_suite)
+
+	

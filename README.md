@@ -88,8 +88,18 @@ http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
 
 Tests
 -----
-Run `./tests.py`. You may want to turn down logging at first, and only turn it 
-up if somethign goes wrong
+From the directory that contains `tests.py`, call 
+
+  python -m unittest -v tests
+
+The tests should run in a logical order, so if you see a failure, futher 
+failures might casacade and mask the problem. To solve this, you can have 
+unittest stop at the first fail:
+
+  python -mf unittest -v tests
+
+You may want to turn down logging at first, and only turn it up if something 
+goes wrong. __Note__ that `Test_I_ResultantImg` takes a while.
 
 Source JPEG 2000 Images
 -----------------------
@@ -109,7 +119,7 @@ be. In a request that looks like this
     http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
 
 The portion between the path the to service on the host server and the region, 
-i.e.:
+(excluding leading and trailings `/`s), i.e.:
 
     http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
                               \_______________/
@@ -169,11 +179,11 @@ There are some configuration options that could break compliance,
   <tbody>
     <tr>
       <th></th>
-      <td><span style="font-weight: bold;">Level 0</span></td>
+      <td><span style="font-weight: bold;">Level 0</td> 
       <th>Level 1</th>
       <th>Level 2</th>
       <th>Optional</th>
-      <th><span style="color: red;">Loris</span></th>
+      <th>Loris</span></th>
     </tr>
     <tr>
       <td><strong>Region</strong></td>
@@ -181,7 +191,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td></td>
       <td></td>
-      <td><span style="color: red;"></span></td>
+      <td></td> 
     </tr>
     <tr>
       <td>&nbsp; full</td>
@@ -189,7 +199,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;x,y,w,h</td>
@@ -197,7 +207,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;pct:x,y,w,h</td>
@@ -206,7 +216,7 @@ There are some configuration options that could break compliance,
       </td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td><strong>Size</strong></td>
@@ -222,7 +232,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;w,</td>
@@ -230,7 +240,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;,h</td>
@@ -238,7 +248,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;pct:x</td>
@@ -246,7 +256,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;w,h</td>
@@ -254,7 +264,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;!w,h</td>
@@ -262,7 +272,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;!pct:x</td>
@@ -270,7 +280,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="font-style: italic;">Not mentioned in the spec</span></td>
+      <td><span style="font-style: italic;">Not mentioned in the spec</td> 
     </tr>
     <tr>
       <td><strong>Rotation</strong></td>
@@ -286,7 +296,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp; 90,180,270</td>
@@ -294,7 +304,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;arbitrary</td>
@@ -317,7 +327,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;color</td>
@@ -325,7 +335,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;grey</td>
@@ -333,7 +343,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;bitonal</td>
@@ -341,7 +351,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td><strong>Format</strong></td>
@@ -357,7 +367,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;tif</td>
@@ -373,7 +383,7 @@ There are some configuration options that could break compliance,
       <td></td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp;&nbsp;gif</td>
@@ -400,7 +410,7 @@ There are some configuration options that could break compliance,
       <td></td>
     </tr>
     <tr>
-      <td><span style="font-weight: bold;">Image Information Request</span></td>
+      <td><strong>Image Information Request</strong></td>
       <td></td>
       <td></td>
       <td></td>
@@ -413,7 +423,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
     <tr>
       <td>&nbsp; xml response</td>
@@ -421,7 +431,7 @@ There are some configuration options that could break compliance,
       <td>x</td>
       <td>x</td>
       <td></td>
-      <td><span style="color: red;">x</span></td>
+      <td>x</td> 
     </tr>
   </tbody>
 </table>

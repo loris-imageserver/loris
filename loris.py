@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal, getcontext
 from random import choice
 from string import ascii_lowercase, digits
-from sys import exit
+from sys import exit, stderr
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.http import http_date, parse_date
@@ -20,20 +20,33 @@ import struct
 import subprocess
 import urlparse
 
-abs_path = os.path.abspath(os.path.dirname(__file__))
-conf_file = os.path.join(abs_path, 'loris.conf') 
-logging.config.fileConfig(conf_file)
-logr = logging.getLogger('loris')
-
 def create_app(test=False):
-	app = Loris(test)
-	return app
+	global logr
+	global conf_file
+	global host_dir
+	try:
+		# Logging
+		host_dir = os.path.abspath(os.path.dirname(__file__))
+		conf_file = os.path.join(host_dir, 'loris.conf')
+		logging.config.fileConfig(conf_file)
+		if test:
+			logr = logging.getLogger('loris_test')
+		else:
+			logr = logging.getLogger('loris')
+		app = Loris(test)
+		return app
+	except Exception,e:
+		stderr.write(e.message)
+		exit(1)
+
 
 class Loris(object):
 	def __init__(self, test=False):
 		"""
 		@param test: For unit tests, changes from configured dirs to test dirs. 
 		"""
+		self.test=test
+
 		# Configuration - Everything else
 		_conf = ConfigParser.RawConfigParser()
 		_conf.read(conf_file)
@@ -48,54 +61,47 @@ class Loris(object):
 		self.enable_cache = _conf.getboolean('options', 'enable_cache')
 
 		# utilities
-		self.test=test
 		self.convert_cmd = _conf.get('utilities', 'convert')
 		self.mkfifo_cmd = _conf.get('utilities', 'mkfifo')
 		self.kdu_expand_cmd = _conf.get('utilities', 'kdu_expand')
 		self.kdu_libs = _conf.get('utilities', 'kdu_libs')
-		
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
-		# dirs
-		abs_path = os.path.abspath(os.path.dirname(__file__))
-		self.tmp_dir = _conf.get('directories', 'tmp')
-		self.cache_root = _conf.get('directories', 'cache_root')
+		# directories
+		host_dir = os.path.abspath(os.path.dirname(__file__))
+		self.tmp_dir = ''
+		self.cache_root = ''
+		self.src_images_root = ''
+		if self.test:
+			self.tmp_dir = _conf.get('directories', 'test_tmp')
+			self.cache_root = _conf.get('directories', 'test_cache_root')
+			self.src_images_root = os.path.join(host_dir, 'test_img') 
+		else:
+			self.tmp_dir = _conf.get('directories', 'tmp')
+			self.cache_root = _conf.get('directories', 'cache_root')
+			self.src_images_root = _conf.get('directories', 'src_img_root')
 
 		try:
 			for d in (self.tmp_dir, self.cache_root):
 				if not os.path.exists(d):
 					os.makedirs(d, 0755)
 					logr.info("Created " + d)
-			if not os.access(self.tmp_dir, os.R_OK) and os.access(self.tmp_dir, os.W_OK):
-				raise Exception(self.tmp_dir + ' must exist and be readable and writable')
+				if not os.access(d, os.R_OK) and os.access(d, os.W_OK):
+					msg = d  + ' must exist and be readable and writable'
+					raise Exception(msg)
 
-			if not os.access(self.cache_root, os.R_OK) and os.access(self.cache_root, os.W_OK):
-				raise Exception(self.cache_root + ' must exist and be readable and writable')
 
 		except Exception, e:
 			msg = 'Exception setting up directories: ' 
 			msg += e.message
 			logr.fatal(msg)
 			exit(1)
-
-
-		self.src_images_root = ''
-		if self.test:
-			abs_path = os.path.abspath(os.path.dirname(__file__))
-			self.src_images_root = os.path.join(abs_path, 'test_img') 
-		else:
-			self.src_images_root = _conf.get('directories', 'src_img_root')
-
-		self.patoka_data_dir = os.path.join(abs_path, 'data')
 		
 		# compliance and help links
 		compliance_uri = _conf.get('compliance', 'uri')
 		help_uri = _conf.get('compliance', 'help_uri')
 		self.link_hdr = '<' + compliance_uri  + '>;rel=profile,'
 		self.link_hdr += '<' + help_uri + '>;rel=help'
-
-
-
 
 		converters = {
 				'region' : RegionConverter,
@@ -145,7 +151,7 @@ class Loris(object):
 
 
 	def on_get_favicon(self, request):
-		f = os.path.join(abs_path, 'favicon.ico')
+		f = os.path.join(host_dir, 'favicon.ico')
 		return Response(f, content_type='image/x-icon')
 		
 
@@ -294,7 +300,7 @@ class Loris(object):
 		logr.debug('img_dir: ' + img_dir)
 		logr.debug('img_path: ' + img_path)
 
-
+		
 		# check the cache
 		if  self.enable_cache == True and os.path.exists(img_path):
 			last_change = datetime.utcfromtimestamp(os.path.getctime(img_path))
@@ -302,7 +308,6 @@ class Loris(object):
 			ims = parse_date(ims_hdr)
 			if (ims and ims > last_change) or not ims:
 				status = 200
-				logr.debug('################ ' + str(ims_hdr))
 				resp = file(img_path)
 				length = length = os.path.getsize(img_path) 
 				headers.add('Content-Length', length)
@@ -314,18 +319,23 @@ class Loris(object):
 				headers.remove('Cache-Control')
 				resp = None
 		else:
+
 			try:
+
 				status = 201 if self.use_201 else 200
 				jp2 = self._resolve_identifier(ident)
 				
+
 				# We may not want to read this from the file every time, though 
 				# it is pretty fast. Runtime cache? In memory dicts and Shelve/
 				# pickle are not thread safe for writing (and probably wouldn't
 				# scale anyway)
 				# ZODB? : http://www.zodb.org/
 				# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
+				logr.debug(jp2)
 				info = ImgInfo.fromJP2(jp2, ident)
-
+				
+				
 				# Do some checking early to avoid starting to build the shell 
 				# outs
 				if quality not in info.qualities:
@@ -403,7 +413,10 @@ class Loris(object):
 				
 				kdu_exit = kdu_expand_proc.wait()
 				if kdu_exit != 0:
-					msg = '. '.join(kdu_expand_proc.stderr)
+					msg = ''
+					for line in kdu_expand_proc.stderr:
+						msg += line + '. '
+
 					raise LorisException(500, '', msg)
 
 				logr.debug('Terminated ' + kdu_expand_call)
@@ -684,7 +697,7 @@ class SizeParameter(object):
 				cmd += 'x' + str(self.h)
 			# Note that IIIF and Imagmagick use '!' in opposite ways: to IIIF, 
 			# the presense of ! means that the aspect ratio should be preserved,
-			# to convert it means that it should be ignored
+			# to `convert` it means that it should be ignored
 			elif self.w and self.h and not self.force_aspect:
 				cmd +=  str(self.w) + 'x' + str(self.h) + '\>' # Don't upsample. Should this be configurable?
 			elif self.w and self.h and self.force_aspect:
@@ -883,9 +896,8 @@ class PctRegionException(Exception):
 		super(PctRegionException, self).__init__(msg)
 		self.new_region_param = new_region_param
 
-
 if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
-	app = create_app(test=False)
-	run_simple('127.0.0.1', 5010, app, use_debugger=True, use_reloader=True)
+	app = create_app(test=True)
+	run_simple('127.0.0.1', 5005, app, use_debugger=True, use_reloader=True)
