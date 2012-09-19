@@ -89,13 +89,13 @@ Tests
 -----
 From the directory that contains `tests.py`, call 
 
-  python -m unittest -v tests
+	python -m unittest -v tests
 
 The tests should run in a logical order, so if you see a failure, futher 
 failures might casacade and mask the problem. To solve this, you can have 
 unittest stop at the first fail:
 
-  python -mf unittest -v tests
+	python -m unittest -vf tests
 
 You may want to turn down logging at first, and only turn it up if something 
 goes wrong. __Note__ that `Test_I_ResultantImg` takes a while.
