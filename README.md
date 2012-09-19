@@ -1,9 +1,9 @@
 ![loris icon](https://github.com/pulibrary/loris/blob/master/icons/loris-icon-name.png?raw=true) Loris JPEG 2000 Server
 ========================
 
-Loris is a lightweight implementation of the 
+Loris is an implementation of the 
 [International Image Interoperability Framework: Image API 1.0] [1]. More about 
-this is discussed under IIIF 1.0 Compliance [link!] below.
+this is discussed under IIIF 1.0 Compliance below.
 
 Design
 ------
@@ -13,7 +13,7 @@ the `RegionParameter`, `SizeParameter`, and `RotationParameter` classes) that
 are then used to build utility command lines that are shelled out.
 
 The [Werkzeug Python WSGI Utility Library] [3] handles the URL parsing and 
-routing and supplies a few other conveniences.
+routing and supplies a few other convenience methods.
 
 Deployment
 ----------
@@ -38,35 +38,16 @@ Features: OpenMP
 ```
 
 __Install Kakadu (kdu_expand)__  
-Compile or download by following instructions [here](http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22).  
-Make sure you copy any Kakadu source files ```libkdu_a60R.so```, ```libkdu_jni.so```, and ```libkdu_v60R.so``` to ```/usr/local/lib```.  
-Also copy ```kdu_expand``` (and ```kdu_compress``` if you want) to ```/usr/local/bin```.
+Compile or download by following [the instructions on their site] [6]  
 
-__Test Kakadu__
-```
-kdu_expand -v
-```
-This should output:
-```
-This is Kakadu's "kdu_expand" application.
-    Compiled against the Kakadu core system, version v6.0
-    Current core system version is v6.0
-```
-__NOTE!__ If you have a problem with Kakadu, make sure ```/usr/local/lib``` is on your LD_LIBRARY_PATH:
-```
-echo $LD_LIBRARY_PATH
-```
-If not, add the following to the ```/etc/environment``` file:
-```
-LD_LIBRARY_PATH="/usr/local/lib"
-```
-Save it and then resource it ```source /etc/environment```. Retest.
+Make sure Kakadu shared object files are on your `LD_LIBRARY_PATH`.
 
 ### Configure for Apache
-Make a WSGI file called _loris.wsgi_ so the web server and loris can talk to each other.  Here is a sample WSGI file:
+Make a WSGI file called `loris.wsgi` so the web server and loris can talk to 
+each other.  Here is a sample WSGI file:
 
 __loris.wsgi__
-```
+```python
 #!/usr/bin/env python
 import sys; 
 sys.path.append('/path/to/loris')
@@ -75,13 +56,13 @@ from loris import create_app
 application = create_app()
 ```
 
-Apache virtual host file configuration:
+Here is a sample Apache virtual host file configuration (variables in { }):
 ```
 ...
-    WSGIDaemonProcess loris user=username group=groupname processes=2 threads=5
-    WSGIScriptAlias /loris /path/to/loris/loris.wsgi
+    WSGIDaemonProcess loris user={ username } group=groupname processes={ 5 } threads={ 25 }
+    WSGIScriptAlias { /loris } { /path/to/loris/loris.wsgi }
 
-    <Directory /path/to/loris>
+    <Directory />
         WSGIProcessGroup loris
         WSGIApplicationGroup %{GLOBAL}
         Order allow,deny
@@ -89,8 +70,7 @@ Apache virtual host file configuration:
     </Directory>
 ...
 ```
-
-Modify these lines (at least) in the loris.conf file:
+Modify these lines (at least) in the `loris.conf` file:
 ```
 cache_root = /path/to/loris/dev_cache
 src_img_root = /path/to/loris/test_img
@@ -101,17 +81,15 @@ Point your browser here to make sure it works with the test image:
 [http://your_server/loris/test/info.xml](http://your_server/loris/test/info.xml)
 
 To see the full JP2 image as a jpg:
-[http://localhost/loris/test/full/full/0/color.jpg](http://localhost/loris/test/full/full/0/color.jpg)
+http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
 
-... or a tiled :
-[http://localhost/loris/tile_table.html](http://localhost/loris/tile_table.html)
-
-[More on URL syntax](http://www-sul.stanford.edu/iiif/image-api/#url_syntax) is available via the spec.
+[More on URL syntax] [2] is available via the spec.
 
 
 Tests
 -----
-Run `./tests.py`.
+Run `./tests.py`. You may want to turn down logging at first, and only turn it 
+up if somethign goes wrong
 
 Source JPEG 2000 Images
 -----------------------
@@ -453,3 +431,4 @@ There are some configuration options that could break compliance,
 [3]: http://werkzeug.pocoo.org/ "Werkzeug Python WSGI Utility Library"
 [4]: http://www-sul.stanford.edu/iiif/image-api/compliance.html "IIIF Levels"
 [5]: http://werkzeug.pocoo.org/docs/installation/ "Werkzeug Installation"
+[6]: http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22 "Kakadu Installation"
