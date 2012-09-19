@@ -56,20 +56,19 @@ from loris import create_app
 application = create_app()
 ```
 
-Here is a sample Apache virtual host file configuration (variables in { }):
-```
-...
-    WSGIDaemonProcess loris user={ username } group=groupname processes={ 5 } threads={ 25 }
-    WSGIScriptAlias { /loris } { /path/to/loris/loris.wsgi }
+Here is a sample Apache virtual host file configuration (variables in `{ }`):
 
-    <Directory />
-        WSGIProcessGroup loris
-        WSGIApplicationGroup %{GLOBAL}
-        Order allow,deny
-        Allow from all
-    </Directory>
-...
-```
+	...
+	WSGIDaemonProcess loris user={ username } group=groupname processes={ 5 } threads={ 25 }
+	WSGIScriptAlias { /loris } { /path/to/loris/loris.wsgi }
+	<Directory />
+		WSGIProcessGroup loris
+		WSGIApplicationGroup %{GLOBAL}
+		Order allow,deny
+		Allow from all
+	</Directory>
+	...
+
 Modify these lines (at least) in the `loris.conf` file:
 ```
 cache_root = /path/to/loris/dev_cache
