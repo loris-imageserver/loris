@@ -2,4 +2,7 @@
 dev_cache/
 
 *.pyc
+
 *.wsgi
+
+scratch.py

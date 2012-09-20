@@ -1,5 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+"""
+:mod:`loris` -- WSGI JPEG 2000 Server
+=====================================
+.. module:: loris
+   :platform: Unix
+   :synopsis: Implements IIIF 1.0 <http://www-sul.stanford.edu/iiif/image-api> 
+   level 1 and most of level 2 
+
+.. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
+
+"""
 
 from collections import deque
 from datetime import datetime
@@ -21,6 +32,10 @@ import subprocess
 import urlparse
 
 def create_app(test=False):
+	"""Create an instance of :class: `Loris`
+	:param test: For unit tests, changes from configured dirs to test dirs.
+	:type test: bool.
+	"""
 	global logr
 	global conf_file
 	global host_dir
@@ -42,8 +57,10 @@ def create_app(test=False):
 
 class Loris(object):
 	def __init__(self, test=False):
-		"""
-		@param test: For unit tests, changes from configured dirs to test dirs. 
+		"""The application. Generally these should be instantiated with 
+		:func:`create_app`.
+
+		:param test: For unit tests, changes from configured dirs to test dirs. 
 		"""
 		self.test=test
 

@@ -1,7 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# tests.py
-# Unit Tests for Loris.
+"""
+:mod:`tests` -- Unit Tests for Loris WSGI JPEG 2000 Server
+==========================================================
+.. module:: test
+   :platform: Unix
+   :synopsis: Unit tests are named so that they run in a logical order, which 
+   means running e.g. `python -m unittest -vf tests` should make it clearer 
+   where the actual failure happened, rather than having to trace back through
+   a cascade of failures to find the original
+
+.. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
+
+"""
 
 
 from datetime import datetime, timedelta
@@ -52,7 +63,8 @@ class LorisTest(unittest.TestCase):
 
 
 class Test_A_ResolveId(LorisTest):
-	"""Test that the ID resolver works"""
+	"""Test that the ID resolver works.
+	"""
 
 	def test_loris_resolve_id(self):
 		abs_path = path.abspath(path.dirname(__file__))
@@ -62,7 +74,7 @@ class Test_A_ResolveId(LorisTest):
 		self.assertTrue(path.isfile(resolved_path))
 
 class Test_B_InfoExtraction(LorisTest):
-	"""Here we extract info from JPEG 2000 files.
+	"""Here we extract info from JPEG 2000 files and test against known values.
 	"""
 	
 	def test_img_info(self):
@@ -563,70 +575,79 @@ class Test_I_ResultantImg(LorisTest):
 	by one or two pixels, it's likely a decimal precision issue (which can be 
 	increased in the conf file). Otherwise it's something else.
 	"""
+
+	@staticmethod
+	def get_jpeg_dimensions(path):
+	   jpeg = open(path, 'r')
+	   jpeg.read(2)
+	   b = jpeg.read(1)
+	   try:
+		   while (b and ord(b) != 0xDA):
+			   while (ord(b) != 0xFF): b = jpeg.read(1)
+			   while (ord(b) == 0xFF): b = jpeg.read(1)
+			   
+			   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+				   jpeg.read(3)
+				   h, w = struct.unpack(">HH", jpeg.read(4))
+				   break
+			   else:
+				   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
+				   
+			   b = jpeg.read(1)
+		   width = int(w)
+		   height = int(h)
+	   except struct.error:
+		   pass
+	   except ValueError:
+		   pass
+	   finally:
+		   jpeg.close()
+	   return (width, height)
+
+	@staticmethod
+	def tile_gen(img_width, img_height, tile_size):
+		"""Generates two-tuples:
+		[0]: a string in the IIIF region request format, i.e. 'x,y,w,h'.
+		[1]: a two-tuple with the expected actual resultant image width and height,
+		compensating for the tiles at the far right and bottom, which might not be
+		square. Tiles go from left to right, top to bottom.
+		"""
+		cy = 0
+		y = 0
+		while y <= img_height:
+			actual_h = min(img_height-(cy*(tile_size + 1)), tile_size)
+			cx = 0
+			x = 0 
+			while x <= img_width:
+				actual_w = min(img_width-(cx*(tile_size + 1)), tile_size)
+				region = ','.join(map(str, (x, y, tile_size, tile_size)))
+
+				yield (region, (actual_w, actual_h))
+
+				x += tile_size + 1
+				cx += 1
+			y += tile_size + 1
+			cy += 1
+
+
 	def test_region_precision(self):
-		stdout.write('This one takes a while ...')
 		ident = self.test_jp2_1_id
 		jp2 = self.app._resolve_identifier(ident)
 		info = ImgInfo.fromJP2(jp2, ident)
-		test_sizes = [128,256,512,1024,2048]
-		cy = 0
-		y = 0
-		for tile_size in test_sizes:
-			while y <= info.height:
-				stdout.write('.')
-				# This compensates for tiles at the bottom, which might not be
-				# a full tile_size high
-				result_tile_height = min(info.height-(cy*(tile_size + 1)), tile_size)
-				cx = 0
-				x = 0 
-				while x <= info.width:
-					# Similarly, for tiles at the far right, which might not be
-					# a full tile_size wide
-					result_tile_width = min(info.width-(cx*(tile_size + 1)), tile_size)
-					region = ','.join(map(str, (x,y,tile_size,tile_size)))
-					uri = '/' + self.test_jp2_1_id + '/' + region + '/full/0/native.jpg'
-					resp = self.client.get(uri)
-					f_name = path.join(self.app.tmp_dir, 'result.jpg')
-					f = open(f_name, 'w')
-					f.write(resp.data)
-					f.close()
-					dims = get_jpeg_dimensions(f_name)
-
-					self.assertEquals(dims, (result_tile_width, result_tile_height))
-
-					x += tile_size + 1
-					cx += 1
-				y += tile_size + 1
-				cy += 1
+		test_sizes = [256,1024]
+		for size in test_sizes:
+			for tile in Test_I_ResultantImg.tile_gen(info.width, info.height, size):
+				uri = '/' + self.test_jp2_1_id + '/' + tile[0] + '/full/0/native.jpg'
+				resp = self.client.get(uri)
+				f_name = path.join(self.app.tmp_dir, 'result.jpg')
+				f = open(f_name, 'w')
+				f.write(resp.data)
+				f.close()
+				dims = Test_I_ResultantImg.get_jpeg_dimensions(f_name)
+				self.assertEquals(dims, tile[1])
 
 
-# use this to test arbitrary complete image requests.
-def get_jpeg_dimensions(path):
-   jpeg = open(path, 'r')
-   jpeg.read(2)
-   b = jpeg.read(1)
-   try:
-	   while (b and ord(b) != 0xDA):
-		   while (ord(b) != 0xFF): b = jpeg.read(1)
-		   while (ord(b) == 0xFF): b = jpeg.read(1)
-		   
-		   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-			   jpeg.read(3)
-			   h, w = struct.unpack(">HH", jpeg.read(4))
-			   break
-		   else:
-			   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-			   
-		   b = jpeg.read(1)
-	   width = int(w)
-	   height = int(h)
-   except struct.error:
-	   pass
-   except ValueError:
-	   pass
-   finally:
-	   jpeg.close()
-   return (width, height)
+
 
 if __name__ == "__main__":
 
