@@ -173,10 +173,6 @@ class Loris(object):
 		
 
 	def on_get_img_metadata(self, request, ident, format=None):
-		## TODO:
-		## Note that we can pickle response objects:
-		## http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
-		## Would this be faster than reading from the FS?
 		resp = None
 		status = None
 		mime = None
@@ -338,20 +334,18 @@ class Loris(object):
 		else:
 
 			try:
-
+				
 				status = 201 if self.use_201 else 200
 				jp2 = self._resolve_identifier(ident)
 				
-
 				# We may not want to read this from the file every time, though 
 				# it is pretty fast. Runtime cache? In memory dicts and Shelve/
 				# pickle are not thread safe for writing (and probably wouldn't
 				# scale anyway)
 				# ZODB? : http://www.zodb.org/
 				# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
-				logr.debug(jp2)
-				info = ImgInfo.fromJP2(jp2, ident)
 				
+				info = ImgInfo.fromJP2(jp2, ident)
 				
 				# Do some checking early to avoid starting to build the shell 
 				# outs
@@ -359,14 +353,25 @@ class Loris(object):
 					msg = 'This quality is not available for this image.'
 					raise LorisException(400, quality, msg)
 
-				try:
-					region_kdu_arg = region.to_kdu_arg(info, self.cache_px_only)
-				except PctRegionException as e:
-					# This happens when cache_px_only=True; we re-call the 
-					# method with a new RegionParameter object that is included
-					# with the PctRegionException.
-					logr.info(e.msg)
-					self.on_get_img(self, request, ident, e.new_region_param, size, rotation, quality, format)
+				
+				if self.cache_px_only:
+					
+					top_px = int(round(Decimal(region.y) * Decimal(info.height) / Decimal(100.0)))
+					logr.debug('##############here')				
+					logr.debug('top_px: ' + str(top_px))
+					left_px = int(round(Decimal(region.x) * info.width / Decimal(100.0)))
+					logr.debug('left_px: ' + str(left_px))
+					height_px = int(round(Decimal(region.h) * info.height / Decimal(100.0)))
+					logr.debug('height_px: ' + str(height_px))
+					width_px = int(round(Decimal(region.w) * info.width / Decimal(100.0)))
+					logr.debug('width_px: ' + str(width_px))
+					new_url_value = ','.join(map(str, (left_px, top_px, width_px, height_px)))
+					new_region_param = RegionParameter(new_url_value)
+					logr.info('pct region request revised to ' + new_url_value)
+					region_kdu_arg = new_region_param.to_kdu_arg(info)
+				else:
+					region_kdu_arg = region.to_kdu_arg(info)
+				
 
 				# Start building and executing commands.
 				# This could get a lot more sophisticated, jp2 levels for 
@@ -452,10 +457,11 @@ class Loris(object):
 
 			finally:
 				# Make and call rm $fifo
-				rm_fifo_call = self.rm_cmd + ' ' + fifo_path
-				logr.debug('Calling ' + rm_fifo_call)
-				subprocess.call(rm_fifo_call, shell=True)
-				logr.debug('Done (' + rm_fifo_call + ')')
+				if os.path.exists(fifo_path):
+					rm_fifo_call = self.rm_cmd + ' ' + fifo_path
+					logr.debug('Calling ' + rm_fifo_call)
+					subprocess.call(rm_fifo_call, shell=True)
+					logr.debug('Done (' + rm_fifo_call + ')')
 
 		return Response(resp, status=status, content_type=mime, headers=headers)
 
@@ -551,7 +557,7 @@ class RegionParameter(object):
 				msg = 'Region syntax not valid. ' + e.message
 				raise BadRegionSyntaxException(400, url_value, msg)
 
-	def to_kdu_arg(self, img_info, cache_px_only):
+	def to_kdu_arg(self, img_info):
 		"""kdu wants \{<top>,<left>\},\{<height>,<width>\} (shell syntax), as 
 		decimals between 0 and 1.
 		IIIF supplies left[x], top[y], witdth[w], height[h].
@@ -571,22 +577,6 @@ class RegionParameter(object):
 			left = Decimal(self.x) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.x) / img_info.width
 			height = Decimal(self.h) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.h) / img_info.height
 			width = Decimal(self.w) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.w) / img_info.width
-			# Re: above, Decimal is set to be precise to 32 places. float() was 
-			# frequently off by 1
-			if self.mode == 'pct' and cache_px_only:
-				top_px = int(round(Decimal(self.y) * img_info.height / Decimal(100.0)))
-				logr.debug('top_px: ' + str(top_px))
-				left_px = int(round(Decimal(self.x) * img_info.width / Decimal(100.0)))
-				logr.debug('left_px: ' + str(left_px))
-				height_px = int(round(Decimal(self.h) * img_info.height / Decimal(100.0)))
-				logr.debug('height_px: ' + str(height_px))
-				width_px = int(round(Decimal(self.w) * img_info.width / Decimal(100.0)))
-				logr.debug('width_px: ' + str(width_px))
-				new_url_value = '%s,%s,%s,%s' % (left_px, top_px, width_px, height_px)
-				new_region_param = RegionParameter(new_url_value)
-				msg = '%s revised to %s' % (self.url_value, new_url_value)
-				raise PctRegionException(new_region_param, msg)
-
 
 			# "If the request specifies a region which extends beyond the 
 			# dimensions of the source image, then the service should return an 
@@ -907,14 +897,8 @@ class BadSizeRequestException(LorisException): pass
 class BadRotationSyntaxException(LorisException): pass
 class FormatNotSupportedException(LorisException): pass
 
-class PctRegionException(Exception):
-	"""To raise when regions are requested by percentage."""
-	def __init__(self, new_region_param, msg):
-		super(PctRegionException, self).__init__(msg)
-		self.new_region_param = new_region_param
-
 if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=True)
-	run_simple('127.0.0.1', 5005, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5006, app, use_debugger=True, use_reloader=True)
