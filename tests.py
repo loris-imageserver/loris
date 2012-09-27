@@ -8,7 +8,7 @@
    :synopsis: Unit tests are named so that they run in a logical order, which 
    means running e.g. `python -m unittest -vf tests` should make it clearer 
    where the actual failure happened, rather than having to trace back through
-   a cascade of failures to find the original
+   a cascade of failures to find the original fault.
 
 .. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
 
@@ -22,12 +22,11 @@ from loris import BadRegionRequestException
 from loris import BadRegionSyntaxException
 from loris import BadSizeSyntaxException
 from loris import ImgInfo
-from loris import PctRegionException
 from loris import RegionParameter
 from loris import RotationParameter
 from loris import SizeParameter
 from loris import create_app
-from os import listdir, path
+from os import listdir, path, remove
 from shutil import rmtree
 from sys import stderr, stdout
 from werkzeug.datastructures import Headers
@@ -213,7 +212,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = '2717,0,1,1'
 		region_parameter = RegionParameter(url_segment)
 		with self.assertRaises(BadRegionRequestException):
-			region_arg = region_parameter.to_kdu_arg(info, False)
+			region_arg = region_parameter.to_kdu_arg(info)
 
 	def test_ypixel_oob(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
@@ -221,7 +220,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = '0,3600,1,1'
 		region_parameter = RegionParameter(url_segment)
 		with self.assertRaises(BadRegionRequestException):
-			region_arg = region_parameter.to_kdu_arg(info, False)
+			region_arg = region_parameter.to_kdu_arg(info)
 
 
 	def test_pixel_to_kdu_hw(self):
@@ -230,7 +229,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = '0,0,1358,1800'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0,0\},\{0.5,0.49981597350018402650\}'
-		region_arg = region_parameter.to_kdu_arg(info, False)
+		region_arg = region_parameter.to_kdu_arg(info)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pixel_to_kdu_tl(self):
@@ -239,7 +238,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = '1358,1800,200,658'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.5,0.49981597350018402650\},\{0.18277777777777777778,0.073610599926389400074\}'
-		region_arg = region_parameter.to_kdu_arg(info, False)
+		region_arg = region_parameter.to_kdu_arg(info)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pct_to_kdu_hw(self):
@@ -248,7 +247,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = 'pct:0,0,50,50'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0,0\},\{0.5,0.5\}'
-		region_arg = region_parameter.to_kdu_arg(info, False)
+		region_arg = region_parameter.to_kdu_arg(info)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pct_to_kdu_tl(self):
@@ -257,7 +256,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = 'pct:50,50,50,50'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.5,0.5\},\{0.5,0.5\}'
-		region_arg = region_parameter.to_kdu_arg(info, False)
+		region_arg = region_parameter.to_kdu_arg(info)
 		self.assertEqual(region_arg, expected_kdu)
 
 	def test_pct_to_kdu_adjust(self):
@@ -266,7 +265,7 @@ class Test_C_RegionParameter(LorisTest):
 		url_segment = 'pct:20,20,100,100'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.2,0.2\},\{0.8,0.8\}'
-		region_arg = region_parameter.to_kdu_arg(info, False)
+		region_arg = region_parameter.to_kdu_arg(info)
 		self.assertEqual(region_arg, expected_kdu)
 
 class Test_D_SizeParameter(LorisTest):
@@ -517,11 +516,12 @@ class Test_H_Caching(LorisTest):
 		url_segment = 'pct:20,20,100,100'
 		region_parameter = RegionParameter(url_segment)
 		try:
-			region_arg = region_parameter.to_kdu_arg(info, True)
+			region_arg = region_parameter.to_kdu_arg(info)
 		except PctRegionException as e:
 			self.assertEquals(e.new_region_param.url_value, '543,720,2717,3600')
 			expected_kdu = '-region \{0.2,0.19985277880014722120\},\{0.8,0.80014722119985277880\}'
-			self.assertEquals(e.new_region_param.to_kdu_arg(info, True), expected_kdu)
+			self.assertEquals(e.new_region_param.to_kdu_arg(info), expected_kdu)
+
 	def test_img_caching(self):
 		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
 		resp = self.client.get(url)
@@ -635,6 +635,7 @@ class Test_I_ResultantImg(LorisTest):
 		jp2 = self.app._resolve_identifier(ident)
 		info = ImgInfo.fromJP2(jp2, ident)
 		test_sizes = [256,1024]
+		f_name = ''
 		for size in test_sizes:
 			for tile in Test_I_ResultantImg.tile_gen(info.width, info.height, size):
 				uri = '/' + self.test_jp2_1_id + '/' + tile[0] + '/full/0/native.jpg'
@@ -645,6 +646,8 @@ class Test_I_ResultantImg(LorisTest):
 				f.close()
 				dims = Test_I_ResultantImg.get_jpeg_dimensions(f_name)
 				self.assertEquals(dims, tile[1])
+		remove(f_name)
+
 
 
 

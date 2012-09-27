@@ -15,6 +15,7 @@
 from collections import deque
 from datetime import datetime
 from decimal import Decimal, getcontext
+from deepzoom import DeepZoomImageDescriptor
 from random import choice
 from string import ascii_lowercase, digits
 from sys import exit, stderr
@@ -126,10 +127,13 @@ class Loris(object):
 				'rotation' : RotationConverter
 			}
 		self.url_map = Map([
+
 			Rule('/<path:ident>/info.<format>', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/info', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
+			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
+			Rule('/<path:ident>/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
 			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=converters)
 	
@@ -171,7 +175,6 @@ class Loris(object):
 		f = os.path.join(host_dir, 'favicon.ico')
 		return Response(f, content_type='image/x-icon')
 		
-
 	def on_get_img_metadata(self, request, ident, format=None):
 		resp = None
 		status = None
@@ -181,10 +184,8 @@ class Loris(object):
 		headers.add('Cache-Control', 'public')
 
 		try:
-			if format == 'json': 
-				mime = 'text/json'
-			elif format == 'xml': 
-				mime = 'text/xml'
+			if format == 'json': mime = 'text/json'
+			elif format == 'xml': mime = 'text/xml'
 			elif request.headers.get('accept') == 'text/json':
 				format = 'json'
 				mime = 'text/json'
@@ -198,7 +199,8 @@ class Loris(object):
 			img_path = self._resolve_identifier(ident)
 			
 			if not os.path.exists(img_path):
-				raise LorisException(404, ident, 'Identifier does not resolve to an image.')
+				msg = 'Identifier does not resolve to an image.'
+				raise LorisException(404, ident, msg)
 			
 			cache_dir = os.path.join(self.cache_root, ident)
 			cache_path = os.path.join(cache_dir, 'info.') + format
@@ -206,19 +208,8 @@ class Loris(object):
 
 			# check the cache
 			if os.path.exists(cache_path) and self.enable_cache == True:
-
-				last_change = datetime.utcfromtimestamp(os.path.getctime(cache_path))
-				ims = parse_date(request.headers.get('If-Modified-Since'))
-				if (ims and last_change < ims) or not ims:
-					resp = file(cache_path)
-					headers.add('Content-Length', os.path.getsize(cache_path))
-					headers.add('Last-Modified', http_date(last_change))
-					logr.info('Read: ' + cache_path)
-				else:
-					status = 304
-					headers.remove('Content-Type')
-					headers.remove('Cache-Control')
-					resp = None
+				status = self._check_cache(cache_path, request, headers)
+				resp = file(cache_path) if status == 200 else None
 			else:
 				status = 201 if self.use_201 else 200
 				info = ImgInfo.fromJP2(img_path, ident)
@@ -231,10 +222,11 @@ class Loris(object):
 
 				logr.debug('made ' + cache_dir)
 
-				f = open(cache_path, 'w')
-				f.write(resp)
-				f.close()
-				logr.info('Created: ' + cache_path)
+				if self.enable_cache:
+					f = open(cache_path, 'w')
+					f.write(resp)
+					f.close()
+					logr.info('Created: ' + cache_path)
 
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', length)
@@ -254,30 +246,86 @@ class Loris(object):
 		finally:
 			return Response(resp, status=status, content_type=mime, headers=headers)
 
+	def on_get_deepzoom_desc(self, request, ident):
+		resp = None
+		status = None
+		mime = 'text/xml'
+		headers = Headers()
+		headers.add('Link', self.link_hdr)
+		headers.add('Cache-Control', 'public')
+
+		try:
+			cache_dir = os.path.join(self.cache_root, ident)
+			cache_path = os.path.join(cache_dir,  'sd.xml')
+
+			# check the cache
+			if os.path.exists(cache_path) and self.enable_cache:
+				status = self._check_cache(cache_path, request, headers)
+				resp = file(cache_path) if status == 200 else None
+			else:
+				status = 201 if self.use_201 else 200
+				img_path = self._resolve_identifier(ident)
+				info = ImgInfo.fromJP2(img_path, ident)
+
+				dzid = DeepZoomImageDescriptor(width=info.width, height=info.height, \
+					tile_size=256, tile_overlap=0, tile_format='jpg')
+				
+				resp = dzid.marshal()
+
+				length = len(resp)
+
+				if not os.path.exists(cache_dir): 
+					os.makedirs(cache_dir, 0755)
+
+				logr.debug('made ' + cache_dir)
+
+				if self.enable_cache:
+					f = open(cache_path, 'w')
+					f.write(resp)
+					f.close()
+					logr.info('Created: ' + cache_path)
+
+				headers.add('Last-Modified', http_date())
+				headers.add('Content-Length', length)
+
+		except Exception as e:
+			# should be safe to assume it's the server's fault.
+		 	pe = LorisException(500, '', e.message)
+		 	mime = 'text/xml'
+		 	status = pe.http_status
+		 	resp = pe.to_xml()
+
+		finally:
+			return Response(resp, status=status, content_type=mime, headers=headers)
+
+
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		"""
 		Get an image based on the *Parameter objects and values returned by the 
 		converters.
-		@param request: a werkzeug Request object
-		@type request: Request
 
-		@param ident: the image identifier
-		@type ident: string
+		:param request: a werkzeug Request object
+		:type request: Request
 
-		@param region
-		@type region: RegionParameter
+		:param ident: the image identifier
+		:type ident: str
 
-		@param size
-		@type size: SizeParameter
+		:param region
+		:type region: RegionParameter
 
-		@param rotation: rotation of the image (multiples of 90 for now)
-		@type rotation: integer
+		:param size
+		:type size: SizeParameter
 
-		@param quality: 'native', 'color', 'grey', 'bitonal'
-		@type quality: string
+		:param rotation: rotation of the image (multiples of 90 for now)
+		:type rotation: integer
 
-		@param format - 'jpg' or 'png'
-		@type format: string
+		:param quality: 'native', 'color', 'grey', 'bitonal'
+		:type quality: str
+
+		:param format - 'jpg' or 'png'
+		:type format: str
+
+		:returns: Response -- body is either an image, XML (err), or None if 304
 		"""
 
 		resp = None
@@ -307,13 +355,208 @@ class Loris(object):
 		else:
 			msg = 'The format requested is not supported by this service.'
 			raise FormatNotSupportedException(415, format, msg)
-
+		
 		img_dir = os.path.join(self.cache_root, ident, region.url_value, size.url_value, rotation.url_value)
 		img_path = os.path.join(img_dir, quality + '.' + format)
 		logr.debug('img_dir: ' + img_dir)
 		logr.debug('img_path: ' + img_path)
+	
+		# check the cache
+		if  self.enable_cache == True and os.path.exists(img_path):
+			status = self._check_cache(img_path, request, headers)
+			resp = file(img_path) if status == 200 else None
+		else:
+			try:
+				if not os.path.exists(img_dir):	
+					os.makedirs(img_dir, 0755)
+				logr.info('Made directory: ' + img_dir)
+				img_success = self._derive_img_from_jp2(ident, img_path, region, size, rotation, quality, format)
+				status = 201 if self.use_201 else 200
+			 	headers.add('Content-Length', os.path.getsize(img_path))
+				headers.add('Last-Modified', http_date()) # now
+				resp = file(img_path)
+			except LorisException, e:
+				headers.remove('Last-Modified')
+				mime = 'text/xml'
+			 	status = e.http_status
+		 		resp = e.to_xml()
 
-		
+ 		return Response(resp, status=status, content_type=mime, headers=headers, direct_passthrough=True)
+
+ 	def _check_cache(self, resource_path, request, headers):
+ 		"""Check the cache for a resource, update the headers object that we're 
+ 		passing a reference to, and return the HTTP status that should be 
+ 		returned.
+
+ 		:param resource_path: path to a file on the file system
+ 		:type resource_path: str
+
+ 		:param request: the current request object
+ 		:type request: Request
+
+ 		:param headers: the headers object that will ultimately be returned with the request
+ 		:type headers: Headers
+ 		"""
+		last_change = datetime.utcfromtimestamp(os.path.getctime(resource_path))
+		ims_hdr = request.headers.get('If-Modified-Since')
+		ims = parse_date(ims_hdr)
+		if (ims and ims > last_change) or not ims:
+			status = 200
+			# resp = file(img_path)
+			length = length = os.path.getsize(resource_path) 
+			headers.add('Content-Length', length)
+			headers.add('Last-Modified', http_date(last_change))
+			logr.info('Read: ' + resource_path)
+		else:
+			status = 304
+			headers.remove('Content-Type')
+			headers.remove('Cache-Control')
+		return status
+
+
+	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, quality, format):
+		"""
+		out_path is the output path
+		"""
+		try:
+			fifo_path = ''
+			# We may not want to read this from the file every time, though 
+			# it is pretty fast. Runtime cache? In memory dicts and Shelve/
+			# pickle are not thread safe for writing (and probably wouldn't
+			# scale anyway)
+			# ZODB? : http://www.zodb.org/
+			# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
+			jp2 = self._resolve_identifier(ident)
+			info = ImgInfo.fromJP2(jp2, ident)
+			
+			# Do some checking early to avoid starting to build the shell 
+			# outs
+			if quality not in info.qualities:
+				msg = 'This quality is not available for this image.'
+				raise LorisException(400, quality, msg)
+
+			if self.cache_px_only and region.mode == 'pct':
+				top_px = int(round(Decimal(region.y) * Decimal(info.height) / Decimal(100.0)))
+				logr.debug('top_px: ' + str(top_px))
+				left_px = int(round(Decimal(region.x) * info.width / Decimal(100.0)))
+				logr.debug('left_px: ' + str(left_px))
+				height_px = int(round(Decimal(region.h) * info.height / Decimal(100.0)))
+				logr.debug('height_px: ' + str(height_px))
+				width_px = int(round(Decimal(region.w) * info.width / Decimal(100.0)))
+				logr.debug('width_px: ' + str(width_px))
+				new_url_value = ','.join(map(str, (left_px, top_px, width_px, height_px)))
+				new_region_param = RegionParameter(new_url_value)
+				logr.info('pct region request revised to ' + new_url_value)
+				region_kdu_arg = new_region_param.to_kdu_arg(info)
+			else:
+				region_kdu_arg = region.to_kdu_arg(info)
+			
+
+			# Start building and executing commands.
+			# This could get a lot more sophisticated, jp2 levels for 
+			# certain sizes, etc.; different utils for different formats, 
+			# use cjpeg for jpegs, and so on.
+
+			# Make a named pipe for the temporary bitmap
+			fifo_path = os.path.join(self.tmp_dir, self.random_str(10) + '.bmp')
+			mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
+			
+			logr.debug('Calling ' + mkfifo_call)
+			subprocess.check_call(mkfifo_call, shell=True)
+			logr.debug('Done (' + mkfifo_call + ')')
+
+			# Make and call the kdu_expand cmd
+			kdu_expand_call = ''
+			kdu_expand_call += self.kdu_expand_cmd + ' -quiet '
+			kdu_expand_call += '-i ' + jp2 
+			kdu_expand_call += ' -o ' + fifo_path
+			kdu_expand_call += ' ' + region_kdu_arg
+			
+			logr.debug('Calling ' + kdu_expand_call)
+			kdu_expand_proc = subprocess.Popen(kdu_expand_call, \
+				shell=True, \
+				bufsize=-1, \
+				stderr=subprocess.PIPE,\
+				env={"LD_LIBRARY_PATH" : self.kdu_libs})
+
+			# make and call the convert command
+
+			convert_call = ''
+			convert_call = self.convert_cmd + ' '
+			convert_call += fifo_path + ' '
+			convert_call += size.to_convert_arg() + ' '
+			convert_call += rotation.to_convert_arg() + ' '
+
+			if format == 'jpg':
+			 	convert_call += '-quality 90 '
+			if format == 'png':
+				convert_call += '-colors 256 -quality 00 ' 
+
+			if quality == 'grey' and info.native_quality != 'grey':
+				convert_call += '-colorspace gray -depth 8 '
+			if quality == 'bitonal' and info.native_quality != 'bitonal':
+				convert_call += '-colorspace gray -depth 1 '
+
+			convert_call += out_path
+			
+			logr.debug('Calling ' + convert_call)
+			convert_proc = subprocess.Popen(convert_call, \
+				shell=True, \
+				bufsize=-1, \
+				stderr=subprocess.PIPE)
+			
+			convert_exit = convert_proc.wait()
+			if convert_exit != 0:
+				msg = '. '.join(convert_proc.stderr)
+				raise LorisException(500, '', msg)
+			logr.debug('Done (' + convert_call + ')')
+			
+			kdu_exit = kdu_expand_proc.wait()
+			if kdu_exit != 0:
+				msg = ''
+				for line in kdu_expand_proc.stderr:
+					msg += line + '. '
+
+				raise LorisException(500, '', msg)
+
+			logr.debug('Terminated ' + kdu_expand_call)
+			logr.info("Created: " + out_path)
+
+			return 0
+		except Exception, e:
+			raise LorisException(500, '', e.message)
+		finally:
+			# Make and call rm $fifo
+			if os.path.exists(fifo_path):
+				rm_fifo_call = self.rm_cmd + ' ' + fifo_path
+				logr.debug('Calling ' + rm_fifo_call)
+				subprocess.call(rm_fifo_call, shell=True)
+				logr.debug('Done (' + rm_fifo_call + ')')
+
+	def on_get_img_for_seajax(self, request, ident, level, x, y):
+		"""Use the `deepzoom.py` module to make tiles for Seadragon (and 
+		optionally cache them and according to IIIF's cache syntax and make
+		symlinks).
+
+		URLs (and symlinked file paths) look like `/level/x_y.jpg`
+
+		:param request: Werkzeug's request object
+		:type request: Request
+		:param ident: the image identifier
+		:type ident: string
+		:param level: seadragon's notion of a zoom level
+		:type level: int
+		:param x: the zero-based index of the tile on the x-axis, starting from upper-left
+		:type x: int
+		:param y: the zero-based index of the tile on the y-axis, starting from upper-left
+		:type y: int
+		"""
+		img_dir = os.path.join(self.cache_root, ident, str(level))
+		file_name = str(x) + '_' + str(y) + '.jpg'
+		img_path = os.path.join(img_dir, file_name)
+		logr.debug('seadragon img_dir: ' + img_dir)
+		logr.debug('seadragon img_path: ' + img_path)
+
 		# check the cache
 		if  self.enable_cache == True and os.path.exists(img_path):
 			last_change = datetime.utcfromtimestamp(os.path.getctime(img_path))
@@ -332,138 +575,12 @@ class Loris(object):
 				headers.remove('Cache-Control')
 				resp = None
 		else:
+			# We're going to build a 301 (see other)
+			# 1. calculate the size of the image
+			# 2. calculate the region (adjusted for size)
+			# 3. build the path to the image
+			pass
 
-			try:
-				
-				status = 201 if self.use_201 else 200
-				jp2 = self._resolve_identifier(ident)
-				
-				# We may not want to read this from the file every time, though 
-				# it is pretty fast. Runtime cache? In memory dicts and Shelve/
-				# pickle are not thread safe for writing (and probably wouldn't
-				# scale anyway)
-				# ZODB? : http://www.zodb.org/
-				# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
-				
-				info = ImgInfo.fromJP2(jp2, ident)
-				
-				# Do some checking early to avoid starting to build the shell 
-				# outs
-				if quality not in info.qualities:
-					msg = 'This quality is not available for this image.'
-					raise LorisException(400, quality, msg)
-
-				
-				if self.cache_px_only:
-					
-					top_px = int(round(Decimal(region.y) * Decimal(info.height) / Decimal(100.0)))
-					logr.debug('##############here')				
-					logr.debug('top_px: ' + str(top_px))
-					left_px = int(round(Decimal(region.x) * info.width / Decimal(100.0)))
-					logr.debug('left_px: ' + str(left_px))
-					height_px = int(round(Decimal(region.h) * info.height / Decimal(100.0)))
-					logr.debug('height_px: ' + str(height_px))
-					width_px = int(round(Decimal(region.w) * info.width / Decimal(100.0)))
-					logr.debug('width_px: ' + str(width_px))
-					new_url_value = ','.join(map(str, (left_px, top_px, width_px, height_px)))
-					new_region_param = RegionParameter(new_url_value)
-					logr.info('pct region request revised to ' + new_url_value)
-					region_kdu_arg = new_region_param.to_kdu_arg(info)
-				else:
-					region_kdu_arg = region.to_kdu_arg(info)
-				
-
-				# Start building and executing commands.
-				# This could get a lot more sophisticated, jp2 levels for 
-				# certain sizes, etc.; different utils for different formats, 
-				# use cjpeg for jpegs, and so on.
-
-				# Make a named pipe for the temporary bitmap
-				fifo_path = os.path.join(self.tmp_dir, self.random_str(10) + '.bmp')
-				mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
-				
-				logr.debug('Calling ' + mkfifo_call)
-				subprocess.check_call(mkfifo_call, shell=True)
-				logr.debug('Done (' + mkfifo_call + ')')
-
-				# Make and call the kdu_expand cmd
-				kdu_expand_call = ''
-				kdu_expand_call += self.kdu_expand_cmd + ' -quiet '
-				kdu_expand_call += '-i ' + jp2 
-				kdu_expand_call += ' -o ' + fifo_path
-				kdu_expand_call += ' ' + region_kdu_arg
-				
-				logr.debug('Calling ' + kdu_expand_call)
-				kdu_expand_proc = subprocess.Popen(kdu_expand_call, \
-					shell=True, \
-					bufsize=-1, \
-					stderr=subprocess.PIPE,\
-					env={"LD_LIBRARY_PATH" : self.kdu_libs})
-
-				# make and call the convert command
-				# This is as far as we can get before we need to make
-				# an output directory.
-				if not os.path.exists(img_dir):	os.makedirs(img_dir, 0755)
-				logr.info('Made directory: ' + img_dir)
-
-				convert_call = ''
-				convert_call = self.convert_cmd + ' '
-				convert_call += fifo_path + ' '
-				convert_call += size.to_convert_arg() + ' '
-				convert_call += rotation.to_convert_arg() + ' '
-
-				if format == 'jpg':
-				 	convert_call += '-quality 90 '
-				if format == 'png':
-					convert_call += '-colors 256 -quality 00 ' 
-
-				if quality == 'grey' and info.native_quality != 'grey':
-					convert_call += '-colorspace gray -depth 8 '
-				if quality == 'bitonal' and info.native_quality != 'bitonal':
-					convert_call += '-colorspace gray -depth 1 '
-
-				convert_call += img_path
-				
-				logr.debug('Calling ' + convert_call)
-				convert_proc = subprocess.Popen(convert_call, shell=True, bufsize=-1, stderr=subprocess.PIPE)
-				
-				convert_exit = convert_proc.wait()
-				if convert_exit != 0:
-					msg = '. '.join(convert_proc.stderr)
-					raise LorisException(500, '', msg)
-				logr.debug('Done (' + convert_call + ')')
-				
-				kdu_exit = kdu_expand_proc.wait()
-				if kdu_exit != 0:
-					msg = ''
-					for line in kdu_expand_proc.stderr:
-						msg += line + '. '
-
-					raise LorisException(500, '', msg)
-
-				logr.debug('Terminated ' + kdu_expand_call)
-				logr.info("Created: " + img_path)
-
-				# last_mod = os.path.getctime(img_path)
-				headers.add('Last-Modified', http_date()) # now
-				headers.add('Content-Length', os.path.getsize(img_path))
-				resp = file(img_path)
-
-			except LorisException, e:
-				headers.remove('Last-Modified')
-				mime = 'text/xml'
-			 	status = e.http_status
-			 	resp = e.to_xml()
-
-			finally:
-				# Make and call rm $fifo
-				if os.path.exists(fifo_path):
-					rm_fifo_call = self.rm_cmd + ' ' + fifo_path
-					logr.debug('Calling ' + rm_fifo_call)
-					subprocess.call(rm_fifo_call, shell=True)
-					logr.debug('Done (' + rm_fifo_call + ')')
-
-		return Response(resp, status=status, content_type=mime, headers=headers)
 
 	def _resolve_identifier(self, ident):
 		"""
@@ -901,4 +1018,4 @@ if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
 	app = create_app(test=True)
-	run_simple('127.0.0.1', 5006, app, use_debugger=True, use_reloader=True)
+	run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
