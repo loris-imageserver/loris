@@ -85,6 +85,10 @@ class Loris(object):
 		self.kdu_libs = _conf.get('utilities', 'kdu_libs')
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
+		# deep zoom options are limited at this point. Factoring in
+		# overlap and format may make sense.
+		self.dz_tile_size = _conf.getint('deepzoom', 'tile_size')
+
 		# directories
 		host_dir = os.path.abspath(os.path.dirname(__file__))
 		self.tmp_dir = ''
@@ -154,10 +158,10 @@ class Loris(object):
 		# Any exceptions related to parsing the requests into parameter objects
 		# should end up here.
 		except LorisException, e:
-		 	mime = 'text/xml'
-		 	status = e.http_status
-		 	resp = e.to_xml()
-		 	headers = Headers()
+			mime = 'text/xml'
+			status = e.http_status
+			resp = e.to_xml()
+			headers = Headers()
 			headers.add('Link', self.link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
@@ -165,8 +169,8 @@ class Loris(object):
 			pe = LorisException(400, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
-		 	resp = pe.to_xml()
-		 	headers = Headers()
+			resp = pe.to_xml()
+			headers = Headers()
 			headers.add('Link', self.link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
@@ -232,16 +236,16 @@ class Loris(object):
 				headers.add('Content-Length', length)
 
 		except LorisException as e:
-		 	mime = 'text/xml'
-		 	status = e.http_status
-		 	resp = e.to_xml()
+			mime = 'text/xml'
+			status = e.http_status
+			resp = e.to_xml()
 
 		except Exception as e:
 			# should be safe to assume it's the server's fault.
-		 	pe = LorisException(500, '', e.message)
-		 	mime = 'text/xml'
-		 	status = pe.http_status
-		 	resp = pe.to_xml()
+			pe = LorisException(500, '', e.message)
+			mime = 'text/xml'
+			status = pe.http_status
+			resp = pe.to_xml()
 
 		finally:
 			return Response(resp, status=status, content_type=mime, headers=headers)
@@ -268,7 +272,7 @@ class Loris(object):
 				info = ImgInfo.fromJP2(img_path, ident)
 
 				dzid = DeepZoomImageDescriptor(width=info.width, height=info.height, \
-					tile_size=256, tile_overlap=0, tile_format='jpg')
+					tile_size=self.dz_tile_size, tile_overlap=0, tile_format='jpg')
 				
 				resp = dzid.marshal()
 
@@ -290,10 +294,10 @@ class Loris(object):
 
 		except Exception as e:
 			# should be safe to assume it's the server's fault.
-		 	pe = LorisException(500, '', e.message)
-		 	mime = 'text/xml'
-		 	status = pe.http_status
-		 	resp = pe.to_xml()
+			pe = LorisException(500, '', e.message)
+			mime = 'text/xml'
+			status = pe.http_status
+			resp = pe.to_xml()
 
 		finally:
 			return Response(resp, status=status, content_type=mime, headers=headers)
@@ -317,7 +321,7 @@ class Loris(object):
 		:type size: SizeParameter
 
 		:param rotation: rotation of the image (multiples of 90 for now)
-		:type rotation: integer
+		:type rotation: RotationParameter
 
 		:param quality: 'native', 'color', 'grey', 'bitonal'
 		:type quality: str
@@ -372,31 +376,31 @@ class Loris(object):
 				logr.info('Made directory: ' + img_dir)
 				img_success = self._derive_img_from_jp2(ident, img_path, region, size, rotation, quality, format)
 				status = 201 if self.use_201 else 200
-			 	headers.add('Content-Length', os.path.getsize(img_path))
+				headers.add('Content-Length', os.path.getsize(img_path))
 				headers.add('Last-Modified', http_date()) # now
 				resp = file(img_path)
 			except LorisException, e:
 				headers.remove('Last-Modified')
 				mime = 'text/xml'
-			 	status = e.http_status
-		 		resp = e.to_xml()
+				status = e.http_status
+				resp = e.to_xml()
 
- 		return Response(resp, status=status, content_type=mime, headers=headers, direct_passthrough=True)
+		return Response(resp, status=status, content_type=mime, headers=headers, direct_passthrough=True)
 
- 	def _check_cache(self, resource_path, request, headers):
- 		"""Check the cache for a resource, update the headers object that we're 
- 		passing a reference to, and return the HTTP status that should be 
- 		returned.
+	def _check_cache(self, resource_path, request, headers):
+		"""Check the cache for a resource, update the headers object that we're 
+		passing a reference to, and return the HTTP status that should be 
+		returned.
 
- 		:param resource_path: path to a file on the file system
- 		:type resource_path: str
+		:param resource_path: path to a file on the file system
+		:type resource_path: str
 
- 		:param request: the current request object
- 		:type request: Request
+		:param request: the current request object
+		:type request: Request
 
- 		:param headers: the headers object that will ultimately be returned with the request
- 		:type headers: Headers
- 		"""
+		:param headers: the headers object that will ultimately be returned with the request
+		:type headers: Headers
+		"""
 		last_change = datetime.utcfromtimestamp(os.path.getctime(resource_path))
 		ims_hdr = request.headers.get('If-Modified-Since')
 		ims = parse_date(ims_hdr)
@@ -413,6 +417,145 @@ class Loris(object):
 			headers.remove('Cache-Control')
 		return status
 
+	def on_get_img_for_seajax(self, request, ident, level, x, y):
+		"""Use the `deepzoom.py` module to make tiles for Seadragon (and 
+		optionally cache them and according to IIIF's cache syntax and make
+		symlinks).
+
+		URLs (and symlinked file paths) look like `/level/x_y.jpg`
+
+		0_0 1_0 2_0 3_0
+		0_1 1_1 2_1 3_1
+		0_2 1_2 2_2 3_2
+		0_3 1_3 2_3 3_3
+
+		:param request: Werkzeug's request object
+		:type request: Request
+		:param ident: the image identifier
+		:type ident: string
+		:param level: seadragon's notion of a zoom level
+		:type level: int
+		:param x: the zero-based index of the tile on the x-axis, starting from upper-left
+		:type x: int
+		:param y: the zero-based index of the tile on the y-axis, starting from upper-left
+		:type y: int
+		:returns: Response -- body is an image if successful, IIIF XML if not.
+		:raises: LorisException
+		"""
+		# Could make rotation possible too as long as a parameter didn't screw 
+		# up seajax (untested).
+
+		link_dir = os.path.join(self.cache_root, ident, str(level))
+		link_file_name = str(x) + '_' + str(y) + '.jpg'
+		link_path = os.path.join(link_dir, link_file_name)
+		logr.debug('seadragon link_dir: ' + link_dir)
+		logr.debug('seadragon link_path: ' + link_path)
+
+		resp_body = None
+		status = None
+		mime = 'image/jpeg'
+		headers = Headers()
+		headers.add('Link', self.link_hdr)
+		headers.add('Cache-Control', 'public')
+
+		logr.debug('###########  Deep Zoom  ###########')
+		logr.debug('###################################')
+
+		# check the cache
+		# TODO: make sure following symlinks and file tests on symlinks works!
+		try:
+			if  self.enable_cache == True and os.path.exists(link_path):
+				status = self._check_cache(link_path, request, headers)
+				real_path = os.path.realpath(link_path)
+				resp_body = file(real_path) if status == 200 else None
+			else:
+			
+				# 1. calculate the size of the image
+				jp2 = self._resolve_identifier(ident)
+				info = ImgInfo.fromJP2(jp2, ident)
+				dzi_desc = DeepZoomImageDescriptor(width=info.width, \
+					height=info.height,	tile_size=self.dz_tile_size, \
+					tile_overlap=0, tile_format='jpg')			
+				try:
+					scale = dzi_desc.get_scale(level)
+					logr.debug('DZ Scale: ' + str(scale))
+				except AssertionError, e:
+					logr.debug(e.message)
+					raise LorisException(400, str(level), e.message)
+
+				# make the size parameter
+				size_pct = 'pct:'+str(scale*100)
+				size_param = SizeParameter(size_pct)
+
+				# 2. calculate the region (adjusted for size)
+				# We have to compensate for the fact that the source region has 
+				# to be bigger in order to get a result tile that is the correct
+				# size (so we can't use dzi_desc.get_tile_bounds(level, x, y))
+				tile_size = int(dzi_desc.tile_size / scale)
+
+				logr.debug('Adjusted normal tile size: ' + str(tile_size))
+				tile_x = int(x * tile_size + x)
+				logr.debug('tile_x: ' + str(tile_x))
+				tile_y = int(y * tile_size + y)
+				logr.debug('tile_y: ' + str(tile_y))
+
+				level_width, level_height = dzi_desc.get_dimensions(level)
+				logr.debug('dz_level_width: ' + str(level_width))
+				logr.debug('dz_level_height: ' + str(level_height))
+
+				region_segment=''
+				if any(d < tile_size for d in (level_width, level_height)):
+					region_segment = 'full'
+				else:
+					tile_w = min(tile_size, info.width  - tile_x)
+					logr.debug('tile_w: ' + str(tile_w))
+					tile_h = min(tile_size, info.height - tile_y)
+					logr.debug('tile_h: ' + str(tile_h))
+
+					region_segment = ','.join(map(str, (tile_x, tile_y, tile_w, tile_h)))
+
+				logr.debug('region_segment: ' + region_segment)
+				region_param = RegionParameter(region_segment)
+				logr.debug('###################################')
+				logr.debug('###################################')
+
+				# 3. make the image
+				rotation = '0'
+				rotation_param = RotationParameter(rotation)
+
+				img_dir = os.path.join(self.cache_root, ident, region_segment, size_pct, rotation)
+
+				if not os.path.exists(img_dir):
+					os.makedirs(img_dir, 0755)
+					logr.info('made ' + img_dir)
+
+				img_path = os.path.join(img_dir, 'native.jpg')
+				img_success = self._derive_img_from_jp2(ident, \
+					img_path, \
+					region_param, \
+					size_param, \
+					rotation_param, 'native', 'jpg')
+
+				
+				status = 201 if self.use_201 else 200
+				headers.add('Content-Length', os.path.getsize(img_path))
+				headers.add('Last-Modified', http_date()) # now
+				resp_body = file(img_path)
+
+				# 4. make the symlink
+				if not os.path.exists(link_dir):
+					os.makedirs(link_dir, 0755)
+				logr.info('made ' + link_dir + ' (for symlink)')
+				os.symlink(img_path, link_path)
+				logr.info('made symlink' + link_path)
+
+		except LorisException, e:
+				headers.remove('Last-Modified')
+				mime = 'text/xml'
+				status = e.http_status
+				resp_body = e.to_xml()
+		finally:
+			return Response(resp_body, content_type=mime, status=status, headers=headers)
 
 	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, quality, format):
 		"""
@@ -488,7 +631,7 @@ class Loris(object):
 			convert_call += rotation.to_convert_arg() + ' '
 
 			if format == 'jpg':
-			 	convert_call += '-quality 90 '
+				convert_call += '-quality 90 '
 			if format == 'png':
 				convert_call += '-colors 256 -quality 00 ' 
 
@@ -532,55 +675,6 @@ class Loris(object):
 				logr.debug('Calling ' + rm_fifo_call)
 				subprocess.call(rm_fifo_call, shell=True)
 				logr.debug('Done (' + rm_fifo_call + ')')
-
-	def on_get_img_for_seajax(self, request, ident, level, x, y):
-		"""Use the `deepzoom.py` module to make tiles for Seadragon (and 
-		optionally cache them and according to IIIF's cache syntax and make
-		symlinks).
-
-		URLs (and symlinked file paths) look like `/level/x_y.jpg`
-
-		:param request: Werkzeug's request object
-		:type request: Request
-		:param ident: the image identifier
-		:type ident: string
-		:param level: seadragon's notion of a zoom level
-		:type level: int
-		:param x: the zero-based index of the tile on the x-axis, starting from upper-left
-		:type x: int
-		:param y: the zero-based index of the tile on the y-axis, starting from upper-left
-		:type y: int
-		"""
-		img_dir = os.path.join(self.cache_root, ident, str(level))
-		file_name = str(x) + '_' + str(y) + '.jpg'
-		img_path = os.path.join(img_dir, file_name)
-		logr.debug('seadragon img_dir: ' + img_dir)
-		logr.debug('seadragon img_path: ' + img_path)
-
-		# check the cache
-		if  self.enable_cache == True and os.path.exists(img_path):
-			last_change = datetime.utcfromtimestamp(os.path.getctime(img_path))
-			ims_hdr = request.headers.get('If-Modified-Since')
-			ims = parse_date(ims_hdr)
-			if (ims and ims > last_change) or not ims:
-				status = 200
-				resp = file(img_path)
-				length = length = os.path.getsize(img_path) 
-				headers.add('Content-Length', length)
-				headers.add('Last-Modified', http_date(last_change))
-				logr.info('Read: ' + img_path)
-			else:
-				status = 304
-				headers.remove('Content-Type')
-				headers.remove('Cache-Control')
-				resp = None
-		else:
-			# We're going to build a 301 (see other)
-			# 1. calculate the size of the image
-			# 2. calculate the region (adjusted for size)
-			# 3. build the path to the image
-			pass
-
 
 	def _resolve_identifier(self, ident):
 		"""
@@ -968,7 +1062,7 @@ class ImgInfo(object):
 		x += '  </formats>' + os.linesep
 		x += '  <qualities>' + os.linesep
 		for q in self.qualities:
-		 	x += '    <quality>' + q + '</quality>' + os.linesep
+			x += '    <quality>' + q + '</quality>' + os.linesep
 		x += '  </qualities>' + os.linesep
 		x += '  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>' + os.linesep
 		x += '</info>' + os.linesep

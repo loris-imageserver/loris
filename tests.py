@@ -13,8 +13,6 @@
 .. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
 
 """
-
-
 from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
@@ -648,7 +646,26 @@ class Test_I_ResultantImg(LorisTest):
 				self.assertEquals(dims, tile[1])
 		remove(f_name)
 
+class Test_J_SeaDragonExtension(LorisTest):
+	"""Here we test for the Seadragon feature.
+	"""
+	def test_dzi_xml(self):
+		# Do it once, make sure we get a 201
+		resp = self.client.get('/pudl0001/4609321/s42/00000004.xml')
+		dom = parseString(resp.data)
+		# info is the root
+		dE = dom.documentElement
+		self.assertEqual(dE.tagName, 'Image')
+		self.assertEqual(dE.getAttribute('Format'), 'jpg')
+		self.assertEqual(dE.getAttribute('Overlap'), '0')
+		self.assertEqual(int(dE.getAttribute('TileSize')), self.app.dz_tile_size)
 
+		sE = dE.getElementsByTagName('Size')[0]
+		self.assertEqual(sE.getAttribute('Height'), '3600')
+		self.assertEqual(sE.getAttribute('Width'), '2717')
+
+	def test_dzi_tile_scaling(self):
+		pass
 
 
 
@@ -667,15 +684,17 @@ if __name__ == "__main__":
 	test_suites.append(tl.loadTestsFromTestCase(Test_C_RegionParameter))
 	test_suites.append(tl.loadTestsFromTestCase(Test_D_SizeParameter))
 	test_suites.append(tl.loadTestsFromTestCase(Test_E_RotationParameter))
-	#. If we can't make the shell utilities work:
+	#. We can't execute those commands if we can't make the shell utilities 
+	# work:
 	test_suites.append(tl.loadTestsFromTestCase(Test_F_Utilities))	
-	# we can make images, and therefore we can't accurately 
+	# and therefore can't make images, and can't ask for them
 	test_suites.append(tl.loadTestsFromTestCase(Test_G_ContentNegotiation))
 	test_suites.append(tl.loadTestsFromTestCase(Test_H_Caching))
-	test_suites.append(tl.loadTestsFromTestCase(Test_I_ResultantImg))
+	# or test that the output is the expectant size, rotation, etc.
+#	test_suites.append(tl.loadTestsFromTestCase(Test_I_ResultantImg))
+	# And Seadragon is cool
+	test_suites.append(tl.loadTestsFromTestCase(Test_J_SeaDragonExtension))
 	#.
-
 	meta_suite = unittest.TestSuite(test_suites)
 	unittest.TextTestRunner(verbosity=2).run(meta_suite)
-
 	
