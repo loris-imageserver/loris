@@ -59,11 +59,8 @@ application = create_app()
 Here is a sample Apache virtual host file configuration (variables in `{ }`):
 
 	...
-	WSGIDaemonProcess loris user={ username } group=groupname processes={ 5 } threads={ 25 }
-	WSGIScriptAlias { /loris } { /path/to/loris/loris.wsgi }
-	<Directory />
-		WSGIProcessGroup loris
-		WSGIApplicationGroup %{GLOBAL}
+	WSGIScriptAlias /loris /path/to/loris/loris.wsgi
+	<Directory /path/to/loris>
 		Order allow,deny
 		Allow from all
 	</Directory>
