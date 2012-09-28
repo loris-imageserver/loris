@@ -627,7 +627,6 @@ class Test_I_ResultantImg(LorisTest):
 			y += tile_size + 1
 			cy += 1
 
-
 	def test_region_precision(self):
 		ident = self.test_jp2_1_id
 		jp2 = self.app._resolve_identifier(ident)
@@ -691,7 +690,7 @@ if __name__ == "__main__":
 	test_suites.append(tl.loadTestsFromTestCase(Test_G_ContentNegotiation))
 	test_suites.append(tl.loadTestsFromTestCase(Test_H_Caching))
 	# or test that the output is the expectant size, rotation, etc.
-#	test_suites.append(tl.loadTestsFromTestCase(Test_I_ResultantImg))
+	test_suites.append(tl.loadTestsFromTestCase(Test_I_ResultantImg))
 	# And Seadragon is cool
 	test_suites.append(tl.loadTestsFromTestCase(Test_J_SeaDragonExtension))
 	#.

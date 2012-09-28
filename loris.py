@@ -16,6 +16,7 @@ from collections import deque
 from datetime import datetime
 from decimal import Decimal, getcontext
 from deepzoom import DeepZoomImageDescriptor
+from jinja2 import Environment, FileSystemLoader
 from random import choice
 from string import ascii_lowercase, digits
 from sys import exit, stderr
@@ -91,6 +92,7 @@ class Loris(object):
 
 		# directories
 		host_dir = os.path.abspath(os.path.dirname(__file__))
+		self.html_dir = os.path.join(host_dir, 'html')
 		self.tmp_dir = ''
 		self.cache_root = ''
 		self.src_images_root = ''
@@ -111,7 +113,6 @@ class Loris(object):
 				if not os.access(d, os.R_OK) and os.access(d, os.W_OK):
 					msg = d  + ' must exist and be readable and writable'
 					raise Exception(msg)
-
 
 		except Exception, e:
 			msg = 'Exception setting up directories: ' 
@@ -138,6 +139,7 @@ class Loris(object):
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
 			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
 			Rule('/<path:ident>/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
+			Rule('/', endpoint='get_docs'),
 			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=converters)
 	
@@ -178,7 +180,11 @@ class Loris(object):
 	def on_get_favicon(self, request):
 		f = os.path.join(host_dir, 'favicon.ico')
 		return Response(f, content_type='image/x-icon')
-		
+	
+	def on_get_docs(self, request):
+		docs = os.path.join(self.html_dir, 'docs.html')
+		return Response(file(docs), mimetype='text/html')
+
 	def on_get_img_metadata(self, request, ident, format=None):
 		resp = None
 		status = None
@@ -459,8 +465,7 @@ class Loris(object):
 		headers.add('Cache-Control', 'public')
 
 		logr.debug('###########  Deep Zoom  ###########')
-		logr.debug('###################################')
-
+		
 		# check the cache
 		# TODO: make sure following symlinks and file tests on symlinks works!
 		try:
@@ -515,10 +520,10 @@ class Loris(object):
 					region_segment = ','.join(map(str, (tile_x, tile_y, tile_w, tile_h)))
 
 				logr.debug('region_segment: ' + region_segment)
-				region_param = RegionParameter(region_segment)
-				logr.debug('###################################')
+
 				logr.debug('###################################')
 
+				region_param = RegionParameter(region_segment)
 				# 3. make the image
 				rotation = '0'
 				rotation_param = RotationParameter(rotation)
@@ -534,7 +539,7 @@ class Loris(object):
 					img_path, \
 					region_param, \
 					size_param, \
-					rotation_param, 'native', 'jpg')
+					rotation_param, 'native', 'jpg', info)
 
 				
 				status = 201 if self.use_201 else 200
@@ -557,7 +562,7 @@ class Loris(object):
 		finally:
 			return Response(resp_body, content_type=mime, status=status, headers=headers)
 
-	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, quality, format):
+	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, quality, format, info=None):
 		"""
 		out_path is the output path
 		"""
@@ -570,7 +575,7 @@ class Loris(object):
 			# ZODB? : http://www.zodb.org/
 			# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
 			jp2 = self._resolve_identifier(ident)
-			info = ImgInfo.fromJP2(jp2, ident)
+			info = ImgInfo.fromJP2(jp2, ident) if info is None else info
 			
 			# Do some checking early to avoid starting to build the shell 
 			# outs
@@ -979,6 +984,7 @@ class ImgInfo(object):
 		
 		@see:  http://library.stanford.edu/iiif/image-api/#info
 		"""
+		logr.debug('###########  Image Info  ##########')
 		info = ImgInfo()
 		info.id = img_id
 		info.qualities = ['native', 'bitonal']
@@ -1034,6 +1040,7 @@ class ImgInfo(object):
 			info.levels = int(struct.unpack(">B", jp2.read(1))[0])
 			logr.debug("levels: " + str(info.levels)) 
 		jp2.close()
+		logr.debug('###################################')
 			
 		return info
 	
