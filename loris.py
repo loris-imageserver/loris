@@ -509,7 +509,7 @@ class Loris(object):
 				logr.debug('dz_level_height: ' + str(level_height))
 
 				region_segment=''
-				if any(d < tile_size for d in (level_width, level_height)):
+				if any(d < self.dz_tile_size for d in (level_width, level_height)):
 					region_segment = 'full'
 				else:
 					tile_w = min(tile_size, info.width  - tile_x)
