@@ -52,7 +52,7 @@ def create_app(test=False):
 
 		app = Loris(test)
 		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-			'/js':  os.path.join(host_dir, 'js')
+			'/seadragon/js':  os.path.join(host_dir,'seadragon','js')
 		})
 		return app
 	except Exception,e:
@@ -96,6 +96,8 @@ class Loris(object):
 		# directories
 		host_dir = os.path.abspath(os.path.dirname(__file__))
 		self.html_dir = os.path.join(host_dir, 'html')
+		self.sd_img_dir = os.path.join(host_dir, 'seadragon','img')
+
 		self.tmp_dir = ''
 		self.cache_root = ''
 		self.src_images_root = ''
@@ -142,7 +144,8 @@ class Loris(object):
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
 			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
 			Rule('/<path:ident>_files/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
-			Rule('/<path:ident>/embed', endpoint='get_embedded'),
+			Rule('/<path:ident>.html', endpoint='get_dz'),
+			Rule('/<path:ident>/img/<img_file>.png', endpoint='get_seadragon_png'),
 			Rule('/', endpoint='get_docs'),
 			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=converters)
@@ -189,9 +192,13 @@ class Loris(object):
 		docs = os.path.join(self.html_dir, 'docs.html')
 		return Response(file(docs), mimetype='text/html')
 
-	def on_get_embedded(self, request, ident):
+	def on_get_dz(self, request, ident):
 		html = os.path.join(self.html_dir, 'dz.html')
 		return Response(file(html), mimetype='text/html')
+
+	def on_get_seadragon_png(self, request, ident, img_file):
+		png = os.path.join(self.sd_img_dir, img_file)+'.png'
+		return Response(file(png), mimetype='image/png')
 
 	def on_get_img_metadata(self, request, ident, format=None):
 		resp = None
@@ -281,7 +288,8 @@ class Loris(object):
 				status = self._check_cache(cache_path, request, headers)
 				resp = file(cache_path) if status == 200 else None
 			else:
-				status = 201 if self.use_201 else 200
+				# status = 201 if self.use_201 else 200
+				status = 200 # seajax requires this to be a 200 (or browser has to reload)
 				img_path = self._resolve_identifier(ident)
 				info = ImgInfo.fromJP2(img_path, ident)
 
