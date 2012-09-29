@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+	<head>
+		<script type="text/javascript" src="/js/seadragon-min.js"></script>
+		<script type="text/javascript">
+			var dzi_xml_url = document.URL.replace('/embed', '.xml');
+			var viewer = null;
+			function init() {
+				viewer = new Seadragon.Viewer("container");
+				// try hard-coding some XML here.
+				viewer.openDzi(dzi_xml_url);
+			}
+		   	// The div for the viewer has to be loaded by the browser, so
+		   	// listen to the load event (below)
+			Seadragon.Utils.addEvent(window, "load", init);
+	   </script>
+		<style type="text/css">
+			body {
+				background-color: #000;
+			}
+			#container{
+				margin: 10px auto;
+				/*padding: 10px;*/
+				width:80%;
+				max-width: 1000px;
+				min-width: 600px;
+				height:500px;
+				background-color: #2e2e2e;
+				border:1px solid black;
+				color:white; /* for error messages, etc. */
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+	</body>
+</html>

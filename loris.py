@@ -190,7 +190,7 @@ class Loris(object):
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_embedded(self, request, ident):
-		html = os.path.join(self.html_dir, 'embed.html')
+		html = os.path.join(self.html_dir, 'dz.html')
 		return Response(file(html), mimetype='text/html')
 
 	def on_get_img_metadata(self, request, ident, format=None):
@@ -459,38 +459,33 @@ class Loris(object):
 		# Could make rotation possible too as long as a parameter didn't screw 
 		# up seajax (untested).
 
-
 		link_dir = os.path.join(self.cache_root, ident, str(level))
 		link_file_name = str(x) + '_' + str(y) + '.jpg'
 		link_path = os.path.join(link_dir, link_file_name)
 		logr.debug('seadragon link_dir: ' + link_dir)
 		logr.debug('seadragon link_path: ' + link_path)
 
-		
 		resp_body = None
 		status = None
 		mime = 'image/jpeg'
 		headers = Headers()
 		headers.add('Link', self.link_hdr)
 		headers.add('Cache-Control', 'public')
-		
+
 		logr.debug('###########  Deep Zoom  ###########')
 		
 		# check the cache
 		# TODO: make sure following symlinks and file tests on symlinks works!
 		try:
-			if self.enable_cache == True and os.path.exists(link_path):
-
+			if  self.enable_cache == True and os.path.exists(link_path):
 				status = self._check_cache(link_path, request, headers)
 				real_path = os.path.realpath(link_path)
 				resp_body = file(real_path) if status == 200 else None
 			else:
-				
+			
 				# 1. calculate the size of the image
 				jp2 = self._resolve_identifier(ident)
-				logr.debug(jp2)
 				info = ImgInfo.fromJP2(jp2, ident)
-				logr.debug('############# here ##########################')
 				dzi_desc = DeepZoomImageDescriptor(width=info.width, \
 					height=info.height,	tile_size=self.dz_tile_size, \
 					tile_overlap=0, tile_format='jpg')			
@@ -501,7 +496,6 @@ class Loris(object):
 					logr.debug(e.message)
 					raise LorisException(400, str(level), e.message)
 
-				
 				# make the size parameter
 				size_pct = 'pct:'+str(scale*100)
 				size_param = SizeParameter(size_pct)
