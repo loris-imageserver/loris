@@ -25,6 +25,7 @@ from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.http import http_date, parse_date
 from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.wrappers import Request, Response
+from werkzeug.wsgi import SharedDataMiddleware
 import ConfigParser
 import logging
 import logging.config
@@ -46,11 +47,13 @@ def create_app(test=False):
 		host_dir = os.path.abspath(os.path.dirname(__file__))
 		conf_file = os.path.join(host_dir, 'loris.conf')
 		logging.config.fileConfig(conf_file)
-		if test:
-			logr = logging.getLogger('loris_test')
-		else:
-			logr = logging.getLogger('loris')
+
+		logr = logging.getLogger('loris_test') if test else logging.getLogger('loris')
+
 		app = Loris(test)
+		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
+			'/js':  os.path.join(host_dir, 'js')
+		})
 		return app
 	except Exception,e:
 		stderr.write(e.message)
@@ -138,7 +141,8 @@ class Loris(object):
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
 			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
-			Rule('/<path:ident>/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
+			Rule('/<path:ident>_files/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
+			Rule('/<path:ident>/embed', endpoint='get_embedded'),
 			Rule('/', endpoint='get_docs'),
 			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=converters)
@@ -184,6 +188,10 @@ class Loris(object):
 	def on_get_docs(self, request):
 		docs = os.path.join(self.html_dir, 'docs.html')
 		return Response(file(docs), mimetype='text/html')
+
+	def on_get_embedded(self, request, ident):
+		html = os.path.join(self.html_dir, 'embed.html')
+		return Response(file(html), mimetype='text/html')
 
 	def on_get_img_metadata(self, request, ident, format=None):
 		resp = None
@@ -451,33 +459,38 @@ class Loris(object):
 		# Could make rotation possible too as long as a parameter didn't screw 
 		# up seajax (untested).
 
+
 		link_dir = os.path.join(self.cache_root, ident, str(level))
 		link_file_name = str(x) + '_' + str(y) + '.jpg'
 		link_path = os.path.join(link_dir, link_file_name)
 		logr.debug('seadragon link_dir: ' + link_dir)
 		logr.debug('seadragon link_path: ' + link_path)
 
+		
 		resp_body = None
 		status = None
 		mime = 'image/jpeg'
 		headers = Headers()
 		headers.add('Link', self.link_hdr)
 		headers.add('Cache-Control', 'public')
-
+		
 		logr.debug('###########  Deep Zoom  ###########')
 		
 		# check the cache
 		# TODO: make sure following symlinks and file tests on symlinks works!
 		try:
-			if  self.enable_cache == True and os.path.exists(link_path):
+			if self.enable_cache == True and os.path.exists(link_path):
+
 				status = self._check_cache(link_path, request, headers)
 				real_path = os.path.realpath(link_path)
 				resp_body = file(real_path) if status == 200 else None
 			else:
-			
+				
 				# 1. calculate the size of the image
 				jp2 = self._resolve_identifier(ident)
+				logr.debug(jp2)
 				info = ImgInfo.fromJP2(jp2, ident)
+				logr.debug('############# here ##########################')
 				dzi_desc = DeepZoomImageDescriptor(width=info.width, \
 					height=info.height,	tile_size=self.dz_tile_size, \
 					tile_overlap=0, tile_format='jpg')			
@@ -488,6 +501,7 @@ class Loris(object):
 					logr.debug(e.message)
 					raise LorisException(400, str(level), e.message)
 
+				
 				# make the size parameter
 				size_pct = 'pct:'+str(scale*100)
 				size_param = SizeParameter(size_pct)
