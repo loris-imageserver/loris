@@ -2,37 +2,56 @@
 <html>
 	<head>
 		<script src="/seadragon/js/seadragon-min.js"></script>
+	</head>
+	<body>
 		<script type="text/javascript">
+			// figure out the dimensions of container
+			var container_margin = 10;
+			var container_padding = 3;
+
+			var container_w = null;
+			var container_h = null;
+			var container_style_margin = null;
+
+			var viewport_w = document.documentElement.clientWidth;
+			var viewport_h = document.documentElement.clientHeight;
+			var img_w = {{ img_w }}; // passed from loris
+			var img_h = {{ img_h }}; // passed from loris
+			
+			if (img_h > img_w) {
+				container_h = viewport_h-(2*container_margin+2*container_padding);
+				container_w = Math.floor(img_w*(viewport_h / img_h));
+				container_style_margin = container_margin+'px auto';
+			} else {
+				container_w = viewport_w-(2*container_margin+2*container_padding);
+				container_h = Math.floor(img_h*(viewport_w / img_w));
+				container_style_margin = 'auto '+container_margin+'px';
+			}
+
+			// create and style the container div
+			var container_div = document.createElement('div');
+			container_div.style.width = container_w+'px';
+			container_div.style.height = container_h+'px';
+			container_div.style.margin = container_style_margin;
+			container_div.style.padding = container_padding+'px';
+			container_div.style.backgroundColor = '#2e2e2e';
+			container_div.style.color = 'white'; // for error messages
+			container_div.id = 'container';
+
+			// append the container to the body; style the body
+			document.body.appendChild(container_div);
+			document.body.style.backgroundColor = '#000'
+
 			var viewer = null;
 			var dzi_xml_url = null
 			function init() {
 				dzi_xml_url = document.URL.replace('\.html', '.xml');
 				viewer = new Seadragon.Viewer("container");
-				// try hard-coding some XML here.
 				viewer.openDzi(dzi_xml_url);
 			}
 		   	// The div for the viewer has to be loaded by the browser, so
 		   	// listen to the load event (below)
 			Seadragon.Utils.addEvent(window, "load", init);
-	   </script>
-		<style type="text/css">
-			body {
-				background-color: #000;
-			}
-			#container{
-				margin: 10px auto;
-				/*padding: 10px;*/
-				width:80%;
-				max-width: 1000px;
-				min-width: 600px;
-				height:500px;
-				background-color: #2e2e2e;
-				border: 1px solid black;
-				color:white; /* for error messages, etc. */
-			}
-		</style>
-	</head>
-	<body>
-		<div id="container"></div>
+	   	</script>
 	</body>
 </html>

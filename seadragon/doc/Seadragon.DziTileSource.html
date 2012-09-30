@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.DziTileSource class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.DziTileSource class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        A subclass of <a href="Seadragon.TileSource.html"
+        title="Seadragon.TileSource class">Seadragon.TileSource</a> that handles
+        Deep Zoom Images. This class supports sparse images.
+    </p>
+    
+    <h2>Constructors</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="signature">
+                Signature
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                Seadragon.DziTileSource(width, height, tileSize, tileOverlap, tilesUrl, tileFormat,
+                displayRects?)
+            </td>
+            <td>
+                Creates a DziTileSource for a Deep Zoom Image having tiles of the given format at
+                the given URL. If the image is sparse, the image's display rectangles should be
+                given as a list of <a href="Seadragon.DisplayRect.html"
+                title="Seadragon.DisplayRect class">Seadragon.DisplayRect</a> instances.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Additional Properties</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name
+            </th>
+            <th class="return">
+                Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                tileFormat
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                The image format of the tiles in this Deep Zoom Image, e.g. "jpg" or "png".
+            </td>
+        </tr>
+        <tr>
+            <td>
+                displayRects
+            </td>
+            <td>
+                Array
+            </td>
+            <td>
+                If this image is sparse, the <a href="Seadragon.DisplayRect.html"
+                title="Seadragon.DisplayRect class">Seadragon.DisplayRect</a> instances
+                given to the constructor, otherwise null.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Overriden Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getTileUrl(level, x, y)
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Returns the URL for the given tile.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                tileExists(level, x, y)
+            </td>
+            <td>
+                Boolean
+            </td>
+            <td>
+                Returns true if the given tile exists and is part of the sparse image.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Static Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                createFromJson(jsonObj, callback?)
+            </td>
+            <td>
+                Seadragon.DziTileSource
+            </td>
+            <td>
+                Creates a new Seadragon.DziTileSource from the given JSON object of the form:
+                
+                <pre class="code">{
+    url: "http://example.com/foo.dzi",
+    width: 5000,
+    height: 4000,
+    tileSize: 254,
+    tileOverlap: 1,
+    tileFormat: "png"
+}</pre>
+                
+                This is the same JSON format that's returned by the
+                <a href="http://api.zoom.it/" target="_blank">Zoom.it API</a>.<br/>
+                <br/>
+                The JSON object may optionally have a <span class="code">displayRects</span>
+                property if the DZI is a sparse image. This property should be an array of
+                DisplayRect arrays, where a DisplayRect array is of the form
+                <span class="code">[x, y, width, height, minLevel, maxLevel]</span>.<br/>
+                <br/>
+                With this method, the XML of the DZI is never downloaded. (The location of the XML,
+                given by the <span class="code">url</span> property, is still needed in order to
+                determine the location of the tiles.)<br/>
+                <br/>
+                If a callback function is given, the Seadragon.DziTileSource is passed as the sole
+                parameter to the callback upon completion. Otherwise, the Seadragon.DziTileSource
+                is returned by this method.<br/>
+                <br/>
+                If there was an error with the JSON and a callback function was given, null is
+                passed to the callback along with an optional error message as a second parameter.
+                If there was an error with the JSON and no callback function was given, an error is thrown.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                createFromXml(xmlUrl, xmlString?, callback?)
+            </td>
+            <td>
+                Seadragon.DziTileSource
+            </td>
+            <td>
+                Creates a new Seadragon.DziTileSource from the XML file at the given URL. If the contents
+                of the XML are given, the XML is not actually downloaded; otherwise, it is.
+                (The location of the XML is needed in either case to determine the location of the
+                tiles.)<br/>
+                <br/>
+                If a callback function is given, the XML is loaded/parsed asynchronously,
+                and the Seadragon.DziTileSource is passed as the sole parameter to the callback upon
+                completion. Otherwise, the XML is loaded/parsed synchronously and the Seadragon.DziTileSource
+                is returned by this method.<br/>
+                <br/>
+                If the XML fails to load/parse and a callback function
+                was given, null is passed to the callback along with an optional error message as
+                a second parameter. If the XML fails to load/parse and no callback function was
+                given, an error is thrown.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getTilesUrl(xmlUrl)
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Given the XML URL of a DZI (e.g. "http://example.com/foo.dzi"),
+                returns the URL of the DZI's tiles (e.g. "http://example.com/foo_files/").
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

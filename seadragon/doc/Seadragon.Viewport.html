@@ -1,0 +1,469 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.Viewport class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.Viewport class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        Represents the viewport for Seadragon content.
+    </p>
+    <p>
+        The viewport's values are defined in normalized isotropic coordinates
+        based on a width of 1.0. This means that the origin (0, 0) represents the
+        top-left of the content, and the point (0, 1) represents the top-right.
+        The normalized height is computed to match the content's aspect ratio.
+        So for an aspect ratio of 2:1, the bottom-left of the content would be
+        represented by the point (0, 0.5), and the bottom-right would be
+        represented by the point (1, 0.5).
+    </p>
+    <p>
+        The viewport uses <a href="Seadragon.Spring.html"
+        title="Seadragon.Spring class">Seadragon.Springs</a> to fluidly pan and zoom.
+        Accessor methods thus provide both current values and target values,
+        and modifier methods can be instructed to override the springs and
+        pan or zoom immediately. Separate springs are used for panning and for
+        zooming; this allows a pan to continue smoothly while a zoom is initiated,
+        and vice versa.
+    </p>
+    
+    <h2>Constructors</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="signature">
+                Signature
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                Seadragon.Viewport(containerSize, contentSize)
+            </td>
+            <td>
+                Initializes a Viewport inside a container of the given size,
+                for content of the given size. The content will initially be
+                fitted snugly inside the viewport.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Methods</h2>
+    <h3>Accessors</h3>
+    <p>
+        Methods which use the viewport's springs provide the option to return
+        either the target value or the current value. The default is to return
+        the target value, but the current value can be returned by passing in
+        the optional current flag. 
+    </p>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getAspectRatio()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the viewport's aspect ratio (width / height).
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getContainerSize()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the size of the viewport's container, in pixels.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getBounds(current?)
+            </td>
+            <td>
+                <a href="Seadragon.Rect.html" title="Seadragon.Rect class">Seadragon.Rect</a>
+            </td>
+            <td>
+                Returns the viewport's bounds.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getCenter(current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the center of the viewport.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getZoom(current?)
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the zoom level of the viewport. This zoom level is the
+                ratio of the content's width to the viewport's width, e.g. 1
+                means the widths are the same, 2 means the content's width is
+                double the viewport's width, etc.
+            </td>
+        </tr>
+    </table>
+    <h3>Modifiers</h3>
+    <p>
+        Methods which change the viewport's values provide the option to override
+        the springs. To do so, pass in the optional immediately flag. Otherwise,
+        the springs will be used to smoothly change the viewport's values to the
+        given target values. 
+    </p>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                applyConstraints(immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Zooms and pans to ensure that enough content is visible within the viewport
+                and that the viewport is within a reasonable zoom range. The parameters
+                of this behavior are controlled by the <a href="Seadragon.Config.html"
+                title="Seadragon.Config class">Seadragon.Config</a> minZoomImageRatio,
+                maxZoomPixelRatio and visibilityRatio properties.
+            </td>
+        </tr>
+        <tr class="deprecated">
+            <td>
+                ensureVisible(immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                [Deprecated] Same as <strong>applyConstraints()</strong>.
+                The name has been changed to reflect this method's expanded role, but
+                this name still exists for backwards compatibility.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                fitBounds(bounds, immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Zooms and pans so that the given <a href="Seadragon.Rect.html"
+                title="Seadragon.Rect class">Seadragon.Rect</a> is fitted into the viewport.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                goHome(immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Zooms and pans so that the content is fitted snugly into the viewport.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                panBy(delta, immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Pans the viewport by the given <a href="Seadragon.Point.html"
+                title="Seadragon.Point class">Seadragon.Point</a> delta amount.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                panTo(center, immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Pans the viewport to the given center point.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                zoomBy(factor, point?, immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Zooms by the given factor about the given point, which will
+                remain at the same on-screen location through the zoom.
+                If no point is given, zooms about the viewport center.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                zoomTo(level, point?, immediately?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Zooms to the given zoom level about the given point, which will
+                remain at the same on-screen location through the zoom.
+                If no point is given, zooms about the viewport center.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                resize(containerSize, maintain?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Resizes the viewport to match the given container size in pixels.
+                If maintain is true, the content's on-screen appearance is
+                maintained relative to the viewport's origin, otherwise the
+                content is resized relative to its center, such that the
+                previously visible content remains visible.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                update()
+            </td>
+            <td>
+                Boolean
+            </td>
+            <td>
+                Updates the viewport's current values and returns true if they have changed since
+                the last update.
+            </td>
+        </tr>
+    </table>
+    <h3>Constraint Helpers</h3>
+    <p>
+        These convenience methods provide the constrained pan and zoom values,
+        since these values are determined by both the viewport's and content's
+        aspect ratios as well as multiple <a href="Seadragon.Config.html"
+        title="Seadragon.Config class">Seadragon.Config</a> settings.
+        These values are used by the
+        <span class="code">applyConstraints()</span> method.
+    </p>
+    <p>
+        The constrained pan values vary by zoom level, so these methods, like
+        the accessor methods, provide the option to use either the viewport's
+        current or target zoom value.
+    </p>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getHomeBounds()
+            </td>
+            <td>
+                <a href="Seadragon.Rect.html" title="Seadragon.Rect class">Seadragon.Rect</a>
+            </td>
+            <td>
+                Returns the viewport's fitted bounds at home.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getHomeCenter()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the viewport's center point at home.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getHomeZoom()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the viewport's zoom level at home.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getMinCenter(current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the minimum center value (i.e. the furthest top-left)
+                the viewport should pan to.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getMaxCenter(current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the maximum center value (i.e. the furthest bottom-right)
+                the viewport should pan to.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getMinZoom()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the minimum zoom value the viewport should zoom out to.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getMaxZoom()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the maximum zoom value the viewport should zoom in to.
+            </td>
+        </tr>
+    </table>
+    
+    <h3>Conversion Helpers</h3>
+    <p>
+        The regular pixel-point methods use both the zoom level and the pan to
+        convert the values. The delta pixel-point methods use only the zoom
+        level to convert the values. Like the accessor methods, these methods
+        provide the option to use either the viewport's current values or the
+        target values.
+    </p>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                deltaPixelsFromPoints(deltaPoints, current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Converts the given normalized point delta to an on-screen pixel delta.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                deltaPointsFromPixels(deltaPixels, current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Converts the given on-screen pixel delta to a normalized point delta.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                pixelFromPoint(point, current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Converts the given normalized point to an on-screen pixel, relative to the
+                viewport's container.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                pointFromPixel(pixel, current?)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Converts the given on-screen pixel, relative to the viewport's container, to a normalized
+                point.
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

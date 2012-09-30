@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.Spring class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.Spring Class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        A time-based spring class that moves its current value towards its target value
+        if the two are ever different. The length and shape of the movement are determined
+        by Seadragon.Config.animationTime and Seadragon.Config.springStiffness, respectively.
+    </p>
+    <p>
+        Note that while this class is time-based, the current value of the spring is only
+        changed on calls to update(). Any calls to modifier methods will not reflect a changed
+        current value until update() is called.
+    </p>
+    
+    <h2>Constructors</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="signature">
+                Signature
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                Seadragon.Spring(initialValue)
+            </td>
+            <td>
+                Creates a spring with the given initial current and target value.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getCurrent()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the current value of the spring.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getTarget()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the target value of the spring.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                resetTo(target)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Sets both the current and target values of the spring to the given value.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                shiftBy(delta)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Shifts both the current and target values of the spring by the given amount.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                springTo(target)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Sets the target value of the spring to the given value.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                update()
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Updates the current value of the spring to move closer towards the target value.
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

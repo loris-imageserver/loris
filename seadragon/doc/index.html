@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    <h1>
+        Seadragon Ajax Library Documentation</h1>
+    <h4>
+        Version
+        0.8.9
+    </h4>
+    <h2>
+        Overview</h2>
+    <p>
+        You'll want to start off with a <a href="Seadragon.Viewer.html">Seadragon.Viewer</a>.
+        To control zoom and pan, access your viewer's <a href="Seadragon.Viewport.html">Seadragon.Viewport</a>.
+        For general behavior configurations, see <a href="Seadragon.Config.html">Seadragon.Config</a>.
+        To customize the display strings, use <a href="Seadragon.Strings.html">Seadragon.Strings</a>.
+        For simple scenarios, these classes are all you need.
+    </p>
+    <p>
+        On the more advanced side, <a href="Seadragon.Drawer.html">Seadragon.Drawer</a>
+        does the graphical heavy lifting. You can use its addOverlay() method to add overlays
+        to your image. To add custom controls, use Seadragon.Viewer.addControl(). <a href="Seadragon.Button.html">
+            Seadragon.Button</a> and <a href="Seadragon.ButtonGroup.html">Seadragon.ButtonGroup</a>
+        can help out with that if you want. Write your own <a href="Seadragon.TileSource.html">
+            Seadragon.TileSource</a> if you want to handle custom content types; <a href="Seadragon.DziTileSource.html">
+                Seadragon.DziTileSource</a> handles Deep Zoom Images.
+    </p>
+    <p>
+        <a href="Seadragon.EventManager.html">Seadragon.EventManager</a>, <a href="Seadragon.ImageLoader.html">
+            Seadragon.ImageLoader</a>, <a href="Seadragon.MouseTracker.html">Seadragon.MouseTracker</a>,
+        and <a href="Seadragon.Utils.html">Seadragon.Utils</a> are general-purpose utilites.
+        <a href="Seadragon.DisplayRect.html">Seadragon.DisplayRect</a>, <a href="Seadragon.Point.html">
+            Seadragon.Point</a>, <a href="Seadragon.Rect.html">Seadragon.Rect</a>, and <a href="Seadragon.Spring.html">
+                Seadragon.Spring</a> are basic types. <a href="Seadragon.Debug.html">Seadragon.Debug</a>
+        and <a href="Seadragon.Profiler.html">Seadragon.Profiler</a> are just for debugging.
+    </p>
+    <p>
+        For more general information, see our <a
+        href="http://livelabs.com/seadragon-ajax/library/"
+        title="Seadragon Ajax Library at Microsoft Live Labs">library how-to's</a>.
+    </p>
+    <h2>
+        Classes</h2>
+    <ul>
+        <li><a href="Seadragon.Button.html">Seadragon.Button</a></li>
+        <li><a href="Seadragon.ButtonGroup.html">Seadragon.ButtonGroup</a></li>
+        <li><a href="Seadragon.Config.html">Seadragon.Config</a></li>
+        <li><a href="Seadragon.Debug.html">Seadragon.Debug</a></li>
+        <li><a href="Seadragon.DisplayRect.html">Seadragon.DisplayRect</a></li>
+        <li><a href="Seadragon.Drawer.html">Seadragon.Drawer</a></li>
+        <li><a href="Seadragon.DziTileSource.html">Seadragon.DziTileSource</a></li>
+        <li><a href="Seadragon.EventManager.html">Seadragon.EventManager</a></li>
+        <li><a href="Seadragon.ImageLoader.html">Seadragon.ImageLoader</a></li>
+        <li><a href="Seadragon.MouseTracker.html">Seadragon.MouseTracker</a></li>
+        <li><a href="Seadragon.Point.html">Seadragon.Point</a></li>
+        <li><a href="Seadragon.Profiler.html">Seadragon.Profiler</a></li>
+        <li><a href="Seadragon.Rect.html">Seadragon.Rect</a></li>
+        <li><a href="Seadragon.Spring.html">Seadragon.Spring</a></li>
+        <li><a href="Seadragon.Strings.html">Seadragon.Strings</a></li>
+        <li><a href="Seadragon.TileSource.html">Seadragon.TileSource</a></li>
+        <li><a href="Seadragon.Utils.html">Seadragon.Utils</a></li>
+        <li><a href="Seadragon.Viewer.html">Seadragon.Viewer</a></li>
+        <li><a href="Seadragon.Viewport.html">Seadragon.Viewport</a></li>
+    </ul>
+    <h2>
+        Enumerations</h2>
+    <ul>
+        <li><a href="Seadragon.Browser.html">Seadragon.Browser</a></li>
+        <li><a href="Seadragon.ControlAnchor.html">Seadragon.ControlAnchor</a></li>
+        <li><a href="Seadragon.OverlayPlacement.html">Seadragon.OverlayPlacement</a></li>
+    </ul>
+    <h2>
+        Notes</h2>
+    <p>
+        All methods and constructors which take an HTML element can also take a string with
+        the element's id instead. This is done through the use of Seadragon.Utils.getElement().
+    </p>
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

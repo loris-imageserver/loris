@@ -97,6 +97,9 @@ class Loris(object):
 		host_dir = os.path.abspath(os.path.dirname(__file__))
 		self.html_dir = os.path.join(host_dir, 'html')
 		self.sd_img_dir = os.path.join(host_dir, 'seadragon','img')
+		
+		loader = FileSystemLoader(self.html_dir)
+		self.jinja_env = Environment(loader=loader, autoescape=True)
 
 		self.tmp_dir = ''
 		self.cache_root = ''
@@ -147,6 +150,7 @@ class Loris(object):
 			Rule('/<path:ident>.html', endpoint='get_dz'),
 			Rule('/<path:ident>/img/<img_file>.png', endpoint='get_seadragon_png'),
 			Rule('/', endpoint='get_docs'),
+			Rule('/_headers', endpoint='list_headers'), # for debguging
 			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=converters)
 	
@@ -183,6 +187,19 @@ class Loris(object):
 			headers.add('Link', self.link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
+	def on_list_headers(self, request):
+		"""For debugging; should be disabled before going to production
+		"""
+
+		body = '==== Request Headers ====\n'
+		for k in request.headers.keys():
+			body += '%s: %s\n' % (k, request.headers.get(k))
+		body += '\n==== Headers from WSGI ====\n'
+		for k in request.environ:
+			body += '%s: %s\n' % (k, request.environ.get(k))
+		resp = Response(body)
+		resp.mimetype='text/plain'
+		return resp
 
 	def on_get_favicon(self, request):
 		f = os.path.join(host_dir, 'favicon.ico')
@@ -193,8 +210,11 @@ class Loris(object):
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_dz(self, request, ident):
-		html = os.path.join(self.html_dir, 'dz.html')
-		return Response(file(html), mimetype='text/html')
+		jp2 = self._resolve_identifier(ident)
+		info = ImgInfo.fromJP2(jp2, ident)
+		t = self.jinja_env.get_template('dz.html')
+		return Response(t.render(img_w=info.width, img_h=info.height), 
+			mimetype='text/html')
 
 	def on_get_seadragon_png(self, request, ident, img_file):
 		png = os.path.join(self.sd_img_dir, img_file)+'.png'

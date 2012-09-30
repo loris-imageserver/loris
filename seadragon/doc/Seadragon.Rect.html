@@ -1,0 +1,201 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.Rect class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.Rect Class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        A class that represents a rectangle.
+    </p>
+    
+    <h2>Constructors</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="signature">
+                Signature
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                Seadragon.Rect()
+            </td>
+            <td>
+                Creates a rectangle at (0, 0) of size 0 x 0.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Seadragon.Rect(x, y, width, height)
+            </td>
+            <td>
+                Creates a rectangle at (x, y) of size width x height.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Properties</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name
+            </th>
+            <th class="return">
+                Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                x
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                The left edge of the rectangle.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                y
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                The top edge of the rectangle.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                width
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                The width of the rectangle.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                height
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                The height of the rectangle.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getAspectRatio()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns this rectangle's aspect ratio (width / height).
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getTopLeft()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns (x, y) as a
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getBottomRight()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns (x + width, y + height) as a
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getCenter()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns (x + 0.5 * width, y + 0.5 * height) as a
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getSize()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns (width, height) as a
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                equals(rect)
+            </td>
+            <td>
+                Boolean
+            </td>
+            <td>
+                Returns true if this rectangle has the same x, y, width and height as the given
+                rectangle.
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

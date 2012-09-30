@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.Strings class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.Strings class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        This static class defines all user-facing strings so that they may be
+        tweaked and localized as needed. It also provides support for string
+        arguments. The strings are static properties of this class as nested
+        objects, but they should only be accessed via the getString() method so
+        that missing strings and missing arguments can be properly handled.
+    </p>
+    
+    <h2>Static Properties</h2>
+    <p>
+        Note that all dot-separated properties are actually nested subproperties.
+        This means that <span class="code">Seadragon.Strings.Errors.Failure</span>
+        is valid, but <span class="code">Seadragon.Strings["Errors.Failure"]</span>
+        is not.
+    </p>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name
+            </th>
+            <th class="return">
+                Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                Errors.Failure
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when the user's browser does not support Seadragon.
+                Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Dzc
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image file is in fact a Deep Zoom Collection.
+                Expects no arguments. 
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Dzi
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image file is not a valid Deep Zoom Image.
+                Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Xml
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image file is not well-formed XML.
+                Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Empty
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when the empty string is given as an image URL.
+                Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.ImageFormat
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image uses an unsupported image format, e.g. WDP.
+                Expects one argument: the uppercase image format.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Security
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image cannot be opened due to browser cross-site
+                security restrictions. Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Status
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image returns a non-200 HTTP status code.
+                Expects two arguments: the status code, and the capitalized status text.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Errors.Unknown
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when there is an unknown error while attempting to open
+                an image. Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Messages.Loading
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown when an image has been loading for a noticeable amount of
+                time. Expects no arguments.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Tooltips.FullPage
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown as the tooltip for the Full Page button.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Tooltips.Home
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown as the tooltip for the Home button.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Tooltips.ZoomIn
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown as the tooltip for the Zoom In button.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Tooltips.ZoomOut
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Shown as the tooltip for the Zoom Out button.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Static Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getString(name, ...)
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Returns the string for the given name, formatted with the given
+                arguments. Uses the empty string in place of any missing arguments,
+                and returns the empty string if no string with the given name exists.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                setString(name, value)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Sets the string with the given name to the given value. This
+                string can contain numbered argument placeholders in the form of
+                "{0}", "{1}", etc. Creates static properties where necessary.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Example Usage</h2>
+    <p>
+        The following code alerts the Errors.Status string, passing in a non-200
+        status code and its corresponding status text as arguments.
+    </p>
+    <p class="code">
+        if (statusCode != 200) {
+            alert(Seadragon.Strings.getString("Errors.Status", statusCode, statusText));
+        }
+    </p>
+    <p>
+        The following code sets a new string to be shown for a custom pan
+        control. It expects arguments for the amount of pan in each dimension. 
+    </p>
+    <p class="code">
+        Seadragon.Strings.setString("PanControl.CurrentPan",
+                "Currently panning {0} pixels by {1} pixels...");
+    </p>
+
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

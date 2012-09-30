@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.Utils class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.Utils Class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        A utility class for performing common DOM and AJAX operations safely
+        across browsers.
+    </p>
+    
+    <h2>Static Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                getBrowser()
+            </td>
+            <td>
+                <a href="Seadragon.Browser.html" title="Seadragon.Browser enumeration">Seadragon.Browser</a>
+                value
+            </td>
+            <td>
+                Returns the user's browser. This method is resistant to user-agent spoofing.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getBrowserVersion()
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the version of the user's browser, or 0 if the browser
+                is unknown. The version is up to one decimal place and does not
+                include any letters (e.g. 'a' for an alpha release).
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getElement(elmt)
+            </td>
+            <td>
+                HTML Element
+            </td>
+            <td>
+                Convenience method that returns the HTML Element object for the
+                given argument, which can be the element itself or the element's id.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getElementPosition(elmt)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the position of the given element, relative to the document.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getElementSize(elmt)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the size of the given element.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getElementStyle(elmt)
+            </td>
+            <td>
+                CSS Object
+            </td>
+            <td>
+                Returns the computed style of the given element. This style object
+                exposes the same Javascript properties as the inline
+                <span class="code">elmt.style</span> object, e.g. "textAlign"
+                for the CSS "text-align" property.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getEvent(event)
+            </td>
+            <td>
+                HTML Event
+            </td>
+            <td>
+                Convenience method that returns the HTML Event object for the given
+                argument, which can be the event itself or undefined, since IE
+                doesn't pass the event object to event handlers.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getMousePosition(event)
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the position of the mouse during the given event, relative to the document.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getMouseScroll(event)
+            </td>
+            <td>
+                Number
+            </td>
+            <td>
+                Returns the amount the mouse wheel was scrolled during the given event, normalized
+                between -1 and 1.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getPageScroll()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the amount that the page is currently scrolled.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getWindowSize()
+            </td>
+            <td>
+                <a href="Seadragon.Point.html" title="Seadragon.Point class">Seadragon.Point</a>
+            </td>
+            <td>
+                Returns the current size of the browser's viewport.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                imageFormatSupported(ext)
+            </td>
+            <td>
+                Boolean
+            </td>
+            <td>
+                Returns true if the browser can natively display images of the given format.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                makeCenteredNode(elmt)
+            </td>
+            <td>
+                HTML Element
+            </td>
+            <td>
+                Returns an HTML element that contains the given HTML node (which
+                can be a text node). The node will be centered both vertically
+                and horizontally when the returned element is placed inside any
+                container. This method ensures vertical centering in IE, whereas
+                the W3C CSS table-cell technique does not. 
+            </td>
+        </tr>
+        <tr>
+            <td>
+                makeNeutralElement(tagName)
+            </td>
+            <td>
+                HTML Element
+            </td>
+            <td>
+                Creates and returns an HTML element for the given tag name.
+                This element has inline style to neutralize any inherited style. 
+            </td>
+        </tr>
+        <tr>
+            <td>
+                makeTransparentImage(src)
+            </td>
+            <td>
+                HTML Element
+            </td>
+            <td>
+                Returns an HTML element for the image at the given URL. This element
+                supports alpha channels used by the PNG format safely. This method
+                should be called to ensure transparency in IE6.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                setElementOpacity(elmt, opacity, usesAlpha?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Sets the opacity of the given element to the given amount, which
+                should be between 0 and 1. Preserves non-alpha filters (e.g.
+                AlphaImageLoader) in IE.<br/>
+                <br/>
+                If usesAlpha is true, adjusts for browsers which do not handle
+                multi-bit alpha channels properly. If the element is a PNG image
+                that uses an alpha channel, or if the element contains such PNG
+                images, usesAlpha should be true. This is not required for GIF
+                images, which use 1-bit alpha channels.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                addEvent(elmt, eventName, handler, useCapture?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Attaches the given handler function to the given element, for the event with the
+                given name (without the "on" prefix). If useCapture is true and the browser is IE,
+                the element begins capturing all mouse events. If useCapture is true and the
+                browser is not IE, the handler is registered for the event's capture phase instead
+                of the event's bubble phase. <sup><a href="#note1">1</a></sup>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                removeEvent(elmt, eventName, handler, useCapture?)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Detaches the given handler function from the given element, for the event with the
+                given name (without the "on" prefix). If useCapture is true and the browser is IE,
+                the element releases capture of mouse events. If useCapture is true and the browser
+                is not IE, the handler for the event's capture phase is removed, instead of for
+                the event's bubble phase. <sup><a href="#note1">1</a></sup>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                cancelEvent(event)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Cancels the given event so that its default action will not be
+                performed by the browser. Note that the event will still continue
+                to propagate up or down the DOM tree unless stopEvent() is called.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                stopEvent(event)
+            </td>
+            <td>
+                -
+            </td>
+            <td>
+                Stops the given event so that it no longer propagates up or down
+                the DOM tree. Note that its default action will still be performed
+                by the browser unless cancelEvent() is called.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                createCallback(object, func, ...)
+            </td>
+            <td>
+                Function
+            </td>
+            <td>
+                Returns a function that calls the given function with the given
+                object as the execution scope. That is, the Javascript keyword
+                <span class="code">this</span> will refer to the given object
+                inside the given function.<br/>
+                <br/>
+                Any additional arguments passed to this function will also be
+                passed to the given function, in addition to arguments passed to
+                the returned function. The additional arguments are concatenated
+                to the previous arguments. For example,
+                <span class="code">Seadragon.Utils.createCallback(null, func, 1, 2, 3)(4, 5)</span>
+                is equivalent to <span class="code">func(1, 2, 3, 4, 5)</span>.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getUrlParameter(key)
+            </td>
+            <td>
+                String
+            </td>
+            <td>
+                Returns the value for the given key in the URL search string, or
+                null if the URL search string includes no such parameter.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                makeAjaxRequest(url, callback?)
+            </td>
+            <td>
+                XMLHttpRequest
+            </td>
+            <td>
+                Makes an AJAX request to the given URL. If a callback function is given, the request
+                is asynchronous, and the XMLHttpRequest object is passed as the sole parameter to
+                the callback upon completion (readyState of 4). Otherwise, the XML is loaded synchronously
+                and the XMLHttpRequest object is returned by this method.<br/>
+                <br/>
+                If there is a security
+                error or any other error in simply creating the request, null is passed or returned.
+                Otherwise, the status property of the XMLHttpRequest object can be used to determine
+                success (status of 200 usually means successful).
+            </td>
+        </tr>
+        <tr>
+            <td>
+                parseXml(string)
+            </td>
+            <td>
+                XML Document
+            </td>
+            <td>
+                Parses the given string into an XML document and returns the Document object. This
+                method is synchronous.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Notes</h2>
+    <ol>
+        <li>
+	        <a name="note1"></a>
+	        <a href="http://msdn.microsoft.com/en-us/library/ms537630(VS.85).aspx" class="external text"
+	            title="MSDN: About Mouse Capture" rel="nofollow">IE's capture model</a>
+	            is entirely different from the
+	        <a href="http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-flow-capture"
+	            class="external text" title="W3C: DOM Events" rel="nofollow">W3C capture model</a>.
+	        Be sure to understand their differences before specifying useCapture to
+	        true in cross-browser scripts. As general rules of thumb, only specify it
+	        for mouse events, and remove the handlers on or before "mouseup" events.
+	        <a href="Seadragon.MouseTracker.html" title="Seadragon.MouseTracker class">Seadragon.MouseTracker</a>
+	        is a good abstraction for this and should be powerful enough for most
+	        useCapture scenarios.
+	    </li>
+    </ol>
+    
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Seadragon.ImageLoader class : Seadragon Ajax Library Documentation</title>
+    <link href="styles.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+    
+    <h1>Seadragon.ImageLoader class</h1>
+    <h4>Version 0.8.9 - Back to <a href="./">Seadragon Ajax Library</a></h4>
+    
+    <h2>Overview</h2>
+    <p>
+        A utility class that manages the asynchronous download of images. The
+        maximum number of concurrent downloads per instance of this class is
+        defined by Seadragon.Config.imageLoaderLimit, and new image download
+        requests are rejected when all "slots" are filled. As images finish
+        downloading, these slots open up.
+    </p>
+    
+    <h2>Constructors</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="signature">
+                Signature
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                Seadragon.ImageLoader()
+            </td>
+            <td>
+                Creates an ImageLoader with all slots empty.
+            </td>
+        </tr>
+    </table>
+    
+    <h2>Methods</h2>
+    <table cellspacing="0">
+        <tr>
+            <th class="nameSignature">
+                Name and Signature
+            </th>
+            <th class="return">
+                Return Type
+            </th>
+            <th class="description">
+                Description
+            </th>
+        </tr>
+        <tr>
+            <td>
+                loadImage(src, callback)
+            </td>
+            <td>
+                Boolean
+            </td>
+            <td>
+                If no image download slots are available, returns false immediately.
+                Otherwise queues an asynchronous download of the image at the given
+                URL and returns true. Once the download is complete, the given
+                callback function is called with the image as the sole argument
+                if the download succeeded, or null if the download failed.
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Copyright &#0169;  Microsoft Corporation. All rights reserved. |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=164943">License</a> |
+        <a href="http://go.microsoft.com/fwlink/?LinkId=74170">Privacy</a>
+    </div>
+</body>
+
+</html>
