@@ -190,15 +190,18 @@ class Loris(object):
 	def on_list_headers(self, request):
 		"""For debugging; should be disabled before going to production
 		"""
-
-		body = '==== Request Headers ====\n'
-		for k in request.headers.keys():
-			body += '%s: %s\n' % (k, request.headers.get(k))
-		body += '\n==== Headers from WSGI ====\n'
-		for k in request.environ:
-			body += '%s: %s\n' % (k, request.environ.get(k))
-		resp = Response(body)
-		resp.mimetype='text/plain'
+		resp=None
+		if not self.test:
+			resp=Response('not allowed', status=403)
+		else:
+			body = '==== Request Headers ====\n'
+			for k in request.headers.keys():
+				body += '%s: %s\n' % (k, request.headers.get(k))
+			body += '\n==== Headers from WSGI ====\n'
+			for k in request.environ:
+				body += '%s: %s\n' % (k, request.environ.get(k))
+			resp = Response(body, status=200)
+			resp.mimetype='text/plain'
 		return resp
 
 	def on_get_favicon(self, request):
@@ -213,7 +216,8 @@ class Loris(object):
 		jp2 = self._resolve_identifier(ident)
 		info = ImgInfo.fromJP2(jp2, ident)
 		t = self.jinja_env.get_template('dz.html')
-		return Response(t.render(img_w=info.width, img_h=info.height), 
+		base=request.environ.get('SCRIPT_NAME')
+		return Response(t.render(base=base, img_w=info.width, img_h=info.height), 
 			mimetype='text/html')
 
 	def on_get_seadragon_png(self, request, ident, img_file):
@@ -487,7 +491,7 @@ class Loris(object):
 		# Could make rotation possible too as long as a parameter didn't screw 
 		# up seajax (untested).
 
-		link_dir = os.path.join(self.cache_root, ident, str(level))
+		link_dir = os.path.join(self.cache_root, ident+'_files', str(level))
 		link_file_name = str(x) + '_' + str(y) + '.jpg'
 		link_path = os.path.join(link_dir, link_file_name)
 		logr.debug('seadragon link_dir: ' + link_dir)
@@ -1154,5 +1158,20 @@ class FormatNotSupportedException(LorisException): pass
 if __name__ == '__main__':
 	'''Run the development server'''
 	from werkzeug.serving import run_simple
-	app = create_app(test=True)
-	run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
+
+	try:
+
+		app = create_app(test=True)
+		cwd = os.path.abspath(os.path.dirname(__file__))
+		extra_files = []
+		extra_files.append(os.path.join(cwd, 'loris.conf'))
+		extra_files.append(os.path.join(cwd, 'html', 'dzi.html'))
+		extra_files.append(os.path.join(cwd, 'html', 'docs.html'))
+
+		run_simple('127.0.0.1', 5000, app, use_debugger=True, 
+			threaded=True,  use_reloader=True, extra_files=extra_files)
+	except Exception, e:
+		stderr.write(e.message)
+		exit(1)
+
+
