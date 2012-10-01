@@ -15,7 +15,7 @@
 from collections import deque
 from datetime import datetime
 from decimal import Decimal, getcontext
-from deepzoom import DeepZoomImageDescriptor
+
 from jinja2 import Environment, FileSystemLoader
 from random import choice
 from string import ascii_lowercase, digits
@@ -27,6 +27,7 @@ from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.wrappers import Request, Response
 from werkzeug.wsgi import SharedDataMiddleware
 import ConfigParser
+import deepzoom
 import logging
 import logging.config
 import os
@@ -544,12 +545,8 @@ class Loris(object):
 				tile_y = int(y * tile_size + y)
 				logr.debug('tile_y: ' + str(tile_y))
 
-				level_width, level_height = dzi_desc.get_dimensions(level)
-				logr.debug('dz_level_width: ' + str(level_width))
-				logr.debug('dz_level_height: ' + str(level_height))
-
 				region_segment=''
-				if any(d < self.dz_tile_size for d in (level_width, level_height)):
+				if any(d < self.dz_tile_size for d in dzi_desc.get_dimensions(level)):
 					region_segment = 'full'
 				else:
 					tile_w = min(tile_size, info.width  - tile_x)
@@ -564,6 +561,7 @@ class Loris(object):
 				logr.debug('###################################')
 
 				region_param = RegionParameter(region_segment)
+
 				# 3. make the image
 				rotation = '0'
 				rotation_param = RotationParameter(rotation)
