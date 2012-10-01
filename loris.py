@@ -12,10 +12,15 @@
 
 """
 
+IMG_API_NS='http://library.stanford.edu/iiif/image-api/ns/'
+COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1'
+HELP='https://github.com/pulibrary/loris/blob/master/README.md'
+FORMATS=['jpg','png']
+
 from collections import deque
 from datetime import datetime
 from decimal import Decimal, getcontext
-
+from deepzoom import DeepZoomImageDescriptor
 from jinja2 import Environment, FileSystemLoader
 from random import choice
 from string import ascii_lowercase, digits
@@ -27,13 +32,13 @@ from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.wrappers import Request, Response
 from werkzeug.wsgi import SharedDataMiddleware
 import ConfigParser
-import deepzoom
 import logging
 import logging.config
 import os
 import struct
 import subprocess
 import urlparse
+import xml.dom.minidom
 
 def create_app(test=False):
 	"""Create an instance of :class: `Loris`
@@ -130,10 +135,8 @@ class Loris(object):
 			exit(1)
 		
 		# compliance and help links
-		compliance_uri = _conf.get('compliance', 'uri')
-		help_uri = _conf.get('compliance', 'help_uri')
-		self.link_hdr = '<' + compliance_uri  + '>;rel=profile,'
-		self.link_hdr += '<' + help_uri + '>;rel=help'
+		self.link_hdr = '<' + COMPLIANCE  + '>;rel=profile,'
+		self.link_hdr += '<' + HELP + '>;rel=help'
 
 		converters = {
 				'region' : RegionConverter,
@@ -505,10 +508,7 @@ class Loris(object):
 		headers.add('Link', self.link_hdr)
 		headers.add('Cache-Control', 'public')
 
-		logr.debug('###########  Deep Zoom  ###########')
-		
 		# check the cache
-		# TODO: make sure following symlinks and file tests on symlinks works!
 		try:
 			if  self.enable_cache == True and os.path.exists(link_path):
 				status = self._check_cache(link_path, request, headers)
@@ -557,8 +557,6 @@ class Loris(object):
 					region_segment = ','.join(map(str, (tile_x, tile_y, tile_w, tile_h)))
 
 				logr.debug('region_segment: ' + region_segment)
-
-				logr.debug('###################################')
 
 				region_param = RegionParameter(region_segment)
 
@@ -1012,8 +1010,7 @@ class ImgInfo(object):
 		self.qualities = []
 		self.native_quality = None
 	
-	# Other fromXXX methods could be defined
-	
+	# Other fromXXX methods could be defined, hence the static constructor
 	@staticmethod
 	def fromJP2(path, img_id):
 		"""
@@ -1022,7 +1019,6 @@ class ImgInfo(object):
 		
 		@see:  http://library.stanford.edu/iiif/image-api/#info
 		"""
-		logr.debug('###########  Image Info  ##########')
 		info = ImgInfo()
 		info.id = img_id
 		info.qualities = ['native', 'bitonal']
@@ -1078,7 +1074,6 @@ class ImgInfo(object):
 			info.levels = int(struct.unpack(">B", jp2.read(1))[0])
 			logr.debug("levels: " + str(info.levels)) 
 		jp2.close()
-		logr.debug('###################################')
 			
 		return info
 	
@@ -1089,29 +1084,65 @@ class ImgInfo(object):
 			raise Exception('Argument to marshal must be \'xml\' or \'json\'')
 
 	def _to_xml(self):
-		# cheap!
-		x = '<?xml version="1.0" encoding="UTF-8"?>' + os.linesep
-		x += '<info xmlns="http://library.stanford.edu/iiif/image-api/ns/">' + os.linesep
-		x += '  <identifier>' + self.id + '</identifier>' + os.linesep
-		x += '  <width>' + str(self.width) + '</width>' + os.linesep
-		x += '  <height>' + str(self.height) + '</height>' + os.linesep
-		x += '  <scale_factors>' + os.linesep
+		doc = xml.dom.minidom.Document()
+		info = doc.createElementNS(IMG_API_NS, 'info')
+		info.setAttribute('xmlns', IMG_API_NS)
+		doc.appendChild(info)
+
+		# identifier
+		identifier = doc.createElementNS(IMG_API_NS, 'identifier')
+		identifier.appendChild(doc.createTextNode(self.id))
+		info.appendChild(identifier)
+
+		# width
+		width = doc.createElementNS(IMG_API_NS, 'width')
+		width.appendChild(doc.createTextNode(str(self.width)))
+		info.appendChild(width)
+
+		# height
+		height = doc.createElementNS(IMG_API_NS, 'height')
+		height.appendChild(doc.createTextNode(str(self.height)))
+		info.appendChild(height)
+
+		# scale_factors
+		scale_factors = doc.createElementNS(IMG_API_NS, 'scale_factors')
 		for s in range(1, self.levels+1):
-			x += '    <scale_factor>' + str(s) + '</scale_factor>' + os.linesep
-		x += '  </scale_factors>' + os.linesep
-		x += '  <tile_width>' + str(self.tile_width) + '</tile_width>' + os.linesep
-		x += '  <tile_height>' + str(self.tile_height) + '</tile_height>' + os.linesep
-		x += '  <formats>' + os.linesep
-		x += '    <format>jpg</format>' + os.linesep
-		x += '    <format>png</format>' + os.linesep
-		x += '  </formats>' + os.linesep
-		x += '  <qualities>' + os.linesep
+			scale_factor = doc.createElementNS(IMG_API_NS, 'scale_factor')
+			scale_factor.appendChild(doc.createTextNode(str(s)))
+			scale_factors.appendChild(scale_factor)
+		info.appendChild(scale_factors)
+
+		# tile_width
+		tile_width = doc.createElementNS(IMG_API_NS, 'tile_width')
+		tile_width.appendChild(doc.createTextNode(str(self.tile_width)))
+		info.appendChild(tile_width)
+
+		# tile_height
+		tile_height = doc.createElementNS(IMG_API_NS, 'tile_height')
+		tile_height.appendChild(doc.createTextNode(str(self.tile_height)))
+		info.appendChild(tile_height)
+
+		# formats
+		formats = doc.createElementNS(IMG_API_NS, 'formats')
+		for f in FORMATS:
+			format = doc.createElementNS(IMG_API_NS, 'format')
+			format.appendChild(doc.createTextNode(f))
+			formats.appendChild(format)
+		info.appendChild(formats)
+
+		# qualities
+		qualities = doc.createElementNS(IMG_API_NS, 'qualities')
 		for q in self.qualities:
-			x += '    <quality>' + q + '</quality>' + os.linesep
-		x += '  </qualities>' + os.linesep
-		x += '  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>' + os.linesep
-		x += '</info>' + os.linesep
-		return x
+			quality = doc.createElementNS(IMG_API_NS, 'quality')
+			quality.appendChild(doc.createTextNode(q))
+			qualities.appendChild(quality)
+		info.appendChild(qualities)
+
+		# profile
+		profile = doc.createElementNS(IMG_API_NS, 'profile')
+		profile.appendChild(doc.createTextNode(COMPLIANCE))
+		info.appendChild(profile)
+		return doc.toxml(encoding='UTF-8')
 	
 	def _to_json(self):
 		# cheaper!
@@ -1124,12 +1155,11 @@ class ImgInfo(object):
 		j += '  "tile_height" : ' + str(self.tile_height) + ', '
 		j += '  "formats" : [ "jpg", "png" ], '
 		j += '  "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
-		j += '  "profile" : "http://library.stanford.edu/iiif/image-api/compliance.html#level1"'
+		j += '  "profile" : "'+COMPLIANCE+'"'
 		j += '}'
 		return j
 
-# This seems easier than http://werkzeug.pocoo.org/docs/exceptions/ because we
-# have this custom XML body.
+
 class LorisException(Exception):
 	def __init__(self, http_status=404, supplied_value='', msg=''):
 		"""
@@ -1139,12 +1169,19 @@ class LorisException(Exception):
 		self.supplied_value = supplied_value
 
 	def to_xml(self):
-		r = '<?xml version="1.0" encoding="UTF-8" ?>\n'
-		r += '<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">\n'
-		r += '  <parameter>' + self.supplied_value  + '</parameter>\n'
-		r += '  <text>' + self.message + '</text>\n'
-		r += '</error>\n'
-		return r
+		doc = xml.dom.minidom.Document()
+		error = doc.createElementNS(IMG_API_NS, 'error')
+		error.setAttribute('xmlns', IMG_API_NS)
+		doc.appendChild(error)
+
+		parameter = doc.createElementNS(IMG_API_NS, 'parameter')
+		parameter.appendChild(doc.createTextNode(self.supplied_value))
+		error.appendChild(parameter)
+
+		text = doc.createElementNS(IMG_API_NS, 'text')
+		text.appendChild(doc.createTextNode(self.message))
+		error.appendChild(text)
+		return doc.toxml(encoding='UTF-8')
 
 class BadRegionSyntaxException(LorisException): pass
 class BadRegionRequestException(LorisException): pass
