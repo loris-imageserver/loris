@@ -13,14 +13,15 @@
 """
 
 IMG_API_NS='http://library.stanford.edu/iiif/image-api/ns/'
-COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1'
+COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1' # all of level2 but jp2!
 HELP='https://github.com/pulibrary/loris/blob/master/README.md'
-FORMATS=['jpg','png']
+FORMATS_SUPPORTED=['jpg','png']
 
 from collections import deque
 from datetime import datetime
 from decimal import Decimal, getcontext
 from deepzoom import DeepZoomImageDescriptor
+from json import load
 from jinja2 import Environment, FileSystemLoader
 from random import choice
 from string import ascii_lowercase, digits
@@ -75,7 +76,7 @@ class Loris(object):
 		"""
 		self.test=test
 
-		# Configuration - Everything else
+		# Configuration
 		_conf = ConfigParser.RawConfigParser()
 		_conf.read(conf_file)
 
@@ -95,8 +96,8 @@ class Loris(object):
 		self.kdu_libs = _conf.get('utilities', 'kdu_libs')
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
-		# deep zoom options are limited at this point. Factoring in
-		# overlap and format may make sense.
+		# deepzoom (Options are limited. Factoring in
+		# overlap and format may make sense at some point.)
 		self.dz_tile_size = _conf.getint('deepzoom', 'tile_size')
 
 		# directories
@@ -168,7 +169,6 @@ class Loris(object):
 		try:
 			endpoint, values = adapter.match()
 			dispatch_to_method = 'on_' + endpoint
-			
 			logr.info('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
 
@@ -196,7 +196,7 @@ class Loris(object):
 		"""
 		resp=None
 		if not self.test:
-			resp=Response('not allowed', status=403)
+			resp = Response('not allowed', status=403)
 		else:
 			body = '==== Request Headers ====\n'
 			for k in request.headers.keys():
@@ -217,12 +217,11 @@ class Loris(object):
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_dz(self, request, ident):
-		jp2 = self._resolve_identifier(ident)
-		info = ImgInfo.fromJP2(jp2, ident)
+		info = self._get_img_info(ident)
 		t = self.jinja_env.get_template('dz.html')
 		base=request.environ.get('SCRIPT_NAME')
-		return Response(t.render(base=base, img_w=info.width, img_h=info.height), 
-			mimetype='text/html')
+		return Response(t.render(base=base, img_w=info.width, 
+			img_h=info.height), mimetype='text/html')
 
 	def on_get_seadragon_png(self, request, ident, img_file):
 		png = os.path.join(self.sd_img_dir, img_file)+'.png'
@@ -257,7 +256,6 @@ class Loris(object):
 			
 			cache_dir = os.path.join(self.cache_root, ident)
 			cache_path = os.path.join(cache_dir, 'info.') + format
-			
 
 			# check the cache
 			if os.path.exists(cache_path) and self.enable_cache == True:
@@ -316,10 +314,8 @@ class Loris(object):
 				status = self._check_cache(cache_path, request, headers)
 				resp = file(cache_path) if status == 200 else None
 			else:
-				# status = 201 if self.use_201 else 200
 				status = 200 # seajax requires this to be a 200 (or browser has to reload)
-				img_path = self._resolve_identifier(ident)
-				info = ImgInfo.fromJP2(img_path, ident)
+				info = self._get_img_info(ident)
 
 				dzid = DeepZoomImageDescriptor(width=info.width, height=info.height, \
 					tile_size=self.dz_tile_size, tile_overlap=0, tile_format='jpg')
@@ -352,7 +348,6 @@ class Loris(object):
 		finally:
 			return Response(resp, status=status, content_type=mime, headers=headers)
 
-
 	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
 		"""
 		Get an image based on the *Parameter objects and values returned by the 
@@ -381,7 +376,6 @@ class Loris(object):
 
 		:returns: Response -- body is either an image, XML (err), or None if 304
 		"""
-
 		resp = None
 		status = None
 		mime = None
@@ -409,8 +403,11 @@ class Loris(object):
 		else:
 			msg = 'The format requested is not supported by this service.'
 			raise FormatNotSupportedException(415, format, msg)
+
 		
-		img_dir = os.path.join(self.cache_root, ident, region.url_value, size.url_value, rotation.url_value)
+
+		img_dir = os.path.join(self.cache_root, ident, region.url_value, 
+			size.url_value, rotation.url_value)
 		img_path = os.path.join(img_dir, quality + '.' + format)
 		logr.debug('img_dir: ' + img_dir)
 		logr.debug('img_path: ' + img_path)
@@ -421,10 +418,12 @@ class Loris(object):
 			resp = file(img_path) if status == 200 else None
 		else:
 			try:
-				if not os.path.exists(img_dir):	
-					os.makedirs(img_dir, 0755)
+				if not os.path.exists(img_dir):	os.makedirs(img_dir, 0755)
 				logr.info('Made directory: ' + img_dir)
-				img_success = self._derive_img_from_jp2(ident, img_path, region, size, rotation, quality, format)
+				
+				img_success = self._derive_img_from_jp2(ident, img_path, region, 
+					size, rotation, quality, format)
+
 				status = 201 if self.use_201 else 200
 				headers.add('Content-Length', os.path.getsize(img_path))
 				headers.add('Last-Modified', http_date()) # now
@@ -435,37 +434,8 @@ class Loris(object):
 				status = e.http_status
 				resp = e.to_xml()
 
-		return Response(resp, status=status, content_type=mime, headers=headers, direct_passthrough=True)
-
-	def _check_cache(self, resource_path, request, headers):
-		"""Check the cache for a resource, update the headers object that we're 
-		passing a reference to, and return the HTTP status that should be 
-		returned.
-
-		:param resource_path: path to a file on the file system
-		:type resource_path: str
-
-		:param request: the current request object
-		:type request: Request
-
-		:param headers: the headers object that will ultimately be returned with the request
-		:type headers: Headers
-		"""
-		last_change = datetime.utcfromtimestamp(os.path.getctime(resource_path))
-		ims_hdr = request.headers.get('If-Modified-Since')
-		ims = parse_date(ims_hdr)
-		if (ims and ims > last_change) or not ims:
-			status = 200
-			# resp = file(img_path)
-			length = length = os.path.getsize(resource_path) 
-			headers.add('Content-Length', length)
-			headers.add('Last-Modified', http_date(last_change))
-			logr.info('Read: ' + resource_path)
-		else:
-			status = 304
-			headers.remove('Content-Type')
-			headers.remove('Cache-Control')
-		return status
+		return Response(resp, status=status, content_type=mime, headers=headers, 
+			direct_passthrough=True)
 
 	def on_get_img_for_seajax(self, request, ident, level, x, y):
 		"""Use the `deepzoom.py` module to make tiles for Seadragon (and 
@@ -515,10 +485,8 @@ class Loris(object):
 				real_path = os.path.realpath(link_path)
 				resp_body = file(real_path) if status == 200 else None
 			else:
-			
 				# 1. calculate the size of the image
-				jp2 = self._resolve_identifier(ident)
-				info = ImgInfo.fromJP2(jp2, ident)
+				info = self._get_img_info(ident)
 				dzi_desc = DeepZoomImageDescriptor(width=info.width, \
 					height=info.height,	tile_size=self.dz_tile_size, \
 					tile_overlap=0, tile_format='jpg')			
@@ -577,7 +545,6 @@ class Loris(object):
 					size_param, \
 					rotation_param, 'native', 'jpg', info)
 
-				
 				status = 201 if self.use_201 else 200
 				headers.add('Content-Length', os.path.getsize(img_path))
 				headers.add('Last-Modified', http_date()) # now
@@ -598,21 +565,45 @@ class Loris(object):
 		finally:
 			return Response(resp_body, content_type=mime, status=status, headers=headers)
 
+	def _check_cache(self, resource_path, request, headers):
+		"""Check the cache for a resource, update the headers object that we're 
+		passing a reference to, and return the HTTP status that should be 
+		returned.
+
+		:param resource_path: path to a file on the file system
+		:type resource_path: str
+
+		:param request: the current request object
+		:type request: Request
+
+		:param headers: the headers object that will ultimately be returned with the request
+		:type headers: Headers
+		"""
+		last_change = datetime.utcfromtimestamp(os.path.getctime(resource_path))
+		ims_hdr = request.headers.get('If-Modified-Since')
+		ims = parse_date(ims_hdr)
+		if (ims and ims > last_change) or not ims:
+			status = 200
+			# resp = file(img_path)
+			length = length = os.path.getsize(resource_path) 
+			headers.add('Content-Length', length)
+			headers.add('Last-Modified', http_date(last_change))
+			logr.info('Read: ' + resource_path)
+		else:
+			status = 304
+			headers.remove('Content-Type')
+			headers.remove('Cache-Control')
+		return status
+
 	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, quality, format, info=None):
 		"""
 		out_path is the output path
 		"""
 		try:
 			fifo_path = ''
-			# We may not want to read this from the file every time, though 
-			# it is pretty fast. Runtime cache? In memory dicts and Shelve/
-			# pickle are not thread safe for writing (and probably wouldn't
-			# scale anyway)
-			# ZODB? : http://www.zodb.org/
-			# Kyoto Cabinet? : http://fallabs.com/kyotocabinet/
 			jp2 = self._resolve_identifier(ident)
-			info = ImgInfo.fromJP2(jp2, ident) if info is None else info
-			
+			info = self._get_img_info(ident) if info is None else info
+		
 			# Do some checking early to avoid starting to build the shell 
 			# outs
 			if quality not in info.qualities:
@@ -642,7 +633,7 @@ class Loris(object):
 			# use cjpeg for jpegs, and so on.
 
 			# Make a named pipe for the temporary bitmap
-			fifo_path = os.path.join(self.tmp_dir, self.random_str(10) + '.bmp')
+			fifo_path = os.path.join(self.tmp_dir, self._random_str(10) + '.bmp')
 			mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
 			
 			logr.debug('Calling ' + mkfifo_call)
@@ -728,9 +719,30 @@ class Loris(object):
 		"""
 		return os.path.join(self.src_images_root, ident + '.jp2')
 
-	def random_str(self, size):
+	def _random_str(self, size):
 		chars = ascii_lowercase + digits
 		return ''.join(choice(chars) for x in range(size))
+
+	def _get_img_info(self, ident):
+
+		cache_dir = os.path.join(self.cache_root, ident)
+		cache_path = os.path.join(cache_dir, 'info.json')
+
+		info = None
+		if os.path.exists(cache_path):
+			info = ImgInfo.unmarshal(cache_path)
+		else:
+			jp2 = self._resolve_identifier(ident)
+			info = ImgInfo.fromJP2(jp2, ident)
+			
+			if self.enable_cache:
+				if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
+				f = open(cache_path, 'w')
+				f.write(info.marshal('json'))
+				f.close()
+				logr.info('Created: ' + cache_path)
+		
+		return info
 
 	def wsgi_app(self, environ, start_response):
 		request = Request(environ)
@@ -857,7 +869,6 @@ class RegionParameter(object):
 			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
 			logr.debug('kdu region parameter: ' + cmd)
 		return cmd
-	
 
 class SizeConverter(BaseConverter):
 	"""
@@ -1001,7 +1012,7 @@ class RotationParameter(object):
 
 class ImgInfo(object):
 	def __init__(self):
-		self.id = id
+		self.id = None
 		self.width = None
 		self.height = None
 		self.tile_width = None
@@ -1028,7 +1039,7 @@ class ImgInfo(object):
 
 		# Figure out color or greyscale. 
 		# Depending color profiles; there's probably a better way (or more than
-		# one anyway.)
+		# one, anyway.)
 		# see: JP2 I.5.3.3 Colour Specification box
 		window =  deque([], 4)
 		while ''.join(window) != 'colr':
@@ -1083,6 +1094,37 @@ class ImgInfo(object):
 		else:
 			raise Exception('Argument to marshal must be \'xml\' or \'json\'')
 
+	@staticmethod
+	def unmarshal(path):
+		"""Contruct an instance from an existing file.
+
+		:param path: the path to a JSON or XML file.
+		:type path: str.
+		"""
+		info = ImgInfo()
+		if path.endswith('.json'):
+			try:
+				f = open(path, 'r')
+				j = load(f)
+				logr.debug(j.get(u'identifier'))
+				info.id = j.get(u'identifier')
+				info.width = j.get(u'width')
+				info.height = j.get(u'height')
+				info.scale_factors = j.get(u'scale_factors')
+				info.tile_width = j.get(u'tile_width')
+				info.tile_height = j.get(u'tile_height')
+				info.formats = j.get(u'formats')
+				info.qualities = j.get(u'qualities')
+			finally:
+				f.close()
+		elif path.endswith('.xml'):
+			# TODO!
+			pass
+		else:
+			msg = 'Path passed to unmarshal does not contain XML or JSON' 
+			raise Exception(msg)
+		return info
+
 	def _to_xml(self):
 		doc = xml.dom.minidom.Document()
 		info = doc.createElementNS(IMG_API_NS, 'info')
@@ -1124,7 +1166,7 @@ class ImgInfo(object):
 
 		# formats
 		formats = doc.createElementNS(IMG_API_NS, 'formats')
-		for f in FORMATS:
+		for f in FORMATS_SUPPORTED:
 			format = doc.createElementNS(IMG_API_NS, 'format')
 			format.appendChild(doc.createTextNode(f))
 			formats.appendChild(format)
