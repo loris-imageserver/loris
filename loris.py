@@ -912,10 +912,6 @@ class SizeParameter(object):
 				self.mode = 'pct'
 				try:
 					self.pct = float(self.url_value.split(':')[1])
-					if self.pct > 100:
-						msg = 'Percentage supplied is greater than 100. '
-						msg += 'Upsampling is not supported.'
-						raise BadSizeSyntaxException(400, self.url_value, msg)
 					if self.pct <= 0:
 						msg = 'Percentage supplied is less than 0. '
 						raise BadSizeSyntaxException(400, self.url_value, msg)
@@ -969,7 +965,7 @@ class SizeParameter(object):
 			# the presense of ! means that the aspect ratio should be preserved,
 			# to `convert` it means that it should be ignored
 			elif self.w and self.h and not self.force_aspect:
-				cmd +=  str(self.w) + 'x' + str(self.h) + '\>' # Don't upsample. Should this be configurable?
+				cmd +=  str(self.w) + 'x' + str(self.h) #+ '\>'
 			elif self.w and self.h and self.force_aspect:
 				cmd += str(self.w) + 'x' + str(self.h) + '!'
 

@@ -37,7 +37,7 @@ import struct
 import subprocess
 import unittest
 
-
+# helpers
 
 class LorisTest(unittest.TestCase):
 	def setUp(self):
@@ -58,6 +58,43 @@ class LorisTest(unittest.TestCase):
 		for d in listdir(self.app.cache_root):
 			rmtree(path.join(self.app.cache_root, d))
 		rmtree(self.app.cache_root)
+
+	def get_jpeg_dimensions(self, path):
+		"""Get the dimensions of a JPEG
+		"""
+		jpeg = open(path, 'r')
+		jpeg.read(2)
+		b = jpeg.read(1)
+		try:
+			while (b and ord(b) != 0xDA):
+				while (ord(b) != 0xFF): b = jpeg.read(1)
+				while (ord(b) == 0xFF): b = jpeg.read(1)
+			   
+				if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+					jpeg.read(3)
+					h, w = struct.unpack(">HH", jpeg.read(4))
+					break
+				else:
+					jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
+				   
+				b = jpeg.read(1)
+			width = int(w)
+			height = int(h)
+		except Exception, e:
+			raise
+		finally:
+			jpeg.close()
+		return (width, height)
+
+	def _dims_from_uri(self, uri):
+		"""Make a request, save it out, and return the dimensions.
+		"""
+		resp = self.client.get(uri)
+		f_name = path.join(self.app.tmp_dir, 'result.jpg')
+		f = open(f_name, 'w')
+		f.write(resp.data)
+		f.close()
+		return self.get_jpeg_dimensions(f_name)
 
 
 class Test_A_ResolveId(LorisTest):
@@ -289,12 +326,11 @@ class Test_D_SizeParameter(LorisTest):
 		self.assertEqual(size_parameter.pct, expected_pct)
 		self.assertEqual(size_parameter.to_convert_arg(), expected_convert)
 
-	def test_gtlt_100_pct_exception(self):
-		url_segment = 'pct:101'
+	def test_le_0_pct_exception(self):
+		url_segment = 'pct:-0.1'
 		with self.assertRaises(BadSizeSyntaxException):
 			SizeParameter(url_segment)
-
-		url_segment = 'pct:-0.1'
+		url_segment = 'pct:0'
 		with self.assertRaises(BadSizeSyntaxException):
 			SizeParameter(url_segment)
 
@@ -339,7 +375,7 @@ class Test_D_SizeParameter(LorisTest):
 		expected_mode = 'pixel'
 		expected_width = 500
 		expected_height = 100
-		expected_convert = '-resize 500x100\>'
+		expected_convert = '-resize 500x100'
 		size_parameter = SizeParameter(url_segment)
 		self.assertEqual(size_parameter.w, expected_width)
 		self.assertEqual(size_parameter.h, expected_height)
@@ -524,84 +560,162 @@ class Test_H_Caching(LorisTest):
 	def test_img_caching(self):
 		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
 		resp = self.client.get(url)
-	 	self.assertEquals(resp.status_code, 201)
-	 	self.assertTrue(resp.headers.has_key('last-modified'))
+		self.assertEquals(resp.status_code, 201)
+		self.assertTrue(resp.headers.has_key('last-modified'))
 
-	 	resp = self.client.get(url)
-	 	self.assertEquals(resp.status_code, 200)
-	 	self.assertTrue(resp.headers.has_key('last-modified'))
+		resp = self.client.get(url)
+		self.assertEquals(resp.status_code, 200)
+		self.assertTrue(resp.headers.has_key('last-modified'))
 
-	 	headers = Headers()
-	 	yesterday = http_date(datetime.utcnow() - timedelta(days=1))
-	 	headers.add('if-modified-since', yesterday)
-	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 304)
+		headers = Headers()
+		yesterday = http_date(datetime.utcnow() - timedelta(days=1))
+		headers.add('if-modified-since', yesterday)
+		resp = self.client.get(url, headers=headers)
+		self.assertEquals(resp.status_code, 304)
 
-	 	headers.clear()
-	 	tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
-	 	headers.add('if-modified-since', tomorrow)
-	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 200)
+		headers.clear()
+		tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
+		headers.add('if-modified-since', tomorrow)
+		resp = self.client.get(url, headers=headers)
+		self.assertEquals(resp.status_code, 200)
 
 
 	def test_info_caching(self):
 		url = '/pudl0033/2008/0132/00000001/info.json'
 		# get once
-	 	resp = self.client.get(url)
-	 	self.assertEquals(resp.status_code, 201)
-	 	self.assertTrue(resp.headers.has_key('last-modified'))
+		resp = self.client.get(url)
+		self.assertEquals(resp.status_code, 201)
+		self.assertTrue(resp.headers.has_key('last-modified'))
 
-	 	# get again
-	 	resp = self.client.get(url)
-	 	self.assertEquals(resp.status_code, 200)
-	 	self.assertTrue(resp.headers.has_key('last-modified'))
+		# get again
+		resp = self.client.get(url)
+		self.assertEquals(resp.status_code, 200)
+		self.assertTrue(resp.headers.has_key('last-modified'))
 
-	 	headers = Headers()
-	 	yesterday = http_date(datetime.utcnow() - timedelta(days=1))
-	 	headers.add('if-modified-since', yesterday)
-	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 304)
+		headers = Headers()
+		yesterday = http_date(datetime.utcnow() - timedelta(days=1))
+		headers.add('if-modified-since', yesterday)
+		resp = self.client.get(url, headers=headers)
+		self.assertEquals(resp.status_code, 304)
 
-	 	headers.clear()
-	 	tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
-	 	headers.add('if-modified-since', tomorrow)
-	 	resp = self.client.get(url, headers=headers)
-	 	self.assertEquals(resp.status_code, 200)
+		headers.clear()
+		tomorrow = http_date(datetime.utcnow() + timedelta(days=1))
+		headers.add('if-modified-since', tomorrow)
+		resp = self.client.get(url, headers=headers)
+		self.assertEquals(resp.status_code, 200)
 
 class Test_I_ResultantImg(LorisTest):
 	"""Here we make requests and assertions about the resultant image's size.
 	"""
+	def test_full_full(self):
+		dims = (2717,3600)
+		uri = '/' + self.test_jp2_id + '/full/full/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
 
-	@staticmethod
-	def get_jpeg_dimensions(path):
-	   jpeg = open(path, 'r')
-	   jpeg.read(2)
-	   b = jpeg.read(1)
-	   try:
-		   while (b and ord(b) != 0xDA):
-			   while (ord(b) != 0xFF): b = jpeg.read(1)
-			   while (ord(b) == 0xFF): b = jpeg.read(1)
-			   
-			   if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-				   jpeg.read(3)
-				   h, w = struct.unpack(">HH", jpeg.read(4))
-				   break
-			   else:
-				   jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-				   
-			   b = jpeg.read(1)
-		   width = int(w)
-		   height = int(h)
-	   except struct.error:
-		   pass
-	   except ValueError:
-		   pass
-	   finally:
-		   jpeg.close()
-	   return (width, height)
+	def test_full_100_w(self):
+		dims = (100,132)
+		uri = '/' + self.test_jp2_id + '/full/100,/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
 
-	@staticmethod
-	def tile_gen(img_width, img_height, tile_size):
+	def test_full_100_h(self):
+		dims = (75,100)
+		uri = '/' + self.test_jp2_id + '/full/,100/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_full_pct50(self):
+		dims = (1359,1800)
+		uri = '/' + self.test_jp2_id + '/full/pct:50/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_full_150_75(self):
+		dims = (150,75)
+		uri = '/' + self.test_jp2_id + '/full/150,75/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_full_150_75_preserved(self):
+		dims = (57,75)
+		uri = '/' + self.test_jp2_id + '/full/!150,75/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_full(self):
+		dims = (100,200)
+		uri = '/' + self.test_jp2_id + '/10,10,100,200/full/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_100_w(self):
+		dims = (100,167)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/100,/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_100_h(self):
+		dims = (60,100)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/,100/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_pct50(self):
+		dims = (75,125)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/pct:50/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_150_75(self):
+		dims = (150,75)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/150,75/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_150_75_preserve(self):
+		dims = (45,75)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/!150,75/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_full_upsample(self):
+		dims = (2989, 3960)
+		uri = '/' + self.test_jp2_id + '/full/pct:110/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_full_upsample_w(self):
+		dims = (2989, 3960)
+		uri = '/' + self.test_jp2_id + '/full/2989,/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_full_upsample_h(self):
+		dims = (2989, 3960)
+		uri = '/' + self.test_jp2_id + '/full/,3960/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_upsample(self):
+		dims = (165, 275)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/pct:110/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_upsample_w(self):
+		dims = (165, 275)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/165,/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_region_upsample_h(self):
+		dims = (165, 275)
+		uri = '/' + self.test_jp2_id + '/10,10,150,250/,275/0/native.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def tile_gen(self, img_width, img_height, tile_size):
 		"""Generates two-tuples:
 		[0]: a string in the IIIF region request format, i.e. 'x,y,w,h'.
 		[1]: a two-tuple with the expected actual resultant image width and height,
@@ -638,14 +752,14 @@ class Test_I_ResultantImg(LorisTest):
 		test_sizes = [256,512,1024,2048]
 		f_name = ''
 		for size in test_sizes:
-			for tile in Test_I_ResultantImg.tile_gen(info.width, info.height, size):
+			for tile in self.tile_gen(info.width, info.height, size):
 				uri = '/' + self.test_jp2_1_id + '/' + tile[0] + '/full/0/native.jpg'
 				resp = self.client.get(uri)
 				f_name = path.join(self.app.tmp_dir, 'result.jpg')
 				f = open(f_name, 'w')
 				f.write(resp.data)
 				f.close()
-				dims = Test_I_ResultantImg.get_jpeg_dimensions(f_name)
+				dims = self.get_jpeg_dimensions(f_name)
 				self.assertEquals(dims, tile[1])
 		remove(f_name)
 
@@ -667,8 +781,18 @@ class Test_J_SeaDragonExtension(LorisTest):
 		self.assertEqual(sE.getAttribute('Height'), '3600')
 		self.assertEqual(sE.getAttribute('Width'), '2717')
 
-	def test_dzi_tile_scaling(self):
-		pass
+	# one where we have tiles
+	def test_dzi_tile_scaling_tiled_size(self):
+		dims = (self.app.dz_tile_size, self.app.dz_tile_size)
+		uri = '/' + self.test_jp2_id + '_files/9/0_0.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
+
+	def test_dzi_tile_scaling_not_tiled_size(self):
+		dims = (170,225)
+		uri = '/' + self.test_jp2_id + '_files/8/0_0.jpg'
+		result_dims = self._dims_from_uri(uri)
+		self.assertEquals(result_dims, dims)
 
 
 
