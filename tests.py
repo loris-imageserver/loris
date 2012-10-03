@@ -569,10 +569,7 @@ class Test_H_Caching(LorisTest):
 	 	self.assertEquals(resp.status_code, 200)
 
 class Test_I_ResultantImg(LorisTest):
-	"""Here we make a table of tiles (left to right, top to bottom) at various 
-	request sizes and check the actual size of each tile. If an image is off
-	by one or two pixels, it's likely a decimal precision issue (which can be 
-	increased in the conf file). Otherwise it's something else.
+	"""Here we make requests and assertions about the resultant image's size.
 	"""
 
 	@staticmethod
@@ -628,11 +625,17 @@ class Test_I_ResultantImg(LorisTest):
 			y += tile_size + 1
 			cy += 1
 
+
 	def test_region_precision(self):
+		"""Make a table of tiles (left to right, top to bottom) at various 
+		request sizes and check the actual size of each tile. If an image is off
+		by one or two pixels, it's likely a decimal precision issue (which can be 
+		increased in the conf file). Otherwise it's something else.
+		"""
 		ident = self.test_jp2_1_id
 		jp2 = self.app._resolve_identifier(ident)
 		info = ImgInfo.fromJP2(jp2, ident)
-		test_sizes = [256,1024]
+		test_sizes = [256,512,1024,2048]
 		f_name = ''
 		for size in test_sizes:
 			for tile in Test_I_ResultantImg.tile_gen(info.width, info.height, size):
