@@ -504,22 +504,30 @@ class Test_G_ContentNegotiation(LorisTest):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 
-		headers.clear()
 		headers.add('accept', 'text/json')
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 
-		# These last two fail (by asking for txt), and we get back a 415 and a 
-		# message as XML
+
+	def test_info_default(self):
+		"""Asking for unsupported or no format returns the default"""
+		headers = Headers()
+		
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
-		self.assertEqual(resp.status_code, 415)
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
+		self.assertTrue(resp.status_code in (200, 201))
 
 		headers.clear()
 		headers.add('accept', 'text/plain')
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
-		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
-		self.assertEqual(resp.status_code, 415)
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
+		self.assertTrue(resp.status_code in (200, 201))
+
+		headers.clear()
+		resp = self.client.get('/pudl0001/4609321/s42/00000004/info')
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
+		self.assertTrue(resp.status_code in (200, 201))
+
 
 	def test_img(self):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jpg')

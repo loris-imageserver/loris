@@ -10,10 +10,24 @@
 
 .. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
 
+	Copyright (C) 2012  The Trustees of Princeton University
+
+    This program is free software: you can redistribute it and/or modify it 
+    under the terms of the GNU General Public License as published by the Free 
+    Software Foundation, either version 3 of the License, or (at your option) 
+    any later version.
+
+    This program is distributed in the hope that it will be useful, but WITHOUT 
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+    more details.
+
+    You should have received a copy of the GNU General Public License along 
+    with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 IMG_API_NS='http://library.stanford.edu/iiif/image-api/ns/'
-COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1' # all of level2 but jp2!
+COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1' # all of level2 but -o jp2!
 HELP='https://github.com/pulibrary/loris/blob/master/README.md'
 FORMATS_SUPPORTED=['jpg','png']
 
@@ -42,12 +56,28 @@ import urlparse
 import xml.dom.minidom
 
 def create_app(test=False):
-	"""Create an instance of :class: `Loris`
-	:param test: For unit tests, changes from configured dirs to test dirs.
-	:type test: bool.
+	"""Creates an instance of :class: `Loris`.
+
+	This method should be used by WSGI to create instances of :class: `Loris`, 
+	which implements the WSGI application interface (via `Loris.__call__`),
+	e.g.::
+
+		#!/usr/bin/env python
+
+		import sys; 
+		sys.path.append('/path/to/loris')
+
+		from loris import create_app
+		application = create_app()
+
+	More about how to configure and deploy WSGI applications can be found 
+	here: <http://code.google.com/p/modwsgi/wiki/QuickConfigurationGuide>.
+
+	Args:
+		test (bool): Generally for unit tests, changes from configured dirs to 
+			test dirs.
 	"""
 	global logr
-	global conf_file
 	global host_dir
 	try:
 		# Logging
@@ -57,7 +87,7 @@ def create_app(test=False):
 
 		logr = logging.getLogger('loris_test') if test else logging.getLogger('loris')
 
-		app = Loris(test)
+		app = Loris(conf_file, test)
 		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
 			'/seadragon/js':  os.path.join(host_dir,'seadragon','js')
 		})
@@ -68,15 +98,60 @@ def create_app(test=False):
 
 
 class Loris(object):
-	def __init__(self, test=False):
-		"""The application. Generally these should be instantiated with 
-		:func:`create_app`.
+	"""The application. Generally these should be instantiated with the module
+	function `create_app`.
 
-		:param test: For unit tests, changes from configured dirs to test dirs. 
+	This is the WSGI application interface (see `__call__`).
+
+	Attributes:
+		test (bool): See above.
+		decimal_precision (int): The number of decimal places to use when
+			converting pixel-based region requests to decimal numbers (for 
+			kdu shell outs).
+		use_201 (bool): If True the HTTP status code returned when a 
+			resource is created (as opposed to read from the cache) will be 
+			201, otherwise it will be 200 regardless.
+		default_format (str): Default format for image requests when it 
+			cannot be determined from the URI or HTTP Accept header. MUST be
+			'jpg' or 'png'.
+		default_info_format (str): Default format for ifo requests when it 
+			cannot be determined from the URI or HTTP Accept header. MUST be
+			'xml' or 'json'.
+		enable_cache (bool): If True, cache images and marshalled info 
+			objects to 	the file system.
+		convert_cmd (str): Absolute path on the file system to the 
+			ImageMagick `convert` binary.
+		mkfifo_cmd (str): Absolute path on the file system to the 
+			`mkfifo` utility.
+		kdu_expand_cmd (str): Absolute path on the file system to the 
+			`kdu_expand` binary.
+		kdu_libs (str): Absolute path on the file system to the directory
+			containing the Kakadu shared object (`.so`) files.
+		rm_cmd (str): Absolute path on the file system to the `rm` utility.
+		dz_tile_size (int): Tile size when making requests using the 
+			SeaDragon syntax (generally 256 or 512).
+		tmp_dir (str): Absolute path to a temporary directory that holds
+			named pipes as part of the image creation process.
+		cache_root (str): Absolute path to the directory that should be 
+			used to cache derived images.
+		src_images_root (str): Absolute path to the directory that contains 
+			the images. Note that this may need to change if a different 
+			resolver to :func:`_resolve_identifier` is implemented.
+	"""
+	def __init__(self, conf_file, test=False):
+		"""Read in the configuration file and calculate attributes.
+
+		Args:
+			conf_file (str): The path to the configiration file.
+
+		Kwargs:
+			test (bool): Primarily for unit tests, changes from configured dirs 
+				to test dirs.
 		"""
 		self.test=test
 
 		# Configuration
+		host_dir = os.path.abspath(os.path.dirname(__file__))
 		_conf = ConfigParser.RawConfigParser()
 		_conf.read(conf_file)
 
@@ -85,8 +160,8 @@ class Loris(object):
 		getcontext().prec = self.decimal_precision
 		self.use_201 = _conf.getboolean('options', 'use_201')
 		self.cache_px_only = _conf.getboolean('options', 'cache_px_only')
-		self.use_415 = _conf.getboolean('options', 'use_415')
 		self.default_format = _conf.get('options', 'default_format')
+		self.default_info_format = _conf.get('options', 'default_info_format')
 		self.enable_cache = _conf.getboolean('options', 'enable_cache')
 
 		# utilities
@@ -101,13 +176,6 @@ class Loris(object):
 		self.dz_tile_size = _conf.getint('deepzoom', 'tile_size')
 
 		# directories
-		host_dir = os.path.abspath(os.path.dirname(__file__))
-		self.html_dir = os.path.join(host_dir, 'html')
-		self.sd_img_dir = os.path.join(host_dir, 'seadragon','img')
-		
-		loader = FileSystemLoader(self.html_dir)
-		self.jinja_env = Environment(loader=loader, autoescape=True)
-
 		self.tmp_dir = ''
 		self.cache_root = ''
 		self.src_images_root = ''
@@ -135,17 +203,22 @@ class Loris(object):
 			logr.fatal(msg)
 			exit(1)
 		
+		self._html_dir = os.path.join(host_dir, 'html')
+		self._sd_img_dir = os.path.join(host_dir, 'seadragon','img')
+		
+		_loader = FileSystemLoader(self._html_dir)
+		self._jinja_env = Environment(loader=_loader, autoescape=True)
+		
 		# compliance and help links
-		self.link_hdr = '<' + COMPLIANCE  + '>;rel=profile,'
-		self.link_hdr += '<' + HELP + '>;rel=help'
+		self._link_hdr = '<' + COMPLIANCE  + '>;rel=profile,'
+		self._link_hdr += '<' + HELP + '>;rel=help'
 
-		converters = {
+		_converters = {
 				'region' : RegionConverter,
 				'size' : SizeConverter,
 				'rotation' : RotationConverter
 			}
-		self.url_map = Map([
-
+		self._url_map = Map([
 			Rule('/<path:ident>/info.<format>', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/info', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
@@ -157,15 +230,25 @@ class Loris(object):
 			Rule('/', endpoint='get_docs'),
 			Rule('/_headers', endpoint='list_headers'), # for debguging
 			Rule('/favicon.ico', endpoint='get_favicon')
-		], converters=converters)
+		], converters=_converters)
 	
-	def dispatch_request(self, request):
-		"""
-		Dispatch the request to the proper method. By convention, the endpoint,
-		(i.e. the method to be called) is named 'on_<method>'.
-		"""
+	def _dispatch_request(self, request):
+		"""Dispatch the request to the proper method. 
 
-		adapter = self.url_map.bind_to_environ(request.environ)
+		By convention, the endpoint, (i.e. the method to be called) is named 
+		'on_<method>', e.g. `on_get_img_metadata`, `on_get_img`,etc. These all 
+		must return Response objects.
+
+		Args:
+			request (Request): The client's request.
+
+		Returns:
+			Response. Varies based on the method to which the `request` was 
+			routed, but even Exceptions should result in an Response with an
+			XML body. See IIIF 6.2 Error Conditions 
+			<http://www-sul.stanford.edu/iiif/image-api/#error>.
+		"""
+		adapter = self._url_map.bind_to_environ(request.environ)
 		try:
 			endpoint, values = adapter.match()
 			dispatch_to_method = 'on_' + endpoint
@@ -179,7 +262,7 @@ class Loris(object):
 			status = e.http_status
 			resp = e.to_xml()
 			headers = Headers()
-			headers.add('Link', self.link_hdr)
+			headers.add('Link', self._link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 		except Exception, e:
@@ -188,11 +271,19 @@ class Loris(object):
 			status = pe.http_status
 			resp = pe.to_xml()
 			headers = Headers()
-			headers.add('Link', self.link_hdr)
+			headers.add('Link', self._link_hdr)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def on_list_headers(self, request):
-		"""For debugging; should be disabled before going to production
+		"""Lists Request Headers and WSGI Environment keys/values.
+
+		This only works in test mode. 
+
+		Args:
+			request (Request): The client's request.
+
+		Returns:
+			Response. Just a plain text list of k/v pairs.
 		"""
 		resp=None
 		if not self.test:
@@ -209,22 +300,22 @@ class Loris(object):
 		return resp
 
 	def on_get_favicon(self, request):
-		f = os.path.join(host_dir, 'favicon.ico')
+		f = os.path.join(host_dir, 'icons', 'favicon.ico')
 		return Response(f, content_type='image/x-icon')
 	
 	def on_get_docs(self, request):
-		docs = os.path.join(self.html_dir, 'docs.html')
+		docs = os.path.join(self._html_dir, 'docs.html')
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_dz(self, request, ident):
 		info = self._get_img_info(ident)
-		t = self.jinja_env.get_template('dz.html')
-		base=request.environ.get('SCRIPT_NAME')
+		t = self._jinja_env.get_template('dz.html')
+		base = request.environ.get('SCRIPT_NAME')
 		return Response(t.render(base=base, img_w=info.width, 
 			img_h=info.height), mimetype='text/html')
 
 	def on_get_seadragon_png(self, request, ident, img_file):
-		png = os.path.join(self.sd_img_dir, img_file)+'.png'
+		png = os.path.join(self._sd_img_dir, img_file)+'.png'
 		return Response(file(png), mimetype='image/png')
 
 	def on_get_img_metadata(self, request, ident, format=None):
@@ -232,7 +323,7 @@ class Loris(object):
 		status = None
 		mime = None
 		headers = Headers()
-		headers.add('Link', self.link_hdr)
+		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
 		try:
@@ -244,9 +335,10 @@ class Loris(object):
 			elif request.headers.get('accept') == 'text/xml':
 				format = 'xml'
 				mime = 'text/xml'
-			else:
-				msg = 'Only XML or json are available'
-				raise FormatNotSupportedException(415, format, msg)
+			else: # format is None: 
+				format = self.default_info_format
+				mime = 'text/json' if format == 'json' else 'text/xml'
+
 				
 			img_path = self._resolve_identifier(ident)
 			
@@ -302,7 +394,7 @@ class Loris(object):
 		status = None
 		mime = 'text/xml'
 		headers = Headers()
-		headers.add('Link', self.link_hdr)
+		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
 		try:
@@ -380,16 +472,12 @@ class Loris(object):
 		status = None
 		mime = None
 		headers = Headers()
-		headers.add('Link', self.link_hdr)
+		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
 		# Support accept headers and poor-man's conneg by file extension. 
-		# By configuration we allow either a default format, or the option
-		# to return a 415 if neither a file extension or Accept header are 
-		# supplied.
+		# By configuration we allow either a default format.
 		# Cf. 4.5: ... If the format is not specified in the URI ....
-		if not format and not self.use_415:	format = self.default_format
-
 		if format == 'jpg':	
 			mime = 'image/jpeg'
 		elif format == 'png': 
@@ -400,11 +488,9 @@ class Loris(object):
 		elif request.headers.get('accept') == 'image/png':
 			format = 'png'
 			mime = 'image/png'
-		else:
-			msg = 'The format requested is not supported by this service.'
-			raise FormatNotSupportedException(415, format, msg)
-
-		
+		else: #format is None 
+			format = self.default_format
+			mime = 'image/jpeg' if format == 'jpg' else 'image/png'
 
 		img_dir = os.path.join(self.cache_root, ident, region.url_value, 
 			size.url_value, rotation.url_value)
@@ -475,7 +561,7 @@ class Loris(object):
 		status = None
 		mime = 'image/jpeg'
 		headers = Headers()
-		headers.add('Link', self.link_hdr)
+		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
 		# check the cache
@@ -746,7 +832,7 @@ class Loris(object):
 
 	def wsgi_app(self, environ, start_response):
 		request = Request(environ)
-		response = self.dispatch_request(request)
+		response = self._dispatch_request(request)
 		return response(environ, start_response)
 
 	def __call__(self, environ, start_response):
@@ -1226,7 +1312,6 @@ class BadRegionRequestException(LorisException): pass
 class BadSizeSyntaxException(LorisException): pass
 class BadSizeRequestException(LorisException): pass
 class BadRotationSyntaxException(LorisException): pass
-class FormatNotSupportedException(LorisException): pass
 
 if __name__ == '__main__':
 	'''Run the development server'''

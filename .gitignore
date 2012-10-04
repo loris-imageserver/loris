@@ -3,6 +3,10 @@ dev_cache/
 
 *.pyc
 
+*.save
+
+*.swp
+
 *.wsgi
 
 scratch.py
