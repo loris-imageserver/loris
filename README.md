@@ -74,12 +74,12 @@ src_img_root = /path/to/loris/test_img
 
 Restart Apache.  
 Point your browser here to make sure it works with the test image:
-[http://your_server/loris/test/info.xml](http://your_server/loris/test/info.xml)
+http://your_server/loris/pudl0001/4609321/s42/00000004/info.xml
 
 To see the full JP2 image as a jpg:
 http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
 
-[More on URL syntax] [2] is available via the spec.
+[More on URL syntax][2] is available via the spec.
 
 
 Tests
@@ -109,22 +109,23 @@ the content negotiation and rendering could be put in place and tested.
 
 Resolving Identifiers
 ---------------------
-The method for resolving identifiers to images is about as simple as it could 
-be. In a request that looks like this 
+It is up to you to implmenent a function that resolves identifiers to file 
+system paths. See `resolver.py` for details.
 
-    http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+The default method for resolving identifiers to images is about as simple as it 
+could be. In a request that looks like this 
+
+    http://example.edu/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
 
 The portion between the path the to service on the host server and the region, 
 (excluding leading and trailings `/`s), i.e.:
 
-    http://example.com/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+    http://example.edu/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
                               \_______________/
 
-will be joined to the `src_img_root` property, and have `.jp2` appended. So if
+will be joined to the `SRC_IMG_ROOT` constant, and have `.jp2` appended. So if
 
-    [directories]
-    ...
-    src_img_root=/usr/local/share/images
+    SRC_IMG_ROOT=/usr/local/share/images
 
 then this file must exist:
 
@@ -153,23 +154,21 @@ Please read through `loris.conf`. Properties and options are explained there.
 
 Logging
 -------
-Logging is set up in `loris.conf` and is extremely loud by default. Then 
+Logging is set up in `loris.conf` and is extremely loud by default. The 
 handlers configured near the bottom of that file control the levels and 
 directories. The directories must exist and be writable.
 
 The Name
 --------
 Could stand for __Lightweight Open Repository Image Server__ or not. Thanks to
-[shaune](https://github.com/sdellis "Shaun Ellis") for coming up with it.
+[shaune](https://github.com/sdellis "Shaun Ellis") for coming up with it and 
+the icon.
 
 IIIF 1.0 Compliance
 -------------------
 Loris aims to be [IIIF Level] [4] 1 compliant, with all of the Level 2 
 Region, Size, and Rotation parameters and features supported. The easiest way 
-to understand the request [URL syntax] [2] is to read the spec.
-
-There are some configuration options that could break compliance, 
-(specifically, see use_415 and use_201 in `loris.conf`)
+to understand the request [URI syntax] [2] is to read the spec.
 
 <table>
   <tbody>
