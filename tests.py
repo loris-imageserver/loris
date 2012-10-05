@@ -33,6 +33,7 @@ from werkzeug.http import http_date, parse_date
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
 from xml.dom.minidom import parseString
+from resolver import resolve
 import struct
 import subprocess
 import unittest
@@ -102,9 +103,8 @@ class Test_A_ResolveId(LorisTest):
 	"""
 
 	def test_loris_resolve_id(self):
-		abs_path = path.abspath(path.dirname(__file__))
 		expected_path = path.join(self.test_img_dir, self.test_jp2_id  + '.jp2')
-		resolved_path = self.app._resolve_identifier(self.test_jp2_id)
+		resolved_path = resolve(self.test_jp2_id)
 		self.assertEqual(expected_path, resolved_path)
 		self.assertTrue(path.isfile(resolved_path))
 
@@ -113,7 +113,7 @@ class Test_B_InfoExtraction(LorisTest):
 	"""
 	
 	def test_img_info(self):
-		img = self.app._resolve_identifier(self.test_jp2_id)
+		img = resolve(self.test_jp2_id)
 		info = ImgInfo.fromJP2(img, self.test_jp2_id)
 
 		self.assertEqual(info.width, 2717)

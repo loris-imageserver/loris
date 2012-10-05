@@ -50,6 +50,7 @@ import ConfigParser
 import logging
 import logging.config
 import os
+from resolver import resolve
 import struct
 import subprocess
 import urlparse
@@ -131,8 +132,6 @@ class Loris(object):
 			SeaDragon syntax (generally 256 or 512).
 		tmp_dir (str): Absolute path to a temporary directory that holds
 			named pipes as part of the image creation process.
-		cache_root (str): Absolute path to the directory that should be 
-			used to cache derived images.
 		src_images_root (str): Absolute path to the directory that contains 
 			the images. Note that this may need to change if a different 
 			resolver to :func:`_resolve_identifier` is implemented.
@@ -793,15 +792,9 @@ class Loris(object):
 				logr.debug('Done (' + rm_fifo_call + ')')
 
 	def _resolve_identifier(self, ident):
+		"""Just wraps the function from the resolver module.
 		"""
-		Given the identifier of an image, resolve it to an actual path. This
-		would need to be overridden to suit different environments.
-		
-		This simple version just prepends a constant path to the identfier
-		supplied, and appends a file extension, resulting in an absolute path 
-		on the filesystem.
-		"""
-		return os.path.join(self.src_images_root, ident + '.jp2')
+		return resolve(ident)
 
 	def _random_str(self, size):
 		chars = ascii_lowercase + digits
