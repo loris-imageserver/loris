@@ -146,6 +146,8 @@ class Loris(object):
 			test (bool): Primarily for unit tests, changes from configured dirs 
 				to test dirs.
 		"""
+		logr.debug('Initializing Loris.')
+
 		self.test=test
 
 		# Configuration
@@ -301,10 +303,23 @@ class Loris(object):
 		return Response(f, content_type='image/x-icon')
 	
 	def on_get_docs(self, request):
+		"""Just so that we have something at the root of the service."""
 		docs = os.path.join(self._html_dir, 'docs.html')
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_dz(self, request, ident):
+		"""Get a simple SeaDragon rendering of the image.
+
+		Tiles are generated on demand! The info is used to help the Jinja 
+		template make the viewport the correct size.
+
+		Args:
+			request (Request): The client's request.
+			ident (str): The identifier for the image.
+
+		Returns:
+			Response. An HTML Page.
+		"""
 		info = self._get_img_info(ident)
 		t = self._jinja_env.get_template('dz.html')
 		base = request.environ.get('SCRIPT_NAME')
@@ -312,10 +327,40 @@ class Loris(object):
 			img_h=info.height), mimetype='text/html')
 
 	def on_get_seadragon_png(self, request, ident, img_file):
+		"""Gets the pngs that are used by the SeaDragon interface.
+
+		Args:
+			request (Request): The client's request.
+			ident (str): The identifier for the image. (This isn't actually 
+				used, but lets us keep the `_dispatch_request` function 
+				simple.)
+			img_file (str): The name of the image.
+
+		Returns:
+			Response. A png.
+		"""
 		png = os.path.join(self._sd_img_dir, img_file)+'.png'
 		return Response(file(png), mimetype='image/png')
 
 	def on_get_img_metadata(self, request, ident, format=None):
+		"""Exposes image information.
+
+		See <http://www-sul.stanford.edu/iiif/image-api/#info>
+
+		Args:
+			request (Request): The client's request.
+			ident (str): The identifier for the image.
+
+		Kwargs:
+			format (str): 'json', 'xml'. Default is None, in which case we look
+				first at the Accept header, and then the default format set in
+				`loris.conf`.
+
+		Returns:
+			Response. Body is XML or json, depending on the request, None if 
+			304, or XML in the case of an error, per IIIF 6.2
+			<http://www-sul.stanford.edu/iiif/image-api/#error>
+		"""
 		resp = None
 		status = None
 		mime = None
@@ -384,16 +429,29 @@ class Loris(object):
 			resp = pe.to_xml()
 
 		finally:
-			return Response(resp, status=status, content_type=mime, headers=headers)
+			return Response(resp, status=status, content_type=mime, 
+				headers=headers)
 
 	def on_get_deepzoom_desc(self, request, ident):
+		"""Exposes image information in the DZI format.
+
+		See <http://go.microsoft.com/fwlink/?LinkId=164944>
+
+		Args:
+			request (Request): The client's request.
+			ident (str): The identifier for the image.
+
+		Returns:
+			Response. Body is XML. None if 304. Returns XML in the case of an 
+			error, per IIIF 6.2
+			<http://www-sul.stanford.edu/iiif/image-api/#error>
+		"""
 		resp = None
 		status = None
 		mime = 'text/xml'
 		headers = Headers()
 		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
-
 		try:
 			cache_dir = os.path.join(self.cache_root, ident)
 			cache_path = os.path.join(cache_dir,  'sd.xml')
@@ -427,8 +485,12 @@ class Loris(object):
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', length)
 
-		except Exception as e:
-			# should be safe to assume it's the server's fault.
+		except LorisException as e:
+			mime = 'text/xml'
+			status = e.http_status
+			resp = e.to_xml()
+
+		except Exception as e: # Safe to assume it's our fault?
 			pe = LorisException(500, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
@@ -437,33 +499,35 @@ class Loris(object):
 		finally:
 			return Response(resp, status=status, content_type=mime, headers=headers)
 
-	def on_get_img(self, request, ident, region, size, rotation, quality, format=None):
-		"""
-		Get an image based on the *Parameter objects and values returned by the 
+	def on_get_img(self, request, ident, region, size, rotation, quality, 
+			format=None):
+		"""Get an image.
+
+		Most of the arguments are *Parameter objects, returned by the 
 		converters.
 
-		:param request: a werkzeug Request object
-		:type request: Request
+		See <http://www-sul.stanford.edu/iiif/image-api/#parameters>
 
-		:param ident: the image identifier
-		:type ident: str
+		Args:
+			request (Request): The client's request.
+			ident (str): The identifier for the image.
+			region (RegionParameter): Internal representation of the region
+				portion of an IIIF request.
+			size (SizeParameter): Internal representation of the size
+				portion of an IIIF request.
+			rotation (RotationParameter): Internal representation of the 
+				rotation portion of an IIIF request.
+			quality (str): 'native', 'color', 'grey', 'bitonal'
 
-		:param region
-		:type region: RegionParameter
+		Kwargs:
+			format (str): 'jpg' or 'png'. Default is None, in which case we 
+			look first at the Accept header, and then the default format set in
+			`loris.conf`.
 
-		:param size
-		:type size: SizeParameter
-
-		:param rotation: rotation of the image (multiples of 90 for now)
-		:type rotation: RotationParameter
-
-		:param quality: 'native', 'color', 'grey', 'bitonal'
-		:type quality: str
-
-		:param format - 'jpg' or 'png'
-		:type format: str
-
-		:returns: Response -- body is either an image, XML (err), or None if 304
+		Returns:
+			Response. Either an image, None if 304, or XML in the case of an 
+			error, per IIIF 6.2
+			<http://www-sul.stanford.edu/iiif/image-api/#error>
 		"""
 		resp = None
 		status = None
@@ -472,9 +536,6 @@ class Loris(object):
 		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
-		# Support accept headers and poor-man's conneg by file extension. 
-		# By configuration we allow either a default format.
-		# Cf. 4.5: ... If the format is not specified in the URI ....
 		if format == 'jpg':	
 			mime = 'image/jpeg'
 		elif format == 'png': 
@@ -521,29 +582,44 @@ class Loris(object):
 			direct_passthrough=True)
 
 	def on_get_img_for_seajax(self, request, ident, level, x, y):
-		"""Use the `deepzoom.py` module to make tiles for Seadragon (and 
-		optionally cache them and according to IIIF's cache syntax and make
-		symlinks).
+		"""Get an image using SeaDragon's syntax.
+
+		Use the (slightly modified) `deepzoom.py` module to make tiles for 
+		Seadragon (and optionally cache them and according to IIIF's cache 
+		syntax and make	symlinks to the canonical location).
 
 		URLs (and symlinked file paths) look like `/level/x_y.jpg`
 
-		0_0 1_0 2_0 3_0
-		0_1 1_1 2_1 3_1
-		0_2 1_2 2_2 3_2
-		0_3 1_3 2_3 3_3
+		+-----------------+
+		| 0_0 1_0 2_0 3_0 |
+		| 0_1 1_1 2_1 3_1 |
+		| 0_2 1_2 2_2 3_2 |
+		| 0_3 1_3 2_3 3_3 |
+		| 0_4 1_4 2_4 3_4 |
+		| 0_5 1_5 2_5 3_5 |
+		+-----------------+
 
-		:param request: Werkzeug's request object
-		:type request: Request
-		:param ident: the image identifier
-		:type ident: string
-		:param level: seadragon's notion of a zoom level
-		:type level: int
-		:param x: the zero-based index of the tile on the x-axis, starting from upper-left
-		:type x: int
-		:param y: the zero-based index of the tile on the y-axis, starting from upper-left
-		:type y: int
-		:returns: Response -- body is an image if successful, IIIF XML if not.
-		:raises: LorisException
+		See <http://go.microsoft.com/fwlink/?LinkId=164944>
+
+		Args:
+			request (Request): The client's request.
+			ident (str): The identifier for the image.
+			level (int): SeaDragon's notion of a level.
+			x (int): the index of the image on the X axis starting from top 
+				left (see above)
+			y (int): the index of the image on the Y axis starting from top 
+				left (see above)
+			
+
+		Kwargs:
+			format (str): 'jpg' or 'png'. Default is None, in which case we 
+			look first at the Accept header, and then the default format set in
+			`loris.conf`.
+
+		Returns:
+			Response. Either an image, None if 304, or XML in the case of an 
+			error, per IIIF 6.2
+			<http://www-sul.stanford.edu/iiif/image-api/#error>
 		"""
 		# Could make rotation possible too as long as a parameter didn't screw 
 		# up seajax (untested).
@@ -649,18 +725,19 @@ class Loris(object):
 			return Response(resp_body, content_type=mime, status=status, headers=headers)
 
 	def _check_cache(self, resource_path, request, headers):
-		"""Check the cache for a resource, update the headers object that we're 
-		passing a reference to, and return the HTTP status that should be 
-		returned.
+		"""Check the cache for a resource
 
-		:param resource_path: path to a file on the file system
-		:type resource_path: str
+		Updates the headers object that we're passing a reference to, and 
+		return the HTTP status that should be returned.
 
-		:param request: the current request object
-		:type request: Request
+		Args:
+			resource_path (str): Path to the file on the file system.
+			request (Request): The client's request.
+			headers (Headers): The headers object that will ultimately be 
+				returned with the request.
 
-		:param headers: the headers object that will ultimately be returned with the request
-		:type headers: Headers
+		Returns:
+			int. The HTTP status.
 		"""
 		last_change = datetime.utcfromtimestamp(os.path.getctime(resource_path))
 		ims_hdr = request.headers.get('If-Modified-Since')
@@ -678,9 +755,38 @@ class Loris(object):
 			headers.remove('Cache-Control')
 		return status
 
-	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, quality, format, info=None):
-		"""
-		out_path is the output path
+	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, 
+			quality, format, info=None):
+		"""Make an image from a JP2.
+
+		Most of the arguments are *Parameter objects, returned by the 
+		converters. This is where we build and excute our shell outs.
+
+		See <http://www-sul.stanford.edu/iiif/image-api/#parameters>
+
+		Args:
+			ident (str): The identifier for the image.
+			out_path (str): The where to save the image.
+			region (RegionParameter): Internal representation of the region
+				portion of an IIIF request.
+			size (SizeParameter): Internal representation of the size
+				portion of an IIIF request.
+			rotation (RotationParameter): Internal representation of the 
+				rotation portion of an IIIF request.
+			quality (str): 'native', 'color', 'grey', 'bitonal'
+			format (str): 'jpg' or 'png'.
+
+		Kwargs:
+			info (ImgInfo): Default is None, in which case we'll read it in 
+				here, but since some requests may have already read this in
+				elsewhere, earlier in the in the pipe, it can be passed in to 
+				avoid a second read.
+
+		Returns:
+			0 if all is good.
+
+		Raises:
+			LorisException, with a status=500 if anything goes wrong.
 		"""
 		try:
 			fifo_path = ''
@@ -792,15 +898,37 @@ class Loris(object):
 				logr.debug('Done (' + rm_fifo_call + ')')
 
 	def _resolve_identifier(self, ident):
-		"""Just wraps the function from the resolver module.
+		"""Wraps the `resolve` function from the `resolver` module.
+
+		Args:
+			ident (str): The identifier for the image.
+
+		Returns:
+			str. The path to a JP2.
 		"""
 		return resolve(ident)
 
 	def _random_str(self, size):
+		"""Generates a random str of `size` length to help keep our fifos 
+		unique.
+		"""
 		chars = ascii_lowercase + digits
 		return ''.join(choice(chars) for x in range(size))
 
 	def _get_img_info(self, ident):
+		"""Gets the info from an image.
+
+		Tries to read from the cache first.
+
+		Args:
+			ident (str): The identifier for the image.
+
+		Returns:
+			ImgInfo.
+
+		Raises:
+			LorisException. If the ident does not resolve to an image.
+		"""
 
 		cache_dir = os.path.join(self.cache_root, ident)
 		cache_path = os.path.join(cache_dir, 'info.json')
@@ -810,6 +938,9 @@ class Loris(object):
 			info = ImgInfo.unmarshal(cache_path)
 		else:
 			jp2 = self._resolve_identifier(ident)
+			if not os.path.exists(jp2):
+				msg = 'Identifier does not resolve to an image.'
+				raise LorisException(404, ident, msg)
 			info = ImgInfo.fromJP2(jp2, ident)
 			
 			if self.enable_cache:
@@ -830,12 +961,12 @@ class Loris(object):
 		return self.wsgi_app(environ, start_response)
 
 class RegionConverter(BaseConverter):
-	"""
-	Custom converter for the region paramaters as specified.
+	"""Custom converter for the region paramaters as specified.
 	
-	@see http://library.stanford.edu/iiif/image-api/#region
+	See <http://library.stanford.edu/iiif/image-api/#region>
 	
-	@return: A new RegionParameter object.
+	Returns: 
+		RegionParameter
 	
 	"""
 	def __init__(self, url_map):
