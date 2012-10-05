@@ -149,7 +149,6 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(info.id, self.test_jp2_2_id)
 
 	def test_info_json(self):
-		# Do it once, make sure we get a 201
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
 		resp_json = loads(resp.data)
 		self.assertTrue(resp_json.has_key(u'identifier'))
@@ -172,7 +171,6 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
 
 	def test_info_xml(self):
-		# Do it once, make sure we get a 201
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')	
 		#This is parsable
 		dom = parseString(resp.data)
@@ -515,18 +513,18 @@ class Test_G_ContentNegotiation(LorisTest):
 		
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
-		self.assertTrue(resp.status_code in (200, 201))
+		self.assertEquals(resp.status_code, 200)
 
 		headers.clear()
 		headers.add('accept', 'text/plain')
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
-		self.assertTrue(resp.status_code in (200, 201))
+		self.assertEquals(resp.status_code, 200)
 
 		headers.clear()
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info')
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
-		self.assertTrue(resp.status_code in (200, 201))
+		self.assertEquals(resp.status_code, 200)
 
 
 	def test_img(self):
@@ -568,10 +566,6 @@ class Test_H_Caching(LorisTest):
 	def test_img_caching(self):
 		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
 		resp = self.client.get(url)
-		self.assertEquals(resp.status_code, 201)
-		self.assertTrue(resp.headers.has_key('last-modified'))
-
-		resp = self.client.get(url)
 		self.assertEquals(resp.status_code, 200)
 		self.assertTrue(resp.headers.has_key('last-modified'))
 
@@ -590,12 +584,6 @@ class Test_H_Caching(LorisTest):
 
 	def test_info_caching(self):
 		url = '/pudl0033/2008/0132/00000001/info.json'
-		# get once
-		resp = self.client.get(url)
-		self.assertEquals(resp.status_code, 201)
-		self.assertTrue(resp.headers.has_key('last-modified'))
-
-		# get again
 		resp = self.client.get(url)
 		self.assertEquals(resp.status_code, 200)
 		self.assertTrue(resp.headers.has_key('last-modified'))
@@ -775,7 +763,6 @@ class Test_J_SeaDragonExtension(LorisTest):
 	"""Here we test for the Seadragon feature.
 	"""
 	def test_dzi_xml(self):
-		# Do it once, make sure we get a 201
 		resp = self.client.get('/pudl0001/4609321/s42/00000004.xml')
 		dom = parseString(resp.data)
 		# info is the root

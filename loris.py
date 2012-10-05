@@ -108,9 +108,8 @@ class Loris(object):
 		decimal_precision (int): The number of decimal places to use when
 			converting pixel-based region requests to decimal numbers (for 
 			kdu shell outs).
-		use_201 (bool): If True the HTTP status code returned when a 
-			resource is created (as opposed to read from the cache) will be 
-			201, otherwise it will be 200 regardless.
+		cache_px_only (bool): If True pct-based requests will be cached as 
+			though they were pixel-based, thus saving space in the cache.
 		default_format (str): Default format for image requests when it 
 			cannot be determined from the URI or HTTP Accept header. MUST be
 			'jpg' or 'png'.
@@ -158,7 +157,6 @@ class Loris(object):
 		# options
 		self.decimal_precision = _conf.getint('options', 'decimal_precision')
 		getcontext().prec = self.decimal_precision
-		self.use_201 = _conf.getboolean('options', 'use_201')
 		self.cache_px_only = _conf.getboolean('options', 'cache_px_only')
 		self.default_format = _conf.get('options', 'default_format')
 		self.default_info_format = _conf.get('options', 'default_info_format')
@@ -354,7 +352,7 @@ class Loris(object):
 				status = self._check_cache(cache_path, request, headers)
 				resp = file(cache_path) if status == 200 else None
 			else:
-				status = 201 if self.use_201 else 200
+				status = 200
 				info = ImgInfo.fromJP2(img_path, ident)
 				info.id = ident
 				resp = info.marshal(to=format)
@@ -406,7 +404,7 @@ class Loris(object):
 				status = self._check_cache(cache_path, request, headers)
 				resp = file(cache_path) if status == 200 else None
 			else:
-				status = 200 # seajax requires this to be a 200 (or browser has to reload)
+				status = 200
 				info = self._get_img_info(ident)
 
 				dzid = DeepZoomImageDescriptor(width=info.width, height=info.height, \
@@ -510,7 +508,7 @@ class Loris(object):
 				img_success = self._derive_img_from_jp2(ident, img_path, region, 
 					size, rotation, quality, format)
 
-				status = 201 if self.use_201 else 200
+				status = 200
 				headers.add('Content-Length', os.path.getsize(img_path))
 				headers.add('Last-Modified', http_date()) # now
 				resp = file(img_path)
@@ -631,7 +629,7 @@ class Loris(object):
 					size_param, \
 					rotation_param, 'native', 'jpg', info)
 
-				status = 201 if self.use_201 else 200
+				status = 200
 				headers.add('Content-Length', os.path.getsize(img_path))
 				headers.add('Last-Modified', http_date()) # now
 				resp_body = file(img_path)
