@@ -27,7 +27,8 @@
 """
 
 IMG_API_NS='http://library.stanford.edu/iiif/image-api/ns/'
-COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1' # all of level2 but -o jp2!
+COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1'
+ # all of level2 but -o jp2!
 HELP='https://github.com/pulibrary/loris/blob/master/README.md'
 FORMATS_SUPPORTED=['jpg','png']
 
@@ -57,10 +58,10 @@ import urlparse
 import xml.dom.minidom
 
 def create_app(test=False):
-	"""Creates an instance of :class: `Loris`.
+	"""Creates an instance of the `Loris`.
 
-	This method should be used by WSGI to create instances of :class: `Loris`, 
-	which implements the WSGI application interface (via `Loris.__call__`),
+	This method should be used by WSGI to create instances `Loris`, which 
+	in turn implements the WSGI application interface (via `Loris.__call__`),
 	e.g.::
 
 		#!/usr/bin/env python
@@ -433,7 +434,7 @@ class Loris(object):
 				headers=headers)
 
 	def on_get_deepzoom_desc(self, request, ident):
-		"""Exposes image information in the DZI format.
+		"""Exposes image information in the SeaDragon DZI format.
 
 		See <http://go.microsoft.com/fwlink/?LinkId=164944>
 
@@ -464,12 +465,11 @@ class Loris(object):
 				status = 200
 				info = self._get_img_info(ident)
 
-				dzid = DeepZoomImageDescriptor(width=info.width, height=info.height, \
-					tile_size=self.dz_tile_size, tile_overlap=0, tile_format='jpg')
+				dzid = DeepZoomImageDescriptor(width=info.width, 
+					height=info.height, tile_size=self.dz_tile_size, 
+					tile_overlap=0, tile_format='jpg')
 				
 				resp = dzid.marshal()
-
-				length = len(resp)
 
 				if not os.path.exists(cache_dir): 
 					os.makedirs(cache_dir, 0755)
@@ -483,7 +483,7 @@ class Loris(object):
 					logr.info('Created: ' + cache_path)
 
 				headers.add('Last-Modified', http_date())
-				headers.add('Content-Length', length)
+				headers.add('Content-Length', len(resp))
 
 		except LorisException as e:
 			mime = 'text/xml'
@@ -588,16 +588,16 @@ class Loris(object):
 		Seadragon (and optionally cache them and according to IIIF's cache 
 		syntax and make	symlinks to the canonical location).
 
-		URLs (and symlinked file paths) look like `/level/x_y.jpg`
+		URLs (and symlinked file paths) look like `/level/x_y.jpg`::
 
-		+-----------------+
-		| 0_0 1_0 2_0 3_0 |
-		| 0_1 1_1 2_1 3_1 |
-		| 0_2 1_2 2_2 3_2 |
-		| 0_3 1_3 2_3 3_3 |
-		| 0_4 1_4 2_4 3_4 |
-		| 0_5 1_5 2_5 3_5 |
-		+-----------------+
+			+-----------------+
+			| 0_0 1_0 2_0 3_0 |
+			| 0_1 1_1 2_1 3_1 |
+			| 0_2 1_2 2_2 3_2 |
+			| 0_3 1_3 2_3 3_3 |
+			| 0_4 1_4 2_4 3_4 |
+			| 0_5 1_5 2_5 3_5 |
+			+-----------------+
 
 		See <http://go.microsoft.com/fwlink/?LinkId=164944>
 
@@ -609,7 +609,6 @@ class Loris(object):
 				left (see above)
 			y (int): the index of the image on the Y axis starting from top 
 				left (see above)
-			
 
 		Kwargs:
 			format (str): 'jpg' or 'png'. Default is None, in which case we 
@@ -621,11 +620,8 @@ class Loris(object):
 			error, per IIIF 6.2
 			<http://www-sul.stanford.edu/iiif/image-api/#error>
 		"""
-		# Could make rotation possible too as long as a parameter didn't screw 
-		# up seajax (untested).
-
 		link_dir = os.path.join(self.cache_root, ident+'_files', str(level))
-		link_file_name = str(x) + '_' + str(y) + '.jpg'
+		link_file_name = '_'.join(map(str, (x,y))) + '.jpg'
 		link_path = os.path.join(link_dir, link_file_name)
 		logr.debug('seadragon link_dir: ' + link_dir)
 		logr.debug('seadragon link_path: ' + link_path)
@@ -657,13 +653,10 @@ class Loris(object):
 					raise LorisException(400, str(level), e.message)
 
 				# make the size parameter
-				size_pct = 'pct:'+str(scale*100)
+				size_pct = 'pct:' + str(scale*100)
 				size_param = SizeParameter(size_pct)
 
 				# 2. calculate the region (adjusted for size)
-				# We have to compensate for the fact that the source region has 
-				# to be bigger in order to get a result tile that is the correct
-				# size (so we can't use dzi_desc.get_tile_bounds(level, x, y))
 				tile_size = int(dzi_desc.tile_size / scale)
 
 				logr.debug('Adjusted normal tile size: ' + str(tile_size))
@@ -673,7 +666,8 @@ class Loris(object):
 				logr.debug('tile_y: ' + str(tile_y))
 
 				region_segment=''
-				if any(d < self.dz_tile_size for d in dzi_desc.get_dimensions(level)):
+				dims = dzi_desc.get_dimensions(level)
+				if any(d < self.dz_tile_size for d in dims):
 					region_segment = 'full'
 				else:
 					tile_w = min(tile_size, info.width  - tile_x)
@@ -681,7 +675,8 @@ class Loris(object):
 					tile_h = min(tile_size, info.height - tile_y)
 					logr.debug('tile_h: ' + str(tile_h))
 
-					region_segment = ','.join(map(str, (tile_x, tile_y, tile_w, tile_h)))
+					bounds = (tile_x, tile_y, tile_w, tile_h)
+					region_segment = ','.join(map(str, bounds))
 
 				logr.debug('region_segment: ' + region_segment)
 
@@ -722,7 +717,8 @@ class Loris(object):
 				status = e.http_status
 				resp_body = e.to_xml()
 		finally:
-			return Response(resp_body, content_type=mime, status=status, headers=headers)
+			return Response(resp_body, content_type=mime, status=status, 
+				headers=headers)
 
 	def _check_cache(self, resource_path, request, headers):
 		"""Check the cache for a resource
@@ -818,11 +814,11 @@ class Loris(object):
 
 			# Start building and executing commands.
 			# This could get a lot more sophisticated, jp2 levels for 
-			# certain sizes, etc.; different utils for different formats, 
-			# use cjpeg for jpegs, and so on.
+			# certain sizes, different utils for different formats, etc.
 
 			# Make a named pipe for the temporary bitmap
-			fifo_path = os.path.join(self.tmp_dir, self._random_str(10) + '.bmp')
+			bmp_name = self._random_str(10) + '.bmp'
+			fifo_path = os.path.join(self.tmp_dir, bmp_name)
 			mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
 			
 			logr.debug('Calling ' + mkfifo_call)
@@ -837,10 +833,10 @@ class Loris(object):
 			kdu_expand_call += ' ' + region_kdu_arg
 			
 			logr.debug('Calling ' + kdu_expand_call)
-			kdu_expand_proc = subprocess.Popen(kdu_expand_call, \
-				shell=True, \
-				bufsize=-1, \
-				stderr=subprocess.PIPE,\
+			kdu_expand_proc = subprocess.Popen(kdu_expand_call, 
+				shell=True, 
+				bufsize=-1, 
+				stderr=subprocess.PIPE,
 				env={"LD_LIBRARY_PATH" : self.kdu_libs})
 
 			# make and call the convert command
@@ -864,9 +860,9 @@ class Loris(object):
 			convert_call += out_path
 			
 			logr.debug('Calling ' + convert_call)
-			convert_proc = subprocess.Popen(convert_call, \
-				shell=True, \
-				bufsize=-1, \
+			convert_proc = subprocess.Popen(convert_call,
+				shell=True,
+				bufsize=-1,
 				stderr=subprocess.PIPE)
 			
 			convert_exit = convert_proc.wait()
@@ -893,9 +889,7 @@ class Loris(object):
 			# Make and call rm $fifo
 			if os.path.exists(fifo_path):
 				rm_fifo_call = self.rm_cmd + ' ' + fifo_path
-				logr.debug('Calling ' + rm_fifo_call)
 				subprocess.call(rm_fifo_call, shell=True)
-				logr.debug('Done (' + rm_fifo_call + ')')
 
 	def _resolve_identifier(self, ident):
 		"""Wraps the `resolve` function from the `resolver` module.
@@ -961,13 +955,12 @@ class Loris(object):
 		return self.wsgi_app(environ, start_response)
 
 class RegionConverter(BaseConverter):
-	"""Custom converter for the region paramaters as specified.
+	"""Converter for IIIF region paramaters as specified.
 	
 	See <http://library.stanford.edu/iiif/image-api/#region>
 	
 	Returns: 
 		RegionParameter
-	
 	"""
 	def __init__(self, url_map):
 		super(RegionConverter, self).__init__(url_map)
@@ -980,24 +973,33 @@ class RegionConverter(BaseConverter):
 		return str(value)
 
 class RegionParameter(object):
-	"""
-	self.mode is always one of 'full', 'pct', or 'pixel'
+	"""Internal representation of the region slice of an IIIF image URI.
+
+	Attributes:
+		url_value (str): The region slice of the URI.
+		mode (str): One of 'full', 'pct', or 'pixel'
+		x (float)
+		y (float)
+		w (float)
+		h (float)
 	"""
 	def __init__(self, url_value):
-		self.url_value = url_value
-		self.mode = ''
-		self.x, self.y, self.w, self.h = [None, None, None, None]
+		"""Parse the url_value into the object.
 
-		if self.url_value == 'full':
-			self.mode = 'full'
-		else:
+		Args:
+			url_value: The region slice of an IIIF image request URI.
+
+		Raises:
+			BadRegionSyntaxException
+		"""
+		self.url_value = url_value
+		self.x, self.y, self.w, self.h = [None, None, None, None]
+		self.mode = url_value.split(':')[0]
+		if self.mode != 'full':
 			try:
-				if url_value.split(':')[0] == 'pct':
-					self.mode = 'pct'
-					pct_value = url_value.split(':')[1]
-					logr.debug('Percent dimensions request: ' + pct_value)
-					# floats!
-					dimensions = map(float, pct_value.split(','))
+				v = url_value.split(':')[1] if self.mode == 'pct' else url_value
+				dimensions = map(float, v.split(','))
+				if self.mode == 'pct':
 					if any(n > 100.0 for n in dimensions):
 						msg = 'Percentages must be less than or equal to 100.'
 						raise BadRegionSyntaxException(400, url_value, msg)
@@ -1011,13 +1013,6 @@ class RegionParameter(object):
 				else:
 					self.mode = 'pixel'
 					logr.debug('Pixel dimensions request: ' + url_value)
-					
-					try:
-						dimensions = map(int, url_value.split(','))
-					# ints only!
-					except ValueError, v :
-						v.message += ' (Pixel dimensions must be integers.)'
-						raise
 					if any(n <= 0 for n in dimensions[2:]):
 						msg = 'Width and height must be greater than 0'
 						raise BadRegionSyntaxException(400, url_value, msg)
@@ -1030,30 +1025,45 @@ class RegionParameter(object):
 				raise BadRegionSyntaxException(400, url_value, msg)
 
 	def to_kdu_arg(self, img_info):
-		"""kdu wants \{<top>,<left>\},\{<height>,<width>\} (shell syntax), as 
-		decimals between 0 and 1.
-		IIIF supplies left[x], top[y], witdth[w], height[h].
-		"""
-		# If pixels and pcts are both used, then reduce the size of the cache 
-		# by we could only storing pixel sizes and send a 303 for pct based 
-		# requests. Could do it by catching pct requests, calculating the pixels 
-		# and raising an exception that results in the redirect.
+		"""Turn the URI parameter into a `-region` argument for kdu_expand.
 
+		For regions kdu wants \{<top>,<left>\},\{<height>,<width>\} (shell 
+		syntax), as decimals between 0 and 1.
+
+		IIIF supplies left[x], top[y], witdth[w], height[h] as percentages or
+		pixel coordinates.
+
+		Args:
+			img_info (ImgInfo).
+
+		Returns:
+			str. The region argument to be passsed to kdu_expand.
+
+		Raises:
+			BadRegionRequestException when the region request includes a 
+			number or the entire region would be out of bounds.
+		"""
 		cmd = ''
 		if self.mode != 'full':
 			cmd = '-region '
-
-			# First: convert into decimals (we'll pass these to kdu after
-			# we test them)
-			top = Decimal(self.y) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.y) / img_info.height
-			left = Decimal(self.x) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.x) / img_info.width
-			height = Decimal(self.h) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.h) / img_info.height
-			width = Decimal(self.w) / Decimal(100.0) if self.mode == 'pct' else Decimal(self.w) / img_info.width
+			# The precision of regular floats is frequently not enough, hence 
+			# the use of Decimal.
+			top,left,height,width = (None,None,None,None)
+			if self.mode == 'pct':
+				top = Decimal(self.y) / Decimal(100.0)
+				left = Decimal(self.x) / Decimal(100.0)
+				height = Decimal(self.h) / Decimal(100.0)
+				width = Decimal(self.w) / Decimal(100.0)
+			else:
+				top = Decimal(self.y) / img_info.height
+				left = Decimal(self.x) / img_info.width
+				height = Decimal(self.h) / img_info.height
+				width = Decimal(self.w) / img_info.width
 
 			# "If the request specifies a region which extends beyond the 
 			# dimensions of the source image, then the service should return an 
 			# image cropped at the boundary of the source image."
-			if (width + left) > Decimal(1.0): 
+			if (width + left) > Decimal(1.0):
 				width = Decimal(1.0) - Decimal(left)
 				logr.debug('Width adjusted to: ' + str(width))
 			if (top + height) > Decimal(1.0): 
@@ -1079,18 +1089,12 @@ class RegionParameter(object):
 		return cmd
 
 class SizeConverter(BaseConverter):
-	"""
-	Custom converter for the size paramaters as specified.
+	"""Converter for IIIF size paramaters.
 	
-	Note that force_aspect is only supplied when we have a w AND h, otherwise it
-	is None.
+	See <http://library.stanford.edu/iiif/image-api/#size>
 	
-	@see http://library.stanford.edu/iiif/image-api/#size
-	
-	@return: dictionary with these entries: is_full, force_aspect, pct, 
-	level, w, h. The is_full and force_aspect entries are bools, the remaining 
-	are ints.
-	
+	Returns: 
+		SizeParameter
 	"""
 	def __init__(self, url_map):
 		super(SizeConverter, self).__init__(url_map)
@@ -1104,20 +1108,32 @@ class SizeConverter(BaseConverter):
 
 class SizeParameter(object):
 	"""
-	self.mode is always one of 'full', 'pct', or 'pixel'
+	Internal representation of the size slice of an IIIF image URI.
+
+	Attributes:
+		url_value (str): The region slice of the URI.
+		mode (str): One of 'full', 'pct', or 'pixel'
+		force_aspect (bool): True if the aspect ration of the image should not
+			be preserved.
+		w (int): The width.
+		h (int): The height.
 	"""
 	def __init__(self, url_value):
+		"""Parse the URI slice into an the object.
+		Args:
+			url_value: The size slice of an IIIF image URI.
+
+		Raises:
+			BadSizeSyntaxException if we have trouble parsing the request.
+		"""
 		self.url_value = url_value
-		self.mode = 'pixel'
+		_token = url_value.split(':')[0]
+		self.mode = _token if _token in ('pct', 'full') else 'pixel'
 		self.force_aspect = None
 		self.pct = None
 		self.w, self.h = [None, None]
 		try:
-			if self.url_value == 'full':
-				self.mode = 'full'
-
-			elif self.url_value.startswith('pct:'):
-				self.mode = 'pct'
+			if self.mode == 'pct':
 				try:
 					self.pct = float(self.url_value.split(':')[1])
 					if self.pct <= 0:
@@ -1125,31 +1141,34 @@ class SizeParameter(object):
 						raise BadSizeSyntaxException(400, self.url_value, msg)
 				except:
 					raise
-			elif self.url_value.endswith(','):
-				try:
-					self.w = int(self.url_value[:-1])
-				except:
-					raise
-			elif self.url_value.startswith(','):
-				try:
-					self.h = int(self.url_value[1:])
-				except:
-					raise
-			elif self.url_value.startswith('!'):
-				self.force_aspect = False
-				try:
-					self.w, self.h = [int(d) for d in self.url_value[1:].split(',')]
-				except:
-					raise
+
+			elif self.mode == 'pixel':
+				if self.url_value.endswith(','):
+					try:
+						self.w = int(self.url_value[:-1])
+					except:
+						raise
+				elif self.url_value.startswith(','):
+					try:
+						self.h = int(self.url_value[1:])
+					except:
+						raise
+				elif self.url_value.startswith('!'):
+					self.force_aspect = False
+					try:
+						self.w, self.h = map(int, self.url_value[1:].split(','))
+					except:
+						raise
+				else:
+					self.force_aspect = True
+					try:
+						self.w, self.h = map(int, self.url_value.split(','))
+					except:
+						raise
 			else:
-				self.force_aspect = True
-				try:
-					self.w, self.h = [int(d) for d in self.url_value.split(',')]
-				except:
-					raise
-		except ValueError, e:
-			msg = 'Bad size syntax. ' + e.message
-			raise BadSizeSyntaxException(400, self.url_value, msg)
+				if self.mode != 'full':
+					msg = 'Could not parse Size parameter.'
+					raise BadSizeSyntaxException(400, self.url_value, msg)
 		except Exception, e:
 			msg = 'Bad size syntax. ' + e.message
 			raise BadSizeSyntaxException(400, self.url_value, msg)
@@ -1159,7 +1178,14 @@ class SizeParameter(object):
 			raise BadSizeSyntaxException(400, self.url_value, msg)
 		
 	def to_convert_arg(self):
+		"""Construct a `-resize <geometry>` argument for the convert utility.
 
+		Returns:
+			str.
+
+		Raises:
+			BadSizeSyntaxException.
+		"""
 		cmd = ''
 		if self.url_value != 'full':
 			cmd = '-resize '
@@ -1169,42 +1195,51 @@ class SizeParameter(object):
 				cmd += str(self.w)
 			elif self.h and not self.w:
 				cmd += 'x' + str(self.h)
-			# Note that IIIF and Imagmagick use '!' in opposite ways: to IIIF, 
-			# the presense of ! means that the aspect ratio should be preserved,
-			# to `convert` it means that it should be ignored
+			# IIIF and Imagmagick use '!' in opposite ways: to IIIF, the 
+			# presense of ! means that the aspect ratio should be preserved, to
+			# `convert` it means that it should be ignored.
 			elif self.w and self.h and not self.force_aspect:
 				cmd +=  str(self.w) + 'x' + str(self.h) #+ '\>'
 			elif self.w and self.h and self.force_aspect:
 				cmd += str(self.w) + 'x' + str(self.h) + '!'
-
 			else:
 				msg = 'Could not construct a convert argument from ' + self.url_value
 				raise BadSizeRequestException(500, msg)
 		return cmd
 
 class RotationConverter(BaseConverter):
-	"""
-	Custom converter for the rotation parameter.
+	"""Converter for IIIF rotation paramaters.
 	
-	@see: http://library.stanford.edu/iiif/image-api/#rotation
-
-	@return: a RotationParameter
+	See <http://library.stanford.edu/iiif/image-api/#rotation>
+	
+	Returns: 
+		RotationParameter
 	"""
 	def __init__(self, url_map):
 		super(RotationConverter, self).__init__(url_map)
 		self.regex = '\-?\d+'
 
 	def to_python(self, value):
-		# Round. kdu can handle negatives values > 360 and < -360
 		return RotationParameter(value)
 
 	def to_url(self, value):
 		return str(value)
 
 class RotationParameter(object):
-	"""docstring
+	"""Internal representation of the rotation slice of an IIIF image URI.
+
+	Attributes:
+		nearest_90 (int). Any value passed is rounded to the nearest multiple
+			of 90.
 	"""
 	def __init__(self, url_value):
+		"""Take the url value and round it to the nearest 90.
+		Args:
+			url_value (str): the rotation slice of the request URI.
+		Raises:
+			BadRotationSyntaxException if we can't handle the value for some
+				reason.
+		"""
 		self.url_value = url_value
 		try:
 			self.nearest_90 = int(90 * round(float(self.url_value) / 90))
@@ -1212,7 +1247,14 @@ class RotationParameter(object):
 			raise BadRotationSyntaxException(400, self.url_value, e.message)
 
 	def to_convert_arg(self):
-		return '-rotate ' + str(self.nearest_90) if self.nearest_90 % 360 != 0 else ''
+		"""Get a `-rotate` argument for the `convert` utility.
+
+		Returns:
+			str. E.g. `-rotate 180`.
+		"""
+		arg = ''
+		if self.nearest_90 % 360 != 0: arg = '-rotate ' + str(self.nearest_90)
+		return arg
 
 class ImgInfo(object):
 	def __init__(self):
@@ -1228,11 +1270,19 @@ class ImgInfo(object):
 	# Other fromXXX methods could be defined, hence the static constructor
 	@staticmethod
 	def fromJP2(path, img_id):
-		"""
-		Get info about a JP2. There's enough going on here;
-		make sure the file is available (exists and readable) before passing it.
+		"""Get info about a JP2. 
+
+		There's enough going on here; make sure the file is available 
+		(exists and readable) before passing it.
 		
-		@see:  http://library.stanford.edu/iiif/image-api/#info
+		See <http://library.stanford.edu/iiif/image-api/#info>
+
+		Args:
+			path (str): The absolute path to the image.
+			img_id: The identifer for the image.
+
+		Returns:
+			ImgInfo
 		"""
 		info = ImgInfo()
 		info.id = img_id
@@ -1293,6 +1343,17 @@ class ImgInfo(object):
 		return info
 	
 	def marshal(self, to):
+		"""Serialize the object as XML or json.
+
+		Args:
+			to (str): 'xml' or 'json'
+
+		Returns:
+			str.
+
+		Raises:
+			Exception
+		"""
 		if to == 'xml': return self._to_xml()
 		elif to == 'json': return self._to_json()
 		else:
@@ -1302,8 +1363,14 @@ class ImgInfo(object):
 	def unmarshal(path):
 		"""Contruct an instance from an existing file.
 
-		:param path: the path to a JSON or XML file.
-		:type path: str.
+		Args:
+			path (str): the path to a JSON or XML file.
+
+		Returns:
+			ImgInfo
+
+		Raises:
+			Exception
 		"""
 		info = ImgInfo()
 		if path.endswith('.json'):
@@ -1330,6 +1397,7 @@ class ImgInfo(object):
 		return info
 
 	def _to_xml(self):
+		"""Serialize as XML"""
 		doc = xml.dom.minidom.Document()
 		info = doc.createElementNS(IMG_API_NS, 'info')
 		info.setAttribute('xmlns', IMG_API_NS)
@@ -1391,6 +1459,7 @@ class ImgInfo(object):
 		return doc.toxml(encoding='UTF-8')
 	
 	def _to_json(self):
+		"""Serialize as json"""
 		# cheaper!
 		j = '{'
 		j += '  "identifier" : "' + self.id + '", '
@@ -1407,8 +1476,25 @@ class ImgInfo(object):
 
 
 class LorisException(Exception):
+	"""Base exception class for Loris.
+
+	The main feature is the `to_xml` method, which enable us to send back the
+	error in the response body, per IIIF 6.2
+
+	See <http://www-sul.stanford.edu/iiif/image-api/#error>
+
+	Attributes:
+		http_status (int): the HTTP status the should be sent with the response.
+		supplied_value (str): the parameter that caused the problem.
+		msg (str): any additional info about what went wrong.
+	"""
 	def __init__(self, http_status=404, supplied_value='', msg=''):
 		"""
+		Kwargs:
+			http_status (int): the HTTP status the should be sent with the 
+				response.
+			supplied_value (str): the parameter that caused the problem.
+			msg (str): any additional info about what went wrong.
 		"""
 		super(LorisException, self).__init__(msg)
 		self.http_status = http_status
@@ -1436,7 +1522,7 @@ class BadSizeRequestException(LorisException): pass
 class BadRotationSyntaxException(LorisException): pass
 
 if __name__ == '__main__':
-	'''Run the development server'''
+	"""Run the development server"""
 	from werkzeug.serving import run_simple
 
 	try:
