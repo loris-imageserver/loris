@@ -550,8 +550,8 @@ class Loris(object):
 			format = self.default_format
 			mime = 'image/jpeg' if format == 'jpg' else 'image/png'
 
-		img_dir = os.path.join(self.cache_root, ident, region.url_value, 
-			size.url_value, rotation.url_value)
+		img_dir = os.path.join(self.cache_root, ident, region.uri_value, 
+			size.uri_value, rotation.uri_value)
 		img_path = os.path.join(img_dir, quality + '.' + format)
 		logr.debug('img_dir: ' + img_dir)
 		logr.debug('img_path: ' + img_path)
@@ -588,7 +588,7 @@ class Loris(object):
 		Seadragon (and optionally cache them and according to IIIF's cache 
 		syntax and make	symlinks to the canonical location).
 
-		URLs (and symlinked file paths) look like `/level/x_y.jpg`::
+		URIs (and symlinked file paths) look like `/level/x_y.jpg`::
 
 			+-----------------+
 			| 0_0 1_0 2_0 3_0 |
@@ -804,9 +804,9 @@ class Loris(object):
 				logr.debug('height_px: ' + str(height_px))
 				width_px = int(round(Decimal(region.w) * info.width / Decimal(100.0)))
 				logr.debug('width_px: ' + str(width_px))
-				new_url_value = ','.join(map(str, (left_px, top_px, width_px, height_px)))
-				new_region_param = RegionParameter(new_url_value)
-				logr.info('pct region request revised to ' + new_url_value)
+				new_uri_value = ','.join(map(str, (left_px, top_px, width_px, height_px)))
+				new_region_param = RegionParameter(new_uri_value)
+				logr.info('pct region request revised to ' + new_uri_value)
 				region_kdu_arg = new_region_param.to_kdu_arg(info)
 			else:
 				region_kdu_arg = region.to_kdu_arg(info)
@@ -976,53 +976,53 @@ class RegionParameter(object):
 	"""Internal representation of the region slice of an IIIF image URI.
 
 	Attributes:
-		url_value (str): The region slice of the URI.
+		uri_value (str): The region slice of the URI.
 		mode (str): One of 'full', 'pct', or 'pixel'
 		x (float)
 		y (float)
 		w (float)
 		h (float)
 	"""
-	def __init__(self, url_value):
-		"""Parse the url_value into the object.
+	def __init__(self, uri_value):
+		"""Parse the uri_value into the object.
 
 		Args:
-			url_value: The region slice of an IIIF image request URI.
+			uri_value: The region slice of an IIIF image request URI.
 
 		Raises:
 			BadRegionSyntaxException
 		"""
-		self.url_value = url_value
+		self.uri_value = uri_value
 		self.x, self.y, self.w, self.h = [None, None, None, None]
-		self.mode = url_value.split(':')[0]
+		self.mode = uri_value.split(':')[0]
 		if self.mode != 'full':
 			try:
-				v = url_value.split(':')[1] if self.mode == 'pct' else url_value
+				v = uri_value.split(':')[1] if self.mode == 'pct' else uri_value
 				dimensions = map(float, v.split(','))
 				if self.mode == 'pct':
 					if any(n > 100.0 for n in dimensions):
 						msg = 'Percentages must be less than or equal to 100.'
-						raise BadRegionSyntaxException(400, url_value, msg)
+						raise BadRegionSyntaxException(400, uri_value, msg)
 					if any((n <= 0) for n in dimensions[2:]):
 						msg = 'Width and Height Percentages must be greater than 0.'
-						raise BadRegionSyntaxException(400, url_value, msg)
+						raise BadRegionSyntaxException(400, uri_value, msg)
 					if len(dimensions) != 4:
 						msg = 'Exactly (4) coordinates must be supplied'
-						raise BadRegionSyntaxException(400, url_value, msg)
+						raise BadRegionSyntaxException(400, uri_value, msg)
 					self.x,	self.y, self.w,	self.h = dimensions
 				else:
 					self.mode = 'pixel'
-					logr.debug('Pixel dimensions request: ' + url_value)
+					logr.debug('Pixel dimensions request: ' + uri_value)
 					if any(n <= 0 for n in dimensions[2:]):
 						msg = 'Width and height must be greater than 0'
-						raise BadRegionSyntaxException(400, url_value, msg)
+						raise BadRegionSyntaxException(400, uri_value, msg)
 					if len(dimensions) != 4:
 						msg = 'Exactly (4) coordinates must be supplied'
-						raise BadRegionSyntaxException(400, url_value, msg)
+						raise BadRegionSyntaxException(400, uri_value, msg)
 					self.x,	self.y, self.w,	self.h = dimensions
 			except Exception, e :
 				msg = 'Region syntax not valid. ' + e.message
-				raise BadRegionSyntaxException(400, url_value, msg)
+				raise BadRegionSyntaxException(400, uri_value, msg)
 
 	def to_kdu_arg(self, img_info):
 		"""Turn the URI parameter into a `-region` argument for kdu_expand.
@@ -1073,17 +1073,17 @@ class RegionParameter(object):
 			# top and left
 			if any(axis < 0 for axis in (top, left)):
 				msg = 'x and y region paramaters must be 0 or greater'
-				raise BadRegionRequestException(400, self.url_value, msg)
+				raise BadRegionRequestException(400, self.uri_value, msg)
 			if left >= Decimal(1.0):
 				msg = 'Region x parameter is out of bounds.\n'
 				msg += str(self.x) + ' was supplied and image width is ' 
 				msg += str(img_info.width)
-				raise BadRegionRequestException(400, self.url_value, msg)
+				raise BadRegionRequestException(400, self.uri_value, msg)
 			if top >= Decimal(1.0):
 				msg = 'Region y parameter is out of bounds.\n'
 				msg += str(self.y) + ' was supplied and image height is ' 
 				msg += str(img_info.height)
-				raise BadRegionRequestException(400, self.url_value, msg)
+				raise BadRegionRequestException(400, self.uri_value, msg)
 			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
 			logr.debug('kdu region parameter: ' + cmd)
 		return cmd
@@ -1111,23 +1111,23 @@ class SizeParameter(object):
 	Internal representation of the size slice of an IIIF image URI.
 
 	Attributes:
-		url_value (str): The region slice of the URI.
+		uri_value (str): The region slice of the URI.
 		mode (str): One of 'full', 'pct', or 'pixel'
 		force_aspect (bool): True if the aspect ration of the image should not
 			be preserved.
 		w (int): The width.
 		h (int): The height.
 	"""
-	def __init__(self, url_value):
+	def __init__(self, uri_value):
 		"""Parse the URI slice into an the object.
 		Args:
-			url_value: The size slice of an IIIF image URI.
+			uri_value: The size slice of an IIIF image URI.
 
 		Raises:
 			BadSizeSyntaxException if we have trouble parsing the request.
 		"""
-		self.url_value = url_value
-		_token = url_value.split(':')[0]
+		self.uri_value = uri_value
+		_token = uri_value.split(':')[0]
 		self.mode = _token if _token in ('pct', 'full') else 'pixel'
 		self.force_aspect = None
 		self.pct = None
@@ -1135,47 +1135,47 @@ class SizeParameter(object):
 		try:
 			if self.mode == 'pct':
 				try:
-					self.pct = float(self.url_value.split(':')[1])
+					self.pct = float(self.uri_value.split(':')[1])
 					if self.pct <= 0:
 						msg = 'Percentage supplied is less than 0. '
-						raise BadSizeSyntaxException(400, self.url_value, msg)
+						raise BadSizeSyntaxException(400, self.uri_value, msg)
 				except:
 					raise
 
 			elif self.mode == 'pixel':
-				if self.url_value.endswith(','):
+				if self.uri_value.endswith(','):
 					try:
-						self.w = int(self.url_value[:-1])
+						self.w = int(self.uri_value[:-1])
 					except:
 						raise
-				elif self.url_value.startswith(','):
+				elif self.uri_value.startswith(','):
 					try:
-						self.h = int(self.url_value[1:])
+						self.h = int(self.uri_value[1:])
 					except:
 						raise
-				elif self.url_value.startswith('!'):
+				elif self.uri_value.startswith('!'):
 					self.force_aspect = False
 					try:
-						self.w, self.h = map(int, self.url_value[1:].split(','))
+						self.w, self.h = map(int, self.uri_value[1:].split(','))
 					except:
 						raise
 				else:
 					self.force_aspect = True
 					try:
-						self.w, self.h = map(int, self.url_value.split(','))
+						self.w, self.h = map(int, self.uri_value.split(','))
 					except:
 						raise
 			else:
 				if self.mode != 'full':
 					msg = 'Could not parse Size parameter.'
-					raise BadSizeSyntaxException(400, self.url_value, msg)
+					raise BadSizeSyntaxException(400, self.uri_value, msg)
 		except Exception, e:
 			msg = 'Bad size syntax. ' + e.message
-			raise BadSizeSyntaxException(400, self.url_value, msg)
+			raise BadSizeSyntaxException(400, self.uri_value, msg)
 		
 		if any((dim < 1 and dim != None) for dim in (self.w, self.h)):
 			msg = 'Width and height must both be positive numbers'
-			raise BadSizeSyntaxException(400, self.url_value, msg)
+			raise BadSizeSyntaxException(400, self.uri_value, msg)
 		
 	def to_convert_arg(self):
 		"""Construct a `-resize <geometry>` argument for the convert utility.
@@ -1187,7 +1187,7 @@ class SizeParameter(object):
 			BadSizeSyntaxException.
 		"""
 		cmd = ''
-		if self.url_value != 'full':
+		if self.uri_value != 'full':
 			cmd = '-resize '
 			if self.mode == 'pct':
 				cmd += str(self.pct) + '%'
@@ -1203,7 +1203,7 @@ class SizeParameter(object):
 			elif self.w and self.h and self.force_aspect:
 				cmd += str(self.w) + 'x' + str(self.h) + '!'
 			else:
-				msg = 'Could not construct a convert argument from ' + self.url_value
+				msg = 'Could not construct a convert argument from ' + self.uri_value
 				raise BadSizeRequestException(500, msg)
 		return cmd
 
@@ -1232,19 +1232,19 @@ class RotationParameter(object):
 		nearest_90 (int). Any value passed is rounded to the nearest multiple
 			of 90.
 	"""
-	def __init__(self, url_value):
-		"""Take the url value and round it to the nearest 90.
+	def __init__(self, uri_value):
+		"""Take the uri value and round it to the nearest 90.
 		Args:
-			url_value (str): the rotation slice of the request URI.
+			uri_value (str): the rotation slice of the request URI.
 		Raises:
 			BadRotationSyntaxException if we can't handle the value for some
 				reason.
 		"""
-		self.url_value = url_value
+		self.uri_value = uri_value
 		try:
-			self.nearest_90 = int(90 * round(float(self.url_value) / 90))
+			self.nearest_90 = int(90 * round(float(self.uri_value) / 90))
 		except Exception, e:
-			raise BadRotationSyntaxException(400, self.url_value, e.message)
+			raise BadRotationSyntaxException(400, self.uri_value, e.message)
 
 	def to_convert_arg(self):
 		"""Get a `-rotate` argument for the `convert` utility.
