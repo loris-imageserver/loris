@@ -1257,17 +1257,21 @@ class RotationParameter(object):
 		return arg
 
 class ImgInfo(object):
-	def __init__(self):
-		self.id = None
-		self.width = None
-		self.height = None
-		self.tile_width = None
-		self.tile_height = None
-		self.levels = None
-		self.qualities = []
-		self.native_quality = None
-	
-	# Other fromXXX methods could be defined, hence the static constructor
+	"""Info about the image.
+
+	See: <http://www-sul.stanford.edu/iiif/image-api/#info>
+
+	Attributes:
+		id (str): The image identifier.
+		width (int)
+		height (int)
+		tile_width (int)
+		tile_height (int)
+		levels [(int)]
+		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
+		native_quality: 'color' or 'grey'
+	"""
+	# Other fromXXX methods could be defined, hence the static constructors
 	@staticmethod
 	def fromJP2(path, img_id):
 		"""Get info about a JP2. 
@@ -1341,23 +1345,6 @@ class ImgInfo(object):
 		jp2.close()
 			
 		return info
-	
-	def marshal(self, to):
-		"""Serialize the object as XML or json.
-
-		Args:
-			to (str): 'xml' or 'json'
-
-		Returns:
-			str.
-
-		Raises:
-			Exception
-		"""
-		if to == 'xml': return self._to_xml()
-		elif to == 'json': return self._to_json()
-		else:
-			raise Exception('Argument to marshal must be \'xml\' or \'json\'')
 
 	@staticmethod
 	def unmarshal(path):
@@ -1395,6 +1382,25 @@ class ImgInfo(object):
 			msg = 'Path passed to unmarshal does not contain XML or JSON' 
 			raise Exception(msg)
 		return info
+
+	
+	def marshal(self, to):
+		"""Serialize the object as XML or json.
+
+		Args:
+			to (str): 'xml' or 'json'
+
+		Returns:
+			str.
+
+		Raises:
+			Exception
+		"""
+		if to == 'xml': return self._to_xml()
+		elif to == 'json': return self._to_json()
+		else:
+			raise Exception('Argument to marshal must be \'xml\' or \'json\'')
+
 
 	def _to_xml(self):
 		"""Serialize as XML"""
@@ -1501,6 +1507,11 @@ class LorisException(Exception):
 		self.supplied_value = supplied_value
 
 	def to_xml(self):
+		"""Serialize the Exception to XML
+
+		Return:
+			str.
+		"""
 		doc = xml.dom.minidom.Document()
 		error = doc.createElementNS(IMG_API_NS, 'error')
 		error.setAttribute('xmlns', IMG_API_NS)
@@ -1524,16 +1535,13 @@ class BadRotationSyntaxException(LorisException): pass
 if __name__ == '__main__':
 	"""Run the development server"""
 	from werkzeug.serving import run_simple
-
 	try:
-
 		app = create_app(test=True)
 		cwd = os.path.abspath(os.path.dirname(__file__))
 		extra_files = []
 		extra_files.append(os.path.join(cwd, 'loris.conf'))
 		extra_files.append(os.path.join(cwd, 'html', 'dzi.html'))
 		extra_files.append(os.path.join(cwd, 'html', 'docs.html'))
-
 		run_simple('127.0.0.1', 5000, app, use_debugger=True, 
 			threaded=True,  use_reloader=True, extra_files=extra_files)
 	except Exception, e:
