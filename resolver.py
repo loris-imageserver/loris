@@ -11,8 +11,10 @@
 
 """
 from os.path import join
+from werkzeug.routing import BaseConverter
 
 SRC_IMG_ROOT='/home/jstroop/workspace/loris/test_img'
+
 def resolve(ident):
 	"""
 	Given the identifier of an image, resolve it to an actual path. This
@@ -22,4 +24,5 @@ def resolve(ident):
 	supplied, and appends a file extension, resulting in an absolute path 
 	on the filesystem.
 	"""
-	return join(SRC_IMG_ROOT, ident + '.jp2')
+	return join(SRC_IMG_ROOT, ident.replace('%2F', '/') + '.jp2')
+

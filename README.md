@@ -67,6 +67,7 @@ application = create_app()
 Here is a sample Apache virtual host file configuration (variables in { }):
 
 	...
+  AllowEncodedSlashes On # <--- Critical if you're using the default resolver!
 	WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
   <Directory {/path/to/loris}>
 		Order allow,deny
@@ -90,9 +91,8 @@ http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
 
 Resolving Identifiers
 ---------------------
-It is up to you to implmenent a function that resolves identifiers to file 
-system paths. See `resolver.py` for details. _Note that the function in the 
-resolver module must have the name and signature `resolver.resolve(id)`._
+It is up to you to implmenent the `resolve` function in `resolver.py`. See the 
+file for details. 
 
 The supplied method for resolving identifiers to images is about as simple as 
 it could be. In a request that looks like this 
@@ -113,8 +113,10 @@ then this file must exist:
 
     /usr/local/share/images/some/img/dir/0004.jp2 
 
-This can be revised to fit other environments by replacing the 
-`Loris#_resolve_identifier(self, ident)` method.
+According the the specification, [the identifier must be URL encoded] [9], but 
+with the supplied implementation either will work, i.e. `some/img/dir/0004` or
+`some%2Fimg%2Fdir%2F0004`. __Make sure `AllowEncodedSlashes` is set to `On` in
+you Apace configuration.__
 
 Return Formats
 --------------
@@ -438,3 +440,4 @@ to understand the request [URI syntax] [2] is to read the spec.
 [6]: http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22 "Kakadu Installation"
 [7]: http://jinja.pocoo.org/ "Jinja2"
 [8]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
+[9]: http://www-sul.stanford.edu/iiif/image-api/#url_encoding "IIIF URL Encoding and Decoding"

@@ -95,6 +95,7 @@ def create_app(test=False):
 		})
 		return app
 	except Exception,e:
+		logr.fatal(e.message)
 		stderr.write(e.message)
 		exit(1)
 
@@ -178,15 +179,12 @@ class Loris(object):
 		# directories
 		self.tmp_dir = ''
 		self.cache_root = ''
-		self.src_images_root = ''
 		if self.test:
 			self.tmp_dir = _conf.get('directories', 'test_tmp')
 			self.cache_root = _conf.get('directories', 'test_cache_root')
-			self.src_images_root = os.path.join(host_dir, 'test_img') 
 		else:
 			self.tmp_dir = _conf.get('directories', 'tmp')
 			self.cache_root = _conf.get('directories', 'cache_root')
-			self.src_images_root = _conf.get('directories', 'src_img_root')
 
 		try:
 			for d in (self.tmp_dir, self.cache_root):
@@ -250,7 +248,10 @@ class Loris(object):
 		"""
 		adapter = self._url_map.bind_to_environ(request.environ)
 		try:
+
 			endpoint, values = adapter.match()
+			logr.debug('ident: ' + values.get('ident'))
+			# logr.debug('resolved: ' + resolve(values.get('ident')))
 			dispatch_to_method = 'on_' + endpoint
 			logr.info('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
@@ -953,6 +954,9 @@ class Loris(object):
 
 	def __call__(self, environ, start_response):
 		return self.wsgi_app(environ, start_response)
+
+
+
 
 class RegionConverter(BaseConverter):
 	"""Converter for IIIF region paramaters as specified.

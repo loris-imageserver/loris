@@ -101,9 +101,8 @@ class LorisTest(unittest.TestCase):
 class Test_A_ResolveId(LorisTest):
 	"""Test that the ID resolver works.
 	"""
-
 	def test_loris_resolve_id(self):
-		expected_path = path.join(self.test_img_dir, self.test_jp2_id  + '.jp2')
+		expected_path = path.join(self.test_img_dir, 'pudl0001/4609321/s42/00000004.jp2')
 		resolved_path = resolve(self.test_jp2_id)
 		self.assertEqual(expected_path, resolved_path)
 		self.assertTrue(path.isfile(resolved_path))
