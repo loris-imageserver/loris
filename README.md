@@ -116,28 +116,26 @@ then this file must exist:
 According the the specification, [the identifier must be URL encoded] [9], but 
 with the supplied implementation either will work, i.e. `some/img/dir/0004` or
 `some%2Fimg%2Fdir%2F0004`. __Make sure `AllowEncodedSlashes` is set to `On` in
-you Apace configuration.__ 
-
-__Aside:__ _Identifier escaping/encoding slashes should never really be 
-necessary. Consider the Request Syntax:_
-
-  http://{server}{/prefix}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
-
-_Any implementation should know its host and name, e.g.:_
-
-  http://{server}{/prefix}
-
-_and the after `{identifier}` remainder of the syntax has only two patterns:_
-
-  /{region}/{size}/{rotation}/{quality}.{format}
-
-_or with conneg:_ 
-
-  /{region}/{size}/{rotation}/{quality}
+your Apache configuration.__ 
 
 
-_so what could be in between those two portions of the URI_ but _the 
-identifer?_
+Aside: _Identifier escaping/encoding of slashes should never really be necessary._ Consider the Request Syntax:
+
+	http://{server}{/prefix}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
+
+Any implementation should know its host and name, e.g.:
+
+	http://{server}{/prefix}/
+
+and the after `{identifier}` remainder of the syntax has only two patterns:
+
+	/{region}/{size}/{rotation}/{quality}.{format}
+
+or with conneg:
+
+	/{region}/{size}/{rotation}/{quality}
+
+so what could be in between those two portions of the URI __but__ the identifer?
 
 
 Return Formats
