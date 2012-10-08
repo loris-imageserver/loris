@@ -1,34 +1,25 @@
-![loris icon](https://github.com/pulibrary/loris/blob/master/icons/loris-icon-name.png?raw=true) Loris JPEG 2000 Server
+![loris icon](https://github.com/pulibrary/loris/blob/master/icons/loris-icon-name.png?raw=true)  Loris JPEG 2000 Server
 ========================
 
 Loris is an implementation of the 
 [International Image Interoperability Framework: Image API 1.0] [1]. More about 
 this is discussed under IIIF 1.0 Compliance below.
 
-Design
-------
-Loris is designed to stand on the shoulders of giants. Essentially, all it 
-does is parse [IIIF URLs] [2] into a set of objects (in the source these are 
-the `RegionParameter`, `SizeParameter`, and `RotationParameter` classes) that 
-are then used to build utility command lines that are shelled out.
-
-The [Werkzeug Python WSGI Utility Library] [3] handles the URL parsing and 
-routing and supplies a few other convenience methods.
-
 Tests
 -----
 From the directory that contains `tests.py`, call 
 
-	python -m unittest -v tests
+  python -m unittest -v tests
 
 The tests should run in a logical order, so if you see a failure, futher 
 failures might casacade and mask the problem. To solve this, you can have 
 unittest stop at the first fail:
 
-	python -m unittest -vf tests
+  python -m unittest -vf tests
 
 You may want to turn down logging at first, and only turn it up if something 
 goes wrong. __Note__ that `Test_I_ResultantImg` takes a while.
+
 
 Deployment
 ----------
@@ -74,17 +65,17 @@ application = create_app()
 
 Here is a sample Apache virtual host file configuration (variables in { }):
 
-	...
-	WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
-	<Directory {/path/to/loris}>
- 		Order allow,deny
-		Allow from all
-	</Directory>
+  ...
+  WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
+  <Directory {/path/to/loris}>
+    Order allow,deny
+    Allow from all
+  </Directory>
 
 Modify these lines (at least) in the `loris.conf` file:
 
-	cache_root = /path/to/loris/dev_cache
-	src_img_root = /path/to/loris/test_img
+  cache_root = /path/to/loris/dev_cache
+  src_img_root = /path/to/loris/test_img
 
 Restart Apache.  
 Point your browser here to make sure it works with the test image:
@@ -153,6 +144,16 @@ Logging
 Logging is set up in `loris.conf` and is extremely loud by default. The 
 handlers configured near the bottom of that file control the levels and 
 directories. The directories must exist and be writable.
+
+Design
+------
+Loris is designed to stand on the shoulders of giants. Essentially, all it 
+does is parse [IIIF URLs] [2] into a set of objects (in the source these are 
+the `RegionParameter`, `SizeParameter`, and `RotationParameter` classes) that 
+are then used to build utility command lines that are shelled out.
+
+The [Werkzeug Python WSGI Utility Library] [3] handles the URL parsing and 
+routing and supplies a few other convenience methods.
 
 The Name
 --------
