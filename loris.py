@@ -224,7 +224,7 @@ class Loris(object):
 			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
 			Rule('/<path:ident>_files/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
 			Rule('/<path:ident>.html', endpoint='get_dz'),
-			Rule('/<path:ident>/img/<img_file>.png', endpoint='get_seadragon_png'),
+			Rule('/<path:ident>/<img_file>.png', endpoint='get_seadragon_png'),
 			Rule('/', endpoint='get_docs'),
 			Rule('/_headers', endpoint='list_headers'), # for debguging
 			Rule('/favicon.ico', endpoint='get_favicon')
@@ -341,6 +341,7 @@ class Loris(object):
 		Returns:
 			Response. A png.
 		"""
+		logr.debug('img file: ' + img_file)
 		png = os.path.join(self._sd_img_dir, img_file)+'.png'
 		return Response(file(png), mimetype='image/png')
 
