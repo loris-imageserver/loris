@@ -9,13 +9,13 @@ Tests
 -----
 From the directory that contains `tests.py`, call 
 
-  python -m unittest -v tests
+	python -m unittest -v tests
 
 The tests should run in a logical order, so if you see a failure, futher 
 failures might casacade and mask the problem. To solve this, you can have 
 unittest stop at the first fail:
 
-  python -m unittest -vf tests
+	python -m unittest -vf tests
 
 You may want to turn down logging at first, and only turn it up if something 
 goes wrong. __Note__ that `Test_I_ResultantImg` takes a while.
@@ -26,21 +26,22 @@ Deployment
 
 __Note:__ All commands given are for deploying on Ubuntu. Your mileage may vary.
 ### Check it out:
-`git clone https://github.com/pulibrary/loris.git loris`
+
+	git clone https://github.com/pulibrary/loris.git loris
 
 ### Install and Test Dependencies:
 __Install and test ImageMagick (convert)__ 
 
 
-  sudo apt-get install imagemagick
-  ...
-  convert -version
+	sudo apt-get install imagemagick
+	...
+	convert -version
 
 You should see something like this:
 
-  Version: ImageMagick 6.6.9-7 2012-08-17 Q16 http://www.imagemagick.org
-  Copyright: Copyright (C) 1999-2011 ImageMagick Studio LLC
-  Features: OpenMP  
+	Version: ImageMagick 6.6.9-7 2012-08-17 Q16 http://www.imagemagick.org
+	Copyright: Copyright (C) 1999-2011 ImageMagick Studio LLC
+	Features: OpenMP  
 
 __Install Kakadu (kdu_expand)__  
 Compile or download by following [the instructions on their site] [6]  
@@ -65,17 +66,17 @@ application = create_app()
 
 Here is a sample Apache virtual host file configuration (variables in { }):
 
-  ...
-  WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
+	...
+	WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
   <Directory {/path/to/loris}>
-    Order allow,deny
-    Allow from all
-  </Directory>
+		Order allow,deny
+		Allow from all
+	</Directory>
 
 Modify these lines (at least) in the `loris.conf` file:
 
-  cache_root = /path/to/loris/dev_cache
-  src_img_root = /path/to/loris/test_img
+	cache_root = /path/to/loris/dev_cache
+	src_img_root = /path/to/loris/test_img
 
 Restart Apache.  
 Point your browser here to make sure it works with the test image:
@@ -125,6 +126,7 @@ Dependencies
 ------------
 Addition Python libraries:
  * [Werkzeug] [3] ([Installation] [5])
+ * [Jinja] [7] ([Installation] [8])
 
 System Utilites
  * `kdu_expand`
@@ -434,3 +436,5 @@ to understand the request [URI syntax] [2] is to read the spec.
 [4]: http://www-sul.stanford.edu/iiif/image-api/compliance.html "IIIF Levels"
 [5]: http://werkzeug.pocoo.org/docs/installation/ "Werkzeug Installation"
 [6]: http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22 "Kakadu Installation"
+[7]: http://jinja.pocoo.org/ "Jinja2"
+[8]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
