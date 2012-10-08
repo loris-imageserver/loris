@@ -15,73 +15,6 @@ are then used to build utility command lines that are shelled out.
 The [Werkzeug Python WSGI Utility Library] [3] handles the URL parsing and 
 routing and supplies a few other convenience methods.
 
-Deployment
-----------
-
-__Note:__ All commands given are for deploying on Ubuntu.  Your mileage may vary.
-### Check it out:
-`git clone https://github.com/pulibrary/loris.git loris`
-
-### Install and Test Dependencies:
-__Install and test ImageMagick (convert)__ 
-
-```
-sudo apt-get install imagemagick
-...
-convert -version
-```
-You should see something like this:
-```
-Version: ImageMagick 6.6.9-7 2012-08-17 Q16 http://www.imagemagick.org
-Copyright: Copyright (C) 1999-2011 ImageMagick Studio LLC
-Features: OpenMP  
-```
-
-__Install Kakadu (kdu_expand)__  
-Compile or download by following [the instructions on their site] [6]  
-
-Make sure Kakadu shared object files are on your `LD_LIBRARY_PATH`.
-
-### Configure for Apache
-Make a WSGI file called `loris.wsgi` so the web server and loris can talk to 
-each other.  Here is a sample WSGI file:
-
-__loris.wsgi__
-```python
-#!/usr/bin/env python
-import sys; 
-sys.path.append('/path/to/loris')
-
-from loris import create_app
-application = create_app()
-```
-
-Here is a sample Apache virtual host file configuration (variables in `{ }`):
-
-	...
-	WSGIScriptAlias /loris /path/to/loris/loris.wsgi
-	<Directory /path/to/loris>
-		Order allow,deny
-		Allow from all
-	</Directory>
-	...
-
-Modify these lines (at least) in the `loris.conf` file:
-```
-cache_root = /path/to/loris/dev_cache
-src_img_root = /path/to/loris/test_img
-```
-
-Restart Apache.  
-Point your browser here to make sure it works with the test image:
-http://your_server/loris/pudl0001/4609321/s42/00000004/info.xml
-
-To see the full JP2 image as a jpg:
-http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
-
-[More on URL syntax][2] is available via the spec.
-
-
 Tests
 -----
 From the directory that contains `tests.py`, call 
@@ -97,31 +30,86 @@ unittest stop at the first fail:
 You may want to turn down logging at first, and only turn it up if something 
 goes wrong. __Note__ that `Test_I_ResultantImg` takes a while.
 
-Source JPEG 2000 Images
------------------------
-TODO - give PUL sample recipes.
+Deployment
+----------
 
-Return Formats
---------------
-Right now `jpg` and `png` are supported. The latter is underdeveloped and not 
-terribly performant, but is in place so that all of the necessary branching in 
-the content negotiation and rendering could be put in place and tested.
+__Note:__ All commands given are for deploying on Ubuntu. Your mileage may vary.
+### Check it out:
+`git clone https://github.com/pulibrary/loris.git loris`
+
+### Install and Test Dependencies:
+__Install and test ImageMagick (convert)__ 
+
+
+  sudo apt-get install imagemagick
+  ...
+  convert -version
+
+You should see something like this:
+
+  Version: ImageMagick 6.6.9-7 2012-08-17 Q16 http://www.imagemagick.org
+  Copyright: Copyright (C) 1999-2011 ImageMagick Studio LLC
+  Features: OpenMP  
+
+__Install Kakadu (kdu_expand)__  
+Compile or download by following [the instructions on their site] [6]  
+
+Make sure Kakadu shared object files are on your `LD_LIBRARY_PATH`.
+
+### Configure for Apache
+
+Make a WSGI file called `loris.wsgi` so the web server and loris can talk to 
+each other.  Here is a sample WSGI file:
+
+__loris.wsgi__
+  ```python
+  #!/usr/bin/env python
+  import sys; 
+  sys.path.append('/path/to/loris')
+
+  from loris import create_app
+  application = create_app()
+
+Here is a sample Apache virtual host file configuration (variables in `{ }`):
+
+  ...
+  WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
+  <Directory {/path/to/loris}>
+    Order allow,deny
+    Allow from all
+  </Directory>
+  ...
+
+Modify these lines (at least) in the `loris.conf` file:
+
+  cache_root = /path/to/loris/dev_cache
+  src_img_root = /path/to/loris/test_img
+
+Restart Apache.  
+Point your browser here to make sure it works with the test image:
+http://your_server/loris/pudl0001/4609321/s42/00000004/info.xml
+
+To see the full JP2 image as a jpg:
+http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
+
+[More on URL syntax][2] is available via the spec.
 
 Resolving Identifiers
 ---------------------
 It is up to you to implmenent a function that resolves identifiers to file 
-system paths. See `resolver.py` for details.
+system paths. See `resolver.py` for details. _Note that the function in the 
+resolver module must have the name and signature `resolver.resolve(id)`._
 
-The default method for resolving identifiers to images is about as simple as it 
-could be. In a request that looks like this 
+The supplied method for resolving identifiers to images is about as simple as 
+it could be. In a request that looks like this 
 
-    http://example.edu/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+    http://example.edu/loris/some/img/dir/0004/0,0,256,256/full/0/color.jpg
 
 The portion between the path the to service on the host server and the region, 
 (excluding leading and trailings `/`s), i.e.:
 
-    http://example.edu/images/some/img/dir/0004/0,0,256,256/full/0/color.jpg
-                              \_______________/
+    http://example.edu/loris/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+                             \_______________/
 
 will be joined to the `SRC_IMG_ROOT` constant, and have `.jp2` appended. So if
 
@@ -133,6 +121,12 @@ then this file must exist:
 
 This can be revised to fit other environments by replacing the 
 `Loris#_resolve_identifier(self, ident)` method.
+
+Return Formats
+--------------
+Right now `jpg` and `png` are supported. The latter is underdeveloped and not 
+terribly performant, but is in place so that all of the necessary branching in 
+the content negotiation and rendering could be put in place and tested.
 
 Dependencies
 ------------
