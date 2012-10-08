@@ -62,28 +62,29 @@ Make a WSGI file called `loris.wsgi` so the web server and loris can talk to
 each other.  Here is a sample WSGI file:
 
 __loris.wsgi__
-  ```python
-  #!/usr/bin/env python
-  import sys; 
-  sys.path.append('/path/to/loris')
 
-  from loris import create_app
-  application = create_app()
+```python
+#!/usr/bin/env python
+import sys; 
+sys.path.append('/path/to/loris')
 
-Here is a sample Apache virtual host file configuration (variables in `{ }`):
+from loris import create_app
+application = create_app()
+```
 
-  ...
-  WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
-  <Directory {/path/to/loris}>
-    Order allow,deny
-    Allow from all
-  </Directory>
-  ...
+Here is a sample Apache virtual host file configuration (variables in { }):
+
+	...
+	WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
+	<Directory {/path/to/loris}>
+ 		Order allow,deny
+		Allow from all
+	</Directory>
 
 Modify these lines (at least) in the `loris.conf` file:
 
-  cache_root = /path/to/loris/dev_cache
-  src_img_root = /path/to/loris/test_img
+	cache_root = /path/to/loris/dev_cache
+	src_img_root = /path/to/loris/test_img
 
 Restart Apache.  
 Point your browser here to make sure it works with the test image:
@@ -93,6 +94,7 @@ To see the full JP2 image as a jpg:
 http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
 
 [More on URL syntax][2] is available via the spec.
+
 
 Resolving Identifiers
 ---------------------
