@@ -66,13 +66,16 @@ application = create_app()
 
 Here is a sample Apache virtual host file configuration (variables in { }):
 
-	...
-  AllowEncodedSlashes On # <--- Critical if you're using the default resolver!
-	WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
-  <Directory {/path/to/loris}>
-		Order allow,deny
-		Allow from all
-	</Directory>
+```
+...
+AllowEncodedSlashes On # <--- Critical if you're using the default resolver!
+WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
+<Directory {/path/to/loris}>
+	Order allow,deny
+	Allow from all
+</Directory>
+...
+```
 
 Modify these lines (at least) in the `loris.conf` file:
 
