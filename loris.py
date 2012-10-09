@@ -6,7 +6,7 @@
 .. module:: loris
    :platform: Unix
    :synopsis: Implements IIIF 1.0 <http://www-sul.stanford.edu/iiif/image-api> 
-   level 1 and most of level 2 
+   level 1 and most of level 2 (all but _delivery_ of JPEG 2000)
 
 .. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
 
@@ -95,7 +95,6 @@ def create_app(test=False):
 		})
 		return app
 	except Exception,e:
-		logr.fatal(e.message)
 		stderr.write(e.message)
 		exit(1)
 
@@ -198,7 +197,8 @@ class Loris(object):
 		except Exception, e:
 			msg = 'Exception setting up directories: ' 
 			msg += e.message
-			logr.fatal(msg)
+			logr.critical(msg)
+			stderr.write(msg)
 			exit(1)
 		
 		self._html_dir = os.path.join(host_dir, 'html')
@@ -253,7 +253,7 @@ class Loris(object):
 			logr.debug('ident: ' + values.get('ident'))
 			# logr.debug('resolved: ' + resolve(values.get('ident')))
 			dispatch_to_method = 'on_' + endpoint
-			logr.info('Dispatching to ' + dispatch_to_method)
+			logr.debug('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
 
 		# Any exceptions related to parsing the requests into parameter objects
@@ -264,6 +264,7 @@ class Loris(object):
 			resp = e.to_xml()
 			headers = Headers()
 			headers.add('Link', self._link_hdr)
+			logr.exception(e.message)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 		except Exception, e:
@@ -273,6 +274,7 @@ class Loris(object):
 			resp = pe.to_xml()
 			headers = Headers()
 			headers.add('Link', self._link_hdr)
+			logr.exception(e.message)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def on_list_headers(self, request):
@@ -419,13 +421,15 @@ class Loris(object):
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', length)
 
-		except LorisException as e:
+		except LorisException, e:
 			mime = 'text/xml'
 			status = e.http_status
 			resp = e.to_xml()
+			logr.info(e.message)
 
-		except Exception as e:
+		except Exception, e:
 			# should be safe to assume it's the server's fault.
+			logr.exception(e.message)
 			pe = LorisException(500, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
@@ -487,12 +491,14 @@ class Loris(object):
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', len(resp))
 
-		except LorisException as e:
+		except LorisException, e:
 			mime = 'text/xml'
 			status = e.http_status
 			resp = e.to_xml()
+			logr.info(e.message)
 
-		except Exception as e: # Safe to assume it's our fault?
+		except Exception, e: # Safe to assume it's our fault?
+			logr.exception(e.message)
 			pe = LorisException(500, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
@@ -575,6 +581,7 @@ class Loris(object):
 				headers.add('Last-Modified', http_date()) # now
 				resp = file(img_path)
 			except LorisException, e:
+				logr.info(e.message)
 				headers.remove('Last-Modified')
 				mime = 'text/xml'
 				status = e.http_status
@@ -714,6 +721,7 @@ class Loris(object):
 				logr.info('made symlink' + link_path)
 
 		except LorisException, e:
+				logr.info(e.message)
 				headers.remove('Last-Modified')
 				mime = 'text/xml'
 				status = e.http_status
@@ -749,6 +757,7 @@ class Loris(object):
 			logr.info('Read: ' + resource_path)
 		else:
 			status = 304
+			logr.info('Sent 304 for: ' + resource_path)
 			headers.remove('Content-Type')
 			headers.remove('Cache-Control')
 		return status
@@ -886,6 +895,7 @@ class Loris(object):
 
 			return 0
 		except Exception, e:
+			logr.exception(e.message)
 			raise LorisException(500, '', e.message)
 		finally:
 			# Make and call rm $fifo
@@ -1148,28 +1158,19 @@ class SizeParameter(object):
 					raise
 
 			elif self.mode == 'pixel':
-				if self.uri_value.endswith(','):
-					try:
+				try:
+					if self.uri_value.endswith(','):
 						self.w = int(self.uri_value[:-1])
-					except:
-						raise
-				elif self.uri_value.startswith(','):
-					try:
+					elif self.uri_value.startswith(','):
 						self.h = int(self.uri_value[1:])
-					except:
-						raise
-				elif self.uri_value.startswith('!'):
-					self.force_aspect = False
-					try:
+					elif self.uri_value.startswith('!'):
+						self.force_aspect = False
 						self.w, self.h = map(int, self.uri_value[1:].split(','))
-					except:
-						raise
-				else:
-					self.force_aspect = True
-					try:
+					else:
+						self.force_aspect = True
 						self.w, self.h = map(int, self.uri_value.split(','))
-					except:
-						raise
+				except:
+					raise
 			else:
 				if self.mode != 'full':
 					msg = 'Could not parse Size parameter.'

@@ -77,6 +77,22 @@ WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
 ...
 ```
 
+Or, in 'Daemon Mode':
+
+```
+WSGIDaemonProcess loris user={user} group={group} threads=25 maximum-requests=10000
+WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
+
+<Directory {/path/to/loris}>
+  WSGIProcessGroup loris
+  WSGIApplicationGroup %{GLOBAL}
+  Order allow,deny
+  Allow from all
+</Directory>
+```
+
+Note that both of these are likely over-simplified and WSGI [will require more tuning] [10]
+
 Modify these lines (at least) in the `loris.conf` file:
 
 	cache_root = /path/to/loris/dev_cache
@@ -464,3 +480,4 @@ to understand the request [URI syntax] [2] is to read the spec.
 [7]: http://jinja.pocoo.org/ "Jinja2"
 [8]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
 [9]: http://www-sul.stanford.edu/iiif/image-api/#url_encoding "IIIF URL Encoding and Decoding"
+[10]: http://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines "WSGI Configuration Guidelines"
