@@ -55,7 +55,8 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 done
 
 if [ $run == 0 ]; then
-	echo -ne "$(date +[%c cache_clean.sh]) Deleted $delete_count files to "
+	echo -ne "$(date +[%c cache_clean.sh]) " >> $LOG
+	echo -ne "Deleted $delete_count files to " >> $LOG
 	echo "get cache from $start_size kb to $usage kb." >> $LOG
 fi
 

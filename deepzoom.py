@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 #  NOTE THAT THIS IS NOT the full deepzoom.py module. It only includes a 
 #  modified version if that module's DeepZoomImageDescriptor class thus
-#  eliminating loris's dependency on the PIL. The original module may be found 
-#  at <https://github.com/openzoom/deepzoom.py>
+#  eliminating loris's dependency on the PIL and extra code we don't need. The 
+#  original module may be found at <https://github.com/openzoom/deepzoom.py>
 #
-#  License statement from the complete module, from which this file is entirely 
-#  derived, follows:
+#  Original License statement from the complete module follows:
 #  """
 #
 #  Deep Zoom Tools

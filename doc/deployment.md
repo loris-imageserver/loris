@@ -16,7 +16,7 @@ Daemon Mode
  1. Make the log directory: `mkdir /var/log/loris`
  1. Make the cace directory: `mkdir -p /usr/local/loris/cache`
  1. Clone loris to /var/www/loris `git@github.com:pulibrary/loris.git /var/www/loris` (or clone it elsewhere and move it, if that's easier).
- 1. Adjust ownership: `chown loris:loris /var/www/loris /var/log/loris /usr/local/loris/cache`
+ 1. Adjust ownership: `chown -R loris:loris /var/www/loris /var/log/loris /usr/local/loris/cache`
  1. Create a simple wsgi script at `/var/www/loris/loris.wsgi`:
 
 ```python
@@ -60,4 +60,7 @@ _TODO_ See:
 
 Cache Management
 ----------------
-See `bin/cache_clean.sh`. This simple script can be configured and deployed as a cron.
+See `bin/cache_clean.sh`. This simple script can be configured and deployed as 
+a cron job.
+ 1. Set LOG, CACHE_DIR, REDUCE_TO
+ 1. crontab -e -u loris ...

@@ -91,11 +91,11 @@ def create_app(test=False):
 
 		app = Loris(conf_file, test)
 		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-			'/seadragon/js':  os.path.join(host_dir,'seadragon','js')
+			'/seadragon/js':  os.path.join(host_dir,'www','seadragon','js')
 		})
 		return app
 	except Exception,e:
-		stderr.write(e.message)
+		stderr.write(e.message + '\n')
 		exit(1)
 
 
@@ -201,10 +201,10 @@ class Loris(object):
 			stderr.write(msg)
 			exit(1)
 		
-		self._html_dir = os.path.join(host_dir, 'html')
-		self._sd_img_dir = os.path.join(host_dir, 'seadragon','img')
+		self._www_dir= os.path.join(host_dir, 'www')
+		self._sd_img_dir = os.path.join(self._www_dir, 'seadragon','img')
 		
-		_loader = FileSystemLoader(self._html_dir)
+		_loader = FileSystemLoader(self._www_dir)
 		self._jinja_env = Environment(loader=_loader, autoescape=True)
 		
 		# compliance and help links
@@ -248,10 +248,7 @@ class Loris(object):
 		"""
 		adapter = self._url_map.bind_to_environ(request.environ)
 		try:
-
 			endpoint, values = adapter.match()
-			logr.debug('ident: ' + values.get('ident'))
-			# logr.debug('resolved: ' + resolve(values.get('ident')))
 			dispatch_to_method = 'on_' + endpoint
 			logr.debug('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
@@ -303,12 +300,13 @@ class Loris(object):
 		return resp
 
 	def on_get_favicon(self, request):
-		f = os.path.join(host_dir, 'icons', 'favicon.ico')
-		return Response(f, content_type='image/x-icon')
+		logr.debug(host_dir)
+		f = os.path.join(host_dir, 'icons', 'loris-icon.png')
+		return Response(file(f), content_type='image/x-icon')
 	
 	def on_get_docs(self, request):
 		"""Just so that we have something at the root of the service."""
-		docs = os.path.join(self._html_dir, 'docs.html')
+		docs = os.path.join(self._www_dir, 'docs.html')
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_dz(self, request, ident):
@@ -1546,8 +1544,8 @@ if __name__ == '__main__':
 		cwd = os.path.abspath(os.path.dirname(__file__))
 		extra_files = []
 		extra_files.append(os.path.join(cwd, 'loris.conf'))
-		extra_files.append(os.path.join(cwd, 'html', 'dzi.html'))
-		extra_files.append(os.path.join(cwd, 'html', 'docs.html'))
+		extra_files.append(os.path.join(cwd, 'www', 'dzi.html'))
+		extra_files.append(os.path.join(cwd, 'www', 'docs.html'))
 		run_simple('127.0.0.1', 5000, app, use_debugger=True, 
 			threaded=True,  use_reloader=True, extra_files=extra_files)
 	except Exception, e:
