@@ -222,6 +222,7 @@ class Loris(object):
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
 			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
+			Rule('/<path:ident>.dzi', endpoint='get_deepzoom_desc'),
 			Rule('/<path:ident>_files/<int:level>/<int:x>_<int:y>.jpg', endpoint='get_img_for_seajax'),
 			Rule('/<path:ident>.html', endpoint='get_dz'),
 			Rule('/<path:ident>/<img_file>.png', endpoint='get_seadragon_png'),
