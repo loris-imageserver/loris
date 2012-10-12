@@ -5,21 +5,22 @@ Loris is an implementation of the
 [International Image Interoperability Framework: Image API 1.0] [1]. More about 
 this is discussed under IIIF 1.0 Compliance below.
 
-Tests
------
-From the directory that contains `tests.py`, call 
+Dependencies
+------------
+Addition Python libraries:
+ * [Werkzeug] [3] ([Installation] [5])
+ * [Jinja] [7] ([Installation] [8])
 
-	python -m unittest -v tests
+System Utilites
+ * `kdu_expand`
+ * `convert` (ImageMagick)
 
-The tests should run in a logical order, so if you see a failure, futher 
-failures might casacade and mask the problem. To solve this, you can have 
-unittest stop at the first fail:
+Both of the above should be on your PATH and executable from the command line. 
 
-	python -m unittest -vf tests
+Loris was developed on Ubuntu 12.04 with Python 2.7.2 and has only been tested
+in that environment.
 
-You may want to turn down logging at first, and only turn it up if something 
-goes wrong. __Note__ that `Test_I_ResultantImg` takes a while.
-
+If your dependencies are in order, you should be able to start the dev server by executing `loris.py`.
 
 Deployment
 ----------
@@ -48,65 +49,23 @@ Compile or download by following [the instructions on their site] [6]
 
 Make sure Kakadu shared object files are on your `LD_LIBRARY_PATH`.
 
-### Configure for Apache
+__Apache__
+See [deployment.md](https://github.com/pulibrary/loris/blob/master/doc/deployment.md) for _some_ help with Apache
 
-Make a WSGI file called `loris.wsgi` so the web server and loris can talk to 
-each other.  Here is a sample WSGI file:
+Tests
+-----
+From the directory that contains `tests.py`, call 
 
-__loris.wsgi__
+	python -m unittest -v tests
 
-```python
-#!/usr/bin/env python
-import sys; 
-sys.path.append('/path/to/loris')
+The tests should run in a logical order, so if you see a failure, futher 
+failures might casacade and mask the problem. To solve this, you can have 
+unittest stop at the first fail:
 
-from loris import create_app
-application = create_app()
-```
+	python -m unittest -vf tests
 
-Here is a sample Apache virtual host file configuration (variables in { }):
-
-```
-...
-AllowEncodedSlashes On # <--- Critical if you're using the default resolver!
-WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
-<Directory {/path/to/loris}>
-	Order allow,deny
-	Allow from all
-</Directory>
-...
-```
-
-Or, in 'Daemon Mode':
-
-```
-WSGIDaemonProcess loris user={user} group={group} threads=25 maximum-requests=10000
-WSGIScriptAlias {/loris} {/path/to/loris/loris.wsgi}
-
-<Directory {/path/to/loris}>
-  WSGIProcessGroup loris
-  WSGIApplicationGroup %{GLOBAL}
-  Order allow,deny
-  Allow from all
-</Directory>
-```
-
-Note that both of these are likely over-simplified and WSGI [will require more tuning] [10]
-
-Modify these lines (at least) in the `loris.conf` file:
-
-	cache_root = /path/to/loris/dev_cache
-	src_img_root = /path/to/loris/test_img
-
-Restart Apache.  
-Point your browser here to make sure it works with the test image:
-http://your_server/loris/pudl0001/4609321/s42/00000004/info.xml
-
-To see the full JP2 image as a jpg:
-http://your_server/loris/pudl0001/4609321/s42/00000004/full/full/0/color.jpg
-
-[More on URL syntax][2] is available via the spec.
-
+You may want to turn down logging at first, and only turn it up if something 
+goes wrong. __Note__ also that `Test_I_ResultantImg` takes a while.
 
 Resolving Identifiers
 ---------------------
@@ -163,20 +122,7 @@ Right now `jpg` and `png` are supported. The latter is underdeveloped and not
 terribly performant, but is in place so that all of the necessary branching in 
 the content negotiation and rendering could be put in place and tested.
 
-Dependencies
-------------
-Addition Python libraries:
- * [Werkzeug] [3] ([Installation] [5])
- * [Jinja] [7] ([Installation] [8])
 
-System Utilites
- * `kdu_expand`
- * `convert` (ImageMagick)
-
-Both of the above should be on your PATH and executable from the command line. 
-
-Loris was developed on Ubuntu 12.04 with Python 2.7.2 and has only been tested
-in that environment.
 
 Configuration
 -------------
