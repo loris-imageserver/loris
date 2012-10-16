@@ -557,8 +557,8 @@ class Loris(object):
 			format = self.default_format
 			mime = 'image/jpeg' if format == 'jpg' else 'image/png'
 
-		img_dir = os.path.join(self.cache_root, ident, region.uri_value, 
-			size.uri_value, rotation.uri_value)
+		cache_path_elements = (self.cache_root, ident, region, size, rotation)
+		img_dir = os.sep.join(map(str, cache_path_elements))
 		img_path = os.path.join(img_dir, quality + '.' + format)
 		logr.debug('img_dir: ' + img_dir)
 		logr.debug('img_path: ' + img_path)
@@ -1038,6 +1038,9 @@ class RegionParameter(object):
 				msg = 'Region syntax not valid. ' + e.message
 				raise BadRegionSyntaxException(400, uri_value, msg)
 
+	def __str__(self):
+		return self.uri_value
+
 	def to_kdu_arg(self, img_info):
 		"""Turn the URI parameter into a `-region` argument for kdu_expand.
 
@@ -1181,6 +1184,9 @@ class SizeParameter(object):
 		if any((dim < 1 and dim != None) for dim in (self.w, self.h)):
 			msg = 'Width and height must both be positive numbers'
 			raise BadSizeSyntaxException(400, self.uri_value, msg)
+
+	def __str__(self):
+		return self.uri_value
 		
 	def to_convert_arg(self):
 		"""Construct a `-resize <geometry>` argument for the convert utility.
@@ -1250,6 +1256,9 @@ class RotationParameter(object):
 			self.nearest_90 = int(90 * round(float(self.uri_value) / 90))
 		except Exception, e:
 			raise BadRotationSyntaxException(400, self.uri_value, e.message)
+
+	def __str__(self):
+		return self.uri_value
 
 	def to_convert_arg(self):
 		"""Get a `-rotate` argument for the `convert` utility.
