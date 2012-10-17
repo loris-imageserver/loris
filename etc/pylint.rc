@@ -13,19 +13,15 @@
 # Specify a configuration file.
 #rcfile=
 
-# Python code to execute, usually for sys.path manipulation such as
-# pygtk.require().
-#init-hook=
-
 # Profiled execution.
 profile=no
 
 # Add <file or directory> to the black list. It should be a base name, not a
 # path. You may set this option multiple times.
-ignore=SVN
+ignore=
 
 # Pickle collected data for later comparisons.
-persistent=yes
+persistent=no
 
 # Set the cache size for astng objects.
 cache-size=500
@@ -34,8 +30,10 @@ cache-size=500
 # usually to register additional checkers.
 load-plugins=
 
-
 [MESSAGES CONTROL]
+# see http://www.logilab.org/card/pylintfeatures#messages
+disable=C0321,R0201,W0150
+
 
 # Enable only checker(s) with the given id(s). This option conflicts with the
 # disable-checker option
@@ -57,12 +55,10 @@ load-plugins=
 # Disable the message(s) with the given id(s).
 #disable-msg=
 
-
 [REPORTS]
-
 # set the output format. Available formats are text, parseable, colorized, msvs
 # (visual studio) and html
-output-format=text
+output-format=colorized
 
 # Include message's id in output
 include-ids=no
@@ -143,40 +139,41 @@ acquired-members=REQUEST,acl_users,aq_parent
 # Required attributes for module, separated by a comma
 required-attributes=
 
-# Regular expression which should only match functions or classes name which do
-# not require a docstring
+# Regular expression...
+# which should only match functions or classes name which do not require a 
+# docstring
 no-docstring-rgx=__.*__
 
-# Regular expression which should only match correct module names
-module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+# which should only match correct module names
+module-rgx=
 
-# Regular expression which should only match correct module level names
-const-rgx=(([A-Z_][A-Z1-9_]*)|(__.*__))|(log)$
+# which should only match correct module level names
+const-rgx=
 
-# Regular expression which should only match correct class names
-class-rgx=[A-Z_][a-zA-Z0-9]+$
+# which should only match correct class names
+class-rgx=
 
-# Regular expression which should only match correct function names
-function-rgx=[a-z_][a-z0-9_]{2,30}$
+# which should only match correct function names
+function-rgx=
 
-# Regular expression which should only match correct method names
-method-rgx=[a-z_][a-z0-9_]{2,30}$
+# which should only match correct method names
+method-rgx=
 
-# Regular expression which should only match correct instance attribute names
-attr-rgx=[a-z_][a-z0-9_]{2,30}$
+# which should only match correct instance attribute names
+attr-rgx=
 
-# Regular expression which should only match correct argument names
-argument-rgx=[a-z_][a-z0-9_]{2,30}$
+# which should only match correct argument names
+argument-rgx=
 
-# Regular expression which should only match correct variable names
-variable-rgx=[a-z_][a-z0-9_]{2,30}$
+# which should only match correct variable names
+variable-rgx=
 
-# Regular expression which should only match correct list comprehension /
-# generator expression variable names
-inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
+# which should only match correct list comprehension / generator expression 
+# variable names
+inlinevar-rgx=
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=e
+good-names=
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=

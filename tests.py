@@ -120,7 +120,7 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(info.tile_height, 256)
 		self.assertEqual(info.levels, 5)
 		self.assertEqual(info.qualities, ['native', 'bitonal', 'grey', 'color'])
-		self.assertEqual(info.id, self.test_jp2_id)
+		self.assertEqual(info.ident, self.test_jp2_id)
 	
 	def test_img_info_1(self):
 		img = self.app._resolve_identifier(self.test_jp2_1_id)
@@ -132,7 +132,7 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(info.tile_height, 256)
 		self.assertEqual(info.levels, 7)
 		self.assertEqual(info.qualities, ['native', 'bitonal', 'grey', 'color'])
-		self.assertEqual(info.id, self.test_jp2_1_id)
+		self.assertEqual(info.ident, self.test_jp2_1_id)
 
 	def test_img_info_2(self):
 		img = self.app._resolve_identifier(self.test_jp2_2_id)
@@ -144,7 +144,7 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(info.tile_height, 256)
 		self.assertEqual(info.levels, 6)
 		self.assertEqual(info.qualities, ['native', 'bitonal', 'grey'])
-		self.assertEqual(info.id, self.test_jp2_2_id)
+		self.assertEqual(info.ident, self.test_jp2_2_id)
 
 	def test_info_json(self):
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')

@@ -77,7 +77,7 @@ def create_app(test=False):
 
 		app = Loris(test)
 		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-			'/seadragon/js':  os.path.join(host_dir,'www','seadragon','js')
+			'/seadragon/js': os.path.join(host_dir,'www','seadragon','js')
 		})
 		return app
 	except Exception, e:
@@ -133,7 +133,7 @@ class Loris(object):
 		"""
 		logr.debug('Initializing Loris.')
 
-		self.test=test
+		self.test = test
 
 		# Configuration
 		conf_file = os.path.join(host_dir, 'etc', 'loris.conf')
@@ -185,7 +185,7 @@ class Loris(object):
 			stderr.write(msg)
 			exit(1)
 		
-		self._www_dir= os.path.join(host_dir, 'www')
+		self._www_dir = os.path.join(host_dir, 'www')
 		self._sd_img_dir = os.path.join(self._www_dir, 'seadragon','img')
 		
 		_loader = FileSystemLoader(self._www_dir)
@@ -201,9 +201,9 @@ class Loris(object):
 				'rotation' : RotationConverter
 			}
 		self._url_map = Map([
-			Rule('/<path:ident>/info.<format>', endpoint='get_img_metadata'),
+			Rule('/<path:ident>/info.<fmt>', endpoint='get_img_metadata'),
 			Rule('/<path:ident>/info', endpoint='get_img_metadata'),
-			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<format>', endpoint='get_img'),
+			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>.<fmt>', endpoint='get_img'),
 			Rule('/<path:ident>/<region:region>/<size:size>/<rotation:rotation>/<any(native, color, grey, bitonal):quality>', endpoint='get_img'),
 			Rule('/<path:ident>.xml', endpoint='get_deepzoom_desc'),
 			Rule('/<path:ident>.dzi', endpoint='get_deepzoom_desc'),
@@ -270,7 +270,7 @@ class Loris(object):
 		Returns:
 			Response. Just a plain text list of k/v pairs.
 		"""
-		resp=None
+		resp = None
 		if not self.test:
 			resp = Response('not allowed', status=403)
 		else:
@@ -281,7 +281,7 @@ class Loris(object):
 			for k in request.environ:
 				body += '%s: %s\n' % (k, request.environ.get(k))
 			resp = Response(body, status=200)
-			resp.mimetype='text/plain'
+			resp.mimetype = 'text/plain'
 		return resp
 
 	def on_get_favicon(self, request):
@@ -330,7 +330,7 @@ class Loris(object):
 		png = os.path.join(self._sd_img_dir, img_file)+'.png'
 		return Response(file(png), mimetype='image/png')
 
-	def on_get_img_metadata(self, request, ident, format=None):
+	def on_get_img_metadata(self, request, ident, fmt=None):
 		"""Exposes image information.
 
 		See <http://www-sul.stanford.edu/iiif/image-api/#info>
@@ -357,17 +357,17 @@ class Loris(object):
 		headers.add('Cache-Control', 'public')
 
 		try:
-			if format == 'json': mime = 'text/json'
-			elif format == 'xml': mime = 'text/xml'
+			if fmt == 'json': mime = 'text/json'
+			elif fmt == 'xml': mime = 'text/xml'
 			elif request.headers.get('accept') == 'text/json':
-				format = 'json'
+				fmt = 'json'
 				mime = 'text/json'
 			elif request.headers.get('accept') == 'text/xml':
-				format = 'xml'
+				fmt = 'xml'
 				mime = 'text/xml'
-			else: # format is None: 
-				format = self.default_info_format
-				mime = 'text/json' if format == 'json' else 'text/xml'
+			else: # fmt is None: 
+				fmt = self.default_info_format
+				mime = 'text/json' if fmt == 'json' else 'text/xml'
 
 				
 			img_path = self._resolve_identifier(ident)
@@ -377,7 +377,7 @@ class Loris(object):
 				raise LorisException(404, ident, msg)
 			
 			cache_dir = os.path.join(self.cache_root, ident)
-			cache_path = os.path.join(cache_dir, 'info.') + format
+			cache_path = os.path.join(cache_dir, 'info.') + fmt
 
 			# check the cache
 			if os.path.exists(cache_path) and self.enable_cache == True:
@@ -387,7 +387,7 @@ class Loris(object):
 				status = 200
 				info = ImgInfo.fromJP2(img_path, ident)
 				info.id = ident
-				resp = info.marshal(to=format)
+				resp = info.marshal(to=fmt)
 				length = len(resp)
 
 				if not os.path.exists(cache_dir): 
@@ -491,7 +491,7 @@ class Loris(object):
 			return Response(resp, status=status, content_type=mime, headers=headers)
 
 	def on_get_img(self, request, ident, region, size, rotation, quality, 
-			format=None):
+			fmt=None):
 		"""Get an image.
 
 		Most of the arguments are *Parameter objects, returned by the 
@@ -527,23 +527,23 @@ class Loris(object):
 		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
-		if format == 'jpg':	
+		if fmt == 'jpg':	
 			mime = 'image/jpeg'
-		elif format == 'png': 
+		elif fmt == 'png': 
 			mime = 'image/png'
 		elif request.headers.get('accept') == 'image/jpeg':
-			format = 'jpg'
+			fmt = 'jpg'
 			mime = 'image/jpeg'
 		elif request.headers.get('accept') == 'image/png':
-			format = 'png'
+			fmt = 'png'
 			mime = 'image/png'
-		else: #format is None 
-			format = self.default_format
-			mime = 'image/jpeg' if format == 'jpg' else 'image/png'
+		else: #fmt is None 
+			fmt = self.default_format
+			mime = 'image/jpeg' if fmt == 'jpg' else 'image/png'
 
 		cache_path_elements = (self.cache_root, ident, region, size, rotation)
 		img_dir = os.sep.join(map(str, cache_path_elements))
-		img_path = os.path.join(img_dir, quality + '.' + format)
+		img_path = os.path.join(img_dir, quality + '.' + fmt)
 		logr.debug('img_dir: ' + img_dir)
 		logr.debug('img_path: ' + img_path)
 	
@@ -557,7 +557,7 @@ class Loris(object):
 				logr.info('Made directory: ' + img_dir)
 				
 				img_success = self._derive_img_from_jp2(ident, img_path, region, 
-					size, rotation, quality, format)
+					size, rotation, quality, fmt)
 
 				status = 200
 				headers.add('Content-Length', os.path.getsize(img_path))
@@ -613,7 +613,7 @@ class Loris(object):
 			<http://www-sul.stanford.edu/iiif/image-api/#error>
 		"""
 		link_dir = os.path.join(self.cache_root, ident+'_files', str(level))
-		link_file_name = '_'.join(map(str, (x,y))) + '.jpg'
+		link_file_name = '_'.join(map(str, (x, y))) + '.jpg'
 		link_path = os.path.join(link_dir, link_file_name)
 		logr.debug('seadragon link_dir: ' + link_dir)
 		logr.debug('seadragon link_path: ' + link_path)
@@ -657,7 +657,7 @@ class Loris(object):
 				tile_y = int(y * tile_size + y)
 				logr.debug('tile_y: ' + str(tile_y))
 
-				region_segment=''
+				region_segment = ''
 				dims = dzi_desc.get_dimensions(level)
 				if any(d < self.dz_tile_size for d in dims):
 					region_segment = 'full'
@@ -704,11 +704,11 @@ class Loris(object):
 				logr.info('made symlink' + link_path)
 
 		except LorisException, e:
-				logr.info(e.message)
-				headers.remove('Last-Modified')
-				mime = 'text/xml'
-				status = e.http_status
-				resp_body = e.to_xml()
+			logr.info(e.message)
+			headers.remove('Last-Modified')
+			mime = 'text/xml'
+			status = e.http_status
+			resp_body = e.to_xml()
 		finally:
 			return Response(resp_body, content_type=mime, status=status, 
 				headers=headers)
@@ -746,7 +746,7 @@ class Loris(object):
 		return status
 
 	def _derive_img_from_jp2(self, ident, out_path, region, size, rotation, 
-			quality, format, info=None):
+			quality, fmt, info=None):
 		"""Make an image from a JP2.
 
 		Most of the arguments are *Parameter objects, returned by the 
@@ -813,7 +813,7 @@ class Loris(object):
 			# Make a named pipe for the temporary bitmap
 			bmp_name = self._random_str(10) + '.bmp'
 			fifo_path = os.path.join(self.tmp_dir, bmp_name)
-			mkfifo_call= self.mkfifo_cmd + ' ' + fifo_path
+			mkfifo_call = self.mkfifo_cmd + ' ' + fifo_path
 			
 			logr.debug('Calling ' + mkfifo_call)
 			subprocess.check_call(mkfifo_call, shell=True)
@@ -841,9 +841,9 @@ class Loris(object):
 			convert_call += size.to_convert_arg() + ' '
 			convert_call += rotation.to_convert_arg() + ' '
 
-			if format == 'jpg':
+			if fmt == 'jpg':
 				convert_call += '-quality 90 '
-			if format == 'png':
+			if fmt == 'png':
 				convert_call += '-colors 256 -quality 00 ' 
 
 			if quality == 'grey' and info.native_quality != 'grey':
@@ -955,7 +955,7 @@ class ImgInfo(object):
 	See: <http://www-sul.stanford.edu/iiif/image-api/#info>
 
 	Attributes:
-		id (str): The image identifier.
+		ident (str): The image identifier.
 		width (int)
 		height (int)
 		tile_width (int)
@@ -964,6 +964,20 @@ class ImgInfo(object):
 		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
 		native_quality: 'color' or 'grey'
 	"""
+	# TODO: these should be slots and __init__ should just take a file name
+	# from which we decide what to do based on the extension
+	def __init__(self):
+		self.scale_factors = None
+		self.width = None
+		self.tile_height = None
+		self.levels = None
+		self.height = None
+		self.native_quality = None
+		self.tile_width = None
+		self.qualities = None
+		self.formats = None
+		self.ident = None
+
 	# Other fromXXX methods could be defined, hence the static constructors
 	@staticmethod
 	def fromJP2(path, img_id):
@@ -982,7 +996,7 @@ class ImgInfo(object):
 			ImgInfo
 		"""
 		info = ImgInfo()
-		info.id = img_id
+		info.ident = img_id
 		info.qualities = ['native', 'bitonal']
 
 		jp2 = open(path, 'rb')
@@ -1058,7 +1072,7 @@ class ImgInfo(object):
 				f = open(path, 'r')
 				j = load(f)
 				logr.debug(j.get(u'identifier'))
-				info.id = j.get(u'identifier')
+				info.ident = j.get(u'identifier')
 				info.width = j.get(u'width')
 				info.height = j.get(u'height')
 				info.scale_factors = j.get(u'scale_factors')
@@ -1075,7 +1089,6 @@ class ImgInfo(object):
 			msg = 'Path passed to unmarshal does not contain XML or JSON' 
 			raise Exception(msg)
 		return info
-
 	
 	def marshal(self, to):
 		"""Serialize the object as XML or json.
@@ -1094,7 +1107,6 @@ class ImgInfo(object):
 		else:
 			raise Exception('Argument to marshal must be \'xml\' or \'json\'')
 
-
 	def _to_xml(self):
 		"""Serialize as XML"""
 		doc = xml.dom.minidom.Document()
@@ -1104,7 +1116,7 @@ class ImgInfo(object):
 
 		# identifier
 		identifier = doc.createElementNS(IMG_API_NS, 'identifier')
-		identifier.appendChild(doc.createTextNode(self.id))
+		identifier.appendChild(doc.createTextNode(self.ident))
 		info.appendChild(identifier)
 
 		# width
@@ -1138,9 +1150,9 @@ class ImgInfo(object):
 		# formats
 		formats = doc.createElementNS(IMG_API_NS, 'formats')
 		for f in FORMATS_SUPPORTED:
-			format = doc.createElementNS(IMG_API_NS, 'format')
-			format.appendChild(doc.createTextNode(f))
-			formats.appendChild(format)
+			fmt = doc.createElementNS(IMG_API_NS, 'format')
+			fmt.appendChild(doc.createTextNode(f))
+			formats.appendChild(fmt)
 		info.appendChild(formats)
 
 		# qualities
@@ -1161,7 +1173,7 @@ class ImgInfo(object):
 		"""Serialize as json"""
 		# cheaper!
 		j = '{'
-		j += '  "identifier" : "' + self.id + '", '
+		j += '  "identifier" : "' + self.ident + '", '
 		j += '  "width" : ' + str(self.width) + ', '
 		j += '  "height" : ' + str(self.height) + ', '
 		j += '  "scale_factors" : [' + ", ".join(str(l) for l in range(1, self.levels+1)) + '], '
@@ -1174,7 +1186,7 @@ class ImgInfo(object):
 		return j
 
 if __name__ == '__main__':
-	"""Run the development server"""
+	# Run the development server
 	from werkzeug.serving import run_simple
 	try:
 		app = create_app(test=True)
