@@ -69,12 +69,13 @@ def create_app(test=False):
 	try:
 		# Logging
 		host_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-		conf_file = os.path.join(host_dir, 'loris.conf')
-		logging.config.fileConfig(conf_file)
+		log_conf_file = os.path.join(host_dir, 'etc', 'logging.conf')
+		logging.config.fileConfig(log_conf_file)
 
-		logr = logging.getLogger('loris_test') if test else logging.getLogger('loris')
+		if test: logr = logging.getLogger('loris_test')
+		else: logr = logging.getLogger('loris')
 
-		app = Loris(conf_file, test)
+		app = Loris(test)
 		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
 			'/seadragon/js':  os.path.join(host_dir,'www','seadragon','js')
 		})
@@ -123,11 +124,8 @@ class Loris(object):
 			the images. Note that this may need to change if a different 
 			resolver to :func:`_resolve_identifier` is implemented.
 	"""
-	def __init__(self, conf_file, test=False):
+	def __init__(self, test=False):
 		"""Read in the configuration file and calculate attributes.
-
-		Args:
-			conf_file (str): The path to the configiration file.
 
 		Kwargs:
 			test (bool): Primarily for unit tests, changes from configured dirs 
@@ -138,7 +136,7 @@ class Loris(object):
 		self.test=test
 
 		# Configuration
-		host_dir = os.path.abspath(os.path.dirname(__file__))
+		conf_file = os.path.join(host_dir, 'etc', 'loris.conf')
 		_conf = ConfigParser.RawConfigParser()
 		_conf.read(conf_file)
 
