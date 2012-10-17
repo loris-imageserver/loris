@@ -11,7 +11,6 @@
 
 """
 from os.path import join
-from werkzeug.routing import BaseConverter
 
 SRC_IMG_ROOT='/home/jstroop/workspace/loris/test_img'
 

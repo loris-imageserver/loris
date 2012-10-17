@@ -1,30 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-:mod:`tests` -- Unit Tests for Loris WSGI JPEG 2000 Server
+Unit Tests for Loris WSGI JPEG 2000 Server
 ==========================================================
-.. module:: test
-   :platform: Unix
-   :synopsis: Unit tests are named so that they run in a logical order, which 
-   means running e.g. `python -m unittest -vf tests` should make it clearer 
-   where the actual failure happened, rather than having to trace back through
-   a cascade of failures to find the original fault.
+	Unit tests are named so that they run in a logical order, which means 
+	running e.g. `python -m unittest -vf tests` should make it clearer
+	where the actual failure happened, rather than having to trace back through
+	a cascade of failures to find the original fault.
 
-.. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
+Author: Jon Stroop <jstroop@princeton.edu>
+Since: 2012-08-25
 
 """
 from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
-from loris import BadRegionRequestException
-from loris import BadRegionSyntaxException
-from loris import BadSizeSyntaxException
-from deepzoom import DeepZoomImageDescriptor
-from loris import ImgInfo
-from loris import RegionParameter
-from loris import RotationParameter
-from loris import SizeParameter
-from loris import create_app
+from loris.app import ImgInfo
+from loris.app import create_app
+from loris.deepzoom import DeepZoomImageDescriptor
+from loris.loris_exceptions import BadRegionRequestException
+from loris.loris_exceptions import BadRegionSyntaxException
+from loris.loris_exceptions import BadSizeSyntaxException
+from loris.parameters import RegionParameter
+from loris.parameters import RotationParameter
+from loris.parameters import SizeParameter
+from loris.resolver import resolve
 from os import listdir, path, remove
 from shutil import rmtree
 from sys import stderr, stdout
@@ -33,7 +33,6 @@ from werkzeug.http import http_date, parse_date
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
 from xml.dom.minidom import parseString
-from resolver import resolve
 import struct
 import subprocess
 import unittest

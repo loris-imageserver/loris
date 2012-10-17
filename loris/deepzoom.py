@@ -6,7 +6,7 @@
 #  eliminating loris's dependency on the PIL and extra code we don't need. The 
 #  original module may be found at <https://github.com/openzoom/deepzoom.py>
 #
-#  Original License statement from the complete module follows:
+#  Original license statement from the complete module follows:
 #  """
 #
 #  Deep Zoom Tools
