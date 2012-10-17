@@ -2,12 +2,12 @@ Deployment
 ==========
 
 These instructions assume:
- * The `wsgi` script is at `/var/www/loris/loris.wsgi`
+ * The `WSGI` script is at `/var/www/loris/loris.wsgi`
  * Loris itself is at `/var/www/loris`
  * You'll be logging to `/var/log/loris`
  * You'll cache images at `/usr/local/loris/cache`
 
-Do one of _Daemon Mode_ or _Embedded Mode_, and then go on to Cache Management.
+__Note:__ Do one of _Daemon Mode_ or _Embedded Mode_, and then go on to _Cache Management_.
 
 Daemon Mode
 -----------
@@ -21,15 +21,15 @@ Daemon Mode
 
 ```python
 #!/usr/bin/env python
-import sys; 
-sys.path.append('/var/www/loris')
+import sys
+sys.path.append('/var/www/loris/loris')
 
-from loris import create_app
+from app import create_app
 application = create_app()
 
 ```
 
- 1. Adjust `/var/www/loris/loris.conf`:
+ 1. Adjust `/var/www/loris/etc/loris.conf`:
    * set `cache_root` to `/usr/local/loris/cache`
    * under `[handler_err]` and `[handler_out]` set args to reflect the correct log dir, .e.g. something like `args=('/var/log/loris/loris.err', 'midnight', 1, 14)`
    * you may want to adjust levels as well
