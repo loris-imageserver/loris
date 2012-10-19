@@ -36,7 +36,7 @@ from parameters import RegionParameter, SizeParameter, RotationParameter
 from random import choice
 from resolver import resolve
 from string import ascii_lowercase, digits
-from sys import exit, stderr
+import sys
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date, parse_date
 from werkzeug.routing import Map, Rule
@@ -77,9 +77,12 @@ def create_app(test=False):
 			'/seadragon/js': os.path.join(host_dir,'www','seadragon','js')
 		})
 		return app
+	except IOError, ie:
+		sys.stderr.write(str(ie) + ' Maybe the log is not writable?\n')
+		sys.exit(1)
 	except Exception, e:
-		stderr.write(e.message + '\n')
-		raise e
+		sys.stderr.write(str(e) + '\n')
+		sys.exit(1)
 
 
 class Loris(object):
@@ -179,7 +182,7 @@ class Loris(object):
 			msg += e.message
 			logr.critical(msg)
 			stderr.write(msg)
-			exit(1)
+			sys.exit(1)
 		
 		self._www_dir = os.path.join(host_dir, 'www')
 		self._sd_img_dir = os.path.join(self._www_dir, 'seadragon','img')
@@ -958,5 +961,5 @@ if __name__ == '__main__':
 		run_simple('127.0.0.1', 5000, app, use_debugger=True, 
 			threaded=True,  use_reloader=True, extra_files=extra_files)
 	except Exception, e:
-		stderr.write(e.message)
-		exit(1)
+		sys.stderr.write(e.message)
+		sys.exit(1)
