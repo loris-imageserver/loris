@@ -7,4 +7,6 @@ dev_cache/
 
 *.swp
 
+*.wsgi
+
 scratch.py
