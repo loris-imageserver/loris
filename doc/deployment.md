@@ -7,7 +7,8 @@ These instructions assume:
  * You'll be logging to `/var/log/loris`
  * You'll cache images at `/usr/local/loris/cache`
 
-__Note:__ Do one of _Daemon Mode_ or _Embedded Mode_, and then go on to _Cache Management_.
+__Note:__ Do one of _Daemon Mode_ or _Embedded Mode_, and then go on to 
+_Resolving Identifiers_ and _Cache Management_ .
 
 Daemon Mode
 -----------
@@ -58,6 +59,34 @@ Embedded Mode
 _TODO_ See: 
  * http://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines#Defining_Process_Groups
  * http://code.google.com/p/modwsgi/wiki/ProcessesAndThreading
+
+Resolving Identifiers
+---------------------
+See `loris/resolver.py`. It is up to you to implmenent the `resolve` function in `resolver.py`. 
+
+The supplied method for resolving identifiers to images is about as simple as 
+it could be. In a request that looks like this 
+
+    http://example.edu/loris/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+
+The portion between the path the to service on the host server and the region, 
+(excluding leading and trailings `/`s), i.e.:
+
+    http://example.edu/loris/some/img/dir/0004/0,0,256,256/full/0/color.jpg
+                             \_______________/
+
+will be joined to the `SRC_IMG_ROOT` constant, and have `.jp2` appended. So if
+
+    SRC_IMG_ROOT=/usr/local/share/images
+
+then this file must exist:
+
+    /usr/local/share/images/some/img/dir/0004.jp2 
+
+According the the specification, [the identifier must be URL encoded] [9], but 
+with the supplied implementation either will work, i.e. `some/img/dir/0004` or
+`some%2Fimg%2Fdir%2F0004`. __Make sure `AllowEncodedSlashes` is set to `On` in
+your Apache configuration.__ 
 
 Cache Management
 ----------------

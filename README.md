@@ -67,55 +67,6 @@ unittest stop at the first fail:
 You may want to turn down logging at first, and only turn it up if something 
 goes wrong. __Note__ also that `Test_I_ResultantImg` takes a while.
 
-Resolving Identifiers
----------------------
-It is up to you to implmenent the `resolve` function in `resolver.py`. See the 
-file for details. 
-
-The supplied method for resolving identifiers to images is about as simple as 
-it could be. In a request that looks like this 
-
-    http://example.edu/loris/some/img/dir/0004/0,0,256,256/full/0/color.jpg
-
-The portion between the path the to service on the host server and the region, 
-(excluding leading and trailings `/`s), i.e.:
-
-    http://example.edu/loris/some/img/dir/0004/0,0,256,256/full/0/color.jpg
-                             \_______________/
-
-will be joined to the `SRC_IMG_ROOT` constant, and have `.jp2` appended. So if
-
-    SRC_IMG_ROOT=/usr/local/share/images
-
-then this file must exist:
-
-    /usr/local/share/images/some/img/dir/0004.jp2 
-
-According the the specification, [the identifier must be URL encoded] [9], but 
-with the supplied implementation either will work, i.e. `some/img/dir/0004` or
-`some%2Fimg%2Fdir%2F0004`. __Make sure `AllowEncodedSlashes` is set to `On` in
-your Apache configuration.__ 
-
-
-Aside: _Identifier escaping/encoding of slashes should never really be necessary._ Consider the Request Syntax:
-
-	http://{server}{/prefix}/{identifier}/{region}/{size}/{rotation}/{quality}.{format}
-
-Any implementation should know its host and name, e.g.:
-
-	http://{server}{/prefix}/
-
-and the after `{identifier}` remainder of the syntax has only two patterns:
-
-	/{region}/{size}/{rotation}/{quality}.{format}
-
-or with conneg:
-
-	/{region}/{size}/{rotation}/{quality}
-
-so what could be in between those two portions of the URI __but__ the identifer?
-
-
 Return Formats
 --------------
 Right now `jpg` and `png` are supported. The latter is underdeveloped and not 
@@ -123,14 +74,13 @@ terribly performant, but is in place so that all of the necessary branching in
 the content negotiation and rendering could be put in place and tested.
 
 
-
 Configuration
 -------------
-Please read through `loris.conf`. Properties and options are explained there.
+Please read through `etc/loris.conf`. Properties and options are explained there.
 
 Logging
 -------
-Logging is set up in `loris.conf` and is extremely loud by default. The 
+Logging is set up in `etc/logging.conf` and is extremely loud by default. The 
 handlers configured near the bottom of that file control the levels and 
 directories. The directories must exist and be writable.
 
@@ -148,7 +98,7 @@ The Name
 --------
 Could stand for __Lightweight Open Repository Image Server__ or not. Thanks to
 [shaune](https://github.com/sdellis "Shaun Ellis") for coming up with it and 
-the icon.
+creating the icons.
 
 IIIF 1.0 Compliance
 -------------------
