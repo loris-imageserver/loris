@@ -31,6 +31,7 @@ application = create_app()
 
  1. Adjust `/var/www/loris/etc/loris.conf`:
    * set `cache_root` to `/usr/local/loris/cache`
+ 1. Adjust `/var/www/loris/etc/logging.conf`:
    * under `[handler_err]` and `[handler_out]` set args to reflect the correct log dir, .e.g. something like `args=('/var/log/loris/loris.err', 'midnight', 1, 14)`
    * you may want to adjust levels as well
 
