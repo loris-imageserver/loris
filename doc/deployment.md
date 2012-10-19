@@ -36,8 +36,6 @@ application = create_app()
    * under `[handler_err]` and `[handler_out]` set args to reflect the correct log dir, .e.g. something like `args=('/var/log/loris/loris.err', 'midnight', 1, 14)`
    * you may want to adjust levels as well
 
-1. Adjust `resolver.py`. It depends what you're going to do here (see `README`), but with the default you're going to at least need to change the `SRC_IMG_ROOT` constant.
-
 1. Update your Apache VirtualHost:
 
 ```
@@ -62,7 +60,7 @@ _TODO_ See:
 
 Resolving Identifiers
 ---------------------
-See `loris/resolver.py`. It is up to you to implmenent the `resolve` function in `resolver.py`. 
+See `loris/resolver.py`. It depends what you're going to do here, but with the default you're going to at least need to change the `SRC_IMG_ROOT` constant. It is assumed that different users in different environment will likely need to implmenent the `resolve` function in `resolver.py` in different ways. That said... 
 
 The supplied method for resolving identifiers to images is about as simple as 
 it could be. In a request that looks like this 
