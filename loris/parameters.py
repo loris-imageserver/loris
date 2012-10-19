@@ -3,7 +3,6 @@ from decimal import Decimal
 from loris_exceptions import BadRegionRequestException
 from loris_exceptions import BadRegionSyntaxException
 from loris_exceptions import BadSizeSyntaxException
-from loris_exceptions import BadSizeRequestException
 from loris_exceptions import BadRotationSyntaxException
 
 class RegionParameter(object):
@@ -255,3 +254,4 @@ class RotationParameter(object):
 		arg = ''
 		if self.nearest_90 % 360 != 0: arg = '-rotate ' + str(self.nearest_90)
 		return arg
+from loris_exceptions import BadSizeRequestException
