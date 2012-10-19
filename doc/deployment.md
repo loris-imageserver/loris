@@ -60,7 +60,11 @@ _TODO_ See:
 
 Resolving Identifiers
 ---------------------
-See `loris/resolver.py`. It depends what you're going to do here, but with the default you're going to at least need to change the `SRC_IMG_ROOT` constant. It is assumed that different users in different environment will likely need to implmenent the `resolve` function in `resolver.py` in different ways. That said... 
+See `loris/resolver.py`. It depends what you're going to do here, but with the default you're going to at least need to change the `SRC_IMG_ROOT` constant. It is assumed that different users in different environment will likely need to implmenent the `resolve` function in `resolver.py` in different ways. 
+
+`loris.resolver.resolve` must take a string that is an identifier as its only argument, and return a string that is absolute path on the local file system to a jp2.
+
+That said... 
 
 The supplied method for resolving identifiers to images is about as simple as 
 it could be. In a request that looks like this 
