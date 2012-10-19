@@ -1,18 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-:mod:`resolver` -- Resolve Identifiers to Image Paths
-==========================================================
-.. module:: resolver
-   :platform: Unix
-   :synopsis: This module must include one function, `resolve` that takes one
-   argument, an identifier, and returns a path to a JP2 on the file system.
-.. moduleauthor:: Jon Stroop <jstroop@princeton.edu>
-
+`resolver` -- Resolve Identifiers to Image Paths
+================================================
 """
 from os.path import join
 
-SRC_IMG_ROOT='/home/jstroop/workspace/loris/test_img'
+SRC_IMG_ROOT='/usr/local/share/images'
 
 def resolve(ident):
 	"""
