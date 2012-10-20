@@ -1,5 +1,5 @@
-#loris_exceptions.py
-from constants import IMG_API_NS
+#loris.exceptions.py
+from loris.constants import IMG_API_NS
 import xml.dom.minidom
 
 class LorisException(Exception):

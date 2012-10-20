@@ -4,7 +4,7 @@
 `loris.app` -- WSGI JPEG 2000 Server
 ====================================
 Implements IIIF 1.0 <http://www-sul.stanford.edu/iiif/image-api> level 1 and 
-most of level 2 (all but _delivery_ of JPEG 2000).
+most of level 2 (all but return of JPEG 2000 derivatives).
 
 Author: Jon Stroop <jstroop@princeton.edu>
 Since: 2012-08-25
@@ -24,19 +24,17 @@ Since: 2012-08-25
     You should have received a copy of the GNU General Public License along 
     with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from constants import COMPLIANCE, HELP
-from converters import RegionConverter, SizeConverter, RotationConverter
 from datetime import datetime
 from decimal import Decimal, getcontext
-from deepzoom import DeepZoomImageDescriptor
-from img_info import ImgInfo
 from jinja2 import Environment, FileSystemLoader
-from loris_exceptions import LorisException
-from parameters import RegionParameter, SizeParameter, RotationParameter
+from loris.constants import COMPLIANCE, HELP
+from loris.converters import RegionConverter, SizeConverter, RotationConverter
+from loris.deepzoom import DeepZoomImageDescriptor
+from loris.exceptions import LorisException
+from loris.img_info import ImgInfo
+from loris.parameters import RegionParameter, SizeParameter, RotationParameter
 from random import choice
-from resolver import resolve
 from string import ascii_lowercase, digits
-import sys
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date, parse_date
 from werkzeug.routing import Map, Rule
@@ -45,8 +43,10 @@ from werkzeug.wsgi import SharedDataMiddleware
 import ConfigParser
 import logging
 import logging.config
+import loris.resolver as resolver
 import os
 import subprocess
+import sys
 
 def create_app(test=False):
 	"""Creates an instance of the `Loris`.
@@ -164,6 +164,7 @@ class Loris(object):
 		if self.test:
 			self.tmp_dir = _conf.get('directories', 'test_tmp')
 			self.cache_root = _conf.get('directories', 'test_cache_root')
+			resolver.SRC_IMG_ROOT = os.path.join(host_dir, 'test_img')
 		else:
 			self.tmp_dir = _conf.get('directories', 'tmp')
 			self.cache_root = _conf.get('directories', 'cache_root')
@@ -894,7 +895,7 @@ class Loris(object):
 		Returns:
 			str. The path to a JP2.
 		"""
-		return resolve(ident)
+		return resolver.resolve(ident)
 
 	def _random_str(self, size):
 		"""Generates a random str of `size` length to help keep our fifos 

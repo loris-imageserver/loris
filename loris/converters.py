@@ -1,6 +1,6 @@
 # converters.py
+from loris.parameters import RotationParameter, RegionParameter, SizeParameter
 from werkzeug.routing import BaseConverter
-from parameters import RotationParameter, RegionParameter, SizeParameter
 
 class RegionConverter(BaseConverter):
 	"""Converter for IIIF region paramaters as specified.

@@ -1,7 +1,7 @@
 # img_info.py
 from collections import deque
-from constants import IMG_API_NS, COMPLIANCE, FORMATS_SUPPORTED
 from json import load
+from loris.constants import IMG_API_NS, COMPLIANCE, FORMATS_SUPPORTED
 import struct
 import xml.dom.minidom
 

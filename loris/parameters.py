@@ -1,9 +1,9 @@
 #parameters.py
 from decimal import Decimal
-from loris_exceptions import BadRegionRequestException
-from loris_exceptions import BadRegionSyntaxException
-from loris_exceptions import BadSizeSyntaxException
-from loris_exceptions import BadRotationSyntaxException
+from loris.exceptions import BadRegionRequestException
+from loris.exceptions import BadRegionSyntaxException
+from loris.exceptions import BadSizeSyntaxException
+from loris.exceptions import BadRotationSyntaxException
 
 class RegionParameter(object):
 	"""Internal representation of the region slice of an IIIF image URI.
@@ -254,4 +254,4 @@ class RotationParameter(object):
 		arg = ''
 		if self.nearest_90 % 360 != 0: arg = '-rotate ' + str(self.nearest_90)
 		return arg
-from loris_exceptions import BadSizeRequestException
+from loris.exceptions import BadSizeRequestException

@@ -18,9 +18,9 @@ from json import loads
 from loris.app import ImgInfo
 from loris.app import create_app
 from loris.deepzoom import DeepZoomImageDescriptor
-from loris.loris_exceptions import BadRegionRequestException
-from loris.loris_exceptions import BadRegionSyntaxException
-from loris.loris_exceptions import BadSizeSyntaxException
+from loris.exceptions import BadRegionRequestException
+from loris.exceptions import BadRegionSyntaxException
+from loris.exceptions import BadSizeSyntaxException
 from loris.parameters import RegionParameter
 from loris.parameters import RotationParameter
 from loris.parameters import SizeParameter
