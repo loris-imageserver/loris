@@ -182,7 +182,7 @@ class Loris(object):
 			msg = 'Exception setting up directories: ' 
 			msg += e.message
 			logr.critical(msg)
-			stderr.write(msg)
+			sys.stderr.write(msg)
 			sys.exit(1)
 		
 		self._www_dir = os.path.join(host_dir, 'www')
@@ -556,8 +556,8 @@ class Loris(object):
 				if not os.path.exists(img_dir):	os.makedirs(img_dir, 0755)
 				logr.info('Made directory: ' + img_dir)
 				
-				img_success = self._derive_img_from_jp2(ident, img_path, region, 
-					size, rotation, quality, fmt)
+				self._derive_img_from_jp2(ident, img_path, region, size, 
+					rotation, quality, fmt)
 
 				status = 200
 				headers.add('Content-Length', os.path.getsize(img_path))
@@ -678,18 +678,17 @@ class Loris(object):
 				rotation = '0'
 				rotation_param = RotationParameter(rotation)
 
-				img_dir = os.path.join(self.cache_root, ident, region_segment, size_pct, rotation)
+				cache_path_elements = (self.cache_root, ident, region_segment, 
+					size_pct, rotation)
+				img_dir = os.sep.join(map(str, cache_path_elements))
 
 				if not os.path.exists(img_dir):
 					os.makedirs(img_dir, 0755)
 					logr.info('made ' + img_dir)
 
 				img_path = os.path.join(img_dir, 'native.jpg')
-				img_success = self._derive_img_from_jp2(ident, \
-					img_path, \
-					region_param, \
-					size_param, \
-					rotation_param, 'native', 'jpg', info)
+				self._derive_img_from_jp2(ident, img_path, region_param, 
+					size_param, rotation_param, 'native', 'jpg', info)
 
 				status = 200
 				headers.add('Content-Length', os.path.getsize(img_path))
