@@ -61,7 +61,7 @@ disable=C0321,R0201,W0150
 output-format=colorized
 
 # Include message's id in output
-include-ids=no
+include-ids=yes
 
 # Put messages in a separate file for each module / package specified on the
 # command line instead of printing them on stdout. Reports (if any) will be
