@@ -6,7 +6,3 @@ dev_cache/
 *.save
 
 *.swp
-
-*.wsgi
-
-scratch.py
