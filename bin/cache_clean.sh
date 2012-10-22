@@ -8,13 +8,14 @@
 #
 # @author <jstroop@princeton.edu>
 #
-LOG="/tmp/loris_test/cache_clean.log"
+LOG="/var/log/loris/cache_clean.log"
 # Check that the cache directory
-CACHE_DIR="/tmp/loris_test/cache"
+CACHE_DIR="/var/cache/loris"
 
 # is below a certain size (in KB)
-# REDUCE_TO=524288000 #500 gb in kb
 REDUCE_TO=1048576 #1 gb in kb
+# REDUCE_TO=524288000 #500 gb in kb
+# REDUCE_TO=1073741824 # 1 TB in kb
 
 # and when it is larger, start deleting files accessed more than a certain 
 # number of days ago until the cache is smaller than the configured size.
