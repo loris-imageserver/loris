@@ -4,7 +4,7 @@
 Unit Tests for Loris WSGI JPEG 2000 Server
 ==========================================================
 	Unit tests are named so that they run in a logical order, which means 
-	running e.g. `python -m unittest -vf tests` should make it clearer
+	running e.g. `python -m unittest -vf test.suite` should make it clearer
 	where the actual failure happened, rather than having to trace back through
 	a cascade of failures to find the original fault.
 
@@ -15,12 +15,12 @@ Since: 2012-08-25
 from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
-from loris.app import ImgInfo
 from loris.app import create_app
 from loris.deepzoom import DeepZoomImageDescriptor
 from loris.exceptions import BadRegionRequestException
 from loris.exceptions import BadRegionSyntaxException
 from loris.exceptions import BadSizeSyntaxException
+from loris.img_info import ImgInfo
 from loris.parameters import RegionParameter
 from loris.parameters import RotationParameter
 from loris.parameters import SizeParameter
@@ -33,11 +33,10 @@ from werkzeug.http import http_date, parse_date
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
 from xml.dom.minidom import parseString
+import loris.app
 import struct
 import subprocess
 import unittest
-
-# helpers
 
 class LorisTest(unittest.TestCase):
 	def setUp(self):
@@ -48,16 +47,16 @@ class LorisTest(unittest.TestCase):
 		getcontext().prec = self.app.decimal_precision
 		self.client = Client(self.app, BaseResponse)
 		abs_path = path.abspath(path.dirname(__file__))
-		self.test_img_dir = path.join(abs_path, 'test_img')
+		self.test_img_dir = path.join(abs_path, 'img')
 		self.test_jp2_id = 'pudl0001/4609321/s42/00000004' # color; 2717 x 3600
 		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001' # color; 5283 x 7200
 		self.test_jp2_2_id = 'AC044/c0002/00000043' # grey; 2477 x 3200
 
 	def tearDown(self):
 		# empty the cache
-		for d in listdir(self.app.cache_root):
-			rmtree(path.join(self.app.cache_root, d))
-		rmtree(self.app.cache_root)
+		for d in listdir(loris.app.CACHE):
+			rmtree(path.join(loris.app.CACHE, d))
+		rmtree(loris.app.CACHE)
 
 	def get_jpeg_dimensions(self, path):
 		"""Get the dimensions of a JPEG
@@ -90,7 +89,7 @@ class LorisTest(unittest.TestCase):
 		"""Make a request, save it out, and return the dimensions.
 		"""
 		resp = self.client.get(uri)
-		f_name = path.join(self.app.tmp_dir, 'result.jpg')
+		f_name = path.join(loris.app.TMP, 'result.jpg')
 		f = open(f_name, 'w')
 		f.write(resp.data)
 		f.close()
@@ -506,7 +505,6 @@ class Test_G_ContentNegotiation(LorisTest):
 
 
 	def test_info_default(self):
-		"""Asking for unsupported or no format returns the default"""
 		headers = Headers()
 		
 		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
@@ -735,11 +733,7 @@ class Test_I_ResultantImg(LorisTest):
 
 
 	def test_region_precision(self):
-		"""Make a table of tiles (left to right, top to bottom) at various 
-		request sizes and check the actual size of each tile. If an image is off
-		by one or two pixels, it's likely a decimal precision issue (which can be 
-		increased in the conf file). Otherwise it's something else.
-		"""
+		"""Making several grids of tiles to check precision...takes a while"""
 		ident = self.test_jp2_1_id
 		jp2 = self.app._resolve_identifier(ident)
 		info = ImgInfo.fromJP2(jp2, ident)
@@ -749,7 +743,7 @@ class Test_I_ResultantImg(LorisTest):
 			for tile in self.tile_gen(info.width, info.height, size):
 				uri = '/' + self.test_jp2_1_id + '/' + tile[0] + '/full/0/native.jpg'
 				resp = self.client.get(uri)
-				f_name = path.join(self.app.tmp_dir, 'result.jpg')
+				f_name = path.join(loris.app.TMP, 'result.jpg')
 				f = open(f_name, 'w')
 				f.write(resp.data)
 				f.close()
@@ -787,10 +781,7 @@ class Test_J_SeaDragonExtension(LorisTest):
 		result_dims = self._dims_from_uri(uri)
 		self.assertEquals(result_dims, dims)
 
-
-
-if __name__ == "__main__":
-
+def additional_tests():
 	tl = unittest.TestLoader()
 	test_suites = []
 	
@@ -815,6 +806,9 @@ if __name__ == "__main__":
 	# And Seadragon is cool
 	test_suites.append(tl.loadTestsFromTestCase(Test_J_SeaDragonExtension))
 	#.
-	meta_suite = unittest.TestSuite(test_suites)
-	unittest.TextTestRunner(verbosity=2).run(meta_suite)
+	return unittest.TestSuite(test_suites)
+
+if __name__ == "__main__":
+	meta_suite = additional_tests()
+	unittest.TextTestRunner(verbosity=1).run(meta_suite)
 	

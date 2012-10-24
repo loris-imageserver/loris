@@ -48,6 +48,8 @@ import os
 import subprocess
 import sys
 
+ETC = '/etc/loris'
+
 def create_app(test=False):
 	"""Creates an instance of the `Loris`.
 
@@ -61,28 +63,47 @@ def create_app(test=False):
 		test (bool): Generally for unit tests, changes from configured dirs to 
 			test dirs.
 	"""
-	global logr
-	global host_dir
-	try:
-		# Logging
-		host_dir = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-		log_conf_file = os.path.join(host_dir, 'etc', 'logging.conf')
-		logging.config.fileConfig(log_conf_file)
+	global ETC
+	global TMP
+	global CACHE
+	global WWW
 
-		if test: logr = logging.getLogger('loris_test')
-		else: logr = logging.getLogger('loris')
+	ETC = ETC
+	try:
+		conf = ConfigParser.RawConfigParser()
+		if test:
+			root = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+			conf_file_path = os.path.join(root, 'etc', 'loris.conf')
+			
+			conf.read(conf_file_path)
+			WWW = os.path.join(root, 'www')
+			TMP = conf.get('directories', 'test_tmp')
+			CACHE = conf.get('directories', 'test_cache_root')
+			for d in (TMP, CACHE):
+				if not os.path.exists(d):
+					os.makedirs(d)
+		else:
+			conf_file_path = os.path.join(ETC, 'loris.conf')
+			conf = ConfigParser.RawConfigParser()
+			conf.read(conf_file_path)
+			WWW = conf.get('directories', 'www')
+			TMP = conf.get('directories', 'tmp')
+			CACHE = conf.get('directories', 'cache_root')
+
 
 		app = Loris(test)
 		app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-			'/seadragon/js': os.path.join(host_dir,'www','seadragon','js')
+			'/seadragon/js': os.path.join(WWW,'seadragon','js')
 		})
 		return app
 	except IOError, ie:
-		sys.stderr.write(str(ie) + ' Maybe the log is not writable?\n')
+		sys.stderr.write(str(ie) + ' Maybe the log (or dir) is not writable?\n')
 		sys.exit(1)
-	except Exception, e:
-		sys.stderr.write(str(e) + '\n')
+	except Exception, ex:
+		sys.stderr.write(ex.message + '\n')
+		sys.stderr.write(str(ex) + '\n')
 		sys.exit(1)
+
 
 
 class Loris(object):
@@ -117,11 +138,6 @@ class Loris(object):
 		rm_cmd (str): Absolute path on the file system to the `rm` utility.
 		dz_tile_size (int): Tile size when making requests using the 
 			SeaDragon syntax (generally 256 or 512).
-		tmp_dir (str): Absolute path to a temporary directory that holds
-			named pipes as part of the image creation process.
-		src_images_root (str): Absolute path to the directory that contains 
-			the images. Note that this may need to change if a different 
-			resolver to :func:`_resolve_identifier` is implemented.
 	"""
 	def __init__(self, test=False):
 		"""Read in the configuration file and calculate attributes.
@@ -130,14 +146,28 @@ class Loris(object):
 			test (bool): Primarily for unit tests, changes from configured dirs 
 				to test dirs.
 		"""
-		logr.debug('Initializing Loris.')
-
 		self.test = test
-
+		self.loggr = None
+		conf_file_path = None
+		log_conf_file_path  = None
 		# Configuration
-		conf_file = os.path.join(host_dir, 'etc', 'loris.conf')
+		if self.test:
+			# conf
+			root = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
+			conf_file_path = os.path.join(root, 'etc', 'loris.conf')
+			# log
+			log_conf_file_path = os.path.join(root, 'etc', 'dev_logging.conf')
+			self.loggr = logging.getLogger('loris_dev')
+			# resolver
+			resolver.SRC_IMG_ROOT = os.path.join(root, 'test', 'img')
+		else:
+			conf_file_path = os.path.join(ETC, 'loris.conf')
+			log_conf_file_path = os.path.join(ETC, 'logging.conf')
+		 	self.loggr = logging.getLogger('loris')
+		 
+		logging.config.fileConfig(log_conf_file_path)
 		_conf = ConfigParser.RawConfigParser()
-		_conf.read(conf_file)
+		_conf.read(conf_file_path)
 
 		# options
 		self.decimal_precision = _conf.getint('options', 'decimal_precision')
@@ -154,41 +184,12 @@ class Loris(object):
 		self.kdu_libs = _conf.get('utilities', 'kdu_libs')
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
-		# deepzoom (Options are limited. Factoring in
-		# overlap and format may make sense at some point.)
+		# seadragon
 		self.dz_tile_size = _conf.getint('deepzoom', 'tile_size')
-
-		# directories
-		self.tmp_dir = ''
-		self.cache_root = ''
-		if self.test:
-			self.tmp_dir = _conf.get('directories', 'test_tmp')
-			self.cache_root = _conf.get('directories', 'test_cache_root')
-			resolver.SRC_IMG_ROOT = os.path.join(host_dir, 'test_img')
-		else:
-			self.tmp_dir = _conf.get('directories', 'tmp')
-			self.cache_root = _conf.get('directories', 'cache_root')
-
-		try:
-			for d in (self.tmp_dir, self.cache_root):
-				if not os.path.exists(d):
-					os.makedirs(d, 0755)
-					logr.info("Created " + d)
-				if not os.access(d, os.R_OK) and os.access(d, os.W_OK):
-					msg = d  + ' must exist and be readable and writable'
-					raise Exception(msg)
-
-		except Exception, e:
-			msg = 'Exception setting up directories: ' 
-			msg += e.message
-			logr.critical(msg)
-			sys.stderr.write(msg)
-			sys.exit(1)
+		self._sd_img_dir = os.path.join(WWW, 'seadragon','img')
 		
-		self._www_dir = os.path.join(host_dir, 'www')
-		self._sd_img_dir = os.path.join(self._www_dir, 'seadragon','img')
-		
-		_loader = FileSystemLoader(self._www_dir)
+		# jinja
+		_loader = FileSystemLoader(WWW)
 		self._jinja_env = Environment(loader=_loader, autoescape=True)
 		
 		# compliance and help links
@@ -235,7 +236,7 @@ class Loris(object):
 		try:
 			endpoint, values = adapter.match()
 			dispatch_to_method = 'on_' + endpoint
-			logr.debug('Dispatching to ' + dispatch_to_method)
+			self.loggr.debug('Dispatching to ' + dispatch_to_method)
 			return getattr(self, dispatch_to_method)(request, **values)
 
 		# Any exceptions related to parsing the requests into parameter objects
@@ -246,7 +247,7 @@ class Loris(object):
 			resp = e.to_xml()
 			headers = Headers()
 			headers.add('Link', self._link_hdr)
-			logr.exception(e.message)
+			self.loggr.exception(e.message)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 		except Exception, e:
@@ -256,7 +257,7 @@ class Loris(object):
 			resp = pe.to_xml()
 			headers = Headers()
 			headers.add('Link', self._link_hdr)
-			logr.exception(e.message)
+			self.loggr.exception(e.message)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
 
 	def on_list_headers(self, request):
@@ -285,13 +286,12 @@ class Loris(object):
 		return resp
 
 	def on_get_favicon(self, request):
-		logr.debug(host_dir)
-		f = os.path.join(host_dir, 'icons', 'loris-icon.png')
+		f = os.path.join(WWW, 'icons', 'loris-icon.png')
 		return Response(file(f), content_type='image/x-icon')
 	
 	def on_get_docs(self, request):
 		"""Just so that we have something at the root of the service."""
-		docs = os.path.join(self._www_dir, 'docs.html')
+		docs = os.path.join(WWW, 'index.html')
 		return Response(file(docs), mimetype='text/html')
 
 	def on_get_dz(self, request, ident):
@@ -326,7 +326,7 @@ class Loris(object):
 		Returns:
 			Response. A png.
 		"""
-		logr.debug('img file: ' + img_file)
+		self.loggr.debug('img file: ' + img_file)
 		png = os.path.join(self._sd_img_dir, img_file)+'.png'
 		return Response(file(png), mimetype='image/png')
 
@@ -376,7 +376,7 @@ class Loris(object):
 				msg = 'Identifier does not resolve to an image.'
 				raise LorisException(404, ident, msg)
 			
-			cache_dir = os.path.join(self.cache_root, ident)
+			cache_dir = os.path.join(CACHE, ident)
 			cache_path = os.path.join(cache_dir, 'info.') + fmt
 
 			# check the cache
@@ -393,13 +393,13 @@ class Loris(object):
 				if not os.path.exists(cache_dir): 
 					os.makedirs(cache_dir, 0755)
 
-				logr.debug('made ' + cache_dir)
+				self.loggr.debug('made ' + cache_dir)
 
 				if self.enable_cache:
 					f = open(cache_path, 'w')
 					f.write(resp)
 					f.close()
-					logr.info('Created: ' + cache_path)
+					self.loggr.info('Created: ' + cache_path)
 
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', length)
@@ -408,11 +408,11 @@ class Loris(object):
 			mime = 'text/xml'
 			status = e.http_status
 			resp = e.to_xml()
-			logr.info(e.message)
+			self.loggr.info(e.message)
 
 		except Exception, e:
 			# should be safe to assume it's the server's fault.
-			logr.exception(e.message)
+			self.loggr.exception(e.message)
 			pe = LorisException(500, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
@@ -443,7 +443,7 @@ class Loris(object):
 		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 		try:
-			cache_dir = os.path.join(self.cache_root, ident)
+			cache_dir = os.path.join(CACHE, ident)
 			cache_path = os.path.join(cache_dir,  'sd.xml')
 
 			# check the cache
@@ -463,13 +463,13 @@ class Loris(object):
 				if not os.path.exists(cache_dir): 
 					os.makedirs(cache_dir, 0755)
 
-				logr.debug('made ' + cache_dir)
+				self.loggr.debug('made ' + cache_dir)
 
 				if self.enable_cache:
 					f = open(cache_path, 'w')
 					f.write(resp)
 					f.close()
-					logr.info('Created: ' + cache_path)
+					self.loggr.info('Created: ' + cache_path)
 
 				headers.add('Last-Modified', http_date())
 				headers.add('Content-Length', len(resp))
@@ -478,10 +478,10 @@ class Loris(object):
 			mime = 'text/xml'
 			status = e.http_status
 			resp = e.to_xml()
-			logr.info(e.message)
+			self.loggr.info(e.message)
 
 		except Exception, e: # Safe to assume it's our fault?
-			logr.exception(e.message)
+			self.loggr.exception(e.message)
 			pe = LorisException(500, '', e.message)
 			mime = 'text/xml'
 			status = pe.http_status
@@ -541,11 +541,11 @@ class Loris(object):
 			fmt = self.default_format
 			mime = 'image/jpeg' if fmt == 'jpg' else 'image/png'
 
-		cache_path_elements = (self.cache_root, ident, region, size, rotation)
+		cache_path_elements = (CACHE, ident, region, size, rotation)
 		img_dir = os.sep.join(map(str, cache_path_elements))
 		img_path = os.path.join(img_dir, quality + '.' + fmt)
-		logr.debug('img_dir: ' + img_dir)
-		logr.debug('img_path: ' + img_path)
+		self.loggr.debug('img_dir: ' + img_dir)
+		self.loggr.debug('img_path: ' + img_path)
 	
 		# check the cache
 		if  self.enable_cache == True and os.path.exists(img_path):
@@ -554,7 +554,7 @@ class Loris(object):
 		else:
 			try:
 				if not os.path.exists(img_dir):	os.makedirs(img_dir, 0755)
-				logr.info('Made directory: ' + img_dir)
+				self.loggr.info('Made directory: ' + img_dir)
 				
 				self._derive_img_from_jp2(ident, img_path, region, size, 
 					rotation, quality, fmt)
@@ -564,7 +564,7 @@ class Loris(object):
 				headers.add('Last-Modified', http_date()) # now
 				resp = file(img_path)
 			except LorisException, e:
-				logr.info(e.message)
+				self.loggr.info(e.message)
 				headers.remove('Last-Modified')
 				mime = 'text/xml'
 				status = e.http_status
@@ -612,11 +612,11 @@ class Loris(object):
 			error, per IIIF 6.2
 			<http://www-sul.stanford.edu/iiif/image-api/#error>
 		"""
-		link_dir = os.path.join(self.cache_root, ident+'_files', str(level))
+		link_dir = os.path.join(CACHE, ident+'_files', str(level))
 		link_file_name = '_'.join(map(str, (x, y))) + '.jpg'
 		link_path = os.path.join(link_dir, link_file_name)
-		logr.debug('seadragon link_dir: ' + link_dir)
-		logr.debug('seadragon link_path: ' + link_path)
+		self.loggr.debug('seadragon link_dir: ' + link_dir)
+		self.loggr.debug('seadragon link_path: ' + link_path)
 
 		resp_body = None
 		status = None
@@ -639,9 +639,9 @@ class Loris(object):
 					tile_overlap=0, tile_format='jpg')			
 				try:
 					scale = dzi_desc.get_scale(level)
-					logr.debug('DZ Scale: ' + str(scale))
+					self.loggr.debug('DZ Scale: ' + str(scale))
 				except AssertionError, e:
-					logr.debug(e.message)
+					self.loggr.debug(e.message)
 					raise LorisException(400, str(level), e.message)
 
 				# make the size parameter
@@ -651,11 +651,11 @@ class Loris(object):
 				# 2. calculate the region (adjusted for size)
 				tile_size = int(dzi_desc.tile_size / scale)
 
-				logr.debug('Adjusted normal tile size: ' + str(tile_size))
+				self.loggr.debug('Adjusted normal tile size: ' + str(tile_size))
 				tile_x = int(x * tile_size + x)
-				logr.debug('tile_x: ' + str(tile_x))
+				self.loggr.debug('tile_x: ' + str(tile_x))
 				tile_y = int(y * tile_size + y)
-				logr.debug('tile_y: ' + str(tile_y))
+				self.loggr.debug('tile_y: ' + str(tile_y))
 
 				region_segment = ''
 				dims = dzi_desc.get_dimensions(level)
@@ -663,14 +663,14 @@ class Loris(object):
 					region_segment = 'full'
 				else:
 					tile_w = min(tile_size, info.width  - tile_x)
-					logr.debug('tile_w: ' + str(tile_w))
+					self.loggr.debug('tile_w: ' + str(tile_w))
 					tile_h = min(tile_size, info.height - tile_y)
-					logr.debug('tile_h: ' + str(tile_h))
+					self.loggr.debug('tile_h: ' + str(tile_h))
 
 					bounds = (tile_x, tile_y, tile_w, tile_h)
 					region_segment = ','.join(map(str, bounds))
 
-				logr.debug('region_segment: ' + region_segment)
+				self.loggr.debug('region_segment: ' + region_segment)
 
 				region_param = RegionParameter(region_segment)
 
@@ -678,13 +678,13 @@ class Loris(object):
 				rotation = '0'
 				rotation_param = RotationParameter(rotation)
 
-				cache_path_elements = (self.cache_root, ident, region_segment, 
+				cache_path_elements = (CACHE, ident, region_segment, 
 					size_pct, rotation)
 				img_dir = os.sep.join(map(str, cache_path_elements))
 
 				if not os.path.exists(img_dir):
 					os.makedirs(img_dir, 0755)
-					logr.info('made ' + img_dir)
+					self.loggr.info('made ' + img_dir)
 
 				img_path = os.path.join(img_dir, 'native.jpg')
 				self._derive_img_from_jp2(ident, img_path, region_param, 
@@ -698,12 +698,12 @@ class Loris(object):
 				# 4. make the symlink
 				if not os.path.exists(link_dir):
 					os.makedirs(link_dir, 0755)
-				logr.info('made ' + link_dir + ' (for symlink)')
+				self.loggr.info('made ' + link_dir + ' (for symlink)')
 				os.symlink(img_path, link_path)
-				logr.info('made symlink' + link_path)
+				self.loggr.info('made symlink' + link_path)
 
 		except LorisException, e:
-			logr.info(e.message)
+			self.loggr.info(e.message)
 			headers.remove('Last-Modified')
 			mime = 'text/xml'
 			status = e.http_status
@@ -736,10 +736,10 @@ class Loris(object):
 			length = length = os.path.getsize(resource_path) 
 			headers.add('Content-Length', length)
 			headers.add('Last-Modified', http_date(last_change))
-			logr.info('Read: ' + resource_path)
+			self.loggr.info('Read: ' + resource_path)
 		else:
 			status = 304
-			logr.info('Sent 304 for: ' + resource_path)
+			self.loggr.info('Sent 304 for: ' + resource_path)
 			headers.remove('Content-Type')
 			headers.remove('Cache-Control')
 		return status
@@ -790,16 +790,16 @@ class Loris(object):
 
 			if self.cache_px_only and region.mode == 'pct':
 				top_px = int(round(Decimal(region.y) * Decimal(info.height) / Decimal(100.0)))
-				logr.debug('top_px: ' + str(top_px))
+				self.loggr.debug('top_px: ' + str(top_px))
 				left_px = int(round(Decimal(region.x) * info.width / Decimal(100.0)))
-				logr.debug('left_px: ' + str(left_px))
+				self.loggr.debug('left_px: ' + str(left_px))
 				height_px = int(round(Decimal(region.h) * info.height / Decimal(100.0)))
-				logr.debug('height_px: ' + str(height_px))
+				self.loggr.debug('height_px: ' + str(height_px))
 				width_px = int(round(Decimal(region.w) * info.width / Decimal(100.0)))
-				logr.debug('width_px: ' + str(width_px))
+				self.loggr.debug('width_px: ' + str(width_px))
 				new_uri_value = ','.join(map(str, (left_px, top_px, width_px, height_px)))
 				new_region_param = RegionParameter(new_uri_value)
-				logr.info('pct region request revised to ' + new_uri_value)
+				self.loggr.info('pct region request revised to ' + new_uri_value)
 				region_kdu_arg = new_region_param.to_kdu_arg(info)
 			else:
 				region_kdu_arg = region.to_kdu_arg(info)
@@ -811,12 +811,12 @@ class Loris(object):
 
 			# Make a named pipe for the temporary bitmap
 			bmp_name = self._random_str(10) + '.bmp'
-			fifo_path = os.path.join(self.tmp_dir, bmp_name)
+			fifo_path = os.path.join(TMP, bmp_name)
 			mkfifo_call = self.mkfifo_cmd + ' ' + fifo_path
 			
-			logr.debug('Calling ' + mkfifo_call)
+			self.loggr.debug('Calling ' + mkfifo_call)
 			subprocess.check_call(mkfifo_call, shell=True)
-			logr.debug('Done (' + mkfifo_call + ')')
+			self.loggr.debug('Done (' + mkfifo_call + ')')
 
 			# Make and call the kdu_expand cmd
 			kdu_expand_call = ''
@@ -825,7 +825,7 @@ class Loris(object):
 			kdu_expand_call += ' -o ' + fifo_path
 			kdu_expand_call += ' ' + region_kdu_arg
 			
-			logr.debug('Calling ' + kdu_expand_call)
+			self.loggr.debug('Calling ' + kdu_expand_call)
 			kdu_expand_proc = subprocess.Popen(kdu_expand_call, 
 				shell=True, 
 				bufsize=-1, 
@@ -852,7 +852,7 @@ class Loris(object):
 
 			convert_call += out_path
 			
-			logr.debug('Calling ' + convert_call)
+			self.loggr.debug('Calling ' + convert_call)
 			convert_proc = subprocess.Popen(convert_call,
 				shell=True,
 				bufsize=-1,
@@ -862,7 +862,7 @@ class Loris(object):
 			if convert_exit != 0:
 				msg = '. '.join(convert_proc.stderr)
 				raise LorisException(500, '', msg)
-			logr.debug('Done (' + convert_call + ')')
+			self.loggr.debug('Done (' + convert_call + ')')
 			
 			kdu_exit = kdu_expand_proc.wait()
 			if kdu_exit != 0:
@@ -872,12 +872,12 @@ class Loris(object):
 
 				raise LorisException(500, '', msg)
 
-			logr.debug('Terminated ' + kdu_expand_call)
-			logr.info("Created: " + out_path)
+			self.loggr.debug('Terminated ' + kdu_expand_call)
+			self.loggr.info("Created: " + out_path)
 
 			return 0
 		except Exception, e:
-			logr.exception(e.message)
+			self.loggr.exception(e.message)
 			raise LorisException(500, '', e.message)
 		finally:
 			# Make and call rm $fifo
@@ -918,7 +918,7 @@ class Loris(object):
 			LorisException. If the ident does not resolve to an image.
 		"""
 
-		cache_dir = os.path.join(self.cache_root, ident)
+		cache_dir = os.path.join(CACHE, ident)
 		cache_path = os.path.join(cache_dir, 'info.json')
 
 		info = None
@@ -936,7 +936,7 @@ class Loris(object):
 				f = open(cache_path, 'w')
 				f.write(info.marshal('json'))
 				f.close()
-				logr.info('Created: ' + cache_path)
+				self.loggr.info('Created: ' + cache_path)
 		
 		return info
 
@@ -957,7 +957,7 @@ if __name__ == '__main__':
 		extra_files = []
 		extra_files.append(os.path.join(cwd, 'loris.conf'))
 		extra_files.append(os.path.join(cwd, 'www', 'dzi.html'))
-		extra_files.append(os.path.join(cwd, 'www', 'docs.html'))
+		extra_files.append(os.path.join(cwd, 'www', 'index.html'))
 		run_simple('127.0.0.1', 5000, app, use_debugger=True, 
 			threaded=True,  use_reloader=True, extra_files=extra_files)
 	except Exception, e:

@@ -1,5 +1,9 @@
 
-dev_cache/
+*.egg-info/
+
+build/
+
+dist/
 
 *.pyc
 
