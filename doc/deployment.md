@@ -57,9 +57,9 @@ Any of the above can be changed in `etc/loris.conf` and `etc/logging.conf`.
 
 ### To Begin...
 
- 1. Clone loris to somewhere (like /tmp): `git clone git@github.com:pulibrary/loris.git /tmp`
+ 1. Clone loris to somewhere (like ~/loris): `git clone git@github.com:pulibrary/loris.git ~/loris`
  1. Make a user: `useradd -d /var/www/loris -s /sbin/false loris`
- 1. Adjust/implement loris/resolver.py (see the file and _Resolving Identifiers_ below for details)
+ 1. Adjust/implement `loris.resolver` (see the file and _Resolving Identifiers_ below for details)
  1. Adjust `etc/loris.conf` (pay attention to the user/group and directories)
  1. Adjust `etc/logging.conf`
  1. Do one of the following (`setup.py` or 'Manual'):
@@ -78,10 +78,10 @@ Avoid this if possible; it's a drag.
  1. Install [Werkzeug] [5] 
  1. Install [Jinja2] [6]
  1. Make the directories: `mkdir /var/log/loris /var/cache/loris /etc/loris /var/www/loris /var/cache/loris`
- 1. Copy the loris package to `/var/www/loris` (i.e. `cp -r /tmp/loris/loris /var/www/loris/loris`
- 1. Copy the www files to `/var/www/loris` (i.e. `cp -r /tmp/loris/www/* /var/www/loris`)
- 1. If you want to use the cache manager script: `cp -r /tmp/loris/bin/loris-cache_clean.sh /usr/local/bin`
- 1. Copy the configuration files (i.e. cp `/tmp/loris/etc/loris.conf` `/tmp/loris/etc/logging.conf` `/etc/loris`)
+ 1. Copy the loris package to `/var/www/loris` (i.e. `cp -r ~/loris/loris /var/www/loris/loris`
+ 1. Copy the www files to `/var/www/loris` (i.e. `cp -r ~/loris/www/* /var/www/loris`)
+ 1. If you want to use the cache manager script: `cp -r ~/loris/bin/loris-cache_clean.sh /usr/local/bin`
+ 1. Copy the configuration files (i.e. cp `~/loris/etc/loris.conf` `~/loris/etc/logging.conf` `/etc/loris`)
  1. Adjust ownership: `chown -R loris:loris /var/log/loris /var/cache/loris /etc/loris /var/www/loris /var/cache/loris`
  1. Add the following to `/var/www/loris/loris.wsgi`:
 
@@ -108,6 +108,8 @@ WSGIScriptAlias /loris /var/www/loris/loris.wsgi
   Allow from all
 </Directory>
 ```
+Restart.
+
 
 Resolving Identifiers
 ---------------------
