@@ -9,54 +9,34 @@ Dependencies
 ------------
 Addition Python libraries:
  * [Werkzeug] [3] ([Installation] [5])
- * [Jinja] [7] ([Installation] [8])
+ * [Jinja] [6] ([Installation] [7])
 
-System Utilites
+System Utilites:
  * `kdu_expand`
- * `convert` (ImageMagick)
+ * ImageMagick (`convert`)
 
 Both of the above should be on your PATH and executable from the command line. 
 
-Loris was developed on Ubuntu 12.04 with Python 2.7.2 and has only been tested
-in that environment.
+More on this in [deployment.md][8]
 
-If your dependencies are in order, you should be able to start the dev server by executing `loris.py`.
+If your dependencies are in order, you should be able to start the dev server 
+by executing `loris/app.py`. You might not see much if you haven't configured
+`resolver.py` (again, see [deployment.md][8]), but you could always point the
+resolver to wherever the test images are on your file system 
+(`{loris_clone} + /test/img`)
 
 Deployment
 ----------
+See [deployment.md][8]
 
-__Note:__ All commands given are for deploying on Ubuntu. Your mileage may vary.
-### Check it out:
-
-	git clone https://github.com/pulibrary/loris.git loris
-
-### Install and Test Dependencies:
-__Install and test ImageMagick (convert)__ 
-
-
-	sudo apt-get install imagemagick
-	...
-	convert -version
-
-You should see something like this:
-
-	Version: ImageMagick 6.6.9-7 2012-08-17 Q16 http://www.imagemagick.org
-	Copyright: Copyright (C) 1999-2011 ImageMagick Studio LLC
-	Features: OpenMP  
-
-__Install Kakadu (kdu_expand)__  
-Compile or download by following [the instructions on their site] [6]  
-
-Make sure Kakadu shared object files are on your `LD_LIBRARY_PATH`.
-
-__Apache__
-See [deployment.md](https://github.com/pulibrary/loris/blob/master/doc/deployment.md) for _some_ help with Apache
+Loris was developed on Ubuntu 12.04 with Python 2.7, and deployed in with 
+Apache 2.2.22 and has only been tested in that environment at this point.
 
 Tests
 -----
-From the directory that contains `tests.py`, call 
+From the directory the top (`loris`) directory, call 
 
-	python -m unittest -v tests
+	python -m unittest -v test.suite
 
 The tests should run in a logical order, so if you see a failure, futher 
 failures might casacade and mask the problem. To solve this, you can have 
@@ -65,7 +45,8 @@ unittest stop at the first fail:
 	python -m unittest -vf tests
 
 You may want to turn down logging at first, and only turn it up if something 
-goes wrong. __Note__ also that `Test_I_ResultantImg` takes a while.
+goes wrong. __Note__ also that `Test_I_ResultantImg` takes a while 
+(60 seconds?).
 
 Return Formats
 --------------
@@ -73,30 +54,16 @@ Right now `jpg` and `png` are supported. The latter is underdeveloped and not
 terribly performant, but is in place so that all of the necessary branching in 
 the content negotiation and rendering could be put in place and tested.
 
-
-Configuration
--------------
-Please read through `etc/loris.conf`. Properties and options are explained there.
-
 Logging
 -------
-Logging is set up in `etc/logging.conf` and is extremely loud by default. The 
-handlers configured near the bottom of that file control the levels and 
-directories. The directories must exist and be writable.
-
-Design
-------
-Loris is designed to stand on the shoulders of giants. Essentially, all it 
-does is parse [IIIF URLs] [2] into a set of objects (in the source these are 
-the `RegionParameter`, `SizeParameter`, and `RotationParameter` classes) that 
-are then used to build utility command lines that are shelled out.
-
-The [Werkzeug Python WSGI Utility Library] [3] handles the URL parsing and 
-routing and supplies a few other convenience methods.
+Logging is set up in `etc/logging.conf` The handlers configured near the bottom 
+of that file control the levels and directories. The directories must exist and 
+be writable.
 
 The Name
 --------
-Could stand for __Lightweight Open Repository Image Server__ or not. Thanks to
+Could stand for __Lightweight Open Repository Image Server__ or not; It's a 
+Lightweight image serve anyway. Thanks to 
 [shaune](https://github.com/sdellis "Shaun Ellis") for coming up with it and 
 creating the icons.
 
@@ -372,8 +339,6 @@ to understand the request [URI syntax] [2] is to read the spec.
 [3]: http://werkzeug.pocoo.org/ "Werkzeug Python WSGI Utility Library"
 [4]: http://www-sul.stanford.edu/iiif/image-api/compliance.html "IIIF Levels"
 [5]: http://werkzeug.pocoo.org/docs/installation/ "Werkzeug Installation"
-[6]: http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22 "Kakadu Installation"
-[7]: http://jinja.pocoo.org/ "Jinja2"
-[8]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
-[9]: http://www-sul.stanford.edu/iiif/image-api/#url_encoding "IIIF URL Encoding and Decoding"
-[10]: http://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines "WSGI Configuration Guidelines"
+[6]: http://jinja.pocoo.org/ "Jinja2"
+[7]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
+[8]: https://github.com/pulibrary/loris/blob/master/doc/deployment.md "Loris Deployment"
