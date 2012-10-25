@@ -32,8 +32,9 @@ Deployment
 ----------
 See [deployment.md][8]
 
-Loris was developed on Ubuntu 12.04 with Python 2.7, and deployed using Apache 
-2.2.22. It has only been tested in that environment at this point.
+Loris was developed on Ubuntu 12.04 with Python 2.7.2 and Apache 2.2.22, and is
+deployed on RedHat 5.8 with Python 2.7.3 using Apache 2.2.3. It has only been 
+tested in those environments at this point.
 
 Tests
 -----
@@ -62,6 +63,15 @@ Logging
 Logging is set up in `etc/logging.conf` The handlers configured near the bottom 
 of that file control the levels and directories. The directories must exist and 
 be writable.
+
+Demo
+----
+http://img.princeton.edu/loris/pudl0001/4609321/s42/00000004/1275,100,250,120/full/0/native.jpg
+
+
+
+Used to implement seadragon:
+http://img.princeton.edu/loris/pudl0001/4609321/s42/00000004.html
 
 The Name
 --------

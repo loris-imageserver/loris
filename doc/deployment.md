@@ -108,6 +108,13 @@ WSGIScriptAlias /loris /var/www/loris/loris.wsgi
   Allow from all
 </Directory>
 ```
+
+On RedHat only you'll likely need to add
+```
+WSGISocketPrefix /var/run/wsgi
+```
+as well. See: [Location of Unix Sockets] [9] 
+
 Restart.
 
 
@@ -169,3 +176,4 @@ Doc how to safely use 'Embedded Mode' see:
 [6]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
 [7]: http://www-sul.stanford.edu/iiif/image-api/#url_encoding "IIIF URL Encoding and Decoding"
 [8]: http://www.openjpeg.org/ "OpenJPEG"
+[9]: http://code.google.com/p/modwsgi/wiki/ConfigurationIssues#Location_Of_UNIX_Sockets "WSGI Configuration Issues: Location Of UNIX Sockets"
