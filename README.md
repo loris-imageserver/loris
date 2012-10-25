@@ -20,17 +20,20 @@ Both of the above should be on your PATH and executable from the command line.
 More on this in [deployment.md][8]
 
 If your dependencies are in order, you should be able to start the dev server 
-by executing `loris/app.py`. You might not see much if you haven't configured
-`resolver.py` (again, see [deployment.md][8]), but you could always point the
-resolver to wherever the test images are on your file system 
-(`{loris_clone} + /test/img`)
+by executing `loris/app.py`, and this should work: 
+
+http://localhost:5000/another/arbitrary/path/0004/1275,100,250,120/full/0/native.jpg
+
+To get much further you're going to want to look at `resolver.py` (again, see 
+[deployment.md][8]), but this should let you know that you're dependencies are
+squared away.
 
 Deployment
 ----------
 See [deployment.md][8]
 
-Loris was developed on Ubuntu 12.04 with Python 2.7, and deployed in with 
-Apache 2.2.22 and has only been tested in that environment at this point.
+Loris was developed on Ubuntu 12.04 with Python 2.7, and deployed using Apache 
+2.2.22. It has only been tested in that environment at this point.
 
 Tests
 -----

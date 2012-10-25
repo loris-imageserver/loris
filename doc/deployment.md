@@ -162,4 +162,3 @@ _TODO_ Embedded Mode
 [6]: http://jinja.pocoo.org/docs/intro/#installation "Jinja2 Installation"
 [7]: http://www-sul.stanford.edu/iiif/image-api/#url_encoding "IIIF URL Encoding and Decoding"
 [8]: http://www.openjpeg.org/ "OpenJPEG"
-

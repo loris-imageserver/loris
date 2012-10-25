@@ -48,9 +48,9 @@ class LorisTest(unittest.TestCase):
 		self.client = Client(self.app, BaseResponse)
 		abs_path = path.abspath(path.dirname(__file__))
 		self.test_img_dir = path.join(abs_path, 'img')
-		self.test_jp2_id = 'pudl0001/4609321/s42/00000004' # color; 2717 x 3600
-		self.test_jp2_1_id = 'pudl0033/2008/0132/00000001' # color; 5283 x 7200
-		self.test_jp2_2_id = 'AC044/c0002/00000043' # grey; 2477 x 3200
+		self.test_jp2_id = 'another/arbitrary/path/0004' # color; 2717 x 3600
+		self.test_jp2_1_id = 'yet/another/path/0001' # color; 5283 x 7200
+		self.test_jp2_2_id = 'some/path/0042' # grey; 2477 x 3200
 
 	def tearDown(self):
 		# empty the cache
@@ -100,7 +100,7 @@ class Test_A_ResolveId(LorisTest):
 	"""Test that the ID resolver works.
 	"""
 	def test_loris_resolve_id(self):
-		expected_path = path.join(self.test_img_dir, 'pudl0001/4609321/s42/00000004.jp2')
+		expected_path = path.join(self.test_img_dir, 'another/arbitrary/path/0004.jp2')
 		resolved_path = resolve(self.test_jp2_id)
 		self.assertEqual(expected_path, resolved_path)
 		self.assertTrue(path.isfile(resolved_path))
@@ -146,10 +146,10 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(info.ident, self.test_jp2_2_id)
 
 	def test_info_json(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
+		resp = self.client.get('/' + self.test_jp2_id + '/info.json')
 		resp_json = loads(resp.data)
 		self.assertTrue(resp_json.has_key(u'identifier'))
-		self.assertEqual(resp_json.get(u'identifier'), u'pudl0001/4609321/s42/00000004')
+		self.assertEqual(resp_json.get(u'identifier'), self.test_jp2_id)
 		self.assertTrue(resp_json.has_key(u'width'))
 		self.assertEqual(resp_json.get(u'width'), 2717)
 		self.assertTrue(resp_json.has_key(u'height'))
@@ -168,7 +168,7 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
 
 	def test_info_xml(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')	
+		resp = self.client.get('/' + self.test_jp2_id + '/info.xml')
 		#This is parsable
 		dom = parseString(resp.data)
 		# info is the root
@@ -488,56 +488,56 @@ class Test_G_ContentNegotiation(LorisTest):
 	and poor-mans conneg (via file-like extensions).
 	"""
 	def test_info(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.xml')
+		resp = self.client.get('/' + self.test_jp2_id + '/info.xml')
 		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
 
 		headers = Headers()
 		headers.add('accept', 'text/xml')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		resp = self.client.get('/' + self.test_jp2_id + '/info', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'text/xml')
 
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.json')
+		resp = self.client.get('/' + self.test_jp2_id + '/info.json')
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 
 		headers.add('accept', 'text/json')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		resp = self.client.get('/' + self.test_jp2_id + '/info', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 
 
 	def test_info_default(self):
 		headers = Headers()
 		
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info.txt')
+		resp = self.client.get('/' + self.test_jp2_id + '/info.txt')
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 		self.assertEquals(resp.status_code, 200)
 
 		headers.clear()
 		headers.add('accept', 'text/plain')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info', headers=headers)
+		resp = self.client.get('/' + self.test_jp2_id + '/info', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 		self.assertEquals(resp.status_code, 200)
 
 		headers.clear()
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/info')
+		resp = self.client.get('/' + self.test_jp2_id + '/info')
 		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 		self.assertEquals(resp.status_code, 200)
 
 
 	def test_img(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/full/0/native.jpg')
+		resp = self.client.get('/' + self.test_jp2_id + '/full/full/0/native.jpg')
 		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
 
 		headers = Headers()
 		headers.add('accept', 'image/jpeg')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
+		resp = self.client.get('/' + self.test_jp2_id + '/full/pct:10/0/native', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'image/jpeg')
 
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native.png')
+		resp = self.client.get('/' + self.test_jp2_id + '/full/pct:10/0/native.png')
 		self.assertEqual(resp.headers.get('content-type'), 'image/png')
 
 		headers.clear()
 		headers.add('accept', 'image/png')
-		resp = self.client.get('/pudl0001/4609321/s42/00000004/full/pct:10/0/native', headers=headers)
+		resp = self.client.get('/' + self.test_jp2_id + '/full/pct:10/0/native', headers=headers)
 		self.assertEqual(resp.headers.get('content-type'), 'image/png')
 
 
@@ -560,7 +560,7 @@ class Test_H_Caching(LorisTest):
 			self.assertEquals(e.new_region_param.to_kdu_arg(info), expected_kdu)
 
 	def test_img_caching(self):
-		url = '/pudl0033/2008/0132/00000001/0,0,256,256/full/0/color.jpg'
+		url = '/' + self.test_jp2_1_id + '/0,0,256,256/full/0/color.jpg'
 		resp = self.client.get(url)
 		self.assertEquals(resp.status_code, 200)
 		self.assertTrue(resp.headers.has_key('last-modified'))
@@ -579,7 +579,7 @@ class Test_H_Caching(LorisTest):
 
 
 	def test_info_caching(self):
-		url = '/pudl0033/2008/0132/00000001/info.json'
+		url = '/' + self.test_jp2_1_id + '/info.json'
 		resp = self.client.get(url)
 		self.assertEquals(resp.status_code, 200)
 		self.assertTrue(resp.headers.has_key('last-modified'))
@@ -755,7 +755,7 @@ class Test_J_SeaDragonExtension(LorisTest):
 	"""Here we test for the Seadragon feature.
 	"""
 	def test_dzi_xml(self):
-		resp = self.client.get('/pudl0001/4609321/s42/00000004.xml')
+		resp = self.client.get('/' + self.test_jp2_id + '.xml')
 		dom = parseString(resp.data)
 		# info is the root
 		dE = dom.documentElement
@@ -781,7 +781,7 @@ class Test_J_SeaDragonExtension(LorisTest):
 		result_dims = self._dims_from_uri(uri)
 		self.assertEquals(result_dims, dims)
 
-def additional_tests():
+def all_tests():
 	tl = unittest.TestLoader()
 	test_suites = []
 	
@@ -809,6 +809,6 @@ def additional_tests():
 	return unittest.TestSuite(test_suites)
 
 if __name__ == "__main__":
-	meta_suite = additional_tests()
-	unittest.TextTestRunner(verbosity=1).run(meta_suite)
+	meta_suite = all_tests()
+	unittest.TextTestRunner(verbosity=3).run(meta_suite)
 	
