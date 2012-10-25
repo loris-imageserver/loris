@@ -14,14 +14,15 @@ Call `convert -v`
 
 You should see something like this:
 
+```
   Version: ImageMagick 6.6.9-7 2012-08-17 Q16 http://www.imagemagick.org
   Copyright: Copyright (C) 1999-2011 ImageMagick Studio LLC
   Features: OpenMP  
+````
 
 ### Kakadu
-Install Kakadu [kdu_expand] [2]
-
-We all wish this was easier and that there was an alternative. [Someday] [8]...
+Install Kakadu [kdu_expand] [2]. We all wish this was easier and that there was 
+an alternative. [Someday] [8]...
 
 Make sure Kakadu shared object files are on your `LD_LIBRARY_PATH`.
 
@@ -29,9 +30,11 @@ Call `kdu_expand -v`
 
 You should see something like this:
 
+```
   This is Kakadu's "kdu_expand" application.
       Compiled against the Kakadu core system, version v6.0
       Current core system version is v6.0
+```
 
 These are also checked in the test suite.
 
@@ -59,7 +62,7 @@ Any of the above can be changed in `etc/loris.conf` and `etc/logging.conf`.
  1. Adjust/implement loris/resolver.py (see the file and _Resolving Identifiers_ below for details)
  1. Adjust `etc/loris.conf` (pay attention to the user/group and directories)
  1. Adjust `etc/logging.conf`
- 1. Do one of the following:
+ 1. Do one of the following (`setup.py` or 'Manual'):
 
 #### Via `setup.py`
 
@@ -84,14 +87,15 @@ Avoid this if possible; it's a drag.
 
 ```python
 #!/usr/bin/env python
-import sys #                        <----- this
+import sys                        # <----- this
 sys.path.append('/var/www/loris') # <----- and this
 
 from loris.app import create_app
 application = create_app()
 ```
-1. Update your Apache VirtualHost:
 
+Configure Apache
+----------------
 ```
 AllowEncodedSlashes On # <--- Critical if you're using the default resolver!
 WSGIDaemonProcess loris user=loris group=loris processes=10 threads=25 maximum-requests=10000
@@ -104,6 +108,7 @@ WSGIScriptAlias /loris /var/www/loris/loris.wsgi
   Allow from all
 </Directory>
 ```
+
 Resolving Identifiers
 ---------------------
 See `loris/resolver.py`. It depends what you're going to do here, but with the 
@@ -150,7 +155,7 @@ deployed as a cron job. See the script for details.
 
 _TODO_ Embedded Mode
 --------------------
-(Doc how to safely use 'Embedded Mode' see)
+Doc how to safely use 'Embedded Mode' see:
  * http://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines#Defining_Process_Groups
  * http://code.google.com/p/modwsgi/wiki/ProcessesAndThreading
 
