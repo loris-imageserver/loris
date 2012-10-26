@@ -11,18 +11,18 @@ Since: 2012-08-25
 
 	Copyright (C) 2012  The Trustees of Princeton University
 
-    This program is free software: you can redistribute it and/or modify it 
-    under the terms of the GNU General Public License as published by the Free 
-    Software Foundation, either version 3 of the License, or (at your option) 
-    any later version.
+	This program is free software: you can redistribute it and/or modify it 
+	under the terms of the GNU General Public License as published by the Free 
+	Software Foundation, either version 3 of the License, or (at your option) 
+	any later version.
 
-    This program is distributed in the hope that it will be useful, but WITHOUT 
-    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
-    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
-    more details.
+	This program is distributed in the hope that it will be useful, but WITHOUT 
+	ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+	FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+	more details.
 
-    You should have received a copy of the GNU General Public License along 
-    with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License along 
+	with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from datetime import datetime
 from decimal import Decimal, getcontext
@@ -113,7 +113,7 @@ class Loris(object):
 	This is the WSGI application interface (see `__call__`).
 
 	Attributes:
-		test (bool): See above.
+		test (bool): See below.
 		decimal_precision (int): The number of decimal places to use when
 			converting pixel-based region requests to decimal numbers (for 
 			kdu shell outs).
@@ -129,6 +129,8 @@ class Loris(object):
 			objects to 	the file system.
 		convert_cmd (str): Absolute path on the file system to the 
 			ImageMagick `convert` binary.
+		info_cache (InfoCache): An instance of InfoCache used to stop ImgInfo
+			objects.
 		mkfifo_cmd (str): Absolute path on the file system to the 
 			`mkfifo` utility.
 		kdu_expand_cmd (str): Absolute path on the file system to the 
@@ -163,7 +165,7 @@ class Loris(object):
 		else:
 			conf_file_path = os.path.join(ETC, 'loris.conf')
 			log_conf_file_path = os.path.join(ETC, 'logging.conf')
-		 	self.loggr = logging.getLogger('loris')
+			self.loggr = logging.getLogger('loris')
 		 
 		logging.config.fileConfig(log_conf_file_path)
 		_conf = ConfigParser.RawConfigParser()
@@ -176,6 +178,11 @@ class Loris(object):
 		self.default_format = _conf.get('options', 'default_format')
 		self.default_info_format = _conf.get('options', 'default_info_format')
 		self.enable_cache = _conf.getboolean('options', 'enable_cache')
+
+		self.enable_info_cache = _conf.getboolean('options', 'enable_cache')
+		if self.enable_info_cache:
+			info_cache_size = _conf.getint('options', 'info_cache_size')
+			self.info_cache = InfoCache(info_cache_size)
 
 		# utilities
 		self.convert_cmd = _conf.get('utilities', 'convert')
@@ -888,7 +895,8 @@ class Loris(object):
 		"""Gets the info from an image.
 
 		Use this rather than directly instantiating ImgInfo objects. Here we 
-		try to read from cache(s) first.
+		start with the memory cache, then move on to the file system cache, and
+		pull from the jp2 as a last resort.
 
 		Args:
 			ident (str): The identifier for the image.
@@ -904,21 +912,29 @@ class Loris(object):
 		cache_path = os.path.join(cache_dir, 'info.json')
 
 		info = None
-		if os.path.exists(cache_path):
-			info = ImgInfo(cache_path, ident)
-		else:
-			jp2 = self._resolve_identifier(ident)
-			if not os.path.exists(jp2):
-				msg = 'Identifier does not resolve to an image.'
-				raise LorisException(404, ident, msg)
-			info = ImgInfo(jp2, ident)
+		if self.enable_info_cache:
+			info = self.info_cache.get(ident)
 			
-			if self.enable_cache:
-				if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
-				f = open(cache_path, 'w')
-				f.write(info.marshal('json'))
-				f.close()
-				self.loggr.info('Created: ' + cache_path)
+		if info is None:
+			if os.path.exists(cache_path):
+				info = ImgInfo(cache_path, ident)
+				self.info_cache[ident] = info
+			else:
+				jp2 = self._resolve_identifier(ident)
+				if not os.path.exists(jp2):
+					msg = 'Identifier does not resolve to an image.'
+					raise LorisException(404, ident, msg)
+				info = ImgInfo(jp2, ident)
+				
+				self.info_cache[ident] = info
+
+				if self.enable_cache:
+					if not os.path.exists(cache_dir): 
+						os.makedirs(cache_dir, 0755)
+					f = open(cache_path, 'w')
+					f.write(info.marshal('json'))
+					f.close()
+					self.loggr.info('Created: ' + cache_path)
 		
 		return info
 
@@ -941,8 +957,6 @@ class Loris(object):
 		chars = ascii_lowercase + digits
 		return ''.join(choice(chars) for x in range(size))
 
-
-
 	def wsgi_app(self, environ, start_response):
 		request = Request(environ)
 		response = self._dispatch_request(request)
@@ -950,6 +964,50 @@ class Loris(object):
 
 	def __call__(self, environ, start_response):
 		return self.wsgi_app(environ, start_response)
+
+
+from collections import OrderedDict
+from threading import Lock
+
+class InfoCache:
+	"""A thread-safe dict-like cache we can use to keep ImageInfo objects in
+	memory.
+
+	Slots:
+		size (int): See below.
+		_dict (OrderedDict): The map.
+		_lock (Lock): The lock.
+	"""
+	__slots__ = ('size', '_dict', '_lock')
+	def __init__(self, size=500):
+		"""
+		Args:
+			size (int): Max entries before the we start popping (FIFO).
+		"""
+		self.size = size
+		self._dict = OrderedDict()
+		self._lock = Lock()
+
+	def __getitem__(self, key):
+		# not safe to get while the set of keys might be changing.
+		with self._lock:
+			return self._dict[key]
+
+	def get(self, key):
+		with self._lock:
+			return self._dict.get(key)
+
+	def __setitem__(self, key, value):
+		with self._lock:
+			while len(self._dict) >= self.size:
+				self._dict.popitem(last=False)
+			self._dict[key] = value
+
+	def __delitem__(self, key):
+		with self._lock:
+			del self._dict[key]
+
+
 
 if __name__ == '__main__':
 	# Run the development server
