@@ -4,6 +4,15 @@ Deployment
 This is still in progress, but should give you the gist. Additions/corrections
 welcome.
 
+_Note: to uninstall, delete all of the directories that were created when you
+ran `setup.py` plus the Loris*.egg file in your local `dist-packages` directory. 
+This could be somewhere like `/usr/local/lib/python2.7/dist-packages`, but wil 
+vary from machine to machine. Is you installed manually just delete everything 
+you created._
+
+_When upgrading, you'll likely want to keep your cache, so you should wipe out 
+everything except that._
+
 Install and Test Utility Dependencies
 -------------------------------------
 
