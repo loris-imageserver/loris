@@ -10,7 +10,7 @@ class ImgInfo(object):
 
 	See: <http://www-sul.stanford.edu/iiif/image-api/#info>
 
-	Attributes:
+	Slots:
 		ident (str): The image identifier.
 		width (int)
 		height (int)
@@ -20,23 +20,21 @@ class ImgInfo(object):
 		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
 		native_quality: 'color' or 'grey'
 	"""
-	# TODO: these should be slots and __init__ should just take a file name
-	# from which we decide what to do based on the extension (maybe)
-	def __init__(self):
-		self.scale_factors = None
-		self.width = None
-		self.tile_height = None
-		self.levels = None
-		self.height = None
-		self.native_quality = None
-		self.tile_width = None
-		self.qualities = None
-		self.formats = None
-		self.ident = None
+	__slots__ = ('scale_factors', 'width', 'tile_height', 'levels', 'height', 
+		'native_quality', 'tile_width', 'qualities', 'formats', 'ident')
 
-	# Other fromXXX methods could be defined, hence the static constructors
-	@staticmethod
-	def fromJP2(path, img_id):
+	def __init__(self, path, img_id=None):
+		if path.endswith('.jp2'):
+			self._fromJP2(path, img_id)
+		elif path.endswith('.json') or path.endswith('.xml'):
+			self._unmarshal(path)
+		else:
+			msg = 'Could not instantiate an image object from ' + path
+			ex = TypeError(msg)
+			raise ex
+
+	# Other fromXXX methods could be defined
+	def _fromJP2(self, path, img_id):
 		"""Get info about a JP2. 
 
 		There's enough going on here; make sure the file is available 
@@ -51,9 +49,8 @@ class ImgInfo(object):
 		Returns:
 			ImgInfo
 		"""
-		info = ImgInfo()
-		info.ident = img_id
-		info.qualities = ['native', 'bitonal']
+		self.ident = img_id
+		self.qualities = ['native', 'bitonal']
 
 		jp2 = open(path, 'rb')
 		b = jp2.read(1)
@@ -74,12 +71,12 @@ class ImgInfo(object):
 		if meth == 1: # Enumerated Colourspace
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
 			if enum_cs == 16:
-				info.native_quality = 'color'
-				info.qualities += ['grey', 'color']
+				self.native_quality = 'color'
+				self.qualities += ['grey', 'color']
 			elif enum_cs == 17:
-				info.native_quality = 'grey'
-				info.qualities += ['grey']
-		#logr.debug('qualities: ' + str(info.qualities))
+				self.native_quality = 'grey'
+				self.qualities += ['grey']
+		#logr.debug('qualities: ' + str(self.qualities))
 
 		b = jp2.read(1)
 		while (ord(b) != 0xFF):	b = jp2.read(1)
@@ -89,53 +86,46 @@ class ImgInfo(object):
 		b = jp2.read(1) # 0x51: The SIZ marker segment
 		if (ord(b) == 0x51):
 			jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
-			info.width = int(struct.unpack(">HH", jp2.read(4))[1]) # Xsiz (32)
-			info.height = int(struct.unpack(">HH", jp2.read(4))[1]) # Ysiz (32)
-			#logr.debug("width: " + str(info.width))
-			#logr.debug("height: " + str(info.height))
+			self.width = int(struct.unpack(">HH", jp2.read(4))[1]) # Xsiz (32)
+			self.height = int(struct.unpack(">HH", jp2.read(4))[1]) # Ysiz (32)
+			#logr.debug("width: " + str(self.width))
+			#logr.debug("height: " + str(self.height))
 			jp2.read(8) # get through XOsiz , YOsiz  (32 bits each)
-			info.tile_width = int(struct.unpack(">HH", jp2.read(4))[1]) # XTsiz (32)
-			info.tile_height = int(struct.unpack(">HH", jp2.read(4))[1]) # YTsiz (32)
-			#logr.debug("tile width: " + str(info.tile_width))
-			#logr.debug("tile height: " + str(info.tile_height))	
+			self.tile_width = int(struct.unpack(">HH", jp2.read(4))[1]) # XTsiz (32)
+			self.tile_height = int(struct.unpack(">HH", jp2.read(4))[1]) # YTsiz (32)
+			#logr.debug("tile width: " + str(self.tile_width))
+			#logr.debug("tile height: " + str(self.tile_height))	
 
 		while (ord(b) != 0xFF):	b = jp2.read(1)
 		b = jp2.read(1) # 0x52: The COD marker segment
 		if (ord(b) == 0x52):
 			jp2.read(7) # through Lcod, Scod, SGcod (16 + 8 + 32 = 56 bits)
-			info.levels = int(struct.unpack(">B", jp2.read(1))[0])
-			#logr.debug("levels: " + str(info.levels)) 
+			self.levels = int(struct.unpack(">B", jp2.read(1))[0])
+			#logr.debug("levels: " + str(self.levels)) 
 		jp2.close()
 			
-		return info
-
-	@staticmethod
-	def unmarshal(path):
+	def _unmarshal(self, path):
 		"""Contruct an instance from an existing file.
 
 		Args:
 			path (str): the path to a JSON or XML file.
 
-		Returns:
-			ImgInfo
-
 		Raises:
 			Exception
 		"""
-		info = ImgInfo()
 		if path.endswith('.json'):
 			try:
 				f = open(path, 'r')
 				j = load(f)
 				#logr.debug(j.get(u'identifier'))
-				info.ident = j.get(u'identifier')
-				info.width = j.get(u'width')
-				info.height = j.get(u'height')
-				info.scale_factors = j.get(u'scale_factors')
-				info.tile_width = j.get(u'tile_width')
-				info.tile_height = j.get(u'tile_height')
-				info.formats = j.get(u'formats')
-				info.qualities = j.get(u'qualities')
+				self.ident = j.get(u'identifier')
+				self.width = j.get(u'width')
+				self.height = j.get(u'height')
+				self.scale_factors = j.get(u'scale_factors')
+				self.tile_width = j.get(u'tile_width')
+				self.tile_height = j.get(u'tile_height')
+				self.formats = j.get(u'formats')
+				self.qualities = j.get(u'qualities')
 			finally:
 				f.close()
 		elif path.endswith('.xml'):
@@ -144,7 +134,6 @@ class ImgInfo(object):
 		else:
 			msg = 'Path passed to unmarshal does not contain XML or JSON' 
 			raise Exception(msg)
-		return info
 	
 	def marshal(self, to):
 		"""Serialize the object as XML or json.

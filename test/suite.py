@@ -111,7 +111,7 @@ class Test_B_InfoExtraction(LorisTest):
 	
 	def test_img_info(self):
 		img = resolve(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 
 		self.assertEqual(info.width, 2717)
 		self.assertEqual(info.height, 3600)
@@ -123,7 +123,7 @@ class Test_B_InfoExtraction(LorisTest):
 	
 	def test_img_info_1(self):
 		img = self.app._resolve_identifier(self.test_jp2_1_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_1_id)
+		info = ImgInfo(img, self.test_jp2_1_id)
 
 		self.assertEqual(info.width, 5283)
 		self.assertEqual(info.height, 7200)
@@ -135,7 +135,7 @@ class Test_B_InfoExtraction(LorisTest):
 
 	def test_img_info_2(self):
 		img = self.app._resolve_identifier(self.test_jp2_2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_2_id)
+		info = ImgInfo(img, self.test_jp2_2_id)
 
 		self.assertEqual(info.width, 2477)
 		self.assertEqual(info.height, 3200)
@@ -239,7 +239,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_xpixel_oob(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = '2717,0,1,1'
 		region_parameter = RegionParameter(url_segment)
 		with self.assertRaises(BadRegionRequestException):
@@ -247,7 +247,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_ypixel_oob(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = '0,3600,1,1'
 		region_parameter = RegionParameter(url_segment)
 		with self.assertRaises(BadRegionRequestException):
@@ -256,7 +256,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_pixel_to_kdu_hw(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = '0,0,1358,1800'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0,0\},\{0.5,0.49981597350018402650\}'
@@ -265,7 +265,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_pixel_to_kdu_tl(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = '1358,1800,200,658'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.5,0.49981597350018402650\},\{0.18277777777777777778,0.073610599926389400074\}'
@@ -274,7 +274,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_pct_to_kdu_hw(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = 'pct:0,0,50,50'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0,0\},\{0.5,0.5\}'
@@ -283,7 +283,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_pct_to_kdu_tl(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = 'pct:50,50,50,50'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.5,0.5\},\{0.5,0.5\}'
@@ -292,7 +292,7 @@ class Test_C_RegionParameter(LorisTest):
 
 	def test_pct_to_kdu_adjust(self):
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = 'pct:20,20,100,100'
 		region_parameter = RegionParameter(url_segment)
 		expected_kdu = '-region \{0.2,0.2\},\{0.8,0.8\}'
@@ -549,7 +549,7 @@ class Test_H_Caching(LorisTest):
 	def test_cache_px_only(self):
 		self.app.cache_px_only = True
 		img = self.app._resolve_identifier(self.test_jp2_id)
-		info = ImgInfo.fromJP2(img, self.test_jp2_id)
+		info = ImgInfo(img, self.test_jp2_id)
 		url_segment = 'pct:20,20,100,100'
 		region_parameter = RegionParameter(url_segment)
 		try:
@@ -736,7 +736,7 @@ class Test_I_ResultantImg(LorisTest):
 		"""Making several grids of tiles to check precision...takes a while"""
 		ident = self.test_jp2_1_id
 		jp2 = self.app._resolve_identifier(ident)
-		info = ImgInfo.fromJP2(jp2, ident)
+		info = ImgInfo(jp2, ident)
 		test_sizes = [256,512,1024,2048]
 		f_name = ''
 		for size in test_sizes:

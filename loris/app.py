@@ -385,8 +385,7 @@ class Loris(object):
 				resp = file(cache_path) if status == 200 else None
 			else:
 				status = 200
-				info = ImgInfo.fromJP2(img_path, ident)
-				info.id = ident
+				info = ImgInfo(img_path, ident)
 				resp = info.marshal(to=fmt)
 				length = len(resp)
 
@@ -885,6 +884,45 @@ class Loris(object):
 				rm_fifo_call = self.rm_cmd + ' ' + fifo_path
 				subprocess.call(rm_fifo_call, shell=True)
 
+	def _get_img_info(self, ident):
+		"""Gets the info from an image.
+
+		Use this rather than directly instantiating ImgInfo objects. Here we 
+		try to read from cache(s) first.
+
+		Args:
+			ident (str): The identifier for the image.
+
+		Returns:
+			ImgInfo.
+
+		Raises:
+			LorisException. If the ident does not resolve to an image.
+		"""
+
+		cache_dir = os.path.join(CACHE, ident)
+		cache_path = os.path.join(cache_dir, 'info.json')
+
+		info = None
+		if os.path.exists(cache_path):
+			info = ImgInfo(cache_path, ident)
+		else:
+			jp2 = self._resolve_identifier(ident)
+			if not os.path.exists(jp2):
+				msg = 'Identifier does not resolve to an image.'
+				raise LorisException(404, ident, msg)
+			info = ImgInfo(jp2, ident)
+			
+			if self.enable_cache:
+				if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
+				f = open(cache_path, 'w')
+				f.write(info.marshal('json'))
+				f.close()
+				self.loggr.info('Created: ' + cache_path)
+		
+		return info
+
+
 	def _resolve_identifier(self, ident):
 		"""Wraps the `resolve` function from the `resolver` module.
 
@@ -903,42 +941,7 @@ class Loris(object):
 		chars = ascii_lowercase + digits
 		return ''.join(choice(chars) for x in range(size))
 
-	def _get_img_info(self, ident):
-		"""Gets the info from an image.
 
-		Tries to read from the cache first.
-
-		Args:
-			ident (str): The identifier for the image.
-
-		Returns:
-			ImgInfo.
-
-		Raises:
-			LorisException. If the ident does not resolve to an image.
-		"""
-
-		cache_dir = os.path.join(CACHE, ident)
-		cache_path = os.path.join(cache_dir, 'info.json')
-
-		info = None
-		if os.path.exists(cache_path):
-			info = ImgInfo.unmarshal(cache_path)
-		else:
-			jp2 = self._resolve_identifier(ident)
-			if not os.path.exists(jp2):
-				msg = 'Identifier does not resolve to an image.'
-				raise LorisException(404, ident, msg)
-			info = ImgInfo.fromJP2(jp2, ident)
-			
-			if self.enable_cache:
-				if not os.path.exists(cache_dir): os.makedirs(cache_dir, 0755)
-				f = open(cache_path, 'w')
-				f.write(info.marshal('json'))
-				f.close()
-				self.loggr.info('Created: ' + cache_path)
-		
-		return info
 
 	def wsgi_app(self, environ, start_response):
 		request = Request(environ)
