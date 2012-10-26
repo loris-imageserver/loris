@@ -8,7 +8,7 @@ from loris.exceptions import BadRotationSyntaxException
 class RegionParameter(object):
 	"""Internal representation of the region slice of an IIIF image URI.
 
-	Attributes:
+	Slots:
 		uri_value (str): The region slice of the URI.
 		mode (str): One of 'full', 'pct', or 'pixel'
 		x (float)
@@ -16,6 +16,7 @@ class RegionParameter(object):
 		w (float)
 		h (float)
 	"""
+	__slots__ = ('uri_value', 'x', 'y', 'w', 'h', 'mode')
 	def __init__(self, uri_value):
 		"""Parse the uri_value into the object.
 
@@ -26,7 +27,7 @@ class RegionParameter(object):
 			BadRegionSyntaxException
 		"""
 		self.uri_value = uri_value
-		self.x, self.y, self.w, self.h = [None, None, None, None]
+		# self.x, self.y, self.w, self.h = [None, None, None, None]
 		self.mode = uri_value.split(':')[0]
 		if self.mode != 'full':
 			try:
@@ -125,12 +126,11 @@ class RegionParameter(object):
 		return cmd
 
 
-
 class SizeParameter(object):
 	"""
 	Internal representation of the size slice of an IIIF image URI.
 
-	Attributes:
+	Slots:
 		uri_value (str): The region slice of the URI.
 		mode (str): One of 'full', 'pct', or 'pixel'
 		force_aspect (bool): True if the aspect ration of the image should not
@@ -138,6 +138,7 @@ class SizeParameter(object):
 		w (int): The width.
 		h (int): The height.
 	"""
+	__slots__ = ('uri_value', 'mode', 'force_aspect', 'pct', 'w', 'h')
 	def __init__(self, uri_value):
 		"""Parse the URI slice into an the object.
 		Args:
@@ -224,10 +225,11 @@ class SizeParameter(object):
 class RotationParameter(object):
 	"""Internal representation of the rotation slice of an IIIF image URI.
 
-	Attributes:
+	Slots:
 		nearest_90 (int). Any value passed is rounded to the nearest multiple
 			of 90.
 	"""
+	__slots__ = ('uri_value', 'nearest_90')
 	def __init__(self, uri_value):
 		"""Take the uri value and round it to the nearest 90.
 		Args:
@@ -252,6 +254,7 @@ class RotationParameter(object):
 			str. E.g. `-rotate 180`.
 		"""
 		arg = ''
-		if self.nearest_90 % 360 != 0: arg = '-rotate ' + str(self.nearest_90)
+		if self.nearest_90 % 360 != 0: 
+			arg = '-rotate ' + str(self.nearest_90)
 		return arg
 from loris.exceptions import BadSizeRequestException
