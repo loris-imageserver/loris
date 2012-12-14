@@ -920,7 +920,9 @@ class Loris(object):
 				info = ImgInfo(cache_path, ident)
 				self.info_cache[ident] = info
 			else:
+
 				jp2 = self._resolve_identifier(ident)
+
 				if not os.path.exists(jp2):
 					msg = 'Identifier does not resolve to an image.'
 					raise LorisException(404, ident, msg)
@@ -1019,7 +1021,7 @@ if __name__ == '__main__':
 		extra_files.append(os.path.join(cwd, 'loris.conf'))
 		extra_files.append(os.path.join(cwd, 'www', 'dzi.html'))
 		extra_files.append(os.path.join(cwd, 'www', 'index.html'))
-		run_simple('127.0.0.1', 5000, app, use_debugger=True, 
+		run_simple('127.0.0.1', 5004, app, use_debugger=True, 
 			threaded=True,  use_reloader=True, extra_files=extra_files)
 	except Exception, e:
 		sys.stderr.write(e.message)

@@ -70,13 +70,19 @@ class ImgInfo(object):
 		jp2.read(2) # over PREC and APPROX, 1 byte each
 		if meth == 1: # Enumerated Colourspace
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
-			if enum_cs == 16:
-				self.native_quality = 'color'
-				self.qualities += ['grey', 'color']
-			elif enum_cs == 17:
+			# if enum_cs == 16:
+			# 	self.native_quality = 'color'
+			# 	self.qualities += ['grey', 'color']
+			if enum_cs == 17:
 				self.native_quality = 'grey'
 				self.qualities += ['grey']
-		#logr.debug('qualities: ' + str(self.qualities))
+			else:
+			 	self.native_quality = 'color'
+			 	self.qualities += ['grey', 'color']
+			 # TODO: we can't assume color jsut because it's not grey, probably
+
+
+		# logr.debug('qualities: ' + str(self.qualities))
 
 		b = jp2.read(1)
 		while (ord(b) != 0xFF):	b = jp2.read(1)
