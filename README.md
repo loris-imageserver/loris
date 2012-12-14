@@ -3,7 +3,7 @@
 
 Loris is an implementation of the 
 [International Image Interoperability Framework: Image API 1.0] [1]. More about 
-this is discussed under IIIF 1.0 Compliance below.
+this is discussed under [IIIF 1.0 Compliance](https://github.com/pulibrary/loris#iiif-10-compliance) below.
 
 Dependencies
 ------------
