@@ -853,7 +853,7 @@ class Loris(object):
 
 			if quality == 'grey' and info.native_quality != 'grey':
 				convert_call += '-colorspace gray -depth 8 '
-			if quality == 'bitonal' and info.native_quality != 'bitonal':
+			elif quality == 'bitonal':
 				convert_call += '-colorspace gray -depth 1 '
 
 			convert_call += out_path

@@ -79,7 +79,7 @@ class ImgInfo(object):
 			else:
 			 	self.native_quality = 'color'
 			 	self.qualities += ['grey', 'color']
-			 # TODO: we can't assume color jsut because it's not grey, probably
+			 # TODO: we can't assume color just because it's not grey, probably
 
 
 		# logr.debug('qualities: ' + str(self.qualities))
