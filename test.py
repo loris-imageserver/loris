@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # test.py
 import test.suite
 import unittest
