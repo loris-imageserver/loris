@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 `resolver` -- Resolve Identifiers to Image Paths

@@ -186,9 +186,11 @@ class Loris(object):
 
 		# utilities
 		self.convert_cmd = _conf.get('utilities', 'convert')
-		self.mkfifo_cmd = _conf.get('utilities', 'mkfifo')
+		self._convert_libs = _conf.get('utilities', 'convert_libs')
 		self.kdu_expand_cmd = _conf.get('utilities', 'kdu_expand')
-		self.kdu_libs = _conf.get('utilities', 'kdu_libs')
+		self._kdu_libs = _conf.get('utilities', 'kdu_libs')
+		self.env = {"LD_LIBRARY_PATH":self._kdu_libs, "PATH":self._convert_libs}
+		self.mkfifo_cmd = _conf.get('utilities', 'mkfifo')
 		self.rm_cmd = _conf.get('utilities', 'rm')
 
 		# seadragon
@@ -836,7 +838,7 @@ class Loris(object):
 				shell=True, 
 				bufsize=-1, 
 				stderr=subprocess.PIPE,
-				env={"LD_LIBRARY_PATH" : self.kdu_libs})
+				env=self.env)
 
 			# make and call the convert command
 
