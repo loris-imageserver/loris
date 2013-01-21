@@ -7,7 +7,7 @@ this is discussed under [IIIF 1.0 Compliance](https://github.com/pulibrary/loris
 
 Dependencies
 ------------
-Addition Python libraries:
+Additional Python libraries:
  * [Werkzeug] [3] ([Installation] [5])
  * [Jinja] [6] ([Installation] [7])
 
@@ -15,7 +15,7 @@ System Utilites:
  * `kdu_expand`
  * ImageMagick (`convert`)
 
-Both of the above should be on your PATH and executable from the command line. 
+Paths to both of the above (binaries and libs) will need to be configured. 
 
 More on this in [deployment.md][8]
 
@@ -38,19 +38,23 @@ tested in those environments at this point.
 
 Tests
 -----
-From the directory the top (`loris`) directory, call 
+From the directory the top (`loris`) directory, you can call 
 
-	python -m unittest -v test.suite
+```
+./test.py
+```
 
-The tests should run in a logical order, so if you see a failure, futher 
-failures might casacade and mask the problem. To solve this, you can have 
-unittest stop at the first fail:
+The tests should run in a logical order, but an earlys failure might casacade 
+and mask the problem. To solve this, you can have unittest stop at the first fail:
 
-	python -m unittest -vf tests
+```
+python -m unittest -vf test.suite
 
-You may want to turn down logging at first, and only turn it up if something 
-goes wrong. __Note__ also that `Test_I_ResultantImg` takes a while 
-(60 seconds?).
+```
+
+You may want to turn up the logging if something goes wrong. 
+
+__Note__ also that `Test_I_ResultantImg` takes a while (60 seconds?).
 
 Return Formats
 --------------
@@ -67,7 +71,6 @@ be writable.
 Demo
 ----
 http://img.princeton.edu/loris/pudl0001/4609321/s42/00000004/1275,100,250,120/full/0/native.jpg
-
 
 
 Used to implement seadragon:
