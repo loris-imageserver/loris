@@ -788,7 +788,7 @@ class Loris(object):
 		try:
 			fifo_path = ''
 			jp2 = self._resolve_identifier(ident)
-			info = self._get_img_info(ident) if info is None else info
+			info = self._get_img_info(ident) if not info else info
 		
 			# Do some checking early to avoid starting to build the shell 
 			# outs
