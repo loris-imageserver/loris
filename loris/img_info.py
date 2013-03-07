@@ -50,6 +50,7 @@ class ImgInfo(object):
 			ImgInfo
 		"""
 		self.ident = img_id
+		self.native_quality = 'color' # TODO: HACK, this is an assumption
 		self.qualities = ['native', 'bitonal']
 
 		jp2 = open(path, 'rb')
@@ -69,7 +70,7 @@ class ImgInfo(object):
 		meth = struct.unpack('B', b)[0]
 		jp2.read(2) # over PREC and APPROX, 1 byte each
 
-		self.native_quality = 'color' # TODO: HACK, this is an assumption
+		
 		if meth == 1: # Enumerated Colourspace
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
 			# if enum_cs == 16:
