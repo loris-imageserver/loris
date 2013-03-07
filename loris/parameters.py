@@ -87,6 +87,7 @@ class RegionParameter(object):
 			# the use of Decimal.
 			top,left,height,width = (None,None,None,None)
 			if self.mode == 'pct':
+				## TODO: PCT MODE IS BROKEN
 				top = Decimal(self.y) / Decimal(100.0)
 				left = Decimal(self.x) / Decimal(100.0)
 				height = Decimal(self.h) / Decimal(100.0)
@@ -119,7 +120,7 @@ class RegionParameter(object):
 			if top >= Decimal(1.0):
 				msg = 'Region y parameter is out of bounds.\n'
 				msg += str(self.y) + ' was supplied and image height is ' 
-				msg += str(img_info.height)
+				msg += str(img_info.height) 
 				raise BadRegionRequestException(400, self.uri_value, msg)
 			cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
 			#logr.debug('kdu region parameter: ' + cmd)
