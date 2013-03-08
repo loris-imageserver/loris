@@ -1,3 +1,5 @@
+[Slides](https://docs.google.com/presentation/d/1HcEWr5lWO0lCywbHOigFW7k7MmRz0Y44Aw202x5YG1k)
+
 Meet Loris
 ==========
 
