@@ -74,11 +74,11 @@ will be wrapped around the `json` response, e.g., the response to
 
 will be 
 
-```json
+```javascript
 myfunct({ "identifier" : "some/img/path", "width" : "..." })
 ```
 
-See http://en.wikipedia.org/wiki/JSONP for why this is useful.
+See http://en.wikipedia.org/wiki/JSONP for why this is useful. This feature can be disabled in the configuration file.
 
 Logging
 -------
