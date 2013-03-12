@@ -44,7 +44,7 @@ From the directory the top (`loris`) directory, you can call
 ./test.py
 ```
 
-The tests should run in a logical order, but an earlys failure might casacade 
+The tests should run in a logical order, but an early failure might casacade 
 and mask the problem. To solve this, you can have unittest stop at the first fail:
 
 ```
@@ -62,6 +62,24 @@ Right now `jpg` and `png` are supported. The latter is underdeveloped and not
 terribly performant, but is in place so that all of the necessary branching in 
 the content negotiation and rendering could be put in place and tested.
 
+Non Normative Features
+----------------------
+### Callbacks
+`/info.json` can take a `callback` parameter with the name of a function that 
+will be wrapped around the `json` response, e.g., the response to
+
+```
+/some/img/path/info.json?callback=myfunct
+```
+
+will be 
+
+```json
+myfunct({ "identifier" : "some/img/path", "width" : "..." })
+```
+
+See http://en.wikipedia.org/wiki/JSONP for why this is useful.
+
 Logging
 -------
 Logging is set up in `etc/logging.conf` The handlers configured near the bottom 
@@ -70,24 +88,20 @@ be writable.
 
 Demo
 ----
-http://img.princeton.edu/loris/pudl0001/4609321/s42/00000004/1275,100,250,120/full/0/native.jpg
-
-
-Used to implement seadragon:
-http://img.princeton.edu/loris/pudl0001/4609321/s42/00000004.html
+http://lorisimg.princeton.edu/loris/pudl0001/4609321/s42/00000004/1275,100,250,120/full/0/native.jpg
 
 The Name
 --------
 Could stand for __Lightweight Open Repository Image Server__ or not; It's a 
-Lightweight image serve anyway. Thanks to 
-[shaune](https://github.com/sdellis "Shaun Ellis") for coming up with it and 
-creating the icons.
+Lightweight image server anyway. Thanks to [shaune](https://github.com/sdellis "Shaun Ellis") 
+for coming up with it and creating the icons.
 
 IIIF 1.0 Compliance
 -------------------
-Loris aims to be [IIIF Level] [4] 1 compliant, with all of the Level 2 
-Region, Size, and Rotation parameters and features supported. The easiest way 
-to understand the request [URI syntax] [2] is to read the spec.
+Loris aims to be [IIIF Level][4] 1 compliant, with all of the Level 2 
+Region, Size, and Rotation parameters and features supported (in fact, returning
+JP2 is the only Level 2 feature not supported). The easiest way to understand 
+the request [URI syntax][2] is to read the spec.
 
 <table>
   <tbody>
