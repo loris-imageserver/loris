@@ -178,6 +178,7 @@ class Loris(object):
 		self.default_format = _conf.get('options', 'default_format')
 		self.default_info_format = _conf.get('options', 'default_info_format')
 		self.enable_cache = _conf.getboolean('options', 'enable_cache')
+		self.allow_callback = _conf.getboolean('options', 'allow_callback')
 
 		self.enable_info_cache = _conf.getboolean('options', 'enable_cache')
 		if self.enable_info_cache:
@@ -221,7 +222,6 @@ class Loris(object):
 			Rule('/<path:ident>.html', endpoint='get_dz'),
 			Rule('/<path:ident>/<img_file>.png', endpoint='get_seadragon_png'),
 			Rule('/', endpoint='get_docs'),
-			Rule('/_headers', endpoint='list_headers'), # for debguging
 			Rule('/favicon.ico', endpoint='get_favicon')
 		], converters=_converters)
 	
@@ -268,31 +268,6 @@ class Loris(object):
 			headers.add('Link', self._link_hdr)
 			self.loggr.exception(e.message)
 			return Response(resp, status=status, mimetype=mime, headers=headers)
-
-	def on_list_headers(self, request):
-		"""Lists Request Headers and WSGI Environment keys/values.
-
-		This only works in test mode. 
-
-		Args:
-			request (Request): The client's request.
-
-		Returns:
-			Response. Just a plain text list of k/v pairs.
-		"""
-		resp = None
-		if not self.test:
-			resp = Response('not allowed', status=403)
-		else:
-			body = '==== Request Headers ====\n'
-			for k in request.headers.keys():
-				body += '%s: %s\n' % (k, request.headers.get(k))
-			body += '\n==== Headers from WSGI ====\n'
-			for k in request.environ:
-				body += '%s: %s\n' % (k, request.environ.get(k))
-			resp = Response(body, status=200)
-			resp.mimetype = 'text/plain'
-		return resp
 
 	def on_get_favicon(self, request):
 		f = os.path.join(WWW, 'icons', 'loris-icon.png')
@@ -365,9 +340,14 @@ class Loris(object):
 		headers.add('Link', self._link_hdr)
 		headers.add('Cache-Control', 'public')
 
+		callback = request.args.get('callback', None)
+
 		try:
-			if fmt == 'json': mime = 'text/json'
-			elif fmt == 'xml': mime = 'text/xml'
+			# really hate all this...
+			if fmt == 'json': 
+				mime = 'text/json'
+			elif fmt == 'xml': 
+				mime = 'text/xml'
 			elif request.headers.get('accept') == 'text/json':
 				fmt = 'json'
 				mime = 'text/json'
@@ -377,7 +357,6 @@ class Loris(object):
 			else: # fmt is None: 
 				fmt = self.default_info_format
 				mime = 'text/json' if fmt == 'json' else 'text/xml'
-
 				
 			img_path = self._resolve_identifier(ident)
 			
@@ -391,12 +370,19 @@ class Loris(object):
 			# check the cache
 			if os.path.exists(cache_path) and self.enable_cache == True:
 				status = self._check_cache(cache_path, request, headers)
-				resp = file(cache_path) if status == 200 else None
+				if status == 200:
+					with open(cache_path) as f:
+						resp = f.read()
+						if fmt == 'json' and callback and self.allow_callback:
+							resp = '%s(%s)' % (callback, resp)
+				# TODO should be date from the cache
+				# headers.add('Last-Modified', http_date())
+                # headers.add('Content-Length', len(resp))
 			else:
 				status = 200
 				info = ImgInfo(img_path, ident)
 				resp = info.marshal(to=fmt)
-				length = len(resp)
+
 
 				if not os.path.exists(cache_dir): 
 					os.makedirs(cache_dir, 0755)
@@ -409,8 +395,12 @@ class Loris(object):
 					f.close()
 					self.loggr.info('Created: ' + cache_path)
 
+				# add the callback after we've cached
+				if fmt == 'json' and callback  and self.allow_callback:
+					resp = '%s(%s)' % (callback, resp)
+
 				headers.add('Last-Modified', http_date())
-				headers.add('Content-Length', length)
+				headers.add('Content-Length', len(resp))
 
 		except LorisException, e:
 			mime = 'text/xml'

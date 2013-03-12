@@ -167,6 +167,15 @@ class Test_B_InfoExtraction(LorisTest):
 		self.assertTrue(resp_json.has_key(u'profile'))
 		self.assertEqual(resp_json.get(u'profile'), u'http://library.stanford.edu/iiif/image-api/compliance.html#level1')
 
+	def test_info_json_callback(self):
+		self.app.allow_callback = True
+		resp = self.client.get('/' + self.test_jp2_id + '/info.json?callback=myfunct')
+		self.assertTrue(resp.data.startswith('myfunct('))
+
+		self.app.allow_callback = False
+		resp = self.client.get('/' + self.test_jp2_id + '/info.json?callback=myfunct')
+		self.assertFalse(resp.data.startswith('myfunct('))
+
 	def test_info_xml(self):
 		resp = self.client.get('/' + self.test_jp2_id + '/info.xml')
 		#This is parsable
