@@ -88,7 +88,7 @@ be writable.
 
 Demo
 ----
-http://lorisimg.princeton.edu/loris/pudl0001/4609321/s42/00000004/1275,100,250,120/full/0/native.jpg
+http://img.princeton.edu/loris/pudl0001/4609321/s42/00000004/1275,100,250,120/full/0/native.jpg
 
 The Name
 --------
