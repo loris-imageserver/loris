@@ -360,7 +360,7 @@ class Loris(object):
 			elif request.headers.get('accept') == 'text/xml':
 				fmt = 'xml'
 				mime = 'text/xml'
-			else: # fmt is None: 
+			else: # fmt is None, return the default 
 				fmt = self.default_info_format
 				mime = 'text/json' if fmt == 'json' else 'text/xml'
 				
@@ -417,10 +417,10 @@ class Loris(object):
 		except Exception, e:
 			# should be safe to assume it's the server's fault.
 			self.loggr.exception(e.message)
-			pe = LorisException(500, '', e.message)
+			le = LorisException(500, '', e.message)
 			mime = 'text/xml'
-			status = pe.http_status
-			resp = pe.to_xml()
+			status = le.http_status
+			resp = le.to_xml()
 
 		finally:
 			return Response(resp, status=status, content_type=mime, 
