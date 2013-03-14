@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 from decimal import getcontext
 from json import loads
 from loris.app import create_app
-from loris.deepzoom import DeepZoomImageDescriptor
 from loris.exceptions import BadRegionRequestException
 from loris.exceptions import BadRegionSyntaxException
 from loris.exceptions import BadSizeSyntaxException
@@ -762,35 +761,6 @@ class Test_I_ResultantImg(LorisTest):
 				self.assertEquals(dims, tile[1])
 		remove(f_name)
 
-class Test_J_SeaDragonExtension(LorisTest):
-	"""Here we test for the Seadragon feature.
-	"""
-	def test_dzi_xml(self):
-		resp = self.client.get('/' + self.test_jp2_id + '.xml')
-		dom = parseString(resp.data)
-		# info is the root
-		dE = dom.documentElement
-		self.assertEqual(dE.tagName, 'Image')
-		self.assertEqual(dE.getAttribute('Format'), 'jpg')
-		self.assertEqual(dE.getAttribute('Overlap'), '0')
-		self.assertEqual(int(dE.getAttribute('TileSize')), self.app.dz_tile_size)
-
-		sE = dE.getElementsByTagName('Size')[0]
-		self.assertEqual(sE.getAttribute('Height'), '3600')
-		self.assertEqual(sE.getAttribute('Width'), '2717')
-
-	# one where we have tiles
-	def test_dzi_tile_scaling_tiled_size(self):
-		dims = (self.app.dz_tile_size, self.app.dz_tile_size)
-		uri = '/' + self.test_jp2_id + '_files/9/0_0.jpg'
-		result_dims = self._dims_from_uri(uri)
-		self.assertEquals(result_dims, dims)
-
-	def test_dzi_tile_scaling_not_tiled_size(self):
-		dims = (170,225)
-		uri = '/' + self.test_jp2_id + '_files/8/0_0.jpg'
-		result_dims = self._dims_from_uri(uri)
-		self.assertEquals(result_dims, dims)
 
 def all_tests():
 	tl = unittest.TestLoader()
@@ -799,10 +769,10 @@ def all_tests():
 	# These should be in a reasonably useful order.
 	# If we can't resolve ids to images
 	test_suites.append(tl.loadTestsFromTestCase(Test_A_ResolveId))
-	# we can't get extract information from them (like dimensions)
+	# we can't extract information from them (like dimensions)
 	test_suites.append(tl.loadTestsFromTestCase(Test_B_InfoExtraction))
 	# and if we can't get the dimensions of an image we can't translate
-	# IIIF URI segments into commands
+	# IIIF URI segments into command lines
 	test_suites.append(tl.loadTestsFromTestCase(Test_C_RegionParameter))
 	test_suites.append(tl.loadTestsFromTestCase(Test_D_SizeParameter))
 	test_suites.append(tl.loadTestsFromTestCase(Test_E_RotationParameter))
@@ -812,10 +782,8 @@ def all_tests():
 	# and therefore can't make images, and can't ask for them
 	test_suites.append(tl.loadTestsFromTestCase(Test_G_ContentNegotiation))
 	test_suites.append(tl.loadTestsFromTestCase(Test_H_Caching))
-	# or test that the output is the expectant size, rotation, etc.
+	# and, ultimately get the expectant size, rotation, etc.
 	test_suites.append(tl.loadTestsFromTestCase(Test_I_ResultantImg))
-	# And Seadragon is cool
-	test_suites.append(tl.loadTestsFromTestCase(Test_J_SeaDragonExtension))
 	#.
 	return unittest.TestSuite(test_suites)
 

@@ -53,7 +53,7 @@ Install Loris
 These instructions assume you'll deploy as follows:
 
  * The `WSGI` script is at `/var/www/loris/loris.wsgi`
- * Other web files (for seadragon support) are at `/var/www/loris`
+ * Other web files are at `/var/www/loris`
  * You'll be logging to `/var/log/loris`
  * You'll cache images at `/var/cache/loris`
  * The cron for cleaning the cache (if you want to use it) is in `/usr/local/bin`

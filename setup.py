@@ -22,11 +22,6 @@ try:
 except ImportError:
 	install_requires.append('werkzeug>=0.8.1')
 
-try:
-	import jinja2
-except ImportError:
-	install_requires.append('jinja2>=2.6')
-
 scripts = ['bin/loris-cache_clean.sh']
 
 setup(
