@@ -4,6 +4,7 @@ from loris.exceptions import BadRegionRequestException
 from loris.exceptions import BadRegionSyntaxException
 from loris.exceptions import BadSizeSyntaxException
 from loris.exceptions import BadRotationSyntaxException
+from loris.exceptions import BadSizeRequestException
 
 class RegionParameter(object):
 	"""Internal representation of the region slice of an IIIF image URI.
@@ -258,4 +259,4 @@ class RotationParameter(object):
 		if self.nearest_90 % 360 != 0: 
 			arg = '-rotate ' + str(self.nearest_90)
 		return arg
-from loris.exceptions import BadSizeRequestException
+
