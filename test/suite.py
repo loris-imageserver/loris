@@ -170,10 +170,12 @@ class Test_B_InfoExtraction(LorisTest):
 	def test_info_json_callback(self):
 		self.app.allow_callback = True
 		resp = self.client.get('/' + self.test_jp2_id + '/info.json?callback=myfunct')
+		self.assertEqual(resp.headers.get('content-type'), 'application/javascript')
 		self.assertTrue(resp.data.startswith('myfunct('))
 
 		self.app.allow_callback = False
 		resp = self.client.get('/' + self.test_jp2_id + '/info.json?callback=myfunct')
+		self.assertEqual(resp.headers.get('content-type'), 'text/json')
 		self.assertFalse(resp.data.startswith('myfunct('))
 
 	def test_info_xml(self):
