@@ -345,12 +345,18 @@ class Loris(object):
 		try:
 			# really hate all this...
 			if fmt == 'json': 
-				mime = 'text/json' if not callback else 'application/javascript'
+				if callback and self.allow_callback:
+					mime = 'application/javascript'
+				else:
+					mime = 'text/json'
 			elif fmt == 'xml': 
 				mime = 'text/xml'
 			elif request.headers.get('accept') == 'text/json':
 				fmt = 'json'
-				mime = 'text/json' if not callback else 'application/javascript'
+				if callback and self.allow_callback:
+					mime = 'application/javascript'
+				else:
+					mime = 'text/json'
 			elif request.headers.get('accept') == 'text/xml':
 				fmt = 'xml'
 				mime = 'text/xml'
