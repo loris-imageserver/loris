@@ -521,6 +521,11 @@ class Loris(object):
 		try:
 			fifo_path = ''
 			jp2 = self._resolve_identifier(ident)
+			# TODO: move the raise below into the resolve method
+			if not os.path.exists(jp2):
+				msg = 'Identifier does not resolve to an image.'
+				raise LorisException(404, ident, msg)
+
 			info = self._get_img_info(ident) if not info else info
 		
 			# Do some checking early to avoid starting to build the shell 
@@ -617,6 +622,8 @@ class Loris(object):
 			self.loggr.info("Created: " + out_path)
 
 			return 0
+		except LorisException:
+			raise
 		except Exception, e:
 			self.loggr.exception(e.message)
 			raise LorisException(500, '', e.message)

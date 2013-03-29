@@ -1,5 +1,6 @@
 # converters.py
 from loris.parameters import RotationParameter, RegionParameter, SizeParameter
+from urllib import unquote
 from werkzeug.routing import BaseConverter
 
 class RegionConverter(BaseConverter):
@@ -15,7 +16,7 @@ class RegionConverter(BaseConverter):
 		self.regex = '[^/]+'
 
 	def to_python(self, value):
-		return RegionParameter(value)
+		return RegionParameter(unquote(value))
 
 	def to_url(self, value):
 		return str(value)
@@ -33,7 +34,7 @@ class SizeConverter(BaseConverter):
 		self.regex = '[^/]+'
 	
 	def to_python(self, value):
-		return SizeParameter(value)
+		return SizeParameter(unquote(value))
 
 	def to_url(self, value):
 		return str(value)
@@ -51,7 +52,7 @@ class RotationConverter(BaseConverter):
 		self.regex = '\-?\d+'
 
 	def to_python(self, value):
-		return RotationParameter(value)
+		return RotationParameter(unquote(value))
 
 	def to_url(self, value):
 		return str(value)

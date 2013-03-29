@@ -1,0 +1,5 @@
+TODO
+ * refactor logging
+ * modularize unit tests
+ * new tests for url escaping
+ * More testing against IIIF validation service

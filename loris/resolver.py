@@ -4,6 +4,7 @@
 ================================================
 """
 from os.path import join
+from urllib import unquote
 
 SRC_IMG_ROOT='/usr/local/share/images'
 
@@ -16,5 +17,7 @@ def resolve(ident):
 	supplied, and appends a file extension, resulting in an absolute path 
 	on the filesystem.
 	"""
-	return join(SRC_IMG_ROOT, ident.replace('%2F', '/') + '.jp2')
+
+	# TODO: untested
+	return join(SRC_IMG_ROOT, unquote(ident) + '.jp2')
 
