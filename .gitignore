@@ -10,3 +10,5 @@ dist/
 *.save
 
 *.swp
+
+*.local

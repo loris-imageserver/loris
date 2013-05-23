@@ -260,7 +260,6 @@ class Loris(object):
 				# Check the filesystem
 				if path.exists(cache_path):
 					logger.debug('Info for %s taken from filesystem' % (ident,))
-					logger.debug("Here")
 					info = img_info.ImageInfo.from_json(cache_path)
 				# Else get it
 				else:
