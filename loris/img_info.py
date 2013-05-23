@@ -151,8 +151,11 @@ class ImageInfo(object):
 		meth = struct.unpack('B', b)[0]
 		jp2.read(2) # over PREC and APPROX, 1 byte each
 		
+		# TODO: this isn't quite complete. Need to account for 
+		# meth == 2 (Restricted ICC profile). See pg 139 of the spec.
 		if meth == 1: # Enumerated Colourspace
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
+			logger.debug('Image contains an enumerated colourspace: %d' % (enum_cs,))
 			# if enum_cs == 16:
 			# 	self.native_quality = 'color'
 			# 	self.qualities += ['grey', 'color']
@@ -162,7 +165,20 @@ class ImageInfo(object):
 			else:
 			 	self.native_quality = 'color'
 			 	self.qualities += ['grey', 'color']
-			 # TODO: we can't assume color just because it's not grey, probably
+		else:
+			# Restricted ICC profile.This Colour Specification box contains an 
+			# ICC profile in the PROFILE field. This profile shall specify the 
+			# transformation needed to convert the decompressed image data into 
+			# the PCSXYZ, and shall conform to either the Monochrome Input or 
+			# Three-Component Matrix-Based Input profile class, and contain all
+			# the required tags specified therein, as defined in ICC.1:1998-09. 
+			# As such, the value of the Profile Connection Space field in the 
+			# profile header in the embedded profile shall be ‘XYZ\040’ 
+			# (0x5859 5A20) indicating that the output colourspace of the 
+			# profile is in the XYZ colourspace.
+
+   			# http://www.color.org/icc-1_1998-09.pdf
+			pass
 
 		logger.debug('qualities: ' + str(self.qualities))
 
