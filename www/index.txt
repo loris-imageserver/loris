@@ -1,0 +1,3 @@
+This is Loris, an image server that implements the IIIF Image API Level 2. 
+See <http://www-sul.stanford.edu/iiif/image-api> for details and 
+<https://github.com/pulibrary/loris> for the source.

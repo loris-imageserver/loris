@@ -3,21 +3,57 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-from os.path import join
+from constants import SRC_FORMATS_SUPPORTED
+from log_config import get_logger
+from os.path import join, exists, isfile
 from urllib import unquote
+import loris_exception
 
-SRC_IMG_ROOT='/usr/local/share/images'
+logger = get_logger(__name__)
 
-def resolve(ident):
-	"""
-	Given the identifier of an image, resolve it to an actual path. This
-	would need to be overridden to suit different environments.
+class Resolver(object):
+	def __init__(self, config):
+		self.cache_root = config['src_img_root']
+
+	def resolve(self, ident):
+		"""
+		Given the identifier of an image, get the path (fp) and format. This 
+		will likely	need to be reimplemented overridden to suit different 
+		environments and can be as smart or dumb as you want.
 		
-	This simple version just prepends a constant path to the identfier
-	supplied, and appends a file extension, resulting in an absolute path 
-	on the filesystem.
-	"""
+		For this dumb version a constant path is prepended to the identfier 
+		supplied to get the path It assumes this 'identifier' ends with a file 
+		extension from which the format is then derived.
 
-	# TODO: untested
-	return join(SRC_IMG_ROOT, unquote(ident) + '.jp2')
+		For other formats you'll also need to implement a static constructor for
+		ImgInfo to get what it needs from that format, i.e. ImgInfo.from_myformat().
 
+		Args:
+			The identifier for the image.
+		Returns:
+			two tuple: (fp, format)
+		Raises:
+			ResolverException when something goes wrong...
+		"""
+		fp = join(self.cache_root, ident)
+		logger.debug('src image: %s' % (fp,))
+
+		if not exists(fp):
+			public_message = 'Source image not found for identifier: %s.' % (ident,)
+			log_message = 'Source image not found at %s for identifier: %s.' % (fp,ident)
+			logger.warn(log_message)
+			raise ResolverException(400, public_message)
+
+		format = ident.split('.')[-1]
+		logger.debug('src format %s' % (format,))
+
+		if format not in SRC_FORMATS_SUPPORTED:
+ 			public_message = 'Source image is not in a recognizable format %s' % (format,)
+			log_message = 'Source image not found at %s' % (fp,)
+ 			logger.warn(log_message)
+ 			# todo: confirm status code. Maybe should be 500?
+ 			raise ResolverException(400, public_message)
+
+		return (fp, format)
+
+class ResolverException(loris_exception.LorisException): pass

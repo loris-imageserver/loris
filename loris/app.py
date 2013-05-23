@@ -710,46 +710,7 @@ class Loris(object):
 		return self.wsgi_app(environ, start_response)
 
 
-from collections import OrderedDict
-from threading import Lock
 
-class InfoCache:
-	"""A thread-safe dict-like cache we can use to keep ImageInfo objects in
-	memory.
-
-	Slots:
-		size (int): See below.
-		_dict (OrderedDict): The map.
-		_lock (Lock): The lock.
-	"""
-	__slots__ = ('size', '_dict', '_lock')
-	def __init__(self, size=500):
-		"""
-		Args:
-			size (int): Max entries before the we start popping (FIFO).
-		"""
-		self.size = size
-		self._dict = OrderedDict()
-		self._lock = Lock()
-
-	def __getitem__(self, key):
-		# not safe to get while the set of keys might be changing.
-		with self._lock:
-			return self._dict[key]
-
-	def get(self, key):
-		with self._lock:
-			return self._dict.get(key)
-
-	def __setitem__(self, key, value):
-		with self._lock:
-			while len(self._dict) >= self.size:
-				self._dict.popitem(last=False)
-			self._dict[key] = value
-
-	def __delitem__(self, key):
-		with self._lock:
-			del self._dict[key]
 
 if __name__ == '__main__':
 	# Run the development server

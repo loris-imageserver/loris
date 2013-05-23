@@ -1,5 +1,16 @@
 TODO
- * refactor logging
- * modularize unit tests
- * new tests for url escaping
- * More testing against IIIF validation service
+----
+ * Refactor logging, i.e. get rid of logging config file. Let users configure the path where, that's all. Do the rest programatically
+ * Modularize unit tests
+ * New tests for url escaping
+ * More testing against IIIF validation service once Stanford makes a test jp2 available
+ * Work with other formats. Loris#on_get_image should resolve the identifier and then figure out which conversion method to call
+ * So, the resolver needs to return not just a path to the image, but the format as well
+ * Need a way to pre-bake the cache and then persist the cache for huge images.
+ * Once everything is json based (in 1.1) consider Mongo as an optional cache.
+ * Diagram cache flow
+
+Questions
+---------
+ * Ingest (or make it possible to put an encoded/escaped URL in the identifier slot)
+ * Is Werkzeug still the right framework? Tornado?
