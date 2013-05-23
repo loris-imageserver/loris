@@ -238,7 +238,9 @@ class Loris(object):
 		return (img_fp, img_dp)
 
 	def __get_info(self, ident, fp, src_format):
-		'''
+		'''Check the memory cache, then the file system, and then, as a last 
+		resort, construct a new ImageInfo object.
+
 		Args:
 			ident (str): The image's identifier.
 			fp (str): The image's file path on the local file system.

@@ -1,5 +1,6 @@
 # img_info.py
 
+from PIL import Image
 from collections import OrderedDict
 from collections import deque
 from constants import IMG_API_NS, COMPLIANCE
@@ -11,7 +12,20 @@ import struct
 
 logger = get_logger(__name__)
 
-# TODO: we may want a little mor eexception handling in here.
+# TODO: we may want a little more exception handling in here.
+
+PIL_MODES_TO_QUALITIES = {
+	# Thanks to http://stackoverflow.com/a/1996609/714478
+	'1' : ['native','bitonal'],
+	'L' : ['native','grey','bitonal'],
+	'P' : ['native','grey','bitonal'],
+	'RGB': ['native','color','grey','bitonal'],
+	'RGBA': ['native','color','grey','bitonal'],
+	'CMYK': ['native','color','grey','bitonal'],
+	'YCbCr': ['native','color','grey','bitonal'],
+	'I': ['native','color','grey','bitonal'],
+	'F': ['native','color','grey','bitonal']
+}
 
 class ImageInfo(object):
 	'''Info about the image.
@@ -34,10 +48,6 @@ class ImageInfo(object):
 		'native_quality', 'tile_width', 'qualities', 'formats', 'ident', 
 		'src_format', 'src_img_fp')
 
-	# def __init__(self):
-		
-		
-		
 	@staticmethod
 	def from_image_file(ident, src_img_fp, src_format):
 		'''
@@ -57,7 +67,6 @@ class ImageInfo(object):
 		logger.debug('Identifier: %s' % (new_inst.ident,))
 
 		if new_inst.src_format == 'jp2':
-			logger.debug('Extracting info from JP2.')
 			new_inst.__from_jp2(src_img_fp)
 		elif new_inst.src_format == 'jpg':
 			new_inst.__from_jpg(src_img_fp)
@@ -99,17 +108,29 @@ class ImageInfo(object):
 		return new_inst
 
 	def __from_jpg(self, fp):
-		# TODO
-		# PIL? How easy is it to install with all the right dependencies?
-		pass
+		# This is cheap, and presumably we're pulling the whole image into 
+		# memory...
+		logger.debug('Extracting info from JPEG file.')
+		im = Image.open(fp)
+		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
+		self.width, self.height = im.size
+		self.scale_factors = None
+		self.tile_width = None
+		self.tile_height = None
 
 	def __from_tif(self, fp):
-		# TODO
-		pass
+		logger.debug('Extracting info from TIFF file.')
+		im = Image.open(fp)
+		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
+		self.width, self.height = im.size
+		self.scale_factors = None
+		self.tile_width = None
+		self.tile_height = None
 
 	def __from_jp2(self, fp):
 		'''Get info about a JP2. 
 		'''
+		logger.debug('Extracting info from JP2 file.')
 		self.native_quality = 'color' # TODO: HACK, this is an assumption
 		self.qualities = ['native', 'bitonal']
 
@@ -180,15 +201,18 @@ class ImageInfo(object):
 		'''
 		# cheaper or not?
 		j = '{'
-		j += '  "identifier" : "' + self.ident + '", '
-		j += '  "width" : ' + str(self.width) + ', '
-		j += '  "height" : ' + str(self.height) + ', '
-		j += '  "scale_factors" : [' + ", ".join(map(str, self.scale_factors)) + '], '
-		j += '  "tile_width" : ' + str(self.tile_width) + ', '
-		j += '  "tile_height" : ' + str(self.tile_height) + ', '
-		j += '  "formats" : [ "jpg", "png" ], '
-		j += '  "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
-		j += '  "profile" : "'+COMPLIANCE+'"  '
+		j += ' "identifier" : "' + self.ident + '",'
+		j += ' "width" : ' + str(self.width) + ','
+		j += ' "height" : ' + str(self.height) + ','
+		if self.scale_factors:
+			j += ' "scale_factors" : [' + ", ".join(map(str, self.scale_factors)) + '],'
+		if self.tile_width:
+			j += ' "tile_width" : ' + str(self.tile_width) + ','
+		if self.tile_height:
+			j += ' "tile_height" : ' + str(self.tile_height) + ','
+		j += ' "formats" : [ "jpg", "png" ],'
+		j += ' "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
+		j += ' "profile" : "'+COMPLIANCE+'" '
 		j += '}'
 		return j
 
@@ -201,40 +225,40 @@ class InfoCache(object):
 
 	Slots:
 		size (int): See below.
-		_dict (OrderedDict): The map.
-		_lock (Lock): The lock.
+		__dict (OrderedDict): The map.
+		__lock (Lock): The lock.
 	"""
-	__slots__ = ('size', '_dict', '_lock')
+	__slots__ = ('size', '__dict', '__lock')
 	def __init__(self, size=500):
 		"""
 		Args:
 			size (int): Max entries before the we start popping (LRU).
 		"""
 		self.size = size
-		self._dict = OrderedDict()
-		self._lock = Lock()
+		self.__dict = OrderedDict()
+		self.__lock = Lock()
 
 	def get(self, key):
-		with self._lock:
-			return self._dict.get(key)
+		with self.__lock:
+			return self.__dict.get(key)
 
 	def __contains__(self, key):
-		with self._lock:
-			return key in self._dict
+		with self.__lock:
+			return key in self.__dict
 
 	def __getitem__(self, key):
 		# It's not safe to get while the set of keys might be changing.
-		with self._lock:
-			return self._dict[key]
+		with self.__lock:
+			return self.__dict[key]
 
 	def __setitem__(self, key, value):
-		with self._lock:
-			while len(self._dict) >= self.size:
-				self._dict.popitem(last=False)
-			self._dict[key] = value
+		with self.__lock:
+			while len(self.__dict) >= self.size:
+				self.__dict.popitem(last=False)
+			self.__dict[key] = value
 
 	def __delitem__(self, key):
-		with self._lock:
-			del self._dict[key]
+		with self.__lock:
+			del self.__dict[key]
 
 class ImageInfoException(loris_exception.LorisException): pass
