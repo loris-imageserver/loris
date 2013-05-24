@@ -35,6 +35,7 @@ class Resolver(object):
 		Raises:
 			ResolverException when something goes wrong...
 		"""
+		ident = unquote(ident)
 		fp = join(self.cache_root, ident)
 		logger.debug('src image: %s' % (fp,))
 

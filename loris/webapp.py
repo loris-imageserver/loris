@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
-'''
+"""
 webapp.py
 ==========
-'''
+"""
 from ConfigParser import RawConfigParser
 from decimal import Decimal, getcontext
 from log_config import get_logger
@@ -31,7 +31,7 @@ def create_app(debug=False):
 	if debug:
 		logger.info('Running in debug mode.')
 		project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-		config = {}
+		config = { }
 		config['loris.Loris'] = {}
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
 		config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
@@ -39,7 +39,7 @@ def create_app(debug=False):
 		config['loris.Loris']['enable_caching'] = True
 		# config['loris.Loris']['enable_caching'] = False
 		config['resolver.Resolver'] = {}
-		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'test', 'img')
+		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
 	else:
 		logger.info('Running in production mode.')
 		conf_fp = path.join(ETC_DP, 'loris.conf')

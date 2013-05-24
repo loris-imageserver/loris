@@ -40,12 +40,12 @@ class ImageInfo(object):
 		tile_height (int)
 		scale_factors [(int)]
 		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
-		native_quality: 'color' or 'grey'
+		__native_quality: 'color' or 'grey'
 		src_format (str): as a three char file extension 
 		src_img_fp (str): the absolute path on the file system
 	'''
 	__slots__ = ('scale_factors', 'width', 'tile_height', 'height', 
-		'native_quality', 'tile_width', 'qualities', 'formats', 'ident', 
+		'__native_quality', 'tile_width', 'qualities', 'formats', 'ident', 
 		'src_format', 'src_img_fp')
 
 	@staticmethod
@@ -131,8 +131,8 @@ class ImageInfo(object):
 		'''Get info about a JP2. 
 		'''
 		logger.debug('Extracting info from JP2 file.')
-		self.native_quality = 'color' # TODO: HACK, this is an assumption
 		self.qualities = ['native', 'bitonal']
+		self.__native_quality = 'color' # TODO: HACK, this is an assumption
 
 		jp2 = open(fp, 'rb')
 		b = jp2.read(1)
@@ -151,33 +151,22 @@ class ImageInfo(object):
 		meth = struct.unpack('B', b)[0]
 		jp2.read(2) # over PREC and APPROX, 1 byte each
 		
-		# TODO: this isn't quite complete. Need to account for 
-		# meth == 2 (Restricted ICC profile). See pg 139 of the spec.
+		# TODO: this isn't quite complete.
 		if meth == 1: # Enumerated Colourspace
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
 			logger.debug('Image contains an enumerated colourspace: %d' % (enum_cs,))
 			# if enum_cs == 16:
-			# 	self.native_quality = 'color'
+			# 	self.__native_quality = 'color'
 			# 	self.qualities += ['grey', 'color']
 			if enum_cs == 17:
-				self.native_quality = 'grey'
+				self.__native_quality = 'grey'
 				self.qualities += ['grey']
 			else:
-			 	self.native_quality = 'color'
+			 	self.__native_quality = 'color'
 			 	self.qualities += ['grey', 'color']
-		else:
-			# Restricted ICC profile.This Colour Specification box contains an 
-			# ICC profile in the PROFILE field. This profile shall specify the 
-			# transformation needed to convert the decompressed image data into 
-			# the PCSXYZ, and shall conform to either the Monochrome Input or 
-			# Three-Component Matrix-Based Input profile class, and contain all
-			# the required tags specified therein, as defined in ICC.1:1998-09. 
-			# As such, the value of the Profile Connection Space field in the 
-			# profile header in the embedded profile shall be ‘XYZ\040’ 
-			# (0x5859 5A20) indicating that the output colourspace of the 
-			# profile is in the XYZ colourspace.
-
-   			# http://www.color.org/icc-1_1998-09.pdf
+		elif meth == 2:
+			# (Restricted ICC profile). See pg 139 of the spec. Need to examine
+			# the embedded profile.
 			pass
 
 		logger.debug('qualities: ' + str(self.qualities))
@@ -207,7 +196,7 @@ class ImageInfo(object):
 			levels = int(struct.unpack(">B", jp2.read(1))[0])
 			logger.debug("levels: " + str(levels))	
 			# TODO: correct?
-			self.scale_factors = [str(pow(2, l)) for l in range(0,levels)]
+			self.scale_factors = [pow(2, l) for l in range(0,levels)]
 		jp2.close()
 
 	def to_json(self):
@@ -215,8 +204,9 @@ class ImageInfo(object):
 		Returns:
 			str
 		'''
-		# cheaper or not?
 		j = '{'
+		j += ' "@context" : "http://library.stanford.edu/iiif/image-api/1.1/context.json"',
+		# TODO, this need to be the URI. See: http://www-sul.stanford.edu/iiif/image-api/1.1/#info
 		j += ' "identifier" : "' + self.ident + '",'
 		j += ' "width" : ' + str(self.width) + ','
 		j += ' "height" : ' + str(self.height) + ','
