@@ -4,9 +4,9 @@ from PIL import Image
 from collections import OrderedDict
 from collections import deque
 from constants import IMG_API_NS, COMPLIANCE
-from json import load
 from log_config import get_logger
 from threading import Lock
+import json
 import loris_exception
 import struct
 
@@ -49,18 +49,22 @@ class ImageInfo(object):
 		'src_format', 'src_img_fp')
 
 	@staticmethod
-	def from_image_file(ident, src_img_fp, src_format):
+	def from_image_file(ident, uri, src_img_fp, src_format):
 		'''
 		Args:
+			ident (str): The URI for the image.
 			src_img_fp (str): The absolute path to the image.
 			src_format (str): The format of the image as a three-char str.
 		'''
 		# We're going to assume the image exists and the format is supported.
 		# Exceptions should be raised by the resolver if that's not the case.
 		new_inst = ImageInfo()
-		new_inst.ident = ident
+		new_inst.ident = uri
 		new_inst.src_img_fp = src_img_fp
 		new_inst.src_format = src_format
+		new_inst.tile_width = None
+		new_inst.tile_height = None
+		new_inst.scale_factors = None
 
 		logger.debug('Source Format: %s' % (new_inst.src_format,))
 		logger.debug('Source File Path: %s' % (new_inst.src_img_fp,))
@@ -91,11 +95,12 @@ class ImageInfo(object):
 		new_inst = ImageInfo()
 		try:
 			f = open(path, 'r')
-			j = load(f)
-			logger.debug("HERE")
-			new_inst.ident = j.get(u'identifier')
+			j = json.load(f)
+			new_inst.ident = j.get(u'@id')
 			new_inst.width = j.get(u'width')
 			new_inst.height = j.get(u'height')
+			# TODO: make sure these are resulting in error or Nones/nulls when 
+			# we load from the filesystem
 			new_inst.scale_factors = j.get(u'scale_factors')
 			new_inst.tile_width = j.get(u'tile_width')
 			new_inst.tile_height = j.get(u'tile_height')
@@ -202,25 +207,46 @@ class ImageInfo(object):
 	def to_json(self):
 		'''Serialize as json.
 		Returns:
-			str
+			str (json)
 		'''
-		j = '{'
-		j += ' "@context" : "http://library.stanford.edu/iiif/image-api/1.1/context.json"',
-		# TODO, this need to be the URI. See: http://www-sul.stanford.edu/iiif/image-api/1.1/#info
-		j += ' "identifier" : "' + self.ident + '",'
-		j += ' "width" : ' + str(self.width) + ','
-		j += ' "height" : ' + str(self.height) + ','
+		# could probably just make a copy of self.__dict__ and delete a few entries
+		d = {}
+		d['@context'] = 'http://library.stanford.edu/iiif/image-api/1.1/context.json'
+		d['@id'] = self.ident
+		d['width'] = self.width
+		d['height'] = self.height
 		if self.scale_factors:
-			j += ' "scale_factors" : [' + ", ".join(map(str, self.scale_factors)) + '],'
+			d['scale_factors'] = self.scale_factors
 		if self.tile_width:
-			j += ' "tile_width" : ' + str(self.tile_width) + ','
+			d['tile_width'] = self.tile_width
 		if self.tile_height:
-			j += ' "tile_height" : ' + str(self.tile_height) + ','
-		j += ' "formats" : [ "jpg", "png" ],'
-		j += ' "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
-		j += ' "profile" : "'+COMPLIANCE+'" '
-		j += '}'
-		return j
+			d['tile_height'] = self.tile_height
+		d['formats'] = [ 'jpg', 'png' ]
+		d['qualities'] = self.qualities
+		d['profile'] = COMPLIANCE
+
+		return json.dumps(d)
+
+		## TODO: change to a dict. The webapp needs to add its URI, so it will
+		# call, to_dict and then add the URI, and then use json from the standard
+		# library to serialize.
+		# j = '{'
+		# j += ' "@context" : "http://library.stanford.edu/iiif/image-api/1.1/context.json",'
+		# # TODO, this need to be the URI. See: http://www-sul.stanford.edu/iiif/image-api/1.1/#info
+		# j += ' "identifier" : "' + self.ident + '",'
+		# j += ' "width" : ' + str(self.width) + ','
+		# j += ' "height" : ' + str(self.height) + ','
+		# if self.scale_factors:
+		# 	j += ' "scale_factors" : [' + ", ".join(map(str, self.scale_factors)) + '],'
+		# if self.tile_width:
+		# 	j += ' "tile_width" : ' + str(self.tile_width) + ','
+		# if self.tile_height:
+		# 	j += ' "tile_height" : ' + str(self.tile_height) + ','
+		# j += ' "formats" : [ "jpg", "png" ],'
+		# j += ' "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
+		# j += ' "profile" : "'+COMPLIANCE+'" '
+		# j += '}'
+		# return j
 
 # TODO, provide an alternate implementation of the below using Mongo. Allow 
 # which impl to be used to be configured by class name

@@ -8,7 +8,7 @@ from ConfigParser import RawConfigParser
 from decimal import Decimal, getcontext
 from log_config import get_logger
 from os import path, makedirs
-from urllib import unquote
+from urllib import unquote, quote_plus
 from werkzeug import http
 from werkzeug.datastructures import Headers, ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
@@ -59,31 +59,41 @@ def create_app(debug=False):
 	
 	[makedirs(d) for d in dirs_to_make if not path.exists(d)]
 
-	return Loris(config)
+	return Loris(config, debug)
 
 class Loris(object):
-	def __init__(self, config={}):
+	def __init__(self, config={}, debug=False):
 		'''The webapp. Mostly routing and, within public methods branching based 
 		caching and cache behaviour is handled here.
 
 		Args:
-			Config {}: 
+			config ({}): 
 				A dictionary of dictionaries that represents the loris.conf 
 				file.
+			debug (bool):
+				True make is possible to dump the wsgi environment to the
+				browser.
 		'''
+		self.debug = debug
 		self.config = config
 		logger.info('Loris initialized with these settings:')
 		[logger.info('%s.%s=%s' % (key, sub_key, config[key][sub_key]))
 			for key in config for sub_key in config[key]]
 
-		self.url_map = Map([
+		rules = [
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info'),
-			# Rule('/<path:ident>', endpoint='info'), redirect to info
+			# Rule('/<path:ident>', endpoint='info'), redirect to info.json
 			Rule('/favicon.ico', endpoint='favicon'),
-			Rule('/', endpoint='index'),
-		])
+			Rule('/', endpoint='index')
+		]
+
+		if self.debug:
+			# this isn't working
+			rules.append(Rule('/<path:path>', endpoint='environment'))
+
+		self.url_map = Map(rules)
 
 		self.resolver = resolver.Resolver(self.config['resolver.Resolver'])
 
@@ -102,6 +112,15 @@ class Loris(object):
 
 	def __call__(self, environ, start_response):
 		return self.wsgi_app(environ, start_response)
+
+	def get_environment(self, request, path):
+		body = 'REQUEST ENVIRONMENT\n'
+		body += '===================\n'
+		for key in request.environ:
+			body += '%s\n' % (key,)
+			body += '\t%s\n' % (request.environ[key],)
+
+		return Response(body, content_type='text/plain')
 
 	def get_index(self, request):
 		www_dp = self.config['loris.Loris']['www_dp']
@@ -122,9 +141,6 @@ class Loris(object):
 		return r
 
 	def get_info(self, request, ident):
-		# this will never work if caching is disabled because it will never be
-		# stored by __get_img_info. This just allows us to quickly sidestep
-		# resolving the identifier etc if we have the info in memory.
 		r = Response()
 		info = None
 
@@ -145,9 +161,14 @@ class Loris(object):
 			logger.debug('Format: %s' % (fmt,))
 			logger.debug('File Path: %s' % (fp,))
 			logger.debug('Identifier: %s' % (ident,))
+
+			# get the uri (@id)
+			# TODO: needs to be re-encoded!
+			uri = Loris.__uri_from_request(request)
+
 			# 2. get the image's info
 			try:
-				info = self.__get_info(ident, fp, fmt)
+				info = self.__get_info(ident, uri, fp, fmt)
 			except img_info.ImageInfoException as iie:
 				r.response = iie
 				r.status_code = iie.http_status
@@ -158,6 +179,7 @@ class Loris(object):
 
 		r.mimetype = 'application/json' # TODO: right?
 		r.data = info.to_json()
+		
 		if self.config['loris.Loris']['enable_caching']:
 			r.add_etag()
 			r.make_conditional(request)
@@ -243,12 +265,12 @@ class Loris(object):
 		img_dp = path.dirname(img_fp)
 		return (img_fp, img_dp)
 
-	def __get_info(self, ident, fp, src_format):
+	def __get_info(self, ident, uri, fp, src_format):
 		'''Check the memory cache, then the file system, and then, as a last 
 		resort, construct a new ImageInfo object.
 
 		Args:
-			ident (str): The image's identifier.
+			uri (str): The image's identifier.
 			fp (str): The image's file path on the local file system.
 		Raises:
 			img_info.ImageInfoException when anything goes wrong.
@@ -272,7 +294,7 @@ class Loris(object):
 				# Else get it
 				else:
 					logger.debug('Need to get info for %s from image...' % (ident,))
-					info = img_info.ImageInfo.from_image_file(ident, fp, src_format)
+					info = img_info.ImageInfo.from_image_file(ident, uri, fp, src_format)
 					# save to the filesystem
 					if not path.exists(cache_dir): 
 						makedirs(cache_dir, 0755)
@@ -284,10 +306,34 @@ class Loris(object):
 				# Don't forget to keep in memory!
 				self.info_cache[ident] = info
 		else:
-			logger.debug('Info for %s taken from filesystem' % (ident,))	
-			info = img_info.ImageInfo.from_image_file(ident, fp, src_format)
+			logger.debug('Info for %s taken from filesystem' % (uri,))	
+			info = img_info.ImageInfo.from_image_file(ident, uri, fp, src_format)
 
 		return info
+
+	@staticmethod
+	def __uri_from_request(r):
+		'''It is assumed that this is called from an info request.
+		'''
+		# See http://www-sul.stanford.edu/iiif/image-api/1.1/#url_encoding
+		# TODO: This works on the embedded dev server but may need revisiting 
+		# once on a production server.
+		#
+		# Consider a translation table for 
+		# 	"/" / "?" / "#" / "[" / "]" / "@" / "%"
+		# if we run into trouble.
+		
+		ident = '/'.join(r.path[1:].split('/')[:-1])
+		ident_encoded = quote_plus(ident)
+		logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
+
+		scheme = 'http:/'
+		if r.script_root != u'':
+			uri = '/'.join((scheme, r.host, r.script_root, ident_encoded))
+		else:
+			uri = '/'.join((scheme, r.host, ident_encoded))
+		logger.debug('URI: %s' % (uri,))
+		return uri
 
 if __name__ == '__main__':
 	from werkzeug.serving import run_simple
