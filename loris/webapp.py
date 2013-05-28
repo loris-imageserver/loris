@@ -316,13 +316,14 @@ class Loris(object):
 		'''It is assumed that this is called from an info request.
 		'''
 		# See http://www-sul.stanford.edu/iiif/image-api/1.1/#url_encoding
+		#
 		# TODO: This works on the embedded dev server but may need revisiting 
 		# once on a production server.
 		#
-		# Consider a translation table for 
+		# Consider a translation table (or whatever) instead of #quote_plus for 
 		# 	"/" / "?" / "#" / "[" / "]" / "@" / "%"
 		# if we run into trouble.
-		
+
 		ident = '/'.join(r.path[1:].split('/')[:-1])
 		ident_encoded = quote_plus(ident)
 		logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
@@ -333,6 +334,7 @@ class Loris(object):
 		else:
 			uri = '/'.join((scheme, r.host, ident_encoded))
 		logger.debug('URI: %s' % (uri,))
+
 		return uri
 
 if __name__ == '__main__':

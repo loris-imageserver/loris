@@ -12,6 +12,8 @@ from shutil import rmtree
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
 
+URI_BASE = 'http://localhost:5000/'
+
 class LorisTest(unittest.TestCase):
 	def setUp(self):
 		unittest.TestCase.setUp(self)
@@ -22,10 +24,13 @@ class LorisTest(unittest.TestCase):
 
 		# constant info about test images.
 		test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
+		test_json_dir = path.join(path.abspath(path.dirname(__file__)), 'json')
 
 		self.test_jp2_color_fp = path.join(test_img_dir,'01','02','0001.jp2')
+		self.test_jp2_color_info_fp = path.join(test_json_dir,'01','02','0001.jp2','info.json')
 		self.test_jp2_color_fmt = 'jp2'
 		self.test_jp2_color_id = '01%2F02%2F0001.jp2'
+		self.test_jp2_color_uri =  URI_BASE + self.test_jp2_color_id
 		self.test_jp2_color_dims = (3188,3600) # w,h
 		self.test_jp2_color_tile_dims = (256,256) # w,h
 		self.test_jp2_color_levels = 5 # w,h
@@ -33,17 +38,20 @@ class LorisTest(unittest.TestCase):
 		self.test_jp2_grey_fp = path.join(test_img_dir,'01','02','grey.jp2')
 		self.test_jp2_grey_fmt = 'jp2'
 		self.test_jp2_grey_id = '01%2F02%2Fgrey.jp2'
+		self.test_jp2_grey_uri =  URI_BASE + self.test_jp2_grey_id
 		self.test_jp2_grey_dims = (2477,3200) # w,h
 		self.test_jp2_grey_tile_dims = (256,256) # w,h
 
 		self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
 		self.test_jpeg_fmt = 'jpg'
 		self.test_jpeg_id = '01%2F03%2F0001.jpg'
+		self.test_jpeg_uri =  URI_BASE + self.test_jpeg_id
 		self.test_jpeg_dims = (3600,2987) # w,h
 
 		self.test_tiff_fp = path.join(test_img_dir,'01','04','0001.tif')
 		self.test_tiff_fmt = 'tif'
 		self.test_tiff_id = '01%2F04%2F0001.tif'
+		self.test_tiff_uri =  URI_BASE + self.test_tiff_id
 		self.test_tiff_dims = (839,1080)
 
 	def tearDown(self):
