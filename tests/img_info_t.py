@@ -14,8 +14,7 @@ from the `/loris` (not `/loris/loris`) directory.
 """
 
 class B_InfoUnitTests(loris_t.LorisTest):
-	'Test that the ID resolver works'
-
+	'Tests ImageInfo constructors.'
 	def test_color_jp2_info_from_image(self):
 		fp = self.test_jp2_color_fp
 		fmt = self.test_jp2_color_fmt
@@ -86,16 +85,16 @@ class B_InfoUnitTests(loris_t.LorisTest):
 
 
 class C_InfoFunctionalTests(loris_t.LorisTest):
-	'Test that the ID resolver works'
-
+	'Simulate working with the API over HTTP.'
 	def test_jp2_request(self):
-		pass
+		resp = self.client.get('/%s/%s' % (self.test_jp2_color_id,'info.json'))
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(resp.headers['content-type'], 'application/json')
 
-class D_InfoCacheTests(loris_t.LorisTest):
-	'Test that the ID resolver works'
-
-	def test_info_cache(self):
-		pass
+# class D_InfoCacheTests(loris_t.LorisTest):
+#
+# 	def test_info_cache(self):
+# 		pass
 
 def suite():
 	import unittest
