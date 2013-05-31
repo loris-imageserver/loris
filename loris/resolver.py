@@ -11,9 +11,28 @@ import loris_exception
 
 logger = get_logger(__name__)
 
+# TODO: figure out an abstract class or interface
+
 class Resolver(object):
 	def __init__(self, config):
 		self.cache_root = config['src_img_root']
+
+	def is_resolvable(self, ident):
+		"""
+		Args:
+			ident (str):
+				The identifier for the image.
+		Returns:
+			bool
+		"""
+		ident = unquote(ident)
+		fp = join(self.cache_root, ident)
+		return exists(fp)
+
+		# the idea here is that in some scenarios it may be cheaper to check 
+		# that an id is resolvable than to actually resolve it and calculate the
+		# fp.
+
 
 	def resolve(self, ident):
 		"""
@@ -29,9 +48,10 @@ class Resolver(object):
 		ImgInfo to get what it needs from that format, i.e. ImgInfo.from_myformat().
 
 		Args:
-			The identifier for the image.
+			ident (str):
+				The identifier for the image.
 		Returns:
-			two tuple: (fp, format)
+			(str, str): (fp, format)
 		Raises:
 			ResolverException when something goes wrong...
 		"""

@@ -13,6 +13,7 @@ from werkzeug import http
 from werkzeug.datastructures import Headers, ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule
+from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response
 from werkzeug.wsgi import SharedDataMiddleware
 import constants
@@ -84,14 +85,10 @@ class Loris(object):
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info'),
-			# Rule('/<path:ident>', endpoint='info'), redirect to info.json
+			Rule('/<path:ident>', endpoint='info_redirect'), #redirect to info.json
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
 		]
-
-		if self.debug:
-			# this isn't working
-			rules.append(Rule('/<path:path>', endpoint='environment'))
 
 		self.url_map = Map(rules)
 
@@ -113,14 +110,24 @@ class Loris(object):
 	def __call__(self, environ, start_response):
 		return self.wsgi_app(environ, start_response)
 
-	def get_environment(self, request, path):
+	def get_environment(self, request, ident):
+		# For dev/debugging. Change any route to dispatch to 'environment'
 		body = 'REQUEST ENVIRONMENT\n'
 		body += '===================\n'
 		for key in request.environ:
 			body += '%s\n' % (key,)
 			body += '\t%s\n' % (request.environ[key],)
-
 		return Response(body, content_type='text/plain')
+
+	def get_info_redirect(self, request, ident):
+		if self.resolver.is_resolvable(ident):
+			to_location = '/%s/info.json' % (ident,)
+			logger.debug('Redirected %s to  %s' % (ident, to_location))
+			return redirect(to_location, code=303)
+		else:
+			# TODO: does this match other bad requests? If so, try to 
+			# tweak routing or else change the message.
+			return Loris.__not_resolveable_response(ident)
 
 	def get_index(self, request):
 		www_dp = self.config['loris.Loris']['www_dp']
@@ -182,6 +189,7 @@ class Loris(object):
 		
 		if self.config['loris.Loris']['enable_caching']:
 			r.add_etag()
+			# TODO: make sure a Date is included.
 			r.make_conditional(request)
 		return r
 
@@ -267,7 +275,7 @@ class Loris(object):
 
 	def __get_info(self, ident, uri, fp, src_format):
 		'''Check the memory cache, then the file system, and then, as a last 
-		resort, construct a new ImageInfo object.
+		resort, construct a new ImageInfo object from the image.
 
 		Args:
 			uri (str): The image's identifier.
@@ -333,9 +341,15 @@ class Loris(object):
 			uri = '/'.join((scheme, r.host, r.script_root, ident_encoded))
 		else:
 			uri = '/'.join((scheme, r.host, ident_encoded))
-		logger.debug('URI: %s' % (uri,))
 
+		logger.debug('uri_from_request: %s' % (uri,))
 		return uri
+
+	@staticmethod
+	def __not_resolveable_response(ident):
+		ident = quote_plus(ident)
+		msg = '404: Identifier "%s" does not resolve to an image.' % (ident,)
+		return Response(msg, status=404, mimetype='text/plain')
 
 if __name__ == '__main__':
 	from werkzeug.serving import run_simple

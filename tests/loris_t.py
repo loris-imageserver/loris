@@ -7,14 +7,16 @@ Superclass for all other unit tests
 
 import unittest
 from loris.webapp import create_app
-from os import path, listdir
+from loris.log_config import get_logger
+from os import path, listdir, unlink
 from shutil import rmtree
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
 
 
-class LorisTest(unittest.TestCase):
+logger = get_logger(__name__)
 
+class LorisTest(unittest.TestCase):
 
 	def setUp(self):
 		unittest.TestCase.setUp(self)
@@ -25,6 +27,7 @@ class LorisTest(unittest.TestCase):
 		# see http://werkzeug.pocoo.org/docs/test/
 		self.app = create_app(debug=True)
 		self.client = Client(self.app, BaseResponse)
+		
 
 		# constant info about test images.
 		test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
@@ -62,9 +65,18 @@ class LorisTest(unittest.TestCase):
 		unittest.TestCase.tearDown(self)
 		# empty the cache
 		cache_dp = self.app.config['loris.Loris']['cache_dp']
-		for d in listdir(cache_dp):
-			rmtree(path.join(cache_dp, d))
-		rmtree(cache_dp)
+		tmp_dp = self.app.config['loris.Loris']['tmp_dp']
+		for dp in (cache_dp, tmp_dp):
+			for node in listdir(dp):
+				p = path.join(dp, node)
+				if path.isdir(p):
+					rmtree(p)
+					logger.debug('Removed %s' % (p,))
+				else: # TODO: make sure this covers symlinks
+					unlink(p)
+					logger.debug('Removed %s' % (p,))
+			rmtree(dp)
+			logger.debug('Removed %s' % (dp,))
 
 	def get_jpeg_dimensions(self, path):
 		"""Get the dimensions of a JPEG
