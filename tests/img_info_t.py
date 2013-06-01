@@ -106,7 +106,6 @@ class C_InfoFunctionalTests(loris_t.LorisTest):
 		self.assertEqual(info.scale_factors, [1,2,4,8,16])
 
 
-
 	# def test_jp2_info_json_request(self):
 	# 	'test conneg'
 	# 	resp = self.client.get('/%s/%s' % (self.test_jp2_color_id,'info'))

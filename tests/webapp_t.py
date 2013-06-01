@@ -21,8 +21,13 @@ class E_WebappFunctionalTests(loris_t.LorisTest):
 		resp = self.client.get('/%s' % (self.test_jp2_color_id,))
 		self.assertEqual(resp.status_code, 303)
 
+	def test_bare_identifier_request_404(self):
+		resp = self.client.get('/foo%2Fbar')
+		self.assertEqual(resp.status_code, 404)
+		self.assertEqual(resp.headers['content-type'], 'text/plain')
+
 	def test_bare_identifier_request_gets_info(self):
-		# This is nearly a copy of 
+		# Follow the redirect. After that this is nearly a copy of 
 		# img_info_t.C_InfoFunctionalTests#test_jp2_info_dot_json_request
 		to_get = '/%s' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=True)

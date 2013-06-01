@@ -121,11 +121,12 @@ class Loris(object):
 
 	def get_info_redirect(self, request, ident):
 		if self.resolver.is_resolvable(ident):
-			to_location = '/%s/info.json' % (ident,)
-			logger.debug('Redirected %s to  %s' % (ident, to_location))
+			ident = quote_plus(ident)
+			to_location = '/%s/info.json' % (ident,) # leading / or not?
+			logger.debug('Redirected %s to %s' % (ident, to_location))
 			return redirect(to_location, code=303)
 		else:
-			# TODO: does this match other bad requests? If so, try to 
+			# TODO: does this match other bad requests as well? If so, try to 
 			# tweak routing or else change the message.
 			return Loris.__not_resolveable_response(ident)
 
@@ -349,7 +350,7 @@ class Loris(object):
 	def __not_resolveable_response(ident):
 		ident = quote_plus(ident)
 		msg = '404: Identifier "%s" does not resolve to an image.' % (ident,)
-		return Response(msg, status=404, mimetype='text/plain')
+		return Response(msg, status=404, content_type='text/plain')
 
 if __name__ == '__main__':
 	from werkzeug.serving import run_simple
