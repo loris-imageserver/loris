@@ -108,6 +108,7 @@ class ImageInfo(object):
 			new_inst.qualities = j.get(u'qualities')
 		except Exception as e: # TODO: be more specific...
 			iie = ImageInfoException(500, str(e))
+			raise iie
 		finally:
 			f.close()
 		return new_inst

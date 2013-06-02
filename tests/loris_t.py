@@ -21,7 +21,7 @@ class LorisTest(unittest.TestCase):
 	def setUp(self):
 		unittest.TestCase.setUp(self)
 
-		self.URI_BASE = 'http://localhost:5000'
+		self.URI_BASE = 'http://localhost'
 		
 		# create an instance of the app here that we can use in tests
 		# see http://werkzeug.pocoo.org/docs/test/

@@ -2,9 +2,13 @@
 #-*- coding: utf-8 -*-
 
 from loris import img_info
+from loris import webapp
 from os import path
+from werkzeug.test import EnvironBuilder
+from werkzeug.wrappers import Request
 import json
 import loris_t
+
 
 """
 Webapp tests. To run this test on its own, do:
@@ -15,6 +19,21 @@ from the `/loris` (not `/loris/loris`) directory.
 """
 
 class E_WebappFunctionalTests(loris_t.LorisTest):
+	def test___uri_from_request(self):
+		# We're testing a private method here, but this is complex
+		# enough that it's warranted.
+		info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+
+		# See http://werkzeug.pocoo.org/docs/test/#environment-building
+		builder = EnvironBuilder(path=info_path)
+		env = builder.get_environ()
+		req = Request(env)
+
+		uri = webapp.Loris._Loris__uri_from_request(req)
+		expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
+		self.assertEqual(uri, expected)
+
+class F_WebappFunctionalTests(loris_t.LorisTest):
 	'Simulate working with the webapp over HTTP.'
 
 	def test_bare_identifier_request_303(self):
@@ -45,3 +64,11 @@ class E_WebappFunctionalTests(loris_t.LorisTest):
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16])
+
+def suite():
+	import unittest
+	test_suites = []
+	test_suites.append(unittest.makeSuite(E_WebappFunctionalTests, 'test'))
+	test_suites.append(unittest.makeSuite(F_WebappFunctionalTests, 'test'))
+	test_suite = unittest.TestSuite(test_suites)
+	return test_suite

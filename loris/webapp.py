@@ -337,11 +337,10 @@ class Loris(object):
 		ident_encoded = quote_plus(ident)
 		logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
 
-		scheme = 'http:/'
 		if r.script_root != u'':
-			uri = '/'.join((scheme, r.host, r.script_root, ident_encoded))
+			uri = r.host_url + '/'.join((r.script_root, ident_encoded))
 		else:
-			uri = '/'.join((scheme, r.host, ident_encoded))
+			uri = r.host_url + ident_encoded
 
 		logger.debug('uri_from_request: %s' % (uri,))
 		return uri

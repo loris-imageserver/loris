@@ -30,6 +30,7 @@ class B_InfoUnitTests(loris_t.LorisTest):
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16])
+		self.assertEqual(info.ident, uri)
 
 	def test_grey_jp2_info_from_image(self):
 		fp = self.test_jp2_grey_fp
@@ -45,6 +46,7 @@ class B_InfoUnitTests(loris_t.LorisTest):
 		self.assertEqual(info.tile_width, self.test_jp2_grey_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_grey_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16,32])
+		self.assertEqual(info.ident, uri)
 
 	def test_jpeg_info_from_image(self):
 		fp = self.test_jpeg_fp
@@ -58,6 +60,7 @@ class B_InfoUnitTests(loris_t.LorisTest):
 		self.assertEqual(info.height, self.test_jpeg_dims[1])
 		self.assertEqual(info.qualities, ['native','color','grey','bitonal'])
 		self.assertEqual(info.scale_factors, None)
+		self.assertEqual(info.ident, uri)
 
 	def test_tiff_info_from_image(self):
 		fp = self.test_tiff_fp
@@ -71,6 +74,7 @@ class B_InfoUnitTests(loris_t.LorisTest):
 		self.assertEqual(info.height, self.test_tiff_dims[1])
 		self.assertEqual(info.qualities, ['native','color','grey','bitonal'])
 		self.assertEqual(info.scale_factors, None)
+		self.assertEqual(info.ident, uri)
 
 	def test_info_from_json(self):
 		json_fp = self.test_jp2_color_info_fp
@@ -83,6 +87,7 @@ class B_InfoUnitTests(loris_t.LorisTest):
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16])
+		self.assertEqual(info.ident, self.test_jp2_color_uri)
 
 
 class C_InfoFunctionalTests(loris_t.LorisTest):
@@ -104,16 +109,15 @@ class C_InfoFunctionalTests(loris_t.LorisTest):
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16])
-
+		self.assertEqual(info.ident, self.test_jp2_color_uri)
 
 	# def test_jp2_info_json_request(self):
 	# 	'test conneg'
 	# 	resp = self.client.get('/%s/%s' % (self.test_jp2_color_id,'info'))
 
 
-
-
-# class D_InfoCacheTests(loris_t.LorisTest):
+class D_InfoCacheTests(loris_t.LorisTest):
+	pass
 #
 # 	def test_info_cache(self):
 # 		pass
