@@ -8,7 +8,7 @@ class LorisException(Exception):
 		supplied_value (str): the parameter that caused the problem.
 		msg (str): any additional info about what went wrong.
 	"""
-	def __init__(self, http_status, message, supplied_value=''):
+	def __init__(self, http_status, message):
 		"""
 		Kwargs:
 			http_status (int): the HTTP status the should be sent with the 
@@ -16,6 +16,6 @@ class LorisException(Exception):
 			msg (str): any additional info about what went wrong.
 			supplied_value (str): the parameter that caused the problem.
 		"""
-		super(LorisException, self).__init__(message)
+		super(LorisException, self).__init__('(%d) %s' % (http_status, message))
 		self.http_status = http_status
-		self.supplied_value = supplied_value
+		

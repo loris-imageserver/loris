@@ -2,28 +2,48 @@
 #-*- coding: utf-8 -*-
 """
 webapp.py
-==========
+=========
+Implements IIIF 1.1 <http://www-sul.stanford.edu/iiif/image-api> level 1 and 
+most of level 2 (all but return of JPEG 2000 derivatives).
+
+	Copyright (C) 2013 Jon Stroop
+
+	This program is free software: you can redistribute it and/or modify it 
+	under the terms of the GNU General Public License as published by the Free 
+	Software Foundation, either version 3 of the License, or (at your option) 
+	any later version.
+
+	This program is distributed in the hope that it will be useful, but WITHOUT 
+	ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
+	FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for 
+	more details.
+
+	You should have received a copy of the GNU General Public License along 
+	with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from ConfigParser import RawConfigParser
 from decimal import Decimal, getcontext
 from log_config import get_logger
 from os import path, makedirs
+from parameters import BadRegionRequestException
+from parameters import BadRegionSyntaxException
+from parameters import RegionParameter
 from urllib import unquote, quote_plus
 from werkzeug import http
-from werkzeug.datastructures import Headers, ResponseCacheControl
+from werkzeug.datastructures import ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response
-from werkzeug.wsgi import SharedDataMiddleware
 import constants
 import img_info
 import loris_exception
 import resolver
 
-# Loris's etc MUST either be a sibling to the loris directory or at /etc/loris
+# Loris's etc dir MUST either be a sibling to the /loris/loris directory or at 
+# the below:
 ETC_DP = '/etc/loris'
-# everything else we can figure out from there.
+# We can figure out everything else from there.
 
 logger = get_logger(__name__)
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -51,8 +71,7 @@ def create_app(debug=False):
 			for section in config_parser.sections()]
 		config['loris.Loris']['enable_caching'] = bool(int(config['loris.Loris']['enable_caching']))
 
-	# make 
-	dirs_to_make = [ ]
+	dirs_to_make = []
 	dirs_to_make.append(config['loris.Loris']['tmp_dp'])
 
 	if config['loris.Loris']['enable_caching']:
@@ -85,7 +104,7 @@ class Loris(object):
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info'),
-			Rule('/<path:ident>', endpoint='info_redirect'), #redirect to info.json
+			Rule('/<path:ident>', endpoint='info_redirect'),
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
 		]
@@ -171,7 +190,6 @@ class Loris(object):
 			logger.debug('Identifier: %s' % (ident,))
 
 			# get the uri (@id)
-			# TODO: needs to be re-encoded!
 			uri = Loris.__uri_from_request(request)
 
 			# 2. get the image's info
@@ -243,20 +261,33 @@ class Loris(object):
 
 			# 2. get the image's info
 			try:
-				info = self.__get_img_info(ident, fp, fmt)
+				uri = Loris.__uri_from_request(request)
+				info = self.__get_info(ident, uri, fp, fmt)
 			except img_info.ImageInfoException as iie:
 				r.response = iie
 				r.status_code = iie.http_status
 				r.mimetype = 'text/plain'
-				return r				
+				return r
+
 			# 3. instantiate these:
-			# region_param = RegionParameter(region)
+			try:
+				region_param = RegionParameter(region, info)
+			except (BadRegionSyntaxException,BadRegionRequestException) as bre:
+				r.response = bre
+				r.status_code = bre.http_status
+				r.mimetype = 'text/plain'
+				return r
+
 			# size_param = SizeParameter(size)
 			# rotation_param = RotationParameter(rotation)
+
+			# 4. From each param object, use .cannonical_uri_value to build the 
+			# the cannonical URI. Make redirecting an option. Otherwise add 
+			# rel="cannonical" Link header
 			# 
-			# 4. If caching, use the above to build the cannonical path for the 
+			# 5. If caching, use the above to build the cannonical path for the 
 			# 		cache (all pixel pased)
-			# 5. Make an image, 
+			# 6. Make an image, 
 			#	a. if caching, save it to cache, else to tmp
 			#	b  if caching, make a symlink from the original request path 
 			#		(with pcts) to the pixel-based path
@@ -322,8 +353,6 @@ class Loris(object):
 
 	@staticmethod
 	def __uri_from_request(r):
-		'''It is assumed that this is called from an info request.
-		'''
 		# See http://www-sul.stanford.edu/iiif/image-api/1.1/#url_encoding
 		#
 		# TODO: This works on the embedded dev server but may need revisiting 
@@ -332,8 +361,8 @@ class Loris(object):
 		# Consider a translation table (or whatever) instead of #quote_plus for 
 		# 	"/" / "?" / "#" / "[" / "]" / "@" / "%"
 		# if we run into trouble.
-
-		ident = '/'.join(r.path[1:].split('/')[:-1])
+		from_end = -1 if r.path.endswith('info') or r.path.endswith('info.json') else -4
+		ident = '/'.join(r.path[1:].split('/')[:from_end])
 		ident_encoded = quote_plus(ident)
 		logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
 

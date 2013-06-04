@@ -18,14 +18,25 @@ $ python -m unittest -v tests.webapp_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class E_WebappFunctionalTests(loris_t.LorisTest):
-	def test___uri_from_request(self):
+class E_WebappUnitTests(loris_t.LorisTest):
+	def test_uri_from_info_request(self):
 		# We're testing a private method here, but this is complex
 		# enough that it's warranted.
 		info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
 
 		# See http://werkzeug.pocoo.org/docs/test/#environment-building
 		builder = EnvironBuilder(path=info_path)
+		env = builder.get_environ()
+		req = Request(env)
+
+		uri = webapp.Loris._Loris__uri_from_request(req)
+		expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
+		self.assertEqual(uri, expected)
+
+	def test_uri_from_img_request(self):
+		img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+
+		builder = EnvironBuilder(path=img_path)
 		env = builder.get_environ()
 		req = Request(env)
 
@@ -68,7 +79,7 @@ class F_WebappFunctionalTests(loris_t.LorisTest):
 def suite():
 	import unittest
 	test_suites = []
-	test_suites.append(unittest.makeSuite(E_WebappFunctionalTests, 'test'))
+	test_suites.append(unittest.makeSuite(E_WebappUnitTests, 'test'))
 	test_suites.append(unittest.makeSuite(F_WebappFunctionalTests, 'test'))
 	test_suite = unittest.TestSuite(test_suites)
 	return test_suite
