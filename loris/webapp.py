@@ -25,9 +25,14 @@ from ConfigParser import RawConfigParser
 from decimal import Decimal, getcontext
 from log_config import get_logger
 from os import path, makedirs
-from parameters import BadRegionRequestException
-from parameters import BadRegionSyntaxException
 from parameters import RegionParameter
+from parameters import RegionRequestException
+from parameters import RegionSyntaxException
+from parameters import RotationParameter
+from parameters import RotationSyntaxException
+from parameters import SizeParameter
+from parameters import SizeRequestException
+from parameters import SizeSyntaxException
 from urllib import unquote, quote_plus
 from werkzeug import http
 from werkzeug.datastructures import ResponseCacheControl
@@ -248,51 +253,41 @@ class Loris(object):
 			r.content_type = constants.FORMATS_BY_EXTENSION[cache_path[0].split('.')[-1]]
 			r.add_etag()
 			r.make_conditional(request)
-
 		else:
-			# 1. resolve the identifier
 			try:
+				# 1. resolve the identifier
 				fp, fmt = self.resolver.resolve(ident)
-			except resolver.ResolverException as re:
-				r.response = re
-				r.status_code = re.http_status
-				r.mimetype = 'text/plain'
-				return r
-
-			# 2. get the image's info
-			try:
+				# 2. get the image's info
 				uri = Loris.__uri_from_request(request)
 				info = self.__get_info(ident, uri, fp, fmt)
-			except img_info.ImageInfoException as iie:
-				r.response = iie
-				r.status_code = iie.http_status
-				r.mimetype = 'text/plain'
-				return r
-
-			# 3. instantiate these:
-			try:
+				# 3. instantiate Parameter objects based on URI segements:
 				region_param = RegionParameter(region, info)
-			except (BadRegionSyntaxException,BadRegionRequestException) as bre:
-				r.response = bre
-				r.status_code = bre.http_status
+				pref_dim = config['parameters.SizeParameter']['preferred_dimension']
+				size_param = SizeParameter(size, region_param, pref_dim)
+				rotation_param = RotationParameter(rotation)
+				# 4. From each param object, use .cannonical_uri_value to build 
+				# the the cannonical URI. Make redirecting an option. Otherwise 
+				# add rel="cannonical" Link header
+				# 
+				# 5. If caching, use the above to build the cannonical path for 
+				# the cache (all pixel pased)
+				#
+				# 6. Make an image, 
+				#	a. if caching, save it to cache, else to tmp
+				#	b  if caching, make a symlink from the original request path 
+				#		(with pcts) to the cannonical path
+				# 	c. return the image as a file object
+				# 	d. if not caching, clean up
+			except (resolver.ResolverException, img_info.ImageInfoException,
+				RegionSyntaxException,RegionRequestException,
+				SizeSyntaxException,SizeRequestException,
+				RotationSyntaxException) as e:
+				r.response = e
+				r.status_code = e.http_status
 				r.mimetype = 'text/plain'
 				return r
 
-			# size_param = SizeParameter(size)
-			# rotation_param = RotationParameter(rotation)
 
-			# 4. From each param object, use .cannonical_uri_value to build the 
-			# the cannonical URI. Make redirecting an option. Otherwise add 
-			# rel="cannonical" Link header
-			# 
-			# 5. If caching, use the above to build the cannonical path for the 
-			# 		cache (all pixel pased)
-			# 6. Make an image, 
-			#	a. if caching, save it to cache, else to tmp
-			#	b  if caching, make a symlink from the original request path 
-			#		(with pcts) to the pixel-based path
-			# 	c. return the image as a file object
-			# 	d. if not caching, clean up
 
 		return r
 

@@ -20,8 +20,6 @@ from the `/loris` (not `/loris/loris`) directory.
 
 class E_WebappUnitTests(loris_t.LorisTest):
 	def test_uri_from_info_request(self):
-		# We're testing a private method here, but this is complex
-		# enough that it's warranted.
 		info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
 
 		# See http://werkzeug.pocoo.org/docs/test/#environment-building

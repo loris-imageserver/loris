@@ -11,9 +11,13 @@ libraries without any further need to process the IIIF syntax.
 from decimal import Decimal
 from log_config import get_logger
 from loris_exception import LorisException
-import abc
 
 logger = get_logger(__name__)
+
+FULL_MODE = 'full'
+PCT_MODE = 'pct'
+PIXEL_MODE = 'pixel'
+DECIMAL_ONE = Decimal(1.0)
 
 class RegionParameter(object):
 	'''Internal representation of the region slice of an IIIF image URI.
@@ -35,25 +39,10 @@ class RegionParameter(object):
 		pixel_h (int)
 		decimal_h (Decimal)
 	'''
-	__slots__ = (
-		'uri_value',
-		'cannonical_uri_value',
-		'pixel_x', 
-		'decimal_x', 
-		'pixel_y', 
-		'decimal_y', 
-		'pixel_w', 
-		'decimal_w', 
-		'pixel_h', 
-		'decimal_h', 
-		'mode', 
-		'img_info'
-	)
+	__slots__ = ('uri_value','cannonical_uri_value','pixel_x','decimal_x', 
+		'pixel_y','decimal_y','pixel_w','decimal_w','pixel_h','decimal_h', 
+		'mode','img_info')
 
-	FULL_MODE = 'full'
-	PCT_MODE = 'pct'
-	PIXEL_MODE = 'pixel'
-	DECIMAL_ONE = Decimal(1.0)
 
 	def __str__(self):
 		return self.uri_value
@@ -66,24 +55,34 @@ class RegionParameter(object):
 			img_info (ImgInfo)
 
 		Raises:
-			BadRegionSyntaxException
-			BadRegionRequestException
+			RegionSyntaxException
+			RegionRequestException
 		'''
 		self.uri_value = uri_value
 		self.img_info = img_info
 		try:
 			self.mode = RegionParameter.__mode_from_region_segment(self.uri_value)
 			logger.debug('Region mode is "%s" (from "%s")' % (self.mode,uri_value))
-		except BadRegionSyntaxException:
+		except RegionSyntaxException:
 			raise
 
-		if self.mode != RegionParameter.FULL_MODE:
+		if self.mode == FULL_MODE:
+			self.cannonical_uri_value = FULL_MODE
+			self.pixel_x = 0
+			self.decimal_x = 0
+			self.pixel_y = 0
+			self.decimal_y = 0
+			self.pixel_w = img_info.width
+			self.decimal_w = DECIMAL_ONE
+			self.pixel_h = img_info.height
+			self.decimal_h = DECIMAL_ONE
+		else:
 			try:
-				if self.mode == RegionParameter.PCT_MODE:
+				if self.mode == PCT_MODE:
 					self.__populate_slots_from_pct()
-				else: # self.mode == RegionParameter.PIXEL_MODE: 
+				else: # self.mode == PIXEL_MODE: 
 					self.__populate_slots_from_pixels()
-			except (BadRegionSyntaxException, BadRegionRequestException):
+			except (RegionSyntaxException, RegionRequestException):
 				raise
 
 			logger.debug('decimal_x: %s' % (str(self.decimal_x),))
@@ -97,13 +96,13 @@ class RegionParameter(object):
 
 			# Adjust OOB requests that are allowed
 			# TODO: consider raising an exception that we can use to redirect
-			if (self.decimal_x + self.decimal_w) > RegionParameter.DECIMAL_ONE:
-				self.decimal_w = RegionParameter.DECIMAL_ONE - self.decimal_x
+			if (self.decimal_x + self.decimal_w) > DECIMAL_ONE:
+				self.decimal_w = DECIMAL_ONE - self.decimal_x
 				self.pixel_w = img_info.width - self.pixel_x
 				logger.info('decimal_w adjusted to: %s' % (str(self.decimal_w)),)
 				logger.info('pixel_w adjusted to: %d' % (self.pixel_w,))
-			if (self.decimal_y + self.decimal_h) > RegionParameter.DECIMAL_ONE: 
-				self.decimal_h = RegionParameter.DECIMAL_ONE - self.decimal_y
+			if (self.decimal_y + self.decimal_h) > DECIMAL_ONE: 
+				self.decimal_h = DECIMAL_ONE - self.decimal_y
 				self.pixel_h = img_info.height - self.pixel_y
 				logger.info('decimal_h adjusted to: %s' % (str(self.decimal_h)),)
 				logger.debug('pixel_h adjusted to: %s' % (str(self.pixel_h)),)
@@ -111,40 +110,41 @@ class RegionParameter(object):
 			# Catch OOB errors:
 			if any(axis < 0 for axis in (self.pixel_x, self.pixel_y)):
 				msg = 'x and y region parameters must be 0 or greater (%s)' % (self.uri_value,)
-				raise BadRegionRequestException(http_status=400, message=msg)
-			if self.decimal_x >= RegionParameter.DECIMAL_ONE:
+				raise RegionRequestException(http_status=400, message=msg)
+			if self.decimal_x >= DECIMAL_ONE:
 				msg = 'Region x parameter is greater than the width of the image.\n'
 				msg +='Image width is %d' % (img_info.width,)
-				raise BadRegionRequestException(http_status=400, message=msg)
-			if self.decimal_x >= RegionParameter.DECIMAL_ONE:
+				raise RegionRequestException(http_status=400, message=msg)
+			if self.decimal_x >= DECIMAL_ONE:
 				msg = 'Region y parameter is greater than the height of the image.\n'
 				msg +='Image height is %d' % (img_info.height,)
-				raise BadRegionRequestException(http_status=400, message=msg)
+				raise RegionRequestException(http_status=400, message=msg)
 
 			# set cannonical_uri_value to the equivalent pixel-based syntax after
 			# all adjustments have been made.
 			px = (self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h)
 			self.cannonical_uri_value = ','.join(map(str, px))
-			logger.debug('Cannonical uri_value %s' % (self.cannonical_uri_value,))
+			logger.debug('Cannonical uri_value for region %s' % (self.cannonical_uri_value,))
+			
 
 	def __populate_slots_from_pct(self):
 		'''
 		Raises:
-			BadRegionSyntaxException
-			BadRegionRequestException
+			RegionSyntaxException
+			RegionRequestException
 		'''
 		# we convert these to pixels and update uri_value
 		dimensions = map(float, self.uri_value.split(':')[1].split(',')) 
 
 		if len(dimensions) != 4:
 			msg = 'Exactly (4) coordinates must be supplied'
-			raise BadRegionSyntaxException(http_status=400, message=msg)
+			raise RegionSyntaxException(http_status=400, message=msg)
 		if any(n > 100.0 for n in dimensions):
 			msg = 'Region percentages must be less than or equal to 100.'
-			raise BadRegionRequestException(http_status=400, message=msg)
+			raise RegionRequestException(http_status=400, message=msg)
 		if any((n <= 0) for n in dimensions[2:]):
 			msg = 'Width and Height Percentages must be greater than 0.'
-			raise BadRegionRequestException(http_status=400, message=msg)
+			raise RegionRequestException(http_status=400, message=msg)
 
 		# decimals
 		self.decimal_x, self.decimal_y,	self.decimal_w,	\
@@ -159,17 +159,17 @@ class RegionParameter(object):
 	def __populate_slots_from_pixels(self):
 		'''
 		Raises:
-			BadRegionRequestException
-			BadRegionSyntaxException
+			RegionRequestException
+			RegionSyntaxException
 		'''
 		dimensions = map(int, self.uri_value.split(','))
 
 		if any(n <= 0 for n in dimensions[2:]):
 			msg = 'Width and height must be greater than 0'
-			raise BadRegionRequestException(http_status=400, message=msg)
+			raise RegionRequestException(http_status=400, message=msg)
 		if len(dimensions) != 4:
 			msg = 'Exactly (4) coordinates must be supplied'
-			raise BadRegionSyntaxException(http_status=400, message=msg)
+			raise RegionSyntaxException(http_status=400, message=msg)
 		
 		# pixels
 		self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h = dimensions
@@ -188,27 +188,27 @@ class RegionParameter(object):
 		Args:
 			region_segment (str)
 		Returns:
-			RegionParameter.PCT_MODE, RegionParameter.FULL_MODE, or
-			RegionParameter.PIXEL_MODE
+			PCT_MODE, FULL_MODE, or
+			PIXEL_MODE
 		Raises:
-			BadRegionSyntaxException if this can't be determined.
+			RegionSyntaxException if this can't be determined.
 		'''
 		if region_segment.split(':')[0] == 'pct':
-			return RegionParameter.PCT_MODE
+			return PCT_MODE
 		elif region_segment == 'full':
-			return RegionParameter.FULL_MODE
+			return FULL_MODE
 		elif all([n.isdigit() for n in region_segment.split(',')]):
-			return RegionParameter.PIXEL_MODE
+			return PIXEL_MODE
 		else:
 			msg = 'Region syntax "%s" is not valid' % (region_segment,)
-			raise BadRegionSyntaxException(http_status=400, message=msg)
+			raise RegionSyntaxException(http_status=400, message=msg)
 
 	@staticmethod
 	def __pct_to_decimal(n):
 		return Decimal(n) / Decimal(100.0)
 
-class BadRegionSyntaxException(LorisException): pass
-class BadRegionRequestException(LorisException): pass
+class RegionSyntaxException(LorisException): pass
+class RegionRequestException(LorisException): pass
 	# # TODO: move
 	# def to_kdu_arg(self, img_info):
 	# 	cmd = ''
@@ -226,75 +226,159 @@ class BadRegionRequestException(LorisException): pass
 	# 	return cmd
 
 
-# class SizeParameter(object):
-# 	'''Internal representation of the size slice of an IIIF image URI.
+class SizeParameter(object):
+	'''Internal representation of the size slice of an IIIF image URI.
 
-# 	Slots:
-# 		uri_value (str): The region slice of the URI.
-# 		mode (str): One of 'full', 'pct', or 'pixel'
-#		cannonical_uri_value (str)
-# 		force_aspect (bool): True if the aspect ratio of the image should not
-# 			be preserved.
-# 		w (int): The width.
-# 		h (int): The height.
-# 	'''
-# 	__slots__ = ('uri_value', 'cannonical_uri_value', 'mode', 'force_aspect', 'pct', 'w', 'h')
+	Slots:
+		uri_value (str): 
+			The region slice of the URI.
+		mode (str): 
+			One of 'full', 'pct', or 'pixel'
+		cannonical_uri_value (str):
+			The uri_value after it has been normalized to the 'w,h' form.
+		force_aspect (bool): 
+			True if the aspect ratio of the image should not be preserved.
+		w (int): 
+			The width.
+		h (int): 
+			The height.
+	'''
+	__slots__ = ('uri_value','cannonical_uri_value','mode','force_aspect','w','h')
 
-# 	def __init__(self, uri_value, img_info):
-# 		'''Parse the URI slice into an object.
-# 		Args:
-# 			uri_value: The size slice of an IIIF image URI.
+	def __init__(self, uri_value, region_parameter, preferred_dimension='w'):
+		'''Parse the URI slice into an object.
 
-# 		Raises:
-# 			BadSizeSyntaxException if we have trouble parsing the request.
-# 		'''
-# 		self.uri_value = uri_value
+		Args:
+			uri_value (str): 
+				The size slice of an IIIF image URI.
+			region_parameter (RegionParameter): 
+				The region parameter of the request.
 
-# 		pct_or_full = uri_value.split(':')[0]
-# 		self.mode = pct_or_full if pct_or_full in ('pct', 'full') else 'pixel'
-# 		self.force_aspect = None
-#		self.cannonical_uri_value = None
-# 		self.pct = None
-# 		self.w, self.h = [None, None]
-# 		try:
-# 			if self.mode == 'pct':
-# 				self.pct = float(self.uri_value.split(':')[1])
-# 				if self.pct <= 0:
-# 					msg = 'Percentage supplied is less than 0. '
-# 					raise BadSizeSyntaxException(400, self.uri_value, msg)
+		Raises:
+			SizeSyntaxException
+			SizeRequestException
+		'''
+		self.uri_value = uri_value
+		self.mode = SizeParameter.__mode_from_size_segment(self.uri_value)
+		logger.debug('Size mode is "%s" (from "%s")' % (self.mode,uri_value))
 
-# 			elif self.mode == 'pixel':
-# 				if self.uri_value.endswith(','):
-# 					self.w = int(self.uri_value[:-1])
-# 				elif self.uri_value.startswith(','):
-# 					self.h = int(self.uri_value[1:])
-# 				elif self.uri_value.startswith('!'):
-# 					self.force_aspect = False
-# 					self.w, self.h = map(int, self.uri_value[1:].split(','))
-# 				else:
-# 					self.force_aspect = True
-# 					self.w, self.h = map(int, self.uri_value.split(','))
-# 			else:
-# 				if self.mode != 'full':
-# 					msg = 'Could not parse Size parameter.'
-# 					raise BadSizeSyntaxException(400, self.uri_value, msg)
-
-# 		except Exception, e:
-# 			msg = 'Bad size syntax. ' + e.message
-# 			raise BadSizeSyntaxException(400, self.uri_value, msg)
+		if self.mode == FULL_MODE:
+			self.force_aspect = False
+			self.w = region_parameter.pixel_w
+			self.h = region_parameter.pixel_h
+			self.cannonical_uri_value = FULL_MODE
+		else:
+			try:
+				if self.mode == PCT_MODE:
+					self.__populate_slots_from_pct(region_parameter)
+				else: # self.mode == PIXEL_MODE: 
+					self.__populate_slots_from_pixels(region_parameter, preferred_dimension)
+			except (RegionSyntaxException, RegionRequestException):
+				raise
 		
-# 		if any((dim < 1 and dim != None) for dim in (self.w, self.h)):
-# 			msg = 'Width and height must both be positive numbers'
-# 			raise BadSizeSyntaxException(400, self.uri_value, msg)
+			self.cannonical_uri_value = '%d,%d' % (self.w,self.h)	
+			logger.debug('Cannonical uri_value for size: %s' % (self.cannonical_uri_value,))
 
-# 	def __str__(self):
-# 		return self.uri_value
-		
-# 	def __repr__(self):
-# 		return self.uri_value
+			if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
+				msg = 'Width and height must both be positive numbers'
+				raise SizeRequestException(http_status=400, message=msg)
+
+	def __populate_slots_from_pct(self,region_parameter):
+	 	self.force_aspect = False
+	 	pct_decimal = Decimal(self.uri_value.split(':')[1]) * Decimal(0.01)
+		if pct_decimal <= 0:
+			msg = 'Percentage supplied is less than 0 (%s).' % (self.uri_value,)
+			raise SizeRequestException(http_status=400, message=msg)
+
+	 	self.w = int(region_parameter.pixel_w * pct_decimal)
+	 	self.h = int(region_parameter.pixel_h * pct_decimal)
+
+	def __populate_slots_from_pixels(self,region_parameter,preferred_dimension):
+	
+		if self.uri_value.endswith(','):
+			self.force_aspect = False
+			self.w = int(self.uri_value[:-1])
+			reduce_by = Decimal(self.w) / region_parameter.pixel_w
+			self.h = region_parameter.pixel_h * reduce_by
+		elif self.uri_value.startswith(','):
+			self.force_aspect = False
+			self.h = int(self.uri_value[1:])
+			reduce_by = Decimal(self.h) / region_parameter.pixel_h
+			self.w = region_parameter.pixel_w * reduce_by
+		elif self.uri_value[0] == '!':
+			self.force_aspect = False
+			request_dims = map(int, self.uri_value[1:].split(','))
+
+			# get the dimensions of the region
+			region_dims = (region_parameter.pixel_w, region_parameter.pixel_h)
+
+			# figure out which dimension to keep
+			req_v_actual = [req < actual for req,actual in zip(request_dims, region_dims)]
+			if all(req_v_actual) or not any(req_v_actual):
+				# both in or both out of bounds, use preferred
+				dim_to_keep = preferred_dimension
+			elif request_dims[0] > region_dims[0]:
+				# the requested width is wider than region, use height
+				dim_to_keep = 'h'
+			else:
+				dim_to_keep = 'w'
+
+			if dim_to_keep != preferred_dimension:
+				logger.debug('Preferring %s over %s to preserve aspect ratio' % (dim_to_keep,preferred_dimension))
+			else:
+				logger.debug('Preserving %s' % (dim_to_keep,))
+
+			# calculate the new other 
+			if dim_to_keep == 'w':
+				self.w = request_dims[0]
+				reduce_by = Decimal(self.w) / region_parameter.pixel_w
+				self.h = region_parameter.pixel_h * reduce_by
+			else: # h
+				self.h = request_dims[1]
+				reduce_by = Decimal(self.h) / region_parameter.pixel_h
+				self.w = region_parameter.pixel_w * reduce_by
+
+		else:
+			self.force_aspect = True
+			self.w, self.h = map(int, self.uri_value.split(','))
+
+	@staticmethod
+	def __mode_from_size_segment(size_segment):
+		'''
+		Get the mode of the request from the size segment.
+
+		Args:
+			size_segment (str)
+		Returns:
+			PCT_MODE, FULL_MODE, or	PIXEL_MODE
+		Raises:
+			SizeSyntaxException if this can't be determined.
+		'''
+		# TODO: wish this were cleaner.
+		if size_segment.split(':')[0] == 'pct':
+			return PCT_MODE
+		elif size_segment == 'full':
+			return FULL_MODE
+		elif not ',' in size_segment:
+			msg = 'Size syntax "%s" is not valid' % (size_segment,)
+			raise SizeSyntaxException(http_status=400, message=msg)
+		elif all([n.isdigit() or n is '' for n in size_segment.split(',')]):
+			return PIXEL_MODE
+		elif all([n.isdigit() for n in size_segment[1:].split(',')]) and \
+			len(size_segment.split(',')) == 2:
+			return PIXEL_MODE
+		else:
+			msg = 'Size syntax "%s" is not valid' % (size_segment,)
+			raise SizeSyntaxException(http_status=400, message=msg)
+
+	def __str__(self):
+		return self.uri_value
+
+class SizeSyntaxException(LorisException): pass
+class SizeRequestException(LorisException): pass
+
 
 # 	# TODO: MOVE. 
-# 	# TODO A method that turns pct size requests into pixel dims for the cache
 # 	def to_convert_arg(self):
 # 		'''Construct a `-resize <geometry>` argument for the convert utility.
 
@@ -302,7 +386,7 @@ class BadRegionRequestException(LorisException): pass
 # 			str.
 
 # 		Raises:
-# 			BadSizeSyntaxException.
+# 			SizeSyntaxException.
 # 		'''
 # 		cmd = ''
 # 		if self.uri_value != 'full':
@@ -322,36 +406,45 @@ class BadRegionRequestException(LorisException): pass
 # 				cmd += str(self.w) + 'x' + str(self.h) + '!'
 # 			else:
 # 				msg = 'Could not construct a convert argument from ' + self.uri_value
-# 				raise BadSizeRequestException(500, msg)
+# 				raise SizeRequestException(500, msg)
 # 		return cmd
 
-# class RotationParameter(object):
-# 	'''Internal representation of the rotation slice of an IIIF image URI.
+class RotationParameter(object):
+	'''Internal representation of the rotation slice of an IIIF image URI.
 
-# 	Slots:
-# 		nearest_90 (int). Any value passed is rounded to the nearest multiple
-# 			of 90.
-# 	'''
-# 	__slots__ = ('uri_value', 'nearest_90')
-# 	def __init__(self, uri_value):
-# 		'''Take the uri value and round it to the nearest 90.
-# 		Args:
-# 			uri_value (str): the rotation slice of the request URI.
-# 		Raises:
-# 			BadRotationSyntaxException if we can't handle the value for some
-# 				reason.
-# 		'''
-# 		self.uri_value = uri_value
-# 		try:
-# 			self.nearest_90 = int(90 * round(float(self.uri_value) / 90))
-# 		except Exception, e:
-# 			raise BadRotationSyntaxException(400, self.uri_value, e.message)
+	Slots:
+		uri_value (str)
+		cannonical_uri_value (str)
+		nearest_90 (int):
+			Any value passed is rounded to the nearest multiple	of 90.
+	'''
+	__slots__ = ('uri_value','cannonical_uri_value','nearest_90')
+	def __init__(self, uri_value):
+		'''Take the uri value and round it to the nearest 90.
+		Args:
+			uri_value (str): the rotation slice of the request URI.
+		Raises:
+			RotationSyntaxException:
+				If the argument is not a digit, is < 0, or > 360
+		'''
+		if not uri_value.isdigit():
+			msg = 'Rotation argument "%s" is not a number or' % (uri_value,)
+			raise RotationSyntaxException(http_status=400, message=msg)
+
+		if not 0 <= int(uri_value) <= 360:
+			msg = 'Rotation argument "%s" is not between 0 and 360' % (uri_value,)
+			raise RotationSyntaxException(http_status=400, message=msg)
+
+		self.uri_value = uri_value
+		self.nearest_90 = int(90 * round(float(self.uri_value) / 90))
+		self.cannonical_uri_value = str(self.nearest_90)
+		logger.debug('Cannonical rotation is %s' % (self.cannonical_uri_value,))
+
+class RotationSyntaxException(LorisException): pass
 
 # 	def __str__(self):
 # 		return self.uri_value
 
-# 	def __repr__(self):
-# 		return self.uri_value
 
 # 	def to_convert_arg(self):
 # 		'''Get a `-rotate` argument for the `convert` utility.
@@ -365,6 +458,3 @@ class BadRegionRequestException(LorisException): pass
 # 		return arg
 
 
-class BadSizeSyntaxException(LorisException): pass
-class BadSizeRequestException(LorisException): pass
-class BadRotationSyntaxException(LorisException): pass
