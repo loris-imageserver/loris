@@ -57,34 +57,49 @@ def create_app(debug=False):
 	if debug:
 		logger.info('Running in debug mode.')
 		project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-		config = { }
-		config['loris.Loris'] = {}
+
+		# read the config
+		conf_fp = path.join(project_dp, 'etc', 'loris.conf')
+		config = __config_to_dict(conf_fp)
+
+		# override some stuff
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
 		config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
 		config['loris.Loris']['cache_dp'] = '/tmp/loris/cache'
 		config['loris.Loris']['enable_caching'] = True
-		# config['loris.Loris']['enable_caching'] = False
-		config['resolver.Resolver'] = {}
 		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
 	else:
 		logger.info('Running in production mode.')
 		conf_fp = path.join(ETC_DP, 'loris.conf')
-		config_parser = RawConfigParser()
-		config_parser.read(conf_fp)
-		config = {}
-		[config.__setitem__(section, dict(config_parser.items(section)))
-			for section in config_parser.sections()]
-		config['loris.Loris']['enable_caching'] = bool(int(config['loris.Loris']['enable_caching']))
+		config = __config_to_dict(conf_fp)
+
+	# Make any dirs we may need 
 
 	dirs_to_make = []
-	dirs_to_make.append(config['loris.Loris']['tmp_dp'])
+	try:
+		dirs_to_make.append(config['loris.Loris']['tmp_dp'])
+		if config['loris.Loris']['enable_caching']:
+			dirs_to_make.append(config['loris.Loris']['cache_dp'])
+		[makedirs(d) for d in dirs_to_make if not path.exists(d)]
+	except OSError as ose: 
+		from sys import exit
+		from os import strerror
+		msg = '%s (%s)' % (strerror(ose.errno),ose.filename)
+		logger.fatal(msg)
+		logger.fatal('Exiting')
+		exit(77)
+	else:
+		return Loris(config, debug)
 
-	if config['loris.Loris']['enable_caching']:
-		dirs_to_make.append(config['loris.Loris']['cache_dp'])
-	
-	[makedirs(d) for d in dirs_to_make if not path.exists(d)]
-
-	return Loris(config, debug)
+def __config_to_dict(conf_fp):
+	config_parser = RawConfigParser()
+	config_parser.read(conf_fp)
+	config = {}
+	[config.__setitem__(section, dict(config_parser.items(section)))
+		for section in config_parser.sections()]
+	# Do any type conversions
+	config['loris.Loris']['enable_caching'] = bool(int(config['loris.Loris']['enable_caching']))
+	return config
 
 class Loris(object):
 	def __init__(self, config={}, debug=False):
@@ -262,7 +277,7 @@ class Loris(object):
 				info = self.__get_info(ident, uri, fp, fmt)
 				# 3. instantiate Parameter objects based on URI segements:
 				region_param = RegionParameter(region, info)
-				pref_dim = config['parameters.SizeParameter']['preferred_dimension']
+				pref_dim = self.config['parameters.SizeParameter']['preferred_dimension']
 				size_param = SizeParameter(size, region_param, pref_dim)
 				rotation_param = RotationParameter(rotation)
 				# 4. From each param object, use .cannonical_uri_value to build 
