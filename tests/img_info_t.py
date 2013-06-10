@@ -14,7 +14,7 @@ $ python -m unittest -v tests.img_info_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class B_InfoUnitTests(loris_t.LorisTest):
+class Test_B_InfoUnit(loris_t.LorisTest):
 	'Tests ImageInfo constructors.'
 	def test_color_jp2_info_from_image(self):
 		fp = self.test_jp2_color_fp
@@ -90,7 +90,7 @@ class B_InfoUnitTests(loris_t.LorisTest):
 		self.assertEqual(info.ident, self.test_jp2_color_uri)
 
 
-class C_InfoFunctionalTests(loris_t.LorisTest):
+class Test_C_InfoFunctional(loris_t.LorisTest):
 	'Simulate working with the API over HTTP.'
 
 	def test_jp2_info_dot_json_request(self):
@@ -116,7 +116,7 @@ class C_InfoFunctionalTests(loris_t.LorisTest):
 	# 	resp = self.client.get('/%s/%s' % (self.test_jp2_color_id,'info'))
 
 
-class D_InfoCacheTests(loris_t.LorisTest):
+class Test_D_InfoCache(loris_t.LorisTest):
 	pass
 #
 # 	def test_info_cache(self):
@@ -125,8 +125,8 @@ class D_InfoCacheTests(loris_t.LorisTest):
 def suite():
 	import unittest
 	test_suites = []
-	test_suites.append(unittest.makeSuite(B_InfoUnitTests, 'test'))
-	test_suites.append(unittest.makeSuite(C_InfoFunctionalTests, 'test'))
-	test_suites.append(unittest.makeSuite(D_InfoCacheTests, 'test'))
+	test_suites.append(unittest.makeSuite(Test_B_InfoUnit, 'test'))
+	test_suites.append(unittest.makeSuite(Test_C_InfoFunctional, 'test'))
+	test_suites.append(unittest.makeSuite(Test_D_InfoCache, 'test'))
 	test_suite = unittest.TestSuite(test_suites)
 	return test_suite

@@ -44,7 +44,7 @@ class _ParameterUnitTest(loris_t.LorisTest):
 		return img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
 
 
-class G_RegionParameterUnitTests(_ParameterUnitTest):
+class Test_G_RegionParameterUnit(_ParameterUnitTest):
 	def test_a_populate_slots_from_pct(self):
 		info = self._get_info()
 		rp = RegionParameter('pct:25,25,50,50', info)
@@ -124,11 +124,11 @@ class G_RegionParameterUnitTests(_ParameterUnitTest):
 		with self.assertRaises(RegionRequestException):
 			RegionParameter('pct:100,2,3,0', info)
 
-class H_RegionParameterFunctionalTests(_ParameterUnitTest):
+class Test_H_RegionParameterFunctional(_ParameterUnitTest):
 	# TODO: with client once other parameters are impl.
 	pass
 
-class I_SizeParameterUnitTests(_ParameterUnitTest):
+class Test_I_SizeParameterUnit(_ParameterUnitTest):
 	def test_a_exceptions(self):
 		info = self._get_info()
 		rp = RegionParameter('pct:25,25,75,75', info)
@@ -280,11 +280,11 @@ class I_SizeParameterUnitTests(_ParameterUnitTest):
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.cannonical_uri_value, '145,186')
 
-class J_SizeParameterFunctionalTests(_ParameterUnitTest):
+class Test_J_SizeParameterFunctional(_ParameterUnitTest):
 	# TODO: with client once other parameters are impl.
 	pass
 
-class K_RotationParameterUnitTests(_ParameterUnitTest):
+class Test_K_RotationParameterUnit(_ParameterUnitTest):
 	def test_a_exceptions(self):
 		with self.assertRaises(RotationSyntaxException):
 			rp = RotationParameter('a')
@@ -306,18 +306,18 @@ class K_RotationParameterUnitTests(_ParameterUnitTest):
 		rp = RotationParameter('316')
 		self.assertEquals(rp.cannonical_uri_value, '360')
 
-class L_RotationParameterFunctionalTests(_ParameterUnitTest):
+class Test_L_RotationParameterFunctional(_ParameterUnitTest):
 	# TODO: with client once other parameters are impl.
 	pass
 
 def suite():
 	import unittest
 	test_suites = []
-	test_suites.append(unittest.makeSuite(G_RegionParameterUnitTests, 'test'))
-	test_suites.append(unittest.makeSuite(H_RegionParameterFunctionalTests, 'test'))
-	test_suites.append(unittest.makeSuite(I_SizeParameterUnitTests, 'test'))
-	test_suites.append(unittest.makeSuite(J_SizeParameterFunctionalTests, 'test'))
-	test_suites.append(unittest.makeSuite(K_RotationParameterUnitTests, 'test'))
-	test_suites.append(unittest.makeSuite(L_RotationParameterFunctionalTests, 'test'))
+	test_suites.append(unittest.makeSuite(Test_G_RegionParameterUnit, 'test'))
+	test_suites.append(unittest.makeSuite(Test_H_RegionParameterFunctional, 'test'))
+	test_suites.append(unittest.makeSuite(Test_I_SizeParameterUnit, 'test'))
+	test_suites.append(unittest.makeSuite(Test_J_SizeParameterFunctional, 'test'))
+	test_suites.append(unittest.makeSuite(Test_K_RotationParameterUnit, 'test'))
+	test_suites.append(unittest.makeSuite(Test_L_RotationParameterFunctional, 'test'))
 	test_suite = unittest.TestSuite(test_suites)
 	return test_suite

@@ -3,7 +3,7 @@
 
 IMG_API_NS='http://library.stanford.edu/iiif/image-api/ns/'
 
-COMPLIANCE='http://library.stanford.edu/iiif/image-api/compliance.html#level1'
+COMPLIANCE='http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2'
 
 __formats = (
 	('png','image/png'),

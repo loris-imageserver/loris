@@ -25,22 +25,20 @@ from ConfigParser import RawConfigParser
 from decimal import Decimal, getcontext
 from log_config import get_logger
 from os import path, makedirs
-from parameters import RegionParameter
 from parameters import RegionRequestException
 from parameters import RegionSyntaxException
-from parameters import RotationParameter
 from parameters import RotationSyntaxException
-from parameters import SizeParameter
 from parameters import SizeRequestException
 from parameters import SizeSyntaxException
 from urllib import unquote, quote_plus
 from werkzeug import http
-from werkzeug.datastructures import ResponseCacheControl
+from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.routing import Map, Rule
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response
 import constants
+import img
 import img_info
 import loris_exception
 import resolver
@@ -62,7 +60,7 @@ def create_app(debug=False):
 		conf_fp = path.join(project_dp, 'etc', 'loris.conf')
 		config = __config_to_dict(conf_fp)
 
-		# override some stuff
+		# override some stuff to look at relative directories.
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
 		config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
 		config['loris.Loris']['cache_dp'] = '/tmp/loris/cache'
@@ -99,6 +97,9 @@ def __config_to_dict(conf_fp):
 		for section in config_parser.sections()]
 	# Do any type conversions
 	config['loris.Loris']['enable_caching'] = bool(int(config['loris.Loris']['enable_caching']))
+	config['loris.Loris']['redirect_conneg'] = bool(int(config['loris.Loris']['redirect_conneg']))
+	config['loris.Loris']['redirect_base_uri'] = bool(int(config['loris.Loris']['redirect_base_uri']))
+	config['loris.Loris']['redirect_cannonical_image_request'] = bool(int(config['loris.Loris']['redirect_cannonical_image_request']))
 	return config
 
 class Loris(object):
@@ -123,7 +124,7 @@ class Loris(object):
 		rules = [
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
-			Rule('/<path:ident>/info', endpoint='info'),
+			Rule('/<path:ident>/info', endpoint='info_conneg'),
 			Rule('/<path:ident>', endpoint='info_redirect'),
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
@@ -151,23 +152,11 @@ class Loris(object):
 
 	def get_environment(self, request, ident):
 		# For dev/debugging. Change any route to dispatch to 'environment'
-		body = 'REQUEST ENVIRONMENT\n'
-		body += '===================\n'
+		body = 'REQUEST ENVIRONMENT\n===================\n'
 		for key in request.environ:
 			body += '%s\n' % (key,)
 			body += '\t%s\n' % (request.environ[key],)
 		return Response(body, content_type='text/plain')
-
-	def get_info_redirect(self, request, ident):
-		if self.resolver.is_resolvable(ident):
-			ident = quote_plus(ident)
-			to_location = '/%s/info.json' % (ident,) # leading / or not?
-			logger.debug('Redirected %s to %s' % (ident, to_location))
-			return redirect(to_location, code=303)
-		else:
-			# TODO: does this match other bad requests as well? If so, try to 
-			# tweak routing or else change the message.
-			return Loris.__not_resolveable_response(ident)
 
 	def get_index(self, request):
 		www_dp = self.config['loris.Loris']['www_dp']
@@ -187,8 +176,39 @@ class Loris(object):
 			r.make_conditional(request)
 		return r
 
+	def get_info_redirect(self, request, ident):
+		if not self.resolver.is_resolvable(ident):
+			return Loris.__not_resolveable_response(ident)
+
+		elif self.config['loris.Loris']['redirect_base_uri']:
+			to_location = Loris.__info_json_from_unsecaped_ident(ident)
+			logger.debug('Redirected %s to %s' % (ident, to_location))
+			return redirect(to_location, code=303)
+		else:
+			return self.get_info(request, ident)
+
+	def get_info_conneg(self, request, ident):
+		accept = request.headers.get('accept')
+		if accept and accept not in ('application/json', '*/*'):
+			return Loris.__format_not_supported_response(accept)
+
+		elif not self.resolver.is_resolvable(ident):
+			return Loris.__not_resolveable_response(ident)
+
+		elif self.config['loris.Loris']['redirect_conneg']:
+			to_location = Loris.__info_json_from_unsecaped_ident(ident)
+			logger.debug('Redirected %s to %s' % (ident, to_location))
+			return redirect(to_location, code=301)
+
+		else:
+			return self.get_info(request, ident)
+
 	def get_info(self, request, ident):
+		
+		# TODO: needs a compliance link header
+
 		r = Response()
+
 		info = None
 
 		# Do a quick check of the memory cache
@@ -210,7 +230,7 @@ class Loris(object):
 			logger.debug('Identifier: %s' % (ident,))
 
 			# get the uri (@id)
-			uri = Loris.__uri_from_request(request)
+			uri = Loris.__base_uri_from_request(request)
 
 			# 2. get the image's info
 			try:
@@ -228,9 +248,9 @@ class Loris(object):
 		
 		if self.config['loris.Loris']['enable_caching']:
 			r.add_etag()
-			# TODO: make sure a Date is included.
 			r.make_conditional(request)
 		return r
+
 
 	def get_img(self, request, ident, region, size, rotation, quality):
 		'''Get an Image. 
@@ -239,81 +259,93 @@ class Loris(object):
 				Forwarded by dispatch_request
 			ident (str): 
 				The identifier portion of the IIIF URI syntax
-			# iiif_params (RegionParameter, SizeParameter, RotationParameter, str, str):
-			# 	A 5 tuple (region, size, rotation, quality, format)
 
 		'''
+
 		if '.' in quality:
-			quality,format_ext = quality.split('.')
+			quality,target_fmt = quality.split('.')
 		else:
-			fmt = None
-			# TODO, will need to use conneg
+			# TODO:, will need to use conneg and possibly redirect
+			# Either way detemine target_fmt from Accept header.
+			target_fmt = 'xxx'
 
-		ident, region, size = map(unquote, (ident, region, size))
+		# start an image object
+		image = img.Image(ident, region, size, rotation, quality, target_fmt)
 
-		logger.debug('region slice: %s' % (str(region),))
-		logger.debug('size slice: %s' % (str(size),))
-		logger.debug('rotation slice: %s' % (str(rotation),))
-		logger.debug('quality slice: %s' % (quality))
-		logger.debug('format extension: %s' % (format_ext))
+		headers = Headers()
+		headers['Link'] = RelatedLinksHeader()
+		headers['Link']['profile'] = constants.COMPLIANCE
+		r = Response(headers=headers)
 
-		r = Response()
-		cache_path = self.__img_elements_to_cache_path(ident, region, size, rotation, quality, format_ext)
-
-		# try the cache
-		if self.config['loris.Loris']['enable_caching'] and path.exists(cache_path[0]):
-			# TODO: untested until we actually have stuff cached
-			logger.debug('%s read from cache' % (cache_path[0],))
-			r.data = cache_path[0]
-			r.content_type = constants.FORMATS_BY_EXTENSION[cache_path[0].split('.')[-1]]
-			r.add_etag()
-			r.make_conditional(request)
+		in_cache = False # TODO: replace with blah 'image in cache'
+		# do a quick cache check:
+		if self.config['loris.Loris']['enable_caching'] and in_cache:
+			pass
+			# see http://werkzeug.pocoo.org/docs/wrappers/
+			# make conditional and __return__ if the file exists.
 		else:
+			base_uri = Loris.__base_uri_from_request(request)
 			try:
 				# 1. resolve the identifier
-				fp, fmt = self.resolver.resolve(ident)
-				# 2. get the image's info
-				uri = Loris.__uri_from_request(request)
-				info = self.__get_info(ident, uri, fp, fmt)
-				# 3. instantiate Parameter objects based on URI segements:
-				region_param = RegionParameter(region, info)
-				pref_dim = self.config['parameters.SizeParameter']['preferred_dimension']
-				size_param = SizeParameter(size, region_param, pref_dim)
-				rotation_param = RotationParameter(rotation)
-				# 4. From each param object, use .cannonical_uri_value to build 
-				# the the cannonical URI. Make redirecting an option. Otherwise 
-				# add rel="cannonical" Link header
-				# 
-				# 5. If caching, use the above to build the cannonical path for 
+				fp, src_fmt = self.resolver.resolve(ident)
+				# 2 hand the Image object its info.
+				info = self.__get_info(ident, base_uri, fp, src_fmt)
+				image.info = info
+
+				# 3. Redirect if appropriate, else set the cannonical 
+				# Link header (non-normative):
+
+				# TODO: need tests for:
+				# link header if redirecting is not enabled
+				# redirecting if it is enabled
+
+				if self.config['loris.Loris']['redirect_cannonical_image_request']:
+					if not image.is_cannonical:
+						logger.debug('Attempting redirect to %s' % (image.c14n_request_path,))
+						return redirect(image.c14n_request_path, code=301)
+				else:
+					if not image.is_cannonical:
+						cannonical_uri = '%s/%s' % (base_uri, image.c14n_request_path)
+						logger.debug('cannonical_uri: %s' % (cannonical_uri,))
+						headers['Link']['cannonical'] = cannonical_uri
+				#
+				# 4. If caching, use the above to build the cannonical path for 
 				# the cache (all pixel pased)
 				#
-				# 6. Make an image, 
+				# 5. Make an image, 
 				#	a. if caching, save it to cache, else to tmp
 				#	b  if caching, make a symlink from the original request path 
 				#		(with pcts) to the cannonical path
 				# 	c. return the image as a file object
 				# 	d. if not caching, clean up
-			except (resolver.ResolverException, img_info.ImageInfoException,
-				RegionSyntaxException,RegionRequestException,
-				SizeSyntaxException,SizeRequestException,
-				RotationSyntaxException) as e:
+				
+			except (resolver.ResolverException, img_info.ImageInfoException, 
+				img.ImageException,	RegionSyntaxException, 
+				RegionRequestException, SizeSyntaxException,
+				SizeRequestException, RotationSyntaxException) as e:
 				r.response = e
 				r.status_code = e.http_status
 				r.mimetype = 'text/plain'
 				return r
 
-
-
 		return r
 
-	def __img_elements_to_cache_path(self, ident, region, size, rotation, quality, format_ext):
-		'''Return a two-tuple, The path to the file[0], and the path to the 
-		file's directory[1].
+	def __get_image(self, image):
+		'''Check the cache first, otherwise make a new image.
+
+		Args:
+			image (str): The image's identifier.
+			fp (str): The image's file path on the local file system.
+		Raises:
+			img_info.ImageInfoException when anything goes wrong.
+		Returns:
+			ImageInfo
 		'''
-		cache_dp = self.config['loris.Loris']['cache_dp']
-		img_fp = '%s.%s' % (path.join(cache_dp, region, size, rotation, quality), format_ext)
-		img_dp = path.dirname(img_fp)
-		return (img_fp, img_dp)
+		if self.config['loris.Loris']['enable_caching']:
+			pass
+		else:
+			pass
+
 
 	def __get_info(self, ident, uri, fp, src_format):
 		'''Check the memory cache, then the file system, and then, as a last 
@@ -362,7 +394,7 @@ class Loris(object):
 		return info
 
 	@staticmethod
-	def __uri_from_request(r):
+	def __base_uri_from_request(r):
 		# See http://www-sul.stanford.edu/iiif/image-api/1.1/#url_encoding
 		#
 		# TODO: This works on the embedded dev server but may need revisiting 
@@ -385,14 +417,47 @@ class Loris(object):
 		return uri
 
 	@staticmethod
+	def __info_json_from_unsecaped_ident(ident):
+		ident = quote_plus(ident)
+		# leading / or not?
+		return '/%s/info.json' % (ident,)
+
+	@staticmethod
 	def __not_resolveable_response(ident):
 		ident = quote_plus(ident)
 		msg = '404: Identifier "%s" does not resolve to an image.' % (ident,)
+		logger.warn(msg)
 		return Response(msg, status=404, content_type='text/plain')
+
+	@staticmethod
+	def __format_not_supported_response(format):
+		msg = '415: "%s" is not supported.' % (format,)
+		logger.warn(msg)
+		return Response(msg, status=415, content_type='text/plain')
+
+
+
+class RelatedLinksHeader(dict):
+	'''Not a full impl. of rfc 5988 (though that would be fun!); just enough 
+	for our purposes. Use the rel as the key and the URI as the value.
+	'''
+	def __init__(self):
+		super(RelatedLinksHeader, self).__init__()
+
+	def __str__(self):
+		return ','.join(['<%s>;rel="%s"' % (i[1],i[0]) for i in self.items()])
+
+
+
+
 
 if __name__ == '__main__':
 	from werkzeug.serving import run_simple
 	extra_files = []
+
+	project_dp = path.dirname(path.dirname(path.realpath(__file__)))
+	conf_fp = path.join(project_dp, 'etc', 'loris.conf')
+	extra_files.append(conf_fp)
 
 	app = create_app(debug=True)
 

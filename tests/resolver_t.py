@@ -13,7 +13,7 @@ $ python -m unittest tests.resolver_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class A_ResolverTests(loris_t.LorisTest):
+class Test_A_Resolver(loris_t.LorisTest):
 	'Test that the ID resolver works'
 
 	def test_configured_resolver(self):
@@ -26,6 +26,6 @@ class A_ResolverTests(loris_t.LorisTest):
 def suite():
 	import unittest
 	test_suites = []
-	test_suites.append(unittest.makeSuite(A_ResolverTests, 'test'))
+	test_suites.append(unittest.makeSuite(Test_A_Resolver, 'test'))
 	test_suite = unittest.TestSuite(test_suites)
 	return test_suite
