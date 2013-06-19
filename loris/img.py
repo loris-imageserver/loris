@@ -1,9 +1,10 @@
 # img.py
 #-*-coding:utf-8-*-
 
+
 from log_config import get_logger
 from loris_exception import LorisException
-from os import path,sep
+from os import path,sep,symlink,makedirs,unlink
 from parameters import RegionParameter
 from parameters import RegionRequestException
 from parameters import RegionSyntaxException
@@ -17,10 +18,8 @@ from werkzeug.http import generate_etag
 
 logger = get_logger(__name__)
 
-class Image(object):
+class ImageRequest(object):
 	'''
-	Everything we need to know about an image.
-
 	Slots:
 		ident
 		region_value
@@ -46,16 +45,16 @@ class Image(object):
 			a URI based on the normalized ('cannonical') values.
 			('cannonical') values.
 
+		Raises:
+
+
 	'''
 	__slots__ = (
 		'_c14n_cache_path',
 		'_c14n_request_path',
-		# 'c14n_request_path',
 		'_cache_path',
-		'_etag',
 		'_info',
 		'_is_cannonical',
-		# 'is_cannonical',
 		'_region_param',
 		'_request_path',
 		'_rotation_param',
@@ -87,19 +86,16 @@ class Image(object):
 		self._cache_path = None
 		self._request_path = None
 
-		self._etag = None
-
 		self._is_cannonical = None
 
 		self._region_param = None
 		self._rotation_param = None
 		self._size_param = None
 
-		# This is awkward. We may need it, but not right away, so the user (of 
-		# the class) has to set it before accessing most of the above. An 
+		# This is awkward. We may need it, but not right away (only if we're 
+		# filling out the param slots), so the user (of the class) has to set 
+		# it before accessing most of the above.
 		self._info = None
-
-
 
 	@property
 	def region_param(self):
@@ -167,19 +163,11 @@ class Image(object):
 			self._c14n_cache_path = '%s.%s' % (p,self.format)
 		return self._c14n_cache_path
 
-
 	@property
 	def is_cannonical(self):
 		if self._is_cannonical is None:
 			self._is_cannonical = self.cache_path == self.c14n_cache_path
 		return self._is_cannonical
-
-	@property
-	def etag(self):
-		if self._etag is None:
-			# TODO: see if this works, otherwise use the file (which is bigger)
-			self._etag = generate_etag(self.info) 
-		return self._etag
 
 	@property
 	def info(self):
@@ -192,36 +180,61 @@ class Image(object):
 	def info(self, i):
 		self._info = i
 
-class ImageCache(object):
+class ImageCache(dict):
 	'''
 	'''
 	def __init__(self, root):
-		self.__root = root
+		self._links_root = root
 
-	def __contains__(self, image):
+	def __contains__(self, image_request):
+		return path.exists(self._get_cache_path(image_request))
+
+	def __getitem__(self, image_request):
+		fp = self.get(image_request)
+		if fp is None:
+			raise KeyError
+		return fp
+
+	@staticmethod
+	def _link(to,fr):
+		link_dp = path.dirname(fr)
+		if not path.exists(link_dp):
+			makedirs(link_dp)
+		if path.lexists(fr): # shouldn't be the case, but helps debugging
+			unlink(fr)
+		symlink(to,fr)
+		logger.debug('Made symlink from %s to %s' % (to,fr))
+
+	def __setitem__(self, image_request, fp): 
+		# Does this make sense? It's a little strange because we already know
+		# the cache root in the webapp. We'll use the Image object (the key)
+		# to make any additional smlinks.
+		cannonical_fp = path.join(self._links_root, image_request.c14n_cache_path)
+		ImageCache._link(fp, cannonical_fp)
+		if not image_request.is_cannonical:
+			alt_fp = path.join(self._links_root, image_request.cache_path)
+			ImageCache._link(fp, alt_fp)
+
+	def __delitem__(self, image_request):
+		# if we ever decide to start cleaning our own cache...but the lack
+		# of an fast du-like function (other than shelling out), makes this
+		# unlikely.
 		pass
 
-	def __getitem__(self, image):
-		# TODO: if we want this to look like a real dict, should raise a 
-		# KeyError if the file doesn't exist.
-		self.get(image)
-
-	def __setitem__(self, image): # does this make sense?
-		self.put(image)
-
-	def __delitem__(self, image):
-		pass
-
-	def get(self, image):
-		# remember that the path may be a symlink.
-		pass
-
-	def put(self, image):
+	def get(self, image_request):
+		'''Returns (str): 
+			The path to the file or None if the file does not exist.
 		'''
-		Args:
-			image (Image)			
-		'''
-		pass
+		cache_fp = self._get_cache_path(image_request)
+		if path.exists(cache_fp):
+			return cache_fp
+		else:
+			return None
+
+	def _get_cache_path(self, image_request):
+		return path.realpath(path.join(self._links_root, image_request.cache_path))
+		
+
 
 
 

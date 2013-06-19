@@ -4,15 +4,20 @@ from PIL import Image
 from collections import OrderedDict
 from collections import deque
 from constants import IMG_API_NS, COMPLIANCE
+from datetime import datetime
 from log_config import get_logger
 from threading import Lock
+import fnmatch
 import json
 import loris_exception
+import os
 import struct
 
 logger = get_logger(__name__)
 
 # TODO: we may want a little more exception handling in here.
+
+STAR_DOT_JSON = '*.json'
 
 PIL_MODES_TO_QUALITIES = {
 	# Thanks to http://stackoverflow.com/a/1996609/714478
@@ -49,12 +54,13 @@ class ImageInfo(object):
 		'src_format', 'src_img_fp')
 
 	@staticmethod
-	def from_image_file(ident, uri, src_img_fp, src_format):
+	def from_image_file(ident, uri, src_img_fp, src_format, formats=[]):
 		'''
 		Args:
 			ident (str): The URI for the image.
 			src_img_fp (str): The absolute path to the image.
 			src_format (str): The format of the image as a three-char str.
+			formats ([str]): The derivative formats the application can produce.
 		'''
 		# We're going to assume the image exists and the format is supported.
 		# Exceptions should be raised by the resolver if that's not the case.
@@ -65,6 +71,7 @@ class ImageInfo(object):
 		new_inst.tile_width = None
 		new_inst.tile_height = None
 		new_inst.scale_factors = None
+		new_inst.formats = formats
 
 		logger.debug('Source Format: %s' % (new_inst.src_format,))
 		logger.debug('Source File Path: %s' % (new_inst.src_img_fp,))
@@ -93,24 +100,24 @@ class ImageInfo(object):
 			Exception
 		"""
 		new_inst = ImageInfo()
-		try:
-			f = open(path, 'r')
-			j = json.load(f)
-			new_inst.ident = j.get(u'@id')
-			new_inst.width = j.get(u'width')
-			new_inst.height = j.get(u'height')
-			# TODO: make sure these are resulting in error or Nones/nulls when 
-			# we load from the filesystem
-			new_inst.scale_factors = j.get(u'scale_factors')
-			new_inst.tile_width = j.get(u'tile_width')
-			new_inst.tile_height = j.get(u'tile_height')
-			new_inst.formats = j.get(u'formats')
-			new_inst.qualities = j.get(u'qualities')
-		except Exception as e: # TODO: be more specific...
-			iie = ImageInfoException(500, str(e))
-			raise iie
-		finally:
-			f.close()
+		# try:
+		f = open(path, 'r')
+		j = json.load(f)
+		new_inst.ident = j.get(u'@id')
+		new_inst.width = j.get(u'width')
+		new_inst.height = j.get(u'height')
+		# TODO: make sure these are resulting in error or Nones/nulls when 
+		# we load from the filesystem
+		new_inst.scale_factors = j.get(u'scale_factors')
+		new_inst.tile_width = j.get(u'tile_width')
+		new_inst.tile_height = j.get(u'tile_height')
+		new_inst.formats = j.get(u'formats')
+		new_inst.qualities = j.get(u'qualities')
+		# except Exception as e: # TODO: be more specific...
+		# 	iie = ImageInfoException(500, str(e))
+		# 	raise iie
+		# finally:
+		f.close()
 		return new_inst
 
 	def __from_jpg(self, fp):
@@ -222,76 +229,128 @@ class ImageInfo(object):
 			d['tile_width'] = self.tile_width
 		if self.tile_height:
 			d['tile_height'] = self.tile_height
-		d['formats'] = [ 'jpg', 'png' ]
+		d['formats'] = self.formats
 		d['qualities'] = self.qualities
 		d['profile'] = COMPLIANCE
 
 		return json.dumps(d)
 
-		## TODO: change to a dict. The webapp needs to add its URI, so it will
-		# call, to_dict and then add the URI, and then use json from the standard
-		# library to serialize.
-		# j = '{'
-		# j += ' "@context" : "http://library.stanford.edu/iiif/image-api/1.1/context.json",'
-		# # TODO, this need to be the URI. See: http://www-sul.stanford.edu/iiif/image-api/1.1/#info
-		# j += ' "identifier" : "' + self.ident + '",'
-		# j += ' "width" : ' + str(self.width) + ','
-		# j += ' "height" : ' + str(self.height) + ','
-		# if self.scale_factors:
-		# 	j += ' "scale_factors" : [' + ", ".join(map(str, self.scale_factors)) + '],'
-		# if self.tile_width:
-		# 	j += ' "tile_width" : ' + str(self.tile_width) + ','
-		# if self.tile_height:
-		# 	j += ' "tile_height" : ' + str(self.tile_height) + ','
-		# j += ' "formats" : [ "jpg", "png" ],'
-		# j += ' "qualities" : [' + ", ".join('"'+q+'"' for q in self.qualities) + '], '
-		# j += ' "profile" : "'+COMPLIANCE+'" '
-		# j += '}'
-		# return j
-
-# TODO, provide an alternate implementation of the below using Mongo. Allow 
-# which impl to be used to be configured by class name
+# TODO, provide an alternate cache implementation using Mongo inst. 
+# We'd probably still want some in memory, but we could avoid the file system. 
+# Which impl to be used could be configured by class name
 
 class InfoCache(object):
-	"""A thread-safe dict-like cache we can use to keep ImageInfo objects in
-	memory and use as an LRU cache.
+	"""A dict-like cache for ImageInfo objects. The n most recently used are 
+	also kept in memory; all entries are on the file system.
+
+	One twist: you put in an ImageInfo object, but get back a two-tuple, the 
+	first member is the ImageInfo, the second member is the UTC date and time 
+	for when the info was last modified.
+
+	Note that not all dictionary methods are implemented; just basic getters, 
+	put (`instance[indent] = info`), membership, and length. There are no 
+	iterators, views, default, update, comparators, etc.
 
 	Slots:
+		root (str): See below
 		size (int): See below.
-		__dict (OrderedDict): The map.
-		__lock (Lock): The lock.
+		_dict (OrderedDict): The map.
+		_lock (Lock): The lock.
 	"""
-	__slots__ = ('size', '__dict', '__lock')
-	def __init__(self, size=500):
+	__slots__ = ('root','size','_dict','_lock', )
+	def __init__(self, root, size=500):
 		"""
 		Args:
-			size (int): Max entries before the we start popping (LRU).
+			root (str): 
+				Path directory on the file system to be used for the cache.
+			size (int): 
+				Max entries before the we start popping (LRU).
 		"""
+		self.root = root
 		self.size = size
-		self.__dict = OrderedDict()
-		self.__lock = Lock()
+		self._dict = OrderedDict()
+		self._lock = Lock()
 
-	def get(self, key):
-		with self.__lock:
-			return self.__dict.get(key)
+	def _get_fp(self,ident):
+		return os.path.join(self.root,ident,'info.json')
 
-	def __contains__(self, key):
-		with self.__lock:
-			return key in self.__dict
+	def get(self, ident):
+		'''
+		Returns:
+			ImageInfo if it is in the cache, else None
+		'''
+		info_lastmod = None
+		with self._lock:
+			info_lastmod = self._dict.get(ident)
+			if info_lastmod is not None:
+				logger.debug('Info for %s read from memory' % (ident,))
+		if info_lastmod is None:
+			fp = self._get_fp(ident)
+			if os.path.exists(fp):
+				# from fs
+				info = ImageInfo.from_json(fp)
 
-	def __getitem__(self, key):
-		# It's not safe to get while the set of keys might be changing.
-		with self.__lock:
-			return self.__dict[key]
+				lastmod = datetime.utcfromtimestamp(os.path.getmtime(fp))
+				info_lastmod = (info, lastmod)
+				logger.debug('Info for %s read from file system' % (ident,))
+				# into mem:
+				self._dict[ident] = info_lastmod
 
-	def __setitem__(self, key, value):
-		with self.__lock:
-			while len(self.__dict) >= self.size:
-				self.__dict.popitem(last=False)
-			self.__dict[key] = value
+		return info_lastmod
 
-	def __delitem__(self, key):
-		with self.__lock:
-			del self.__dict[key]
+	def has_key(self, ident):
+		return os.path.exists(self._get_fp(ident))
+
+	def __len__(self):
+		# c = 0
+		# for root, dirnames, filenames in os.walk(self.root):
+		# 	for filename in fnmatch.filter(filenames, STAR_DOT_JSON):
+		# 		c+=1
+		# return c
+		w = os.walk
+		ff = fnmatch.filter
+		pat = STAR_DOT_JSON
+		return len([_ for fp in ff(fps, pat) for r,dps,fps in w(self.root)])
+
+	def __contains__(self, ident):
+		return self.has_key(ident)
+
+	def __getitem__(self, ident):
+		info_lastmod = self.get(ident)
+		if info_lastmod is None:
+			raise KeyError
+		else:
+			return info_lastmod
+
+	def __setitem__(self, ident, info):
+		# to fs
+		fp = self._get_fp(ident)
+		dp = os.path.dirname(fp)
+		if not os.path.exists(dp): 
+			os.makedirs(dp, 0755)
+			logger.debug('Created %s' % (dp,))
+
+
+		f = open(fp, 'w')
+		f.write(info.to_json())
+		f.close()
+		logger.debug('Created %s' % (fp,))
+
+		# into mem
+		lastmod = datetime.utcfromtimestamp(os.path.getmtime(fp))
+		with self._lock:
+			while len(self._dict) >= self.size:
+				self._dict.popitem(last=False)
+			self._dict[ident] = (info,lastmod)
+
+	def __delitem__(self, ident):
+		with self._lock:
+			del self._dict[ident]
+		fp = self._get_fp(ident)
+		os.unlink(fp)
+		os.removedirs(os.path.dirname(fp))
+
+
+
 
 class ImageInfoException(loris_exception.LorisException): pass

@@ -4,7 +4,7 @@
 git stash -q --keep-index
 
 # run tests
-python -m unittest -vf test.suite
+python -m unittest -vf test
 RESULT=$?
 
 # bring back unstaged changes

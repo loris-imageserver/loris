@@ -64,9 +64,13 @@ class LorisTest(unittest.TestCase):
 	def tearDown(self):
 		unittest.TestCase.tearDown(self)
 		# empty the cache
-		cache_dp = self.app.config['loris.Loris']['cache_dp']
-		tmp_dp = self.app.config['loris.Loris']['tmp_dp']
-		for dp in (cache_dp, tmp_dp):
+		dps = (
+			self.app.app_configs['loris.Loris']['cache_dp'],
+			self.app.app_configs['img_info.InfoCache']['cache_dp'],
+			self.app.app_configs['img.ImageCache']['cache_links'],
+			self.app.tmp_dp
+		)
+		for dp in dps:
 			for node in listdir(dp):
 				p = path.join(dp, node)
 				if path.isdir(p):

@@ -3,7 +3,6 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-from constants import SRC_FORMATS_SUPPORTED
 from log_config import get_logger
 from os.path import join, exists, isfile
 from urllib import unquote
@@ -67,13 +66,6 @@ class Resolver(object):
 
 		format = ident.split('.')[-1]
 		logger.debug('src format %s' % (format,))
-
-		if format not in SRC_FORMATS_SUPPORTED:
- 			public_message = 'Source image is not in a recognizable format %s' % (format,)
-			log_message = 'Source image not found at %s' % (fp,)
- 			logger.warn(log_message)
- 			# todo: confirm status code. Maybe should be 500?
- 			raise ResolverException(400, public_message)
 
 		return (fp, format)
 

@@ -3,8 +3,7 @@
 """
 webapp.py
 =========
-Implements IIIF 1.1 <http://www-sul.stanford.edu/iiif/image-api> level 1 and 
-most of level 2 (all but return of JPEG 2000 derivatives).
+Implements IIIF 1.1 <http://www-sul.stanford.edu/iiif/image-api> level 2
 
 	Copyright (C) 2013 Jon Stroop
 
@@ -22,30 +21,43 @@ most of level 2 (all but return of JPEG 2000 derivatives).
 	with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from ConfigParser import RawConfigParser
+from datetime import datetime
 from decimal import Decimal, getcontext
+from img_info import ImageInfo
+from img_info import ImageInfoException
+from img_info import InfoCache
 from log_config import get_logger
-from os import path, makedirs
+from os import path, makedirs, unlink, removedirs, symlink
 from parameters import RegionRequestException
 from parameters import RegionSyntaxException
 from parameters import RotationSyntaxException
 from parameters import SizeRequestException
 from parameters import SizeSyntaxException
 from urllib import unquote, quote_plus
-from werkzeug import http
-from werkzeug.datastructures import Headers
+from werkzeug.datastructures import Headers, ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
+from werkzeug.http import parse_date, parse_accept_header
 from werkzeug.routing import Map, Rule
 from werkzeug.utils import redirect
-from werkzeug.wrappers import Request, Response
+from werkzeug.wrappers import Request, Response # TODO: BaseResponse may be enough
 import constants
 import img
-import img_info
 import loris_exception
+import random
 import resolver
+import string
+import transforms
+
+try:
+	import libuuid as uuid # faster. do pip install python-libuuid
+except ImportError:
+	import uuid
+
 
 # Loris's etc dir MUST either be a sibling to the /loris/loris directory or at 
 # the below:
 ETC_DP = '/etc/loris'
+
 # We can figure out everything else from there.
 
 logger = get_logger(__name__)
@@ -63,8 +75,10 @@ def create_app(debug=False):
 		# override some stuff to look at relative directories.
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
 		config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
-		config['loris.Loris']['cache_dp'] = '/tmp/loris/cache'
+		config['loris.Loris']['cache_dp'] = '/tmp/loris/cache/img'
 		config['loris.Loris']['enable_caching'] = True
+		config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
+		config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
 		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
 	else:
 		logger.info('Running in production mode.')
@@ -72,16 +86,18 @@ def create_app(debug=False):
 		config = __config_to_dict(conf_fp)
 
 	# Make any dirs we may need 
-
 	dirs_to_make = []
 	try:
 		dirs_to_make.append(config['loris.Loris']['tmp_dp'])
 		if config['loris.Loris']['enable_caching']:
 			dirs_to_make.append(config['loris.Loris']['cache_dp'])
+			dirs_to_make.append(config['img_info.InfoCache']['cache_dp'])
+			dirs_to_make.append(config['img.ImageCache']['cache_links'])
 		[makedirs(d) for d in dirs_to_make if not path.exists(d)]
 	except OSError as ose: 
 		from sys import exit
 		from os import strerror
+		# presumably it's permissions
 		msg = '%s (%s)' % (strerror(ose.errno),ose.filename)
 		logger.fatal(msg)
 		logger.fatal('Exiting')
@@ -89,37 +105,76 @@ def create_app(debug=False):
 	else:
 		return Loris(config, debug)
 
+def __transform_sections_from_config(config):
+	'''
+	Args:
+		config (dict)
+	'''
+	filt = lambda s: s.split('.')[0] == 'transforms'
+	return filter(filt, config.keys())
+
 def __config_to_dict(conf_fp):
 	config_parser = RawConfigParser()
 	config_parser.read(conf_fp)
 	config = {}
+
+	# shortcut, but everything comes in as a str
 	[config.__setitem__(section, dict(config_parser.items(section)))
 		for section in config_parser.sections()]
-	# Do any type conversions
-	config['loris.Loris']['enable_caching'] = bool(int(config['loris.Loris']['enable_caching']))
-	config['loris.Loris']['redirect_conneg'] = bool(int(config['loris.Loris']['redirect_conneg']))
-	config['loris.Loris']['redirect_base_uri'] = bool(int(config['loris.Loris']['redirect_base_uri']))
-	config['loris.Loris']['redirect_cannonical_image_request'] = bool(int(config['loris.Loris']['redirect_cannonical_image_request']))
+
+	# convert bools
+	b = bool(int(config['loris.Loris']['enable_caching']))
+	config['loris.Loris']['enable_caching'] = b
+
+	b = bool(int(config['loris.Loris']['redirect_conneg']))
+	config['loris.Loris']['redirect_conneg'] = b
+
+	b = bool(int(config['loris.Loris']['redirect_base_uri']))
+	config['loris.Loris']['redirect_base_uri'] = b
+
+	b = bool(int(config['loris.Loris']['redirect_cannonical_image_request']))
+	config['loris.Loris']['redirect_cannonical_image_request'] = b
+
+	# convert transforms.*.target_formats to lists
+	for tf in __transform_sections_from_config(config):
+		config[tf]['target_formats'] = [s.strip() for s in config[tf]['target_formats'].split(',')]
+
 	return config
 
 class Loris(object):
-	def __init__(self, config={}, debug=False):
-		'''The webapp. Mostly routing and, within public methods branching based 
-		caching and cache behaviour is handled here.
 
+	DEFAULT_IMAGE_FMT = 'DEFAULT'
+
+	def __init__(self, app_configs={ }, debug=False):
+		'''The WSGI Application.
 		Args:
 			config ({}): 
 				A dictionary of dictionaries that represents the loris.conf 
 				file.
-			debug (bool):
-				True make is possible to dump the wsgi environment to the
-				browser.
+			debug (bool)
 		'''
-		self.debug = debug
-		self.config = config
+		self.app_configs = app_configs
 		logger.info('Loris initialized with these settings:')
-		[logger.info('%s.%s=%s' % (key, sub_key, config[key][sub_key]))
-			for key in config for sub_key in config[key]]
+		[logger.info('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
+			for key in self.app_configs for sub_key in self.app_configs[key]]
+
+		self.debug = debug
+
+		# make the loris.Loris configs attrs for easier access
+		_loris_config = self.app_configs['loris.Loris']
+		self.tmp_dp = _loris_config['tmp_dp']
+		self.www_dp = _loris_config['www_dp']
+		self.cache_dp = _loris_config['cache_dp']
+		self.enable_caching = _loris_config['enable_caching']
+		self.redirect_conneg = _loris_config['redirect_conneg']
+		self.redirect_base_uri = _loris_config['redirect_base_uri']
+		self.redirect_cannonical_image_request = _loris_config['redirect_cannonical_image_request']
+		self.default_format = _loris_config['default_format']
+
+		self.transformers = {}
+		self.transformers['jpg'] = self._load_transformer('transforms.jpg')
+		self.transformers['tif'] = self._load_transformer('transforms.tif')
+		self.transformers['jp2'] = self._load_transformer('transforms.jp2')
 
 		rules = [
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
@@ -132,10 +187,18 @@ class Loris(object):
 
 		self.url_map = Map(rules)
 
-		self.resolver = resolver.Resolver(self.config['resolver.Resolver'])
+		self.resolver = resolver.Resolver(self.app_configs['resolver.Resolver'])
 
-		if self.config['loris.Loris']['enable_caching']:
-			self.info_cache = img_info.InfoCache()
+		if self.enable_caching:
+			self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
+			self.img_cache = img.ImageCache(self.app_configs['img.ImageCache']['cache_links'])
+
+	def _load_transformer(self, name):
+		clazz = self.app_configs[name]['impl']
+		default_format = self.default_format
+		transformer = getattr(transforms,clazz)(self.app_configs[name], default_format)
+		logger.info('Loaded Transformer %s' % self.app_configs[name]['impl'])
+		return transformer
 
 	def wsgi_app(self, environ, start_response):
 		request = Request(environ)
@@ -159,29 +222,26 @@ class Loris(object):
 		return Response(body, content_type='text/plain')
 
 	def get_index(self, request):
-		www_dp = self.config['loris.Loris']['www_dp']
-		f = file(path.join(www_dp, 'index.txt'))
+		f = file(path.join(self.www_dp, 'index.txt'))
 		r = Response(f, mimetype='text/plain')
-		if self.config['loris.Loris']['enable_caching']:
+		if self.enable_caching:
 			r.add_etag()
 			r.make_conditional(request)
 		return r
 
 	def get_favicon(self, request):
-		www_dp = self.config['loris.Loris']['www_dp']
-		f = path.join(www_dp, 'icons', 'loris-icon.png')
+		f = path.join(self.www_dp, 'icons', 'loris-icon.png')
 		r = Response(file(f), content_type='image/x-icon')
-		if self.config['loris.Loris']['enable_caching']:
+		if self.enable_caching:
 			r.add_etag()
 			r.make_conditional(request)
 		return r
 
 	def get_info_redirect(self, request, ident):
 		if not self.resolver.is_resolvable(ident):
-			return Loris.__not_resolveable_response(ident)
-
-		elif self.config['loris.Loris']['redirect_base_uri']:
-			to_location = Loris.__info_json_from_unsecaped_ident(ident)
+			return Loris._not_resolveable_response(ident)
+		elif self.redirect_base_uri:
+			to_location = Loris._info_slash_json_from_unsecaped_ident(ident)
 			logger.debug('Redirected %s to %s' % (ident, to_location))
 			return redirect(to_location, code=303)
 		else:
@@ -190,13 +250,13 @@ class Loris(object):
 	def get_info_conneg(self, request, ident):
 		accept = request.headers.get('accept')
 		if accept and accept not in ('application/json', '*/*'):
-			return Loris.__format_not_supported_response(accept)
+			return Loris._format_not_supported_response(accept)
 
 		elif not self.resolver.is_resolvable(ident):
-			return Loris.__not_resolveable_response(ident)
+			return Loris._not_resolveable_response(ident)
 
-		elif self.config['loris.Loris']['redirect_conneg']:
-			to_location = Loris.__info_json_from_unsecaped_ident(ident)
+		elif self.redirect_conneg:
+			to_location = Loris._info_slash_json_from_unsecaped_ident(ident)
 			logger.debug('Redirected %s to %s' % (ident, to_location))
 			return redirect(to_location, code=301)
 
@@ -204,53 +264,82 @@ class Loris(object):
 			return self.get_info(request, ident)
 
 	def get_info(self, request, ident):
-		
-		# TODO: needs a compliance link header
-
+		headers = Headers()
+		headers['Link'] = RelatedLinksHeader()
+		headers['Link']['profile'] = constants.COMPLIANCE
 		r = Response()
+		r.headers = headers
 
-		info = None
+		try:
+			info, last_mod = self._get_info(ident,request)
+		except (ImageInfoException,resolver.ResolverException) as e:
+			r.response = e
+			r.status_code = e.http_status
+			r.mimetype = 'text/plain'
+			return r
 
-		# Do a quick check of the memory cache
-		if self.config['loris.Loris']['enable_caching']:
-			info = self.info_cache.get(ident)
-
-		if info is None:
-			# 1. resolve the identifier
-			try:
-				fp, fmt = self.resolver.resolve(ident)
-			except resolver.ResolverException as re:
-				r.response = re
-				r.status_code = re.http_status
-				r.mimetype = 'text/plain'
-				return r
-
-			logger.debug('Format: %s' % (fmt,))
-			logger.debug('File Path: %s' % (fp,))
-			logger.debug('Identifier: %s' % (ident,))
-
-			# get the uri (@id)
-			uri = Loris.__base_uri_from_request(request)
-
-			# 2. get the image's info
-			try:
-				info = self.__get_info(ident, uri, fp, fmt)
-			except img_info.ImageInfoException as iie:
-				r.response = iie
-				r.status_code = iie.http_status
-				r.mimetype = 'text/plain'
-				return r
+		ims_hdr = request.headers.get('If-Modified-Since')
+		ims = parse_date(ims_hdr)
+		if (ims and ims > last_mod) or not ims:
+			if last_mod:
+				r.last_modified = last_mod
+			r.automatically_set_content_length
+			r.headers['Cache-control'] = 'public'
+			r.mimetype = 'application/json'
+			r.data = info.to_json()
+			return r
 		else:
-			logger.debug('Got info for %s from info cache' % (ident,))
-
-		r.mimetype = 'application/json' # TODO: right?
+			logger.info('Sent 304 for %s ' % (ident,))
+			r.status_code = 304
+			return r
+		r.mimetype = 'application/json'
 		r.data = info.to_json()
-		
-		if self.config['loris.Loris']['enable_caching']:
-			r.add_etag()
-			r.make_conditional(request)
 		return r
 
+	def _get_info(self,ident,request,src_fp=None,src_format=None):
+		if self.enable_caching:
+			in_cache = ident in self.info_cache
+		else:
+			in_cache = False
+
+		if in_cache:
+			return self.info_cache[ident]
+		else:
+			if not all((src_fp, src_format)):
+				# get_img can pass in src_fp, src_format because it needs them
+				# elsewhere; get_info does not.
+				src_fp, src_format = self.resolver.resolve(ident)
+			uri = Loris._base_uri_from_request(request)
+			formats = self.transformers[src_format].target_formats
+			
+			logger.debug('Format: %s' % (src_format,))
+			logger.debug('File Path: %s' % (src_fp,))
+			logger.debug('Identifier: %s' % (ident,))
+
+			# get the info
+			info = ImageInfo.from_image_file(ident, uri, src_fp, src_format, formats)
+
+			# store
+			if self.enable_caching:
+				self.info_cache[ident] = info
+				# pick up the timestamp... :()
+				info,last_mod = self.info_cache[ident]
+			else:
+				last_mod = None
+
+			return (info,last_mod)
+
+	
+	def _format_from_request(self, r):
+		f = lambda v: v.startswith('image/')
+		preferred_fmts = filter(f, r.accept_mimetypes.values())
+		if len(preferred_fmts) == 0:
+			fmt = self.default_format
+			logger.debug('No image type in accept header, using default: %s' % fmt)
+		else:
+			fmt = constants.FORMATS_BY_MEDIA_TYPE[preferred_fmts[0]]
+			logger.debug('Format from conneg: %s' % fmt)
+		return fmt
 
 	def get_img(self, request, ident, region, size, rotation, quality):
 		'''Get an Image. 
@@ -261,65 +350,60 @@ class Loris(object):
 				The identifier portion of the IIIF URI syntax
 
 		'''
-
 		if '.' in quality:
 			quality,target_fmt = quality.split('.')
 		else:
-			# TODO:, will need to use conneg and possibly redirect
-			# Either way detemine target_fmt from Accept header.
-			target_fmt = 'xxx'
+			target_fmt = self._format_from_request(request)
 
-		# start an image object
-		image = img.Image(ident, region, size, rotation, quality, target_fmt)
+			if self.redirect_conneg:
+				image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
+				logger.debug('Attempting redirect to %s' % (image_request.request_path,))
+				return redirect(image_request.request_path, code=301)
+
+		# start an ImageRequest object
+		image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
 		headers = Headers()
 		headers['Link'] = RelatedLinksHeader()
 		headers['Link']['profile'] = constants.COMPLIANCE
 		r = Response(headers=headers)
 
-		in_cache = False # TODO: replace with blah 'image in cache'
-		# do a quick cache check:
-		if self.config['loris.Loris']['enable_caching'] and in_cache:
-			pass
-			# see http://werkzeug.pocoo.org/docs/wrappers/
-			# make conditional and __return__ if the file exists.
+		if self.enable_caching:
+			in_cache = image_request in self.img_cache
 		else:
-			base_uri = Loris.__base_uri_from_request(request)
+			in_cache = False
+		
+		if in_cache:
+			# TODO: untested until we're making images.
+			fp = self.img_cache[image_request]
+			last_mod = datetime.utcfromtimestamp(path.getctime(fp))
+			ims_hdr = request.headers.get('If-Modified-Since')
+			if ims_hdr:
+				ims = parse_date(ims_hdr)
+				if ims < last_mod:
+					logger.debug('Sent 304 for %s ' % (fp,))
+					r.status_code = 304
+					return r
+			# else we use fp later on
+		else:
 			try:
 				# 1. resolve the identifier
-				fp, src_fmt = self.resolver.resolve(ident)
-				# 2 hand the Image object its info.
-				info = self.__get_info(ident, base_uri, fp, src_fmt)
-				image.info = info
+				src_fp, src_format = self.resolver.resolve(ident)
 
-				# 3. Redirect if appropriate, else set the cannonical 
-				# Link header (non-normative):
+				# 2 hand the Image object its info
+				info = self._get_info(ident, request, src_fp, src_format)[0]
+				image_request.info = info
 
-				# TODO: need tests for:
-				# link header if redirecting is not enabled
-				# redirecting if it is enabled
+				# 3. Redirect if appropriate
+				if self.redirect_cannonical_image_request:
+					if not image_request.is_cannonical:
+						logger.debug('Attempting redirect to %s' % (image_request.c14n_request_path,))
+						return redirect(image_request.c14n_request_path, code=301)
 
-				if self.config['loris.Loris']['redirect_cannonical_image_request']:
-					if not image.is_cannonical:
-						logger.debug('Attempting redirect to %s' % (image.c14n_request_path,))
-						return redirect(image.c14n_request_path, code=301)
-				else:
-					if not image.is_cannonical:
-						cannonical_uri = '%s/%s' % (base_uri, image.c14n_request_path)
-						logger.debug('cannonical_uri: %s' % (cannonical_uri,))
-						headers['Link']['cannonical'] = cannonical_uri
-				#
-				# 4. If caching, use the above to build the cannonical path for 
-				# the cache (all pixel pased)
-				#
-				# 5. Make an image, 
-				#	a. if caching, save it to cache, else to tmp
-				#	b  if caching, make a symlink from the original request path 
-				#		(with pcts) to the cannonical path
-				# 	c. return the image as a file object
-				# 	d. if not caching, clean up
+				# 4. Make an image
+				fp = self._make_image(image_request, src_fp, src_format)
 				
-			except (resolver.ResolverException, img_info.ImageInfoException, 
+			except (resolver.ResolverException, ImageInfoException, 
 				img.ImageException,	RegionSyntaxException, 
 				RegionRequestException, SizeSyntaxException,
 				SizeRequestException, RotationSyntaxException) as e:
@@ -328,73 +412,80 @@ class Loris(object):
 				r.mimetype = 'text/plain'
 				return r
 
+			except transforms.ChangedFormatException as e:
+				to = '/'.join((ident, region, size, rotation, quality, e.to_ext))
+				# TODO: untested
+				return redirect(to)
+
+		r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
+		r.status_code = 200
+		r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
+		headers.add('Cache-control', 'public')
+		headers.add('Content-Length', path.getsize(fp))
+		r.response = file(fp)
+
+		# clean up if we're not caching. 
+		# TODO: untested
+		if not self.enable_caching:
+			# callback
+			def remove_tmp_image(): 
+				unlink(fp)
+			r.call_on_close(remove_tmp_image)
+
 		return r
 
-	def __get_image(self, image):
-		'''Check the cache first, otherwise make a new image.
-
-		Args:
-			image (str): The image's identifier.
-			fp (str): The image's file path on the local file system.
-		Raises:
-			img_info.ImageInfoException when anything goes wrong.
-		Returns:
-			ImageInfo
+	def _make_image(self, image_request, src_fp, src_format):
 		'''
-		if self.config['loris.Loris']['enable_caching']:
-			pass
-		else:
-			pass
-
-
-	def __get_info(self, ident, uri, fp, src_format):
-		'''Check the memory cache, then the file system, and then, as a last 
-		resort, construct a new ImageInfo object from the image.
-
 		Args:
-			uri (str): The image's identifier.
-			fp (str): The image's file path on the local file system.
+			image_request (img.ImageRequest)
+			src_fp (str)
+			src_format (str)
 		Raises:
-			img_info.ImageInfoException when anything goes wrong.
+			transforms.ChangedFormatException 
+				If the transformer fell back to default format.
 		Returns:
-			ImageInfo
+			(str) the fp of the new image
 		'''
-		info = None
-		if self.config['loris.Loris']['enable_caching']:
-			# check memory
-			if ident in self.info_cache:
-				logger.debug('Info found in memory cache for %s' % (ident,))
-				info = self.info_cache.get(ident)
-			else:
-				cache_root = self.config['loris.Loris']['cache_dp']
-				cache_dir = path.join(cache_root, ident)
-				cache_path = path.join(cache_dir, 'info.json')
-				# Check the filesystem
-				if path.exists(cache_path):
-					logger.debug('Info for %s taken from filesystem' % (ident,))
-					info = img_info.ImageInfo.from_json(cache_path)
-				# Else get it
-				else:
-					logger.debug('Need to get info for %s from image...' % (ident,))
-					info = img_info.ImageInfo.from_image_file(ident, uri, fp, src_format)
-					# save to the filesystem
-					if not path.exists(cache_dir): 
-						makedirs(cache_dir, 0755)
-					f = open(cache_path, 'w')
-					f.write(info.to_json())
-					f.close()
-					logger.info('Created: %s' % (cache_path,))
-
-				# Don't forget to keep in memory!
-				self.info_cache[ident] = info
+		# figure out paths, make dirs
+		if self.enable_caching:
+			p = path.join(self.cache_dp, Loris._get_uuid_path())
+			target_dp = path.dirname(p)
+			target_fp = '%s.%s' % (p, image_request.format)
+			if not path.exists(target_dp):
+				makedirs(target_dp)
 		else:
-			logger.debug('Info for %s taken from filesystem' % (uri,))	
-			info = img_info.ImageInfo.from_image_file(ident, uri, fp, src_format)
+			# random str
+			n = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
+			target_fp = '%s.%s' % (path.join(self.tmp_dp, n), image_request.format)
 
-		return info
+		logger.debug('Target fp: %s' % (target_fp,))
+
+		# Get the transformer
+		transformer = self.transformers[src_format]
+
+		try:
+			# TODO: this should just put in image at target_fp, but consider
+			# returning a bool or something anyway
+			transformer.transform(src_fp, target_fp, image_request)
+			#  cache if caching (this makes symlinks for next time)
+			if self.enable_caching:
+				self.img_cache[image_request] = target_fp
+			
+		except transforms.ChangedFormatException:
+			raise
+
+		return target_fp
 
 	@staticmethod
-	def __base_uri_from_request(r):
+	def _get_uuid_path():
+		# Make a pairtree-like path from a uuid
+		# Wonder if this should be time.time() plus some random check chars,
+		# just to make it shorter
+		_id = uuid.uuid1().hex
+		return path.sep.join([_id[i:i+2] for i in range(0, len(_id), 2)])
+
+	@staticmethod
+	def _base_uri_from_request(r):
 		# See http://www-sul.stanford.edu/iiif/image-api/1.1/#url_encoding
 		#
 		# TODO: This works on the embedded dev server but may need revisiting 
@@ -417,25 +508,23 @@ class Loris(object):
 		return uri
 
 	@staticmethod
-	def __info_json_from_unsecaped_ident(ident):
+	def _info_slash_json_from_unsecaped_ident(ident):
 		ident = quote_plus(ident)
 		# leading / or not?
 		return '/%s/info.json' % (ident,)
 
 	@staticmethod
-	def __not_resolveable_response(ident):
+	def _not_resolveable_response(ident):
 		ident = quote_plus(ident)
 		msg = '404: Identifier "%s" does not resolve to an image.' % (ident,)
 		logger.warn(msg)
 		return Response(msg, status=404, content_type='text/plain')
 
 	@staticmethod
-	def __format_not_supported_response(format):
+	def _format_not_supported_response(format):
 		msg = '415: "%s" is not supported.' % (format,)
 		logger.warn(msg)
 		return Response(msg, status=415, content_type='text/plain')
-
-
 
 class RelatedLinksHeader(dict):
 	'''Not a full impl. of rfc 5988 (though that would be fun!); just enough 
@@ -447,9 +536,8 @@ class RelatedLinksHeader(dict):
 	def __str__(self):
 		return ','.join(['<%s>;rel="%s"' % (i[1],i[0]) for i in self.items()])
 
-
-
-
+	def to_header(self):
+		return self.__str__()
 
 if __name__ == '__main__':
 	from werkzeug.serving import run_simple
@@ -461,5 +549,5 @@ if __name__ == '__main__':
 
 	app = create_app(debug=True)
 
-	run_simple('localhost', 5000, app, use_debugger=True, use_reloader=True,
+	run_simple('localhost', 5002, app, use_debugger=True, use_reloader=True,
 		extra_files=extra_files)

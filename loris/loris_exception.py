@@ -8,7 +8,7 @@ class LorisException(Exception):
 		supplied_value (str): the parameter that caused the problem.
 		msg (str): any additional info about what went wrong.
 	"""
-	def __init__(self, http_status, message):
+	def __init__(self, http_status=400, message=''):
 		"""
 		Kwargs:
 			http_status (int): the HTTP status the should be sent with the 

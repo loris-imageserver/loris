@@ -98,7 +98,7 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(resp.headers['content-type'], 'application/json')
 
-		tmp_fp = path.join(self.app.config['loris.Loris']['tmp_dp'], 'loris_test_info.json')
+		tmp_fp = path.join(self.app.app_configs['loris.Loris']['tmp_dp'], 'loris_test_info.json')
 		with open(tmp_fp, 'wb') as f:
 			f.write(resp.data)
 

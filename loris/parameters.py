@@ -209,21 +209,7 @@ class RegionParameter(object):
 
 class RegionSyntaxException(LorisException): pass
 class RegionRequestException(LorisException): pass
-	# # TODO: move
-	# def to_kdu_arg(self, img_info):
-	# 	cmd = ''
-	# 	if self.mode != 'full':
-	# 		cmd = '-region '
-	# 		# The precision of regular floats is frequently not enough, hence 
-	# 		# the use of Decimal.
-	# 		top,left,height,width = self.as_decimals(img_info)
 
-	# 		# "If the request specifies a region which extends beyond the 
-	# 		# dimensions of the source image, then the service should return an 
-	# 		# image cropped at the boundary of the source image."
-	# 		cmd += '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
-	# 		#logr.debug('kdu region parameter: ' + cmd)
-	# 	return cmd
 
 
 class SizeParameter(object):
@@ -313,8 +299,8 @@ class SizeParameter(object):
 			region_dims = (region_parameter.pixel_w, region_parameter.pixel_h)
 
 			# figure out which dimension to keep
-			req_v_actual = [req < actual for req,actual in zip(request_dims, region_dims)]
-			if all(req_v_actual) or not any(req_v_actual):
+			req_vs_actual = [req <= actual for req,actual in zip(request_dims, region_dims)]
+			if all(req_vs_actual) or not any(req_vs_actual):
 				# both in or both out of bounds, use preferred
 				dim_to_keep = preferred_dimension
 			elif request_dims[0] > region_dims[0]:
@@ -362,7 +348,7 @@ class SizeParameter(object):
 		elif not ',' in size_segment:
 			msg = 'Size syntax "%s" is not valid' % (size_segment,)
 			raise SizeSyntaxException(http_status=400, message=msg)
-		elif all([n.isdigit() or n is '' for n in size_segment.split(',')]):
+		elif all([(n.isdigit() or n == '') for n in size_segment.split(',')]):
 			return PIXEL_MODE
 		elif all([n.isdigit() for n in size_segment[1:].split(',')]) and \
 			len(size_segment.split(',')) == 2:
@@ -436,25 +422,9 @@ class RotationParameter(object):
 			raise RotationSyntaxException(http_status=400, message=msg)
 
 		self.uri_value = uri_value
-		self.nearest_90 = int(90 * round(float(self.uri_value) / 90))
-		self.cannonical_uri_value = str(self.nearest_90)
+		self.cannonical_uri_value = uri_value
+		
 		logger.debug('Cannonical rotation is %s' % (self.cannonical_uri_value,))
 
 class RotationSyntaxException(LorisException): pass
-
-# 	def __str__(self):
-# 		return self.uri_value
-
-
-# 	def to_convert_arg(self):
-# 		'''Get a `-rotate` argument for the `convert` utility.
-
-# 		Returns:
-# 			str. E.g. `-rotate 180`.
-# 		'''
-# 		arg = ''
-# 		if self.nearest_90 % 360 != 0: 
-# 			arg = '-rotate ' + str(self.nearest_90)
-# 		return arg
-
 

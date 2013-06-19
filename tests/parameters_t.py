@@ -295,16 +295,16 @@ class Test_K_RotationParameterUnit(_ParameterUnitTest):
 
 	def test_b_rounding(self):
 		rp = RotationParameter('44')
-		self.assertEquals(rp.cannonical_uri_value, '0')
+		self.assertEquals(rp.cannonical_uri_value, '44')
 
 		rp = RotationParameter('46')
-		self.assertEquals(rp.cannonical_uri_value, '90')
+		self.assertEquals(rp.cannonical_uri_value, '46')
 
 		rp = RotationParameter('269')
-		self.assertEquals(rp.cannonical_uri_value, '270')
+		self.assertEquals(rp.cannonical_uri_value, '269')
 
 		rp = RotationParameter('316')
-		self.assertEquals(rp.cannonical_uri_value, '360')
+		self.assertEquals(rp.cannonical_uri_value, '316')
 
 class Test_L_RotationParameterFunctional(_ParameterUnitTest):
 	# TODO: with client once other parameters are impl.
