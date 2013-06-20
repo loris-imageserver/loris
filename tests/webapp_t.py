@@ -84,7 +84,6 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		info = img_info.ImageInfo.from_json(tmp_fp)
 		self.assertEqual(info.width, self.test_jp2_color_dims[0])
 
-	# conneg with redirect
 	def test_info_conneg_does_redirect(self):
 		to_get = '/%s/info' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=False)
