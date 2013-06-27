@@ -42,8 +42,7 @@ class _AbstractTransformer(object):
 
 	def _check_format(self, image_request):
 		if image_request.format not in self.config['target_formats']:
-			default = self.config[default_format]
-			raise ChangedFormatException(image_request.format, self.default_format)
+			raise ChangedFormatException(self.default_format)
 
 	@staticmethod
 	def _round_rotation(rotation):
@@ -79,13 +78,12 @@ class _AbstractTransformer(object):
 		if image_request.size_param.cannonical_uri_value != 'full':
 			wh = (int(image_request.size_param.w),int(image_request.size_param.h))
 			logger.debug(wh)
-			im = im.resize(wh) # is there a way to change in place?
+			im = im.resize(wh)
 
 
 		if image_request.rotation_param.uri_value != '0' and rotate:
 			r = int(image_request.rotation_param.uri_value)
 			im = im.rotate(r, expand=1)
-			# TODO: don't forget about ! (make sure PIL does the right thing)
 
 			# im = im.resize(wh)
 
@@ -98,7 +96,8 @@ class _AbstractTransformer(object):
 
 		if image_request.quality == 'grey':
 			im = im.convert('L')
-		elif image_request.quality == 'bitonal': # not 1-bit w. JPG
+		elif image_request.quality == 'bitonal':
+			# not 1-bit w. JPG
 			im = im.convert('1')
 
 		if image_request.format == 'jpg':
@@ -198,7 +197,7 @@ class JP2_Transformer(_AbstractTransformer):
 		resp = subprocess.check_call(mkfifo_call, shell=True)
 		if resp == 0:
 			logger.debug('OK')
-		# how to handle CalledProcessError?
+		# how to handle CalledProcessError; would have to be a 500?
 
 		# kdu command
 		q = '-quiet'
@@ -242,9 +241,10 @@ class JP2_Transformer(_AbstractTransformer):
 		unlink(fifo_fp)
 
 		JP2_Transformer._derive_with_pil(im, target_fp, image_request, rotate=rotate_downstream)
+		
 
-class ChangedFormatException(object):
+class ChangedFormatException(Exception):
 	def __init__(self, to_ext):
-		msg = 'Changed request format from %s to %s' % (from_ext, to_ext)
 		super(ChangedFormatException, self).__init__()
+		msg = 'Changed request format to %s' % (to_ext,)
 		self.to_ext = to_ext

@@ -127,15 +127,20 @@ class ImageRequest(object):
 	@property
 	def request_path(self):
 		if self._request_path is None:
-			escaped_ident = quote_plus(self.ident)
-			p = '/'.join((escaped_ident, self.region_value, self.size_value, self.rotation_value, self.quality))
+			p = '/'.join((
+				quote_plus(self.ident), 
+				self.region_value, 
+				self.size_value, 
+				self.rotation_value, 
+				self.quality
+			))
 			self._request_path = '%s.%s' % (p,self.format)
 		return self._request_path
 
 	@property
 	def c14n_request_path(self):
 		if self._c14n_request_path is None:
-			p = '/'.join((self.ident, 
+			p = '/'.join((quote_plus(self.ident), 
 				self.region_param.cannonical_uri_value, 
 				self.size_param.cannonical_uri_value, 
 				self.rotation_param.cannonical_uri_value, 

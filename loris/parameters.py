@@ -363,38 +363,6 @@ class SizeParameter(object):
 class SizeSyntaxException(LorisException): pass
 class SizeRequestException(LorisException): pass
 
-
-# 	# TODO: MOVE. 
-# 	def to_convert_arg(self):
-# 		'''Construct a `-resize <geometry>` argument for the convert utility.
-
-# 		Returns:
-# 			str.
-
-# 		Raises:
-# 			SizeSyntaxException.
-# 		'''
-# 		cmd = ''
-# 		if self.uri_value != 'full':
-# 			cmd = '-resize '
-# 			if self.mode == 'pct':
-# 				cmd += str(self.pct) + '%'
-# 			elif self.w and not self.h:
-# 				cmd += str(self.w)
-# 			elif self.h and not self.w:
-# 				cmd += 'x' + str(self.h)
-# 			# IIIF and Imagmagick use '!' in opposite ways: to IIIF, the 
-# 			# presense of ! means that the aspect ratio should be preserved, to
-# 			# `convert` it means that it should be ignored.
-# 			elif self.w and self.h and not self.force_aspect:
-# 				cmd +=  str(self.w) + 'x' + str(self.h) #+ '\>'
-# 			elif self.w and self.h and self.force_aspect:
-# 				cmd += str(self.w) + 'x' + str(self.h) + '!'
-# 			else:
-# 				msg = 'Could not construct a convert argument from ' + self.uri_value
-# 				raise SizeRequestException(500, msg)
-# 		return cmd
-
 class RotationParameter(object):
 	'''Internal representation of the rotation slice of an IIIF image URI.
 

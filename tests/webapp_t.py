@@ -1,12 +1,15 @@
 # webapp_t.py
 #-*- coding: utf-8 -*-
 
+from datetime import datetime
 from loris import img_info
 from loris import webapp
-from os import path
+from os import path, listdir
+from time import sleep
+from werkzeug.datastructures import Headers
+from werkzeug.http import parse_date, http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
-from werkzeug.datastructures import Headers
 import json
 import loris_t
 
@@ -131,7 +134,6 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		resp = self.client.get(to_get, headers=h, follow_redirects=False)
 		self.assertEqual(resp.status_code, 301)
 
-
 	def test_image_redirect_to_cannonical(self):
 		self.app.redirect_cannonical_image_request = True
 		to_get = '/%s/0,0,500,600/!550,600/0/native.jpg' % (self.test_jp2_color_id,)
@@ -144,6 +146,66 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		resp = self.client.get(to_get, follow_redirects=False)
 		self.assertEqual(resp.status_code, 200)
 
+	def test_img_sends_304(self):
+		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+
+		# get an image
+		resp = self.client.get(to_get)
+		self.assertEqual(resp.status_code, 200)
+		lmod =  resp.headers['Last-Modified']
+
+		sleep(1) # just make sure.
+		headers = Headers([('if-modified-since', lmod)])
+		resp = self.client.get(to_get, headers=headers)
+		self.assertEqual(resp.status_code, 304)
+
+		sleep(1)
+		dt = http_date(datetime.utcnow()) # ~2 seconds later
+		headers = Headers([('if-modified-since', dt)])
+		resp = self.client.get(to_get, headers=headers)
+		self.assertEqual(resp.status_code, 304)
+
+	def test_info_sends_304(self):
+		to_get = '/%s/info.json' % (self.test_jp2_color_id,)
+
+		# get an image
+		resp = self.client.get(to_get)
+		self.assertEqual(resp.status_code, 200)
+		lmod =  resp.headers['Last-Modified']
+
+		sleep(1) # just make sure.
+		headers = Headers([('if-modified-since', lmod)])
+		resp = self.client.get(to_get, headers=headers)
+		self.assertEqual(resp.status_code, 304)
+
+		sleep(1)
+		dt = http_date(datetime.utcnow()) # ~2 seconds later
+		headers = Headers([('if-modified-since', dt)])
+		resp = self.client.get(to_get, headers=headers)
+		self.assertEqual(resp.status_code, 304)
+
+	def test_cleans_up_when_not_caching(self):
+		self.app.enable_caching = False
+		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+		resp = self.client.get(to_get)
+		# callback should delete the image before the test ends, so the tmp dir
+		# should not contain any files (there may be dirs)
+		tmp = self.app.tmp_dp
+		any_files = any([path.isfile(path.join(tmp, n)) for n in listdir(tmp)])
+		self.assertTrue(not any_files)
+
+	def redirects_to_default_format(self):
+		to_get = '/%s/full/full/0/native.pdf' % (self.test_jp2_color_id,)
+		resp = self.client.get(to_get, follow_redirects=False)
+		self.assertEqual(resp.status_code, 301)
+
+	def redirects_to_default_format_follow(self):
+		to_get = '/%s/full/full/0/native.pdf' % (self.test_jp2_color_id,)
+		resp = self.client.get(to_get, follow_redirects=True)
+		self.assertEqual(resp.status_code, 200)
+		self.assertEqual(resp.headers['content-type'], 'image/jpeg')
+
+	
 
 def suite():
 	import unittest

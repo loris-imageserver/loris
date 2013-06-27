@@ -36,7 +36,7 @@ from parameters import SizeSyntaxException
 from urllib import unquote, quote_plus
 from werkzeug.datastructures import Headers, ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
-from werkzeug.http import parse_date, parse_accept_header
+from werkzeug.http import parse_date, parse_accept_header, http_date
 from werkzeug.routing import Map, Rule
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response # TODO: BaseResponse may be enough
@@ -177,6 +177,7 @@ class Loris(object):
 		self.transformers['jp2'] = self._load_transformer('transforms.jp2')
 
 		rules = [
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>.<target_fmt>', endpoint='img'),
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
@@ -279,8 +280,11 @@ class Loris(object):
 			return r
 
 		ims_hdr = request.headers.get('If-Modified-Since')
+
 		ims = parse_date(ims_hdr)
-		if (ims and ims > last_mod) or not ims:
+		last_mod = parse_date(http_date(last_mod)) # see note under get_img
+
+		if (ims and ims < last_mod) or not ims:
 			if last_mod:
 				r.last_modified = last_mod
 			r.automatically_set_content_length
@@ -331,8 +335,8 @@ class Loris(object):
 
 	
 	def _format_from_request(self, r):
-		f = lambda v: v.startswith('image/')
-		preferred_fmts = filter(f, r.accept_mimetypes.values())
+		filt = lambda v: v.startswith('image/')
+		preferred_fmts = filter(filt, r.accept_mimetypes.values())
 		if len(preferred_fmts) == 0:
 			fmt = self.default_format
 			logger.debug('No image type in accept header, using default: %s' % fmt)
@@ -341,7 +345,7 @@ class Loris(object):
 			logger.debug('Format from conneg: %s' % fmt)
 		return fmt
 
-	def get_img(self, request, ident, region, size, rotation, quality):
+	def get_img(self, request, ident, region, size, rotation, quality, target_fmt=None):
 		'''Get an Image. 
 		Args:
 			request (Request): 
@@ -350,12 +354,11 @@ class Loris(object):
 				The identifier portion of the IIIF URI syntax
 
 		'''
-		if '.' in quality:
-			quality,target_fmt = quality.split('.')
-		else:
+		if target_fmt == None:
 			target_fmt = self._format_from_request(request)
 
 			if self.redirect_conneg:
+				logger.debug(ident)
 				image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 				logger.debug('Attempting redirect to %s' % (image_request.request_path,))
 				return redirect(image_request.request_path, code=301)
@@ -372,19 +375,28 @@ class Loris(object):
 			in_cache = image_request in self.img_cache
 		else:
 			in_cache = False
-		
+
 		if in_cache:
-			# TODO: untested until we're making images.
 			fp = self.img_cache[image_request]
-			last_mod = datetime.utcfromtimestamp(path.getctime(fp))
+
+			img_last_mod = datetime.utcfromtimestamp(path.getmtime(fp))
+			# The stamp from the FS needs to be rounded using the same algo
+			# as when went sent it, so for an accurate comparison turn it into
+			# an http date and then parse it again :( :
+			img_last_mod = parse_date(http_date(img_last_mod))
 			ims_hdr = request.headers.get('If-Modified-Since')
+
+			logger.debug("From FS HTTP: " + http_date(img_last_mod))
+			logger.debug("IMS Header HTTP: " + http_date(img_last_mod))
+
 			if ims_hdr:
-				ims = parse_date(ims_hdr)
-				if ims < last_mod:
+				logger.debug("From FS (native, rounded): " + str(img_last_mod))
+				logger.debug("IMS Header (parsed): " + str(parse_date(ims_hdr)))
+				ims_hdr = parse_date(ims_hdr) # catch parsing errors?
+				if ims_hdr >= img_last_mod:
 					logger.debug('Sent 304 for %s ' % (fp,))
 					r.status_code = 304
 					return r
-			# else we use fp later on
 		else:
 			try:
 				# 1. resolve the identifier
@@ -413,9 +425,8 @@ class Loris(object):
 				return r
 
 			except transforms.ChangedFormatException as e:
-				to = '/'.join((ident, region, size, rotation, quality, e.to_ext))
-				# TODO: untested
-				return redirect(to)
+				to = '%s.%s' % ('/'.join((ident, region, size, rotation, quality)), e.to_ext)
+				return redirect(to, code=301)
 
 		r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
 		r.status_code = 200
@@ -424,13 +435,8 @@ class Loris(object):
 		headers.add('Content-Length', path.getsize(fp))
 		r.response = file(fp)
 
-		# clean up if we're not caching. 
-		# TODO: untested
 		if not self.enable_caching:
-			# callback
-			def remove_tmp_image(): 
-				unlink(fp)
-			r.call_on_close(remove_tmp_image)
+			r.call_on_close(unlink(fp))
 
 		return r
 
@@ -464,8 +470,6 @@ class Loris(object):
 		transformer = self.transformers[src_format]
 
 		try:
-			# TODO: this should just put in image at target_fp, but consider
-			# returning a bool or something anyway
 			transformer.transform(src_fp, target_fp, image_request)
 			#  cache if caching (this makes symlinks for next time)
 			if self.enable_caching:
