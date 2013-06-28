@@ -72,7 +72,7 @@ class _AbstractTransformer(object):
 				True by default; can be set to False in case the rotation was
 				done further upstream.
 		Returns:
-			None (puts an image at target_fp)
+			void (puts an image at target_fp)
 
 		'''
 		if image_request.size_param.cannonical_uri_value != 'full':

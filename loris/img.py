@@ -21,15 +21,25 @@ logger = get_logger(__name__)
 class ImageRequest(object):
 	'''
 	Slots:
-		ident
-		region_value
-		size_value
-		rotation_value
-		quality
-		format
-		region_param
-		size_param
-		rotation_param
+		ident (str)
+		region_value (str):
+			copied exactly from the URI
+		size_value (str)
+			copied exactly from the URI
+		rotation_value (str)
+			copied exactly from the URI
+		quality (str)
+			copied exactly from the URI
+		format (str)
+			3 char string from the URI, (derived from) HTTP headers, or else the 
+			default. 
+		region_param (parameters.RegionParameter):
+			See RegionParameter.__slots__. The region is represented there as 
+			both pixels and decmials.
+		size_param (parameters.SizeParameter)
+			See SizeParameter.__slots__.
+		rotation_param (parameters.RotationParameter)
+			See RotationParameter.__slots__.
 		info (ImageInfo):
 		is_cannonical (bool):
 			True if this is a cannonical path.

@@ -265,9 +265,15 @@ class Loris(object):
 			return self.get_info(request, ident)
 
 	def get_info(self, request, ident):
+		# headers['Link'] = RelatedLinksHeader()
+		# headers['Link']['profile'] = constants.COMPLIANCE
+
+		link_header = RelatedLinksHeader()
+		link_header['profile'] = constants.COMPLIANCE
+		
 		headers = Headers()
-		headers['Link'] = RelatedLinksHeader()
-		headers['Link']['profile'] = constants.COMPLIANCE
+		headers['Link'] = link_header.to_header()
+
 		r = Response()
 		r.headers = headers
 
@@ -366,9 +372,16 @@ class Loris(object):
 		# start an ImageRequest object
 		image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
+		# headers = Headers()
+		# headers['Link'] = RelatedLinksHeader()
+		# headers['Link']['profile'] = constants.COMPLIANCE
+
 		headers = Headers()
-		headers['Link'] = RelatedLinksHeader()
-		headers['Link']['profile'] = constants.COMPLIANCE
+
+		link_header = RelatedLinksHeader()
+		link_header['profile'] = constants.COMPLIANCE
+		headers['Link'] = link_header.to_header()
+
 		r = Response(headers=headers)
 
 		if self.enable_caching:
@@ -553,5 +566,5 @@ if __name__ == '__main__':
 
 	app = create_app(debug=True)
 
-	run_simple('localhost', 5002, app, use_debugger=True, use_reloader=True,
+	run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
 		extra_files=extra_files)

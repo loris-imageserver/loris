@@ -11,6 +11,9 @@ import loris_exception
 logger = get_logger(__name__)
 
 class _AbstractResolver(object):
+	def __init__(self, config):
+		self.config = config
+
 	def is_resolvable(self, ident):
 		"""
 		The idea here is that in some scenarios it may be cheaper to check 
@@ -46,7 +49,8 @@ class _AbstractResolver(object):
 
 class Resolver(_AbstractResolver):
 	def __init__(self, config):
-		self.cache_root = config['src_img_root']
+		super(Resolver, self).__init__(config)
+		self.cache_root = self.config['src_img_root']
 
 	def is_resolvable(self, ident):
 		ident = unquote(ident)

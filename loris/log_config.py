@@ -41,19 +41,19 @@ def get_logger(name):
 
 	formatter = logging.Formatter(fmt=LOG_FMT)
 
-	# for printing to stderr
+	# FOR PRINTING TO STDERR
 	err_handler = logging.StreamHandler(sys.__stderr__)
 	err_handler.addFilter(StdErrFilter())
 	err_handler.setFormatter(formatter)
 	logger.addHandler(err_handler)
 	
-	# For printing to stdout
+	# FOR PRINTING TO STDOUT
 	out_handler = logging.StreamHandler(sys.__stdout__)
 	out_handler.addFilter(StdOutFilter())
 	out_handler.setFormatter(formatter)
 	logger.addHandler(out_handler)
 
-	# # stderr to a file
+	# # STDERR TO A FILE
 	# err_fp = '%s.err' % (os.path.join(LOG_DIR, name),)
 	# rferr_handler = logging.handlers.RotatingFileHandler(err_fp,
 	# 	maxBytes=MAX_ERR_LOG_SIZE, 
@@ -62,7 +62,7 @@ def get_logger(name):
 	# rferr_handler.setFormatter(formatter)
 	# logger.addHandler(rferr_handler)
 
-	# # stdout to a file
+	# # STDOUT TO A FILE
 	# out_fp = '%s.out' % (os.path.join(LOG_DIR, name),)
 	# rfout_handler = logging.handlers.RotatingFileHandler(out_fp,
 	# 	maxBytes=MAX_OUT_LOG_SIZE, 

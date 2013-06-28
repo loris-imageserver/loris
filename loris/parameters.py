@@ -369,8 +369,6 @@ class RotationParameter(object):
 	Slots:
 		uri_value (str)
 		cannonical_uri_value (str)
-		nearest_90 (int):
-			Any value passed is rounded to the nearest multiple	of 90.
 	'''
 	__slots__ = ('uri_value','cannonical_uri_value','nearest_90')
 	def __init__(self, uri_value):

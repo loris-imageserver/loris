@@ -8,7 +8,6 @@ from pwd import getpwnam
 from grp import getgrnam
 from setuptools import setup
 from sys import stderr, stdout
-import ConfigParser
 import os
 import loris
 import shutil
@@ -33,12 +32,9 @@ setup(
 )
 
 # other stuff to other places...
-this_dir = os.path.abspath(os.path.dirname(__file__))
+this_dp = os.path.abspath(os.path.dirname(__file__))
 
-conf_src = os.path.join(this_dir, 'etc', 'loris.conf')
-conf = ConfigParser.RawConfigParser()
-conf.read(conf_src)
-
+conf_src = os.path.join(this_dp, 'etc', 'loris.conf')
 user = getpwnam(conf.get('run_as', 'name')).pw_uid
 group = getgrnam(conf.get('run_as', 'group')).gr_gid
 
@@ -56,7 +52,7 @@ for d in dirs:
 		stderr.write('Unable to create directory: ' + dirs[d] + '\n')
 
 # copy config files to /etc/loris:
-log_src = os.path.join(this_dir, 'etc', 'logging.conf')
+log_src = os.path.join(this_dp, 'etc', 'logging.conf')
 target = dirs['etc']
 try:
 	for src in (conf_src, log_src):
@@ -71,7 +67,7 @@ except IOError:
 	stderr.write('Unable to copy configuration file to ' + target + '\n')
 
 # copy www files
-www_src = os.path.join(this_dir, 'www')
+www_src = os.path.join(this_dp, 'www')
 www_target = conf.get('directories', 'www')
 try:
 	if not os.path.exists(www_target):
