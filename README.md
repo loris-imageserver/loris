@@ -42,7 +42,9 @@ should be self-explanatory and the
 some options:
 
 ### Options
- * __Default Format__. 
+ * __Default Format__. Any three character value for a supported format from 
+   [Section 4.5](http://goo.gl/3BqIJ) of the spec. That's `jpg`,`png`, or `tif` 
+   OOTB.
  * __Enable Caching__. No Memory or filesystem caching will happen and 
    `Last-Modified` headers not be sent if `enable_caching=0`. 
  * __Redirect Base URIs.__ When a Base URI is dereferenced, should the image info be 
