@@ -21,11 +21,11 @@
 |grey                          |       |       |x      |        |x    |
 |bitonal                       |       |       |x      |        |x    |
 |__Format__                    |       |       |       |        |     |
-|jpeg                          |       |x      |x      |        |x    |
+|jpg                           |       |x      |x      |        |x    |
 |tif                           |       |       |       |x       |x    |
 |png                           |       |       |x      |        |x    |
 |gif                           |       |       |       |x       |     |
 |pdf                           |       |       |       |x       |     |
 |jp2                           |       |       |       |x       |     |
 |__Image Information  Request__|       |       |       |        |     |
-|json                          |x      |x      |x      |x       |x    |
+|json                          |x      |x      |x      |        |x    |

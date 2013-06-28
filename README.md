@@ -1,9 +1,9 @@
-![loris icon](https://github.com/pulibrary/loris/blob/master/www/icons/loris-icon-name.png?raw=true)  Loris IIIF Image Server
-=======================
+# ![loris icon](www/icons/loris-icon-name.png?raw=true)  Loris IIIF Image Server
 
 ## Do Not!
 Run `setup.py` until you've read this file. You have some work to do. In 
 particular, you need to:
+
  * [Install dependencies](#dependencies)
  * [Set configuration options](#configuration)
  * [Run tests](#testing-and-developmentdebugging)
@@ -12,7 +12,7 @@ particular, you need to:
  * [Look at the tranformations and make sure the format you have/want are supported](#image-transformations)
 
 ## Dependencies
-You need [Werkzeug](http://goo.gl/3IWJn) and 
+You need [Werkzeug](http://goo.gl/3IWJn) (`>=0.8.3` -- thanks ) and 
 [PIL](http://goo.gl/E2Xv4). `setup.py` will install Werkzeug
 but:
 
@@ -100,10 +100,8 @@ overridden in the `create_app` function__. This is done so that we can
 calculate some locations based on the application directory.
 
 Therefore, if you need to add additional properties, e.g. in your resolver or
-transformations, you'll need to add them in two places: in `etc/loris.conf` and 
-in the first `if` block in `webapp.create_app`.
-
-
+transformations, you may need to add them in two places: in `etc/loris.conf` and 
+in the first `if` block of `webapp.create_app`.
 
 ## Testing and Development/Debugging
 It is more than likely that you're going to need to add or tweak something, 
@@ -112,19 +110,15 @@ something else. Even if that's not the case, with the image library dependencies
 being so tricky, your going to want to run the tests to make sure everything is
 in order.
 
-Before you do that, you'll need to get all of the dependencies installed. Skip
-down to _Installation Notes_ to do that, and then come back here.
+Before you do that, you'll need to get all of the [dependencies](#dependencies) 
+installed.
 
-
-
-## Running Tests
+### Running Tests
 To run all of the tests, from the `/loris` directory (not `/loris/loris`) just 
 run `./test.py`. If you just want to run the tests for a single module, do, e.g.
 `python -m unittest -v tests.parameters_t` from the same dir as above, 
 
-
-
-## Development/Debugging
+### Development/Debugging
 `loris/webapp.py` is executable, and will start a [development server on port
 5004](http://localhost:5004). From there you can work with the images that are 
 included for testing by plugging any of these into the identifier slot:
@@ -142,36 +136,34 @@ able to comment existing code in and out to get what you need. If you need to do
 something radically different, have a look at the [Logging HOWTO](http://docs.python.org/2/howto/logging.html).
 
 ## Resolving Identifiers
-
-The supplied implementation just unescapes the identifier tacks constant path 
-onto the front. e.g. if `ident = 01%2F02%2F0001.jp2` and
+The supplied implementation just unescapes the identifier and tacks constant 
+path onto the front. e.g. if `ident = 01%2F02%2F0001.jp2` and
 
 ```ini
 [resolver.Resolver] 
 src_img_root=/usr/local/share/images
 ```
 
-then `Resolver.resolve(ident)` will return 
+then `app.resolver.resolve(ident)` will return 
 
 ```
 /usr/local/share/images/01/02/0001.jp2
 ```
 
 You'll probably want to do something smarter. See `resolver._AbstractResolver` 
-for details. Any properties you add in the `[resolver.Resolver]` section will 
-automatically be in `self.config` as long as you subclass `_AbstractResolver`.
+for details. Note that any properties you add in the `[resolver.Resolver]` 
+section will be in `self.config` as long as you subclass `_AbstractResolver`.
 
 ## Image Transformations
-
 Loris is designed to make it possible for you to implement image 
 transformations using using any libraries and utilities you choose. The 
 transformers are loaded dynamically at startup, and are configured in 
 `etc/loris.conf`. See `transforms.py` for details. Transformers for JPEG, TIFF, 
-and JP2 (as long as you provide the Kakadu dependencies) using the PIL are 
-supplied.
+and JP2 (as long as you provide the Kakadu dependencies) using the Python 
+Imaging Library are provided. 
 
 More about this. Every `_AbstractTransformer` implementation must implement a 
-`transform()` method that receives a path to the source file (`src_fp`, the 
+`transform()` method that receives a path to the source file (`src_fp`), the 
 path to where the output file should go (`target_fp`), and an instance of an 
 `img.ImageRequest` object. This object should contain all of the attributes you 
 could ever possbily need for working with an image library. See
@@ -193,246 +185,5 @@ its confg dict.
 At least for now, all implementation must be in (or aliased in) the 
 transforms module.
 
-IIIF 1.1 Compliance
--------------------
-<table>
-  <tbody>
-    <tr>
-      <th></th>
-      <td><span style="font-weight: bold;">Level 0</td> 
-      <th>Level 1</th>
-      <th>Level 2</th>
-      <th>Optional</th>
-      <th>Loris</span></th>
-    </tr>
-    <tr>
-      <td><strong>Region</strong></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td> 
-    </tr>
-    <tr>
-      <td>full</td>
-      <td>x</td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>x,y,w,h</td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>pct:x,y,w,h</td>
-      <td></td>
-      <td><br>
-      </td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td><strong>Size</strong></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>full</td>
-      <td>x</td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>w,</td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>,h</td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>pct:x</td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>w,h</td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>!w,h</td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td><strong>Rotation</strong></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td> 0</td>
-      <td>x</td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td> 90,180,270</td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>arbitrary</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-    </tr>
-    <tr>
-      <td><strong>Quality</strong></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td> native</td>
-      <td>x</td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>color</td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>grey</td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>bitonal</td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td><strong>Format</strong></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>jpeg</td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>tif</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td>x</td>
-    </tr>
-    <tr>
-      <td>png</td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-    <tr>
-      <td>gif</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>pdf</td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td>x</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td><strong>Image Information Request</strong></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td> json response</td>
-      <td>x</td>
-      <td>x</td>
-      <td>x</td>
-      <td></td>
-      <td>x</td> 
-    </tr>
-  </tbody>
-</table>
-
-
-
-
-
+## IIIF 1.1 Compliance
+See [doc/compliance.md](doc/compliance.md)

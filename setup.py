@@ -19,7 +19,7 @@ install_requires = []
 try:
 	import werkzeug
 except ImportError:
-	install_requires.append('werkzeug>=0.8.1')
+	install_requires.append('werkzeug>=0.8.3')
 
 scripts = ['bin/loris-cache_clean.sh']
 
