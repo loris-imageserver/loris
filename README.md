@@ -12,7 +12,7 @@ particular, you need to:
  * [Look at the tranformations and make sure the format you have/want are supported](#image-transformations)
 
 ## Dependencies
-You need [Werkzeug](http://goo.gl/3IWJn) (`>=0.8.3` -- thanks ) and 
+You need [Werkzeug](http://goo.gl/3IWJn) (`>=0.8.3`) and 
 [PIL](http://goo.gl/E2Xv4). `setup.py` will install Werkzeug
 but:
 
