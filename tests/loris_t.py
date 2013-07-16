@@ -65,22 +65,23 @@ class LorisTest(unittest.TestCase):
 		unittest.TestCase.tearDown(self)
 		# empty the cache
 		dps = (
-			self.app.app_configs['loris.Loris']['cache_dp'],
-			self.app.app_configs['img_info.InfoCache']['cache_dp'],
+			self.app.app_configs['img.ImageCache']['cache_dp'],
 			self.app.app_configs['img.ImageCache']['cache_links'],
+			self.app.app_configs['img_info.InfoCache']['cache_dp'],
 			self.app.tmp_dp
 		)
 		for dp in dps:
-			for node in listdir(dp):
-				p = path.join(dp, node)
-				if path.isdir(p):
-					rmtree(p)
-					logger.debug('Removed %s' % (p,))
-				else: # TODO: make sure this covers symlinks
-					unlink(p)
-					logger.debug('Removed %s' % (p,))
-			rmtree(dp)
-			logger.debug('Removed %s' % (dp,))
+			if path.exists(dp):
+				for node in listdir(dp):
+					p = path.join(dp, node)
+					if path.isdir(p):
+						rmtree(p)
+						logger.debug('Removed %s' % (p,))
+					else: # TODO: make sure this covers symlinks
+						unlink(p)
+						logger.debug('Removed %s' % (p,))
+				rmtree(dp)
+				logger.debug('Removed %s' % (dp,))
 
 	def get_jpeg_dimensions(self, path):
 		"""Get the dimensions of a JPEG

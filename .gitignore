@@ -12,3 +12,7 @@ dist/
 *.swp
 
 *.local
+
+rmdirs.sh
+
+files.txt

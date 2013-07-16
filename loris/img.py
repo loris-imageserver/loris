@@ -198,8 +198,9 @@ class ImageRequest(object):
 class ImageCache(dict):
 	'''
 	'''
-	def __init__(self, root):
-		self._links_root = root
+	def __init__(self, cache_root, links_root):
+		self._links_root = links_root
+		self.cache_root = links_root
 
 	def __contains__(self, image_request):
 		return path.exists(self._get_cache_path(image_request))

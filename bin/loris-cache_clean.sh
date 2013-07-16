@@ -6,27 +6,28 @@
 #
 # CAUTION - This script deletes files. Be careful where you point it!
 #
-# @author <jstroop@princeton.edu>
-#
+
 LOG="/var/log/loris/cache_clean.log"
-# Check that the cache directory
-CACHE_DIR="/var/cache/loris"
 
-# is below a certain size (in KB)
-REDUCE_TO=1048576 #1 gb in kb
-# REDUCE_TO=524288000 #500 gb in kb
-# REDUCE_TO=1073741824 # 1 TB in kb
+# Check that the cache directory...
+IMG_CACHE_DIR="/var/cache/loris/img"
+IMG_LINKS_DIR="/var/cache/loris/links"
 
-# and when it is larger, start deleting files accessed more than a certain 
+# ...is below a certain size...
+REDUCE_TO=1048576 #1 gb
+# REDUCE_TO=524288000 #500 gb
+# REDUCE_TO=1073741824 # 1 tb
+
+# ...and when it is larger, start deleting files accessed more than a certain 
 # number of days ago until the cache is smaller than the configured size.
 
-# Note the name of the variable _REDUCE_TO_: this should not be the total 
-# amount of space  you can afford for the cache, but instead the total space 
+# Note the name of the variable __REDUCE_TO__: this should not be the total 
+# amount of space you can afford for the cache, but instead the total space 
 # you can afford MINUS the amount you expect the cache to grow in between 
 # executions of this script.
 
 current_usage () {
-	echo $(du -sk $CACHE_DIR | cut -f 1)
+	echo $(du -sk $IMG_CACHE_DIR | cut -f 1)
 }
 
 delete_total=0
@@ -40,16 +41,16 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 	echo $usage
 
 	# files. loop (instead of -delete) so that we can keep count
-	for f in $(find $CACHE_DIR -type f -atime +$max_age); do
+	for f in $(find $IMG_CACHE_DIR -type f -atime +$max_age); do
 		rm $f
 		let delete_total+=1
 	done
 
 	# broken symlinks
-	find -L $CACHE_DIR -type l -delete
+	find -L $IMG_LINKS_DIR -type l -delete
 	
 	# empty directories
-	find $CACHE_DIR -mindepth 1 -type d -empty -delete
+	find $IMG_CACHE_DIR -mindepth 1 -type d -empty -delete
 
 	let max_age-=1
 	usage=$(current_usage)

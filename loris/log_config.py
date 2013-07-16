@@ -16,7 +16,7 @@ LOG_LEVEL = logging.DEBUG
 # # Note that the LOG_DIR must be writable by the application owner.
 # # You'll probably want to comment out the stderr/stdout handlers as well.
 
-# LOG_DIR = '/var/log/loris'
+LOG_DIR = '/var/log/loris' # if you change this, change it in setup.py too!
 # MAX_OUT_LOG_SIZE = 5242880 # 5 MB
 # MAX_OUT_LOG_BACKUPS = 10
 # MAX_ERR_LOG_SIZE = 5242880 # 5 MB

@@ -75,9 +75,9 @@ def create_app(debug=False):
 		# override some stuff to look at relative directories.
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
 		config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
-		config['loris.Loris']['cache_dp'] = '/tmp/loris/cache/img'
 		config['loris.Loris']['enable_caching'] = True
 		config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
+		config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
 		config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
 		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
 	else:
@@ -90,9 +90,9 @@ def create_app(debug=False):
 	try:
 		dirs_to_make.append(config['loris.Loris']['tmp_dp'])
 		if config['loris.Loris']['enable_caching']:
-			dirs_to_make.append(config['loris.Loris']['cache_dp'])
-			dirs_to_make.append(config['img_info.InfoCache']['cache_dp'])
+			dirs_to_make.append(config['img.ImageCache']['cache_dp'])
 			dirs_to_make.append(config['img.ImageCache']['cache_links'])
+			dirs_to_make.append(config['img_info.InfoCache']['cache_dp'])
 		[makedirs(d) for d in dirs_to_make if not path.exists(d)]
 	except OSError as ose: 
 		from sys import exit
@@ -164,7 +164,6 @@ class Loris(object):
 		_loris_config = self.app_configs['loris.Loris']
 		self.tmp_dp = _loris_config['tmp_dp']
 		self.www_dp = _loris_config['www_dp']
-		self.cache_dp = _loris_config['cache_dp']
 		self.enable_caching = _loris_config['enable_caching']
 		self.redirect_conneg = _loris_config['redirect_conneg']
 		self.redirect_base_uri = _loris_config['redirect_base_uri']
@@ -192,7 +191,9 @@ class Loris(object):
 
 		if self.enable_caching:
 			self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
-			self.img_cache = img.ImageCache(self.app_configs['img.ImageCache']['cache_links'])
+			cache_links = self.app_configs['img.ImageCache']['cache_links']
+			cache_dp = self.app_configs['img.ImageCache']['cache_dp']
+			self.img_cache = img.ImageCache(cache_dp,cache_links)
 
 	def _load_transformer(self, name):
 		clazz = self.app_configs[name]['impl']
@@ -467,7 +468,7 @@ class Loris(object):
 		'''
 		# figure out paths, make dirs
 		if self.enable_caching:
-			p = path.join(self.cache_dp, Loris._get_uuid_path())
+			p = path.join(self.img_cache.cache_root, Loris._get_uuid_path())
 			target_dp = path.dirname(p)
 			target_fp = '%s.%s' % (p, image_request.format)
 			if not path.exists(target_dp):
