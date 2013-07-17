@@ -43,8 +43,8 @@ In addition to a bunch of directory paths (items that end with `_dp`) which
 should be self-explanatory and the 
 [transformation options explained below](#image-transformations), there are 
 some options:
- * __`run_as_user` and `run_as_group`__. These are the user and group that will 
-   own the loris processes. `When setup.py` run, everything is adusted to suit
+ * `run_as_user` and `run_as_group`. These are the user and group that will 
+   own the loris processes. When `setup.py` is run, everything is adusted to suit
    this owner.
  * __Default Format__. Default format to return when no request format is 
    supplied in the URI (`*.jpg`, `*.png`, etc.) or HTTP `Accept` header. Value 
