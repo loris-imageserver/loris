@@ -210,10 +210,11 @@ class JP2_Transformer(_AbstractTransformer):
 		if int(image_request.rotation_param.uri_value) % 90 == 0:
 			rotate_downstream = False
 			kdu_rotation_arg = self._rotation_to_kdu(image_request.rotation_param)
+			kdu_cmd = ' '.join((self.kdu_expand,q,i,region_arg,kdu_rotation_arg,o))
 		else:
 			rotate_downstream = True
+			kdu_cmd = ' '.join((self.kdu_expand,q,i,region_arg,o))
 
-		kdu_cmd = ' '.join((self.kdu_expand,q,i,region_arg,kdu_rotation_arg,o))
 
 		logger.debug('Calling: %s' % (kdu_cmd,))
 

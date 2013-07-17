@@ -11,6 +11,9 @@ particular, you need to:
  * [Configure logging](#logging)
  * [Look at the tranformations and make sure the format you have/want are supported](#image-transformations)
 
+After all that you can run `python ./setup.py install` and it will put 
+everything in the correct places and set permissions.
+
 ## Dependencies
 You need [Werkzeug](http://goo.gl/3IWJn) (`>=0.8.3`) and 
 [PIL](http://goo.gl/E2Xv4). `setup.py` will install Werkzeug
@@ -40,7 +43,9 @@ In addition to a bunch of directory paths (items that end with `_dp`) which
 should be self-explanatory and the 
 [transformation options explained below](#image-transformations), there are 
 some options:
-
+ * __`run_as_user` and `run_as_group`__. These are the user and group that will 
+   own the loris processes. `When setup.py` run, everything is adusted to suit
+   this owner.
  * __Default Format__. Default format to return when no request format is 
    supplied in the URI (`*.jpg`, `*.png`, etc.) or HTTP `Accept` header. Value 
    is any three character value for a supported format from 
@@ -136,6 +141,9 @@ file syntax. See the comments in `loris/log_config.py` for details. You should
 be able to comment existing code in and out to get what you need. If you need 
 to do something radically different, have a look at the  
 [Python Logging HOWTO](http://docs.python.org/2/howto/logging.html).
+
+There is also a sample file in the loris package called 
+`log_config.py.production_sample` that can be used for reference.
 
 ## Resolving Identifiers
 The supplied implementation just unescapes the identifier and tacks constant 

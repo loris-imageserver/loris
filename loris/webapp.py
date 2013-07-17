@@ -176,14 +176,15 @@ class Loris(object):
 		self.transformers['jp2'] = self._load_transformer('transforms.jp2')
 
 		rules = [
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>.<target_fmt>', endpoint='img'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
 			Rule('/<path:ident>', endpoint='info_redirect'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
 		]
+
 
 		self.url_map = Map(rules)
 
@@ -266,8 +267,6 @@ class Loris(object):
 			return self.get_info(request, ident)
 
 	def get_info(self, request, ident):
-		# headers['Link'] = RelatedLinksHeader()
-		# headers['Link']['profile'] = constants.COMPLIANCE
 
 		link_header = RelatedLinksHeader()
 		link_header['profile'] = constants.COMPLIANCE
@@ -320,6 +319,7 @@ class Loris(object):
 				# get_img can pass in src_fp, src_format because it needs them
 				# elsewhere; get_info does not.
 				src_fp, src_format = self.resolver.resolve(ident)
+
 			uri = Loris._base_uri_from_request(request)
 			formats = self.transformers[src_format].target_formats
 			
@@ -518,7 +518,7 @@ class Loris(object):
 		logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
 
 		if r.script_root != u'':
-			uri = r.host_url + '/'.join((r.script_root, ident_encoded))
+			uri = '%s%s' % (r.url_root,ident_encoded)
 		else:
 			uri = r.host_url + ident_encoded
 

@@ -6,6 +6,7 @@ from ConfigParser import ConfigParser
 from grp import getgrnam
 from pwd import getpwnam
 from setuptools import setup
+from distutils.sysconfig import get_python_lib
 from sys import stderr, stdout, exit
 import loris
 import os
@@ -86,8 +87,10 @@ setup(
 	data_files=data_files,
 )
 
+loris_dirs = list(set([n[0] for n in data_files if n[0] != BIN_DP]))
+
 # Change permissions for all the new dirs to Loris's owner.
-for fs_node in filter(lambda n: n[0] != BIN_DP, data_files):
+for fs_node in loris_dirs:
 	os.chown(fs_node[0], user_id, group_id)
 	os.chmod(fs_node[0], 0755)
 
@@ -103,20 +106,25 @@ os.chmod(index, 0644)
 os.chown(wsgi_script, user_id, group_id)
 
 
-# TODO: README should mention cron
+parent_loris_dirs = [os.path.dirname(d) for d in loris_dirs \
+	if os.path.basename(os.path.dirname(d)) == 'loris']
+
+to_rm = list(set(loris_dirs + parent_loris_dirs))
+to_rm.sort(reverse=True)
 
 # Make a script to help with removing dirs.
 s = '''#!/bin/sh
 
 # Removes all directories created by running loris/setup.py, HOWEVER, the 
-# packages themselves, in `/usr/local/lib/python2.7` or wherever your system put 
-# them will not be removed and easy-install.pth will not be altered. If you 
-# don't know where these are, consider running `setup.py` with 
+# packages themselves, probably in `%s` or wherever your 
+# system put them will not be removed and easy-install.pth will not be altered. 
+# If you don't know where these are, consider running `setup.py` with 
 # `--record files.txt` appended, which will log what it did.
 
-'''
+''' % (get_python_lib(),)
+
 rmdirs_script = [s]
-rmdirs_script += ['rm -r %s\n' % (dp[0],) for dp in data_files if dp[0] != BIN_DP]
+rmdirs_script += ['rm -r %s\n' % (n,) for n in to_rm]
 rmdirs_script.append('rm %s\n' % (LORIS_CACHE_CLEAN,))
 rmdirs_script.append('\n')
 with open(RMDIRS_SH,'wb') as f:

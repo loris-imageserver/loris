@@ -30,8 +30,8 @@ LOG_DIR = '/var/log/loris' # if you change this, change it in setup.py too!
 # 	sys.stderr.write('Exiting')
 # 	sys.exit(77)
 
-# if not os.access(LOG_DIR, os.W_OK)
-# 	sys.stderr.write('%s is not writable\n' % (LOG_DIR,)
+# if not os.access(LOG_DIR, os.W_OK):
+# 	sys.stderr.write('%s is not writable\n' % (LOG_DIR,))
 # 	sys.stderr.write('Exiting')
 # 	sys.exit(77)
 
@@ -80,7 +80,3 @@ class StdErrFilter(logging.Filter):
 class StdOutFilter(logging.Filter):
 	def filter(self,record):
 		return 1 if record.levelno <= 20 else 0
-		# if INCLUDE_DEBUG:
-		# 	return 1 if record.levelno <= 20 else 0
-		# else:
-		# 	return 1 if record.levelno <= 20 and record.levelno > 10 else 0 
