@@ -219,7 +219,7 @@ On RedHat only you'll likely need to add
 ```
 WSGISocketPrefix /var/run/wsgi
 ```
-as well. See: [Location of Unix Sockets] [http://code.google.com/p/modwsgi/wiki/ConfigurationIssues#Location_Of_UNIX_Sockets] 
+as well. See: [Location of Unix Sockets](http://code.google.com/p/modwsgi/wiki/ConfigurationIssues#Location_Of_UNIX_Sockets)
 
 ## IIIF 1.1 Compliance
 See [doc/compliance.md](doc/compliance.md)
