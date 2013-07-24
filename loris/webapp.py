@@ -244,7 +244,7 @@ class Loris(object):
 		if not self.resolver.is_resolvable(ident):
 			return Loris._not_resolveable_response(ident)
 		elif self.redirect_base_uri:
-			to_location = Loris._info_slash_json_from_unsecaped_ident(ident)
+			to_location = Loris._info_slash_json_from_request(request)
 			logger.debug('Redirected %s to %s' % (ident, to_location))
 			return redirect(to_location, code=303)
 		else:
@@ -259,7 +259,7 @@ class Loris(object):
 			return Loris._not_resolveable_response(ident)
 
 		elif self.redirect_conneg:
-			to_location = Loris._info_slash_json_from_unsecaped_ident(ident)
+			to_location = Loris._info_slash_json_from_request(request)
 			logger.debug('Redirected %s to %s' % (ident, to_location))
 			return redirect(to_location, code=301)
 
@@ -512,8 +512,20 @@ class Loris(object):
 		# Consider a translation table (or whatever) instead of #quote_plus for 
 		# 	"/" / "?" / "#" / "[" / "]" / "@" / "%"
 		# if we run into trouble.
-		from_end = -1 if r.path.endswith('info') or r.path.endswith('info.json') else -4
-		ident = '/'.join(r.path[1:].split('/')[:from_end])
+
+		# info
+		if r.path.endswith('info') or r.path.endswith('info.json') :
+			ident = '/'.join(r.path[1:].split('/')[:-1])
+		# image
+		elif r.path.split('/')[-1].split('.')[0] in ('native','color','grey','bitonal'):
+			ident = '/'.join(r.path[1:].split('/')[:-4])
+		# bare
+		else:
+			ident = r.path
+
+		logger.debug(r.path)
+		
+
 		ident_encoded = quote_plus(ident)
 		logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
 
@@ -526,10 +538,9 @@ class Loris(object):
 		return uri
 
 	@staticmethod
-	def _info_slash_json_from_unsecaped_ident(ident):
-		ident = quote_plus(ident)
-		# leading / or not?
-		return '/%s/info.json' % (ident,)
+	def _info_slash_json_from_request(request):
+		base_uri = Loris._base_uri_from_request(request)
+		return '%s/info.json' % (base_uri,)
 
 	@staticmethod
 	def _not_resolveable_response(ident):
