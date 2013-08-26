@@ -521,7 +521,7 @@ class Loris(object):
 			ident = '/'.join(r.path[1:].split('/')[:-4])
 		# bare
 		else:
-			ident = r.path
+			ident = r.path[1:] # no leading slash
 
 		logger.debug(r.path)
 		
