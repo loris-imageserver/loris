@@ -283,29 +283,29 @@ class Loris(object):
 			r.response = e
 			r.status_code = e.http_status
 			r.mimetype = 'text/plain'
-			return r
-
-		ims_hdr = request.headers.get('If-Modified-Since')
-
-		ims = parse_date(ims_hdr)
-		last_mod = parse_date(http_date(last_mod)) # see note under get_img
-
-		if ims and ims >= last_mod:
-			logger.info('Sent 304 for %s ' % (ident,))
-			r.status_code = 304
 		else:
-			if last_mod:
-				r.last_modified = last_mod
-			r.automatically_set_content_length
-			r.headers['Cache-control'] = 'public'
-			callback = request.args.get('callback', None)
-			if callback:
-				r.mimetype = 'application/javascript'
-				r.data = '%s(%s);' % (callback, info.to_json())
+			ims_hdr = request.headers.get('If-Modified-Since')
+
+			ims = parse_date(ims_hdr)
+			last_mod = parse_date(http_date(last_mod)) # see note under get_img
+
+			if ims and ims >= last_mod:
+				logger.info('Sent 304 for %s ' % (ident,))
+				r.status_code = 304
 			else:
-				r.mimetype = 'application/json'
-				r.data = info.to_json()
-		return r
+				if last_mod:
+					r.last_modified = last_mod
+				r.automatically_set_content_length
+				r.headers['Cache-control'] = 'public'
+				callback = request.args.get('callback', None)
+				if callback:
+					r.mimetype = 'application/javascript'
+					r.data = '%s(%s);' % (callback, info.to_json())
+				else:
+					r.mimetype = 'application/json'
+					r.data = info.to_json()
+		finally:
+			return r
 
 	def _get_info(self,ident,request,src_fp=None,src_format=None):
 		if self.enable_caching:
