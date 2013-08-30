@@ -80,6 +80,8 @@ class _AbstractTransformer(object):
 			logger.debug(wh)
 			im = im.resize(wh)
 
+		if im.mode != "RGB":
+			im = im.convert("RGB")
 
 		if image_request.rotation_param.uri_value != '0' and rotate:
 			r = int(image_request.rotation_param.uri_value)
