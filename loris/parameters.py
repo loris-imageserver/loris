@@ -265,19 +265,37 @@ class SizeParameter(object):
 			self.cannonical_uri_value = '%d,%d' % (self.w,self.h)	
 			logger.debug('Cannonical uri_value for size: %s' % (self.cannonical_uri_value,))
 
+			logger.debug('w %d', self.w)
+			logger.debug('h %d', self.h)
 			if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
 				msg = 'Width and height must both be positive numbers'
 				raise SizeRequestException(http_status=400, message=msg)
 
 	def __populate_slots_from_pct(self,region_parameter):
 	 	self.force_aspect = False
-	 	pct_decimal = Decimal(self.uri_value.split(':')[1]) * Decimal(0.01)
-		if pct_decimal <= 0:
+	 	pct_decimal = Decimal(str(self.uri_value.split(':')[1])) * Decimal(0.01)
+		logger.debug(pct_decimal <= Decimal(0))
+		logger.debug('pct_decimal: %s', pct_decimal)
+
+		if pct_decimal <= Decimal(0):
 			msg = 'Percentage supplied is less than 0 (%s).' % (self.uri_value,)
 			raise SizeRequestException(http_status=400, message=msg)
 
-	 	self.w = int(region_parameter.pixel_w * pct_decimal)
-	 	self.h = int(region_parameter.pixel_h * pct_decimal)
+		w_decimal = region_parameter.pixel_w * pct_decimal
+		h_decimal = region_parameter.pixel_h * pct_decimal
+		logger.debug('w_decimal %s', w_decimal)
+		logger.debug('h_decimal %s', h_decimal)
+		# handle teeny, tiny requests.
+		if 0 < w_decimal < 1:
+			self.w = 1
+		else:
+			self.w = int(w_decimal)
+		if 0 < h_decimal < 1:
+			self.h = 1
+		else:
+			self.h = int(h_decimal)
+	 	# self.w = int(region_parameter.pixel_w * pct_decimal)
+	 	# self.h = int(region_parameter.pixel_h * pct_decimal)
 
 	def __populate_slots_from_pixels(self,region_parameter,preferred_dimension):
 	
