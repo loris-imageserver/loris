@@ -91,8 +91,8 @@ loris_dirs = list(set([n[0] for n in data_files if n[0] != BIN_DP]))
 
 # Change permissions for all the new dirs to Loris's owner.
 for fs_node in loris_dirs:
-	os.chown(fs_node[0], user_id, group_id)
-	os.chmod(fs_node[0], 0755)
+	os.chmod(fs_node, 0755)
+	os.chown(fs_node, user_id, group_id)
 
 os.chmod(LORIS_CACHE_CLEAN, 0755)
 os.chown(LORIS_CACHE_CLEAN, user_id, group_id)
@@ -105,7 +105,6 @@ index = os.path.join(www_dp, 'index.txt')
 os.chmod(index, 0644)
 os.chown(wsgi_script, user_id, group_id)
 
-
 parent_loris_dirs = [os.path.dirname(d) for d in loris_dirs \
 	if os.path.basename(os.path.dirname(d)) == 'loris']
 
@@ -113,7 +112,7 @@ to_rm = list(set(loris_dirs + parent_loris_dirs))
 to_rm.sort(reverse=True)
 
 # Make a script to help with removing dirs.
-s = '''#!/bin/sh
+header = '''#!/bin/sh
 
 # Removes all directories created by running loris/setup.py, HOWEVER, the 
 # packages themselves, probably in `%s` or wherever your 
@@ -123,9 +122,9 @@ s = '''#!/bin/sh
 
 ''' % (get_python_lib(),)
 
-rmdirs_script = [s]
-rmdirs_script += ['rm -r %s\n' % (n,) for n in to_rm]
-rmdirs_script.append('rm %s\n' % (LORIS_CACHE_CLEAN,))
+rmdirs_script = [header]
+rmdirs_script += ['rm -rv %s\n' % (n,) for n in to_rm]
+rmdirs_script.append('rm -r %s\n' % (LORIS_CACHE_CLEAN,))
 rmdirs_script.append('\n')
 with open(RMDIRS_SH,'wb') as f:
 	f.write(''.join(rmdirs_script))
