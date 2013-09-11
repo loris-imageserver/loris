@@ -268,6 +268,8 @@ class Loris(object):
 
 	def get_info(self, request, ident):
 
+
+
 		link_header = RelatedLinksHeader()
 		link_header['profile'] = constants.COMPLIANCE
 		
@@ -278,6 +280,7 @@ class Loris(object):
 		r.headers = headers
 
 		try:
+
 			info, last_mod = self._get_info(ident,request)
 		except (ImageInfoException,resolver.ResolverException) as e:
 			r.response = e
