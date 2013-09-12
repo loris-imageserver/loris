@@ -141,6 +141,19 @@ def __config_to_dict(conf_fp):
 
 	return config
 
+class RegionConverter(BaseConverter):
+	'''We need this so that routing knows where identifiers stop.
+	'''
+	def __init__(self, url_map):
+		super(RegionConverter, self).__init__(url_map)
+		self.regex = '(full|(pct:)?(\d+,){3}\d+)'
+
+	def to_python(self, value):
+		return value
+
+	def to_url(self, value):
+		return value
+
 class Loris(object):
 
 	DEFAULT_IMAGE_FMT = 'DEFAULT'
@@ -184,16 +197,15 @@ class Loris(object):
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
 			Rule('/<path:ident>', endpoint='info_redirect'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<bad_quality>.<any(png,jpg):target_fmt>', endpoint='bad_quality'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<bad_quality>', endpoint='bad_quality'),
+			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
+			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<bad_quality>.<any(png,jpg):target_fmt>', endpoint='bad_quality'),
+			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<bad_quality>', endpoint='bad_quality'),
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
 		]
 
-
-		self.url_map = Map(rules)
+		self.url_map = Map(rules, converters={'region': RegionConverter})
 
 		self.resolver = resolver.Resolver(self.app_configs['resolver.Resolver'])
 
