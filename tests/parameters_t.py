@@ -87,7 +87,7 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		w = 81
 		rp = RegionParameter('pct:%d,13,%d,27' % (x,w), info)
 		self.assertEquals(rp.decimal_w, Decimal('0.8'))
-		expected_cannonical = '638,468,2550,972'
+		expected_cannonical = '1181,936,4725,1944'
 		self.assertEquals(rp.cannonical_uri_value, expected_cannonical)
 
 	def test_e_cannonical_uri_value_oob_y_pixel(self):
@@ -163,7 +163,7 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		sp = SizeParameter('pct:25',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PCT_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '797,900')
+		self.assertEquals(sp.cannonical_uri_value, '1476,1800')
 
 		rp = RegionParameter('256,256,256,256', info)
 		sp = SizeParameter('pct:25',rp)
@@ -175,7 +175,7 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		sp = SizeParameter('pct:25',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PCT_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '398,450')
+		self.assertEquals(sp.cannonical_uri_value, '738,900')
 
 	def test_c_populate_slots_from_w_only(self):
 		# w,
@@ -185,7 +185,7 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		sp = SizeParameter('180,',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '180,203')
+		self.assertEquals(sp.cannonical_uri_value, '180,219')
 
 		rp = RegionParameter('200,300,500,600', info)
 		sp = SizeParameter('125,',rp)
@@ -201,7 +201,7 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		sp = SizeParameter(',90',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '79,90')
+		self.assertEquals(sp.cannonical_uri_value, '73,90')
 
 		rp = RegionParameter('50,290,360,910', info)
 		sp = SizeParameter(',275',rp)
@@ -233,13 +233,13 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		sp = SizeParameter('!120,140',rp, 'w') # preserve width
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '120,135')
+		self.assertEquals(sp.cannonical_uri_value, '120,146')
 		
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('!120,140',rp, 'h') # preserve height
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '123,140')
+		self.assertEquals(sp.cannonical_uri_value, '114,140')
 
 		rp = RegionParameter('0,0,125,160', info)
 		sp = SizeParameter('!120,140',rp,'w') # preserve width

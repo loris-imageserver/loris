@@ -38,9 +38,9 @@ class LorisTest(unittest.TestCase):
 		self.test_jp2_color_fmt = 'jp2'
 		self.test_jp2_color_id = '01%2F02%2F0001.jp2'
 		self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_color_id)
-		self.test_jp2_color_dims = (3188,3600) # w,h
-		self.test_jp2_color_tile_dims = (256,256) # w,h
-		self.test_jp2_color_levels = 5 # w,h
+		self.test_jp2_color_dims = (5906,7200) 
+		self.test_jp2_color_tile_dims = (256,256)
+		self.test_jp2_color_levels = 6
 
 		self.test_jp2_grey_fp = path.join(test_img_dir,'01','02','grey.jp2')
 		self.test_jp2_grey_fmt = 'jp2'
