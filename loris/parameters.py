@@ -231,7 +231,7 @@ class SizeParameter(object):
 	'''
 	__slots__ = ('uri_value','cannonical_uri_value','mode','force_aspect','w','h')
 
-	def __init__(self, uri_value, region_parameter, preferred_dimension='w'):
+	def __init__(self, uri_value, region_parameter, preferred_dimension='h'):
 		'''Parse the URI slice into an object.
 
 		Args:

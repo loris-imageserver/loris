@@ -84,7 +84,7 @@ class _AbstractTransformer(object):
 			im = im.convert("RGB")
 
 		if image_request.rotation_param.uri_value != '0' and rotate:
-			r = int(image_request.rotation_param.uri_value)
+			r = 0-int(image_request.rotation_param.uri_value)
 			im = im.rotate(r, expand=1)
 
 			# im = im.resize(wh)
@@ -118,7 +118,6 @@ class JPG_Transformer(_AbstractTransformer):
 		self._check_format(image_request)
 		im = Image.open(src_fp)
 		JPG_Transformer._derive_with_pil(im, target_fp, image_request)
-
 
 class TIF_Transformer(_AbstractTransformer):
 	def __init__(self, config, default_format):
@@ -220,7 +219,7 @@ class JP2_Transformer(_AbstractTransformer):
 
 		logger.debug('Calling: %s' % (kdu_cmd,))
 
-		# Start the kdu shellout. Blocks until the pipe is emptied
+		# Start the kdu shellout. Blocks until the pipe is empty
 		kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1, 
 			stderr=subprocess.PIPE,	env=self.env)
 

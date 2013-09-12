@@ -37,7 +37,7 @@ from urllib import unquote, quote_plus
 from werkzeug.datastructures import Headers, ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.http import parse_date, parse_accept_header, http_date
-from werkzeug.routing import Map, Rule
+from werkzeug.routing import Map, Rule, BaseConverter
 from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response # TODO: BaseResponse may be enough
 import constants
@@ -170,17 +170,24 @@ class Loris(object):
 		self.redirect_cannonical_image_request = _loris_config['redirect_cannonical_image_request']
 		self.default_format = _loris_config['default_format']
 
-		self.transformers = {}
-		self.transformers['jpg'] = self._load_transformer('transforms.jpg')
-		self.transformers['tif'] = self._load_transformer('transforms.tif')
-		self.transformers['jp2'] = self._load_transformer('transforms.jp2')
+		deriv_formats = [tf.split('.')[1] 
+			for tf in filter(lambda k: k.startswith('transforms.'), self.app_configs)]
 
+		logger.debug(deriv_formats)
+
+		self.transformers = {}
+		for f in deriv_formats:
+			self.transformers[f] = self._load_transformer('transforms.'+f)
+
+		exts = ','.join(deriv_formats)
 		rules = [
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
 			Rule('/<path:ident>', endpoint='info_redirect'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<bad_quality>.<any(png,jpg):target_fmt>', endpoint='bad_quality'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<bad_quality>', endpoint='bad_quality'),
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
 		]
@@ -238,6 +245,12 @@ class Loris(object):
 		if self.enable_caching:
 			r.add_etag()
 			r.make_conditional(request)
+		return r
+
+	def get_bad_quality(self, request, ident, region, size, rotation, bad_quality,  target_fmt=None):
+		body = '(400) %s format is not supported' % (bad_quality,)
+		r = Response(body, status=400, mimetype='text/plain')
+
 		return r
 
 	def get_info_redirect(self, request, ident):

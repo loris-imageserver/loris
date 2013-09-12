@@ -83,6 +83,8 @@ class ImageInfo(object):
 			new_inst.__from_jpg(src_img_fp)
 		elif new_inst.src_format == 'tif':
 			new_inst.__from_tif(src_img_fp)
+		elif new_inst.src_format == 'png':
+			new_inst.__from_png(src_img_fp)
 		else:
 			raise Exception('Didn\'t get a source format, or at least one we recognize')
 
@@ -124,6 +126,15 @@ class ImageInfo(object):
 		# This is cheap, and presumably we're pulling the whole image into 
 		# memory...
 		logger.debug('Extracting info from JPEG file.')
+		im = Image.open(fp)
+		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
+		self.width, self.height = im.size
+		self.scale_factors = None
+		self.tile_width = None
+		self.tile_height = None
+
+	def __from_png(self, fp):
+		logger.debug('Extracting info from PNG file.')
 		im = Image.open(fp)
 		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
 		self.width, self.height = im.size

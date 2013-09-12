@@ -74,7 +74,7 @@ class Resolver(_AbstractResolver):
 			public_message = 'Source image not found for identifier: %s.' % (ident,)
 			log_message = 'Source image not found at %s for identifier: %s.' % (fp,ident)
 			logger.warn(log_message)
-			raise ResolverException(400, public_message)
+			raise ResolverException(404, public_message)
 
 		format = Resolver._format_from_ident(ident)
 		logger.debug('src format %s' % (format,))

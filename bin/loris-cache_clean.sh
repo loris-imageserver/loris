@@ -6,7 +6,6 @@
 #
 # CAUTION - This script deletes files. Be careful where you point it!
 #
-
 LOG="/var/log/loris/cache_clean.log"
 
 # Check that the cache directory...
@@ -56,11 +55,14 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 	usage=$(current_usage)
 done
 
+echo -ne "$(date +[%c cache_clean.sh]) " >> $LOG
 if [ $run == 0 ]; then
-	echo -ne "$(date +[%c cache_clean.sh]) " >> $LOG
-	echo -ne "Deleted $delete_count files to " >> $LOG
-	echo "get cache from $start_size kb to $usage kb." >> $LOG
+        echo -ne "Deleted $delete_count files to " >> $LOG
+        echo "get cache from $start_size kb to $usage kb." >> $LOG
+else
+        echo "Cache at $usage kb (no deletes required)." >> $LOG
 fi
+
 
 
 
