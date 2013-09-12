@@ -9,6 +9,7 @@ libraries without any further need to process the IIIF syntax.
 '''
 
 from decimal import Decimal
+from math import floor
 from log_config import get_logger
 from loris_exception import LorisException
 
@@ -151,10 +152,10 @@ class RegionParameter(object):
 			self.decimal_h = map(RegionParameter.__pct_to_decimal, dimensions)
 
 		# pixels
-		self.pixel_x = int(round(self.decimal_x * self.img_info.width))
-		self.pixel_y = int(round(self.decimal_y * self.img_info.height))
-		self.pixel_w = int(round(self.decimal_w * self.img_info.width))
-		self.pixel_h = int(round(self.decimal_h * self.img_info.height))
+		self.pixel_x = int(floor(self.decimal_x * self.img_info.width))
+		self.pixel_y = int(floor(self.decimal_y * self.img_info.height))
+		self.pixel_w = int(floor(self.decimal_w * self.img_info.width))
+		self.pixel_h = int(floor(self.decimal_h * self.img_info.height))
 
 	def __populate_slots_from_pixels(self):
 		'''
