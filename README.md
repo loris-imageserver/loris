@@ -209,11 +209,21 @@ How to deploy a WSGI web application is out of scope for this document, but this
 should help you get started:
 
 ```
-AllowEncodedSlashes On # Critical if you're using the default resolver!
-WSGIDaemonProcess loris user=loris group=loris processes=5 threads=5 maximum-requests=10000
+AllowEncodedSlashes On 
+WSGIDaemonProcess loris user=loris group=loris processes=3 threads=15 maximum-requests=10000
 WSGIScriptAlias /loris /var/www/loris/loris.wsgi
 WSGIProcessGroup loris
 ```
+
+Also, Loris is setting `Last-Modified` headers, but not `Cache-Control` or 
+`Expires`. To do that, add:
+
+```
+ExpiresActive On
+ExpiresDefault "access plus 5184000 seconds"
+```
+
+You'll need the `expires` and `headers` modules enabled.
 
 On RedHat only you'll likely need to add
 ```
