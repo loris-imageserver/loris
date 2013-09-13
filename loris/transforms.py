@@ -202,6 +202,7 @@ class JP2_Transformer(_AbstractTransformer):
 
 		# kdu command
 		q = '-quiet'
+		t = '-num_threads 8'
 		i = '-i %s' % (src_fp,)
 		o = '-o %s' % (fifo_fp,)
 		region_arg = self._region_to_kdu(image_request.region_param)
@@ -211,7 +212,7 @@ class JP2_Transformer(_AbstractTransformer):
 		if int(image_request.rotation_param.uri_value) % 90 == 0:
 			rotate_downstream = False
 			kdu_rotation_arg = self._rotation_to_kdu(image_request.rotation_param)
-			kdu_cmd = ' '.join((self.kdu_expand,q,i,region_arg,kdu_rotation_arg,o))
+			kdu_cmd = ' '.join((self.kdu_expand,q,i,t,region_arg,kdu_rotation_arg,o))
 		else:
 			rotate_downstream = True
 			kdu_cmd = ' '.join((self.kdu_expand,q,i,region_arg,o))

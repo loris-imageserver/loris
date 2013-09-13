@@ -292,9 +292,6 @@ class Loris(object):
 			return self.get_info(request, ident)
 
 	def get_info(self, request, ident):
-
-
-
 		link_header = RelatedLinksHeader()
 		link_header['profile'] = constants.COMPLIANCE
 		
