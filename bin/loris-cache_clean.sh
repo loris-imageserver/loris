@@ -8,14 +8,14 @@
 #
 LOG="/var/log/loris/cache_clean.log"
 
-# Check that the cache directory...
+# Check that the cache directories...
 IMG_CACHE_DIR="/var/cache/loris/img"
 IMG_LINKS_DIR="/var/cache/loris/links"
 
 # ...is below a certain size...
 REDUCE_TO=1048576 #1 gb
-# REDUCE_TO=524288000 #500 gb
-# REDUCE_TO=1073741824 # 1 tb
+# REDUCE_TO=1073741824 # 1 TB
+# REDUCE_TO=2147483648 # 2 TB
 
 # ...and when it is larger, start deleting files accessed more than a certain 
 # number of days ago until the cache is smaller than the configured size.
@@ -26,7 +26,7 @@ REDUCE_TO=1048576 #1 gb
 # executions of this script.
 
 current_usage () {
-	echo $(du -sk $IMG_CACHE_DIR | cut -f 1)
+	du -sk $IMG_CACHE_DIR | cut -f 1
 }
 
 delete_total=0
@@ -36,8 +36,6 @@ start_size=$usage
 run=1
 while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 	run=0
-	echo $max_age
-	echo $usage
 
 	# files. loop (instead of -delete) so that we can keep count
 	for f in $(find $IMG_CACHE_DIR -type f -atime +$max_age); do
@@ -47,7 +45,7 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 
 	# broken symlinks
 	find -L $IMG_LINKS_DIR -type l -delete
-	
+
 	# empty directories
 	find $IMG_CACHE_DIR -mindepth 1 -type d -empty -delete
 
@@ -55,12 +53,12 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 	usage=$(current_usage)
 done
 
-echo -ne "$(date +[%c cache_clean.sh]) " >> $LOG
+echo -ne "$(date +[%c]) " >> $LOG
 if [ $run == 0 ]; then
-        echo -ne "Deleted $delete_count files to " >> $LOG
-        echo "get cache from $start_size kb to $usage kb." >> $LOG
+	echo -ne "Deleted $delete_count files to " >> $LOG
+	echo "get cache from $start_size kb to $usage kb." >> $LOG
 else
-        echo "Cache at $usage kb (no deletes required)." >> $LOG
+	echo "Cache at $usage kb (no deletes required)." >> $LOG
 fi
 
 
