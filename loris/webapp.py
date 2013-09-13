@@ -302,7 +302,6 @@ class Loris(object):
 		r.headers = headers
 
 		try:
-
 			info, last_mod = self._get_info(ident,request)
 		except (ImageInfoException,resolver.ResolverException) as e:
 			r.response = e
@@ -321,7 +320,7 @@ class Loris(object):
 				if last_mod:
 					r.last_modified = last_mod
 				r.automatically_set_content_length
-				r.headers['Cache-control'] = 'public'
+				# r.headers['Cache-control'] = 'public'
 				callback = request.args.get('callback', None)
 				if callback:
 					r.mimetype = 'application/javascript'
@@ -471,7 +470,7 @@ class Loris(object):
 		r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
 		r.status_code = 200
 		r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
-		headers.add('Cache-control', 'public')
+		# headers.add('Cache-control', 'public')
 		headers.add('Content-Length', path.getsize(fp))
 		r.response = file(fp)
 
