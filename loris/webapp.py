@@ -44,6 +44,7 @@ import constants
 import img
 import loris_exception
 import random
+import re
 import resolver
 import string
 import transforms
@@ -141,22 +142,13 @@ def __config_to_dict(conf_fp):
 
 	return config
 
-class RegionConverter(BaseConverter):
-	'''We need this so that routing knows where identifiers stop.
-	'''
-	def __init__(self, url_map):
-		super(RegionConverter, self).__init__(url_map)
-		self.regex = '(full|(pct:)?(\d+,){3}\d+)'
-
-	def to_python(self, value):
-		return value
-
-	def to_url(self, value):
-		return value
-
 class Loris(object):
 
 	DEFAULT_IMAGE_FMT = 'DEFAULT'
+
+	SIZE_REGEX = re.compile('^(full|\d+,|,\d+|!?\d+,\d+|pct:\d+)$')
+	REGION_REGEX = re.compile('^(full|(pct:)?(\d+,){3}\d+)$')
+
 
 	def __init__(self, app_configs={ }, debug=False):
 		'''The WSGI Application.
@@ -194,18 +186,16 @@ class Loris(object):
 
 		exts = ','.join(deriv_formats)
 		rules = [
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
-			Rule('/<path:ident>', endpoint='info_redirect'),
-			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
-			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
-			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<bad_quality>.<any(png,jpg):target_fmt>', endpoint='bad_quality'),
-			Rule('/<path:ident>/<region:region>/<size>/<rotation>/<bad_quality>', endpoint='bad_quality'),
+			Rule('/<path:wtf>', endpoint='info_redirect_or_error'),
 			Rule('/favicon.ico', endpoint='favicon'),
 			Rule('/', endpoint='index')
 		]
 
-		self.url_map = Map(rules, converters={'region': RegionConverter})
+		self.url_map = Map(rules)
 
 		self.resolver = resolver.Resolver(self.app_configs['resolver.Resolver'])
 
@@ -259,25 +249,51 @@ class Loris(object):
 			r.make_conditional(request)
 		return r
 
-	def get_bad_quality(self, request, ident, region, size, rotation, bad_quality,  target_fmt=None):
-		body = '(400) %s format is not supported' % (bad_quality,)
-		r = Response(body, status=400, mimetype='text/plain')
-
-		return r
-
-	def get_info_redirect(self, request, ident):
-		if not self.resolver.is_resolvable(ident):
-			return Loris._not_resolveable_response(ident)
-		elif self.redirect_base_uri:
-			to_location = Loris._info_slash_json_from_request(request)
-			logger.debug('Redirected %s to %s' % (ident, to_location))
-			return redirect(to_location, code=303)
-		else:
-			return self.get_info(request, ident)
+	def get_info_redirect_or_error(self, request, wtf):
+		# This isn't foolproof, an identifier with 5 path-like segments could 
+		# break it
+		tokens = wtf.split('/')
+		if len(tokens) >= 5: # all the parts are there for an image request
+			# check quality
+			if tokens[-1].split('.')[0] not in ('native','color','grey','bitonal'):
+				body = '(400) "%s" is not a valid quality' % (tokens[-1].split('.')[0],)
+				r = Response(body, status=400, mimetype='text/plain')
+				return r
+			# rotation, just make sure it's a digit here
+			elif not tokens[-2].isdigit():
+				body = '(400) rotation must be an integer between 0 and 360 ("%s" supplied)' % (tokens[-2],)
+				r = Response(body, status=400, mimetype='text/plain')
+				return r
+			# size
+			elif not re.match(Loris.SIZE_REGEX, tokens[-3]):
+				body = '(400) size syntax is not valid ("%s" supplied)' % (tokens[-3],)
+				r = Response(body, status=400, mimetype='text/plain')
+				return r
+			# region
+			elif not re.match(Loris.REGION_REGEX, tokens[-4]):
+				body = '(400) region syntax is not valid ("%s" supplied)' % (tokens[-4],)
+				r = Response(body, status=400, mimetype='text/plain')
+				return r
+			# ident
+			elif not self.resolver.is_resolvable('%2F'.join(tokens[0:-4])):
+				ident = '%2F'.join(tokens[0:-4])
+				return Loris._not_resolveable_response(ident)
+		else: #len(tokens) < 5:
+			ident = '%2F'.join(tokens)
+			if not self.resolver.is_resolvable(ident):
+				return Loris._not_resolveable_response(ident)
+			elif self.redirect_base_uri:
+				to_location = Loris._info_slash_json_from_request(request)
+				logger.debug('Redirected %s to %s' % (ident, to_location))
+				return redirect(to_location, code=303)
+			else:
+				return self.get_info(request, ident)
 
 	def get_info_conneg(self, request, ident):
 		accept = request.headers.get('accept')
-		if accept and accept not in ('application/json', '*/*'):
+		logger.debug("==================== HERE",)
+		logger.debug(accept)
+		if accept and not ('application/json' in accept or '*/*' in accept):
 			return Loris._format_not_supported_response(accept)
 
 		elif not self.resolver.is_resolvable(ident):
@@ -388,6 +404,7 @@ class Loris(object):
 		'''
 		if target_fmt == None:
 			target_fmt = self._format_from_request(request)
+			logger.debug('target_fmt: %s' % (target_fmt,))
 
 			if self.redirect_conneg:
 				logger.debug(ident)
