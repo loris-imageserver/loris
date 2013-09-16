@@ -187,6 +187,7 @@ class Loris(object):
 		exts = ','.join(deriv_formats)
 		rules = [
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<bad_fmt>', endpoint='bad_img_format'),
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
@@ -288,6 +289,11 @@ class Loris(object):
 				return redirect(to_location, code=303)
 			else:
 				return self.get_info(request, ident)
+
+	def get_bad_img_format(self, request, ident, region, size, rotation, quality, bad_fmt):
+		body = '(400) format "%s" not supported or not valid' % (bad_fmt,)
+		r = Response(body, status=400, mimetype='text/plain')
+		return r
 
 	def get_info_conneg(self, request, ident):
 		accept = request.headers.get('accept')
