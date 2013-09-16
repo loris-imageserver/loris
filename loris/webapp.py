@@ -186,7 +186,7 @@ class Loris(object):
 
 		exts = ','.join(deriv_formats)
 		rules = [
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg):target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg,gif):target_fmt>', endpoint='img'),
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<bad_fmt>', endpoint='bad_img_format'),
 			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),

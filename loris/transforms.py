@@ -108,6 +108,9 @@ class _AbstractTransformer(object):
 		elif image_request.format == 'png':
 			# see http://www.pythonware.com/library/pil/handbook/format-png.htm
 			im.save(target_fp, optimize=True, bits=256)
+		elif image_request.format == 'gif':
+			# see http://www.pythonware.com/library/pil/handbook/format-png.htm
+			im.save(target_fp)
 
 
 class JPG_Transformer(_AbstractTransformer):
