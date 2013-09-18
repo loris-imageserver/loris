@@ -161,11 +161,22 @@ class ImageInfo(object):
 		jp2 = open(fp, 'rb')
 		b = jp2.read(1)
 
+		window =  deque([], 4)
+
+		while ''.join(window) != 'ihdr':
+			b = jp2.read(1)
+			c = struct.unpack('c', b)[0]
+			window.append(c)
+		
+		self.height = int(struct.unpack(">I", jp2.read(4))[0]) # Height ("4-byte big endian unsigned integer"--pg. 136)
+		self.width = int(struct.unpack(">I", jp2.read(4))[0]) # Width (ditto)
+		logger.debug("width: " + str(self.width))
+		logger.debug("height: " + str(self.height))
+
 		# Figure out color or greyscale. 
 		# Depending color profiles; there's probably a better way (or more than
 		# one, anyway.)
 		# see: JP2 I.5.3.3 Colour Specification box
-		window =  deque([], 4)
 		while ''.join(window) != 'colr':
 			b = jp2.read(1)
 			c = struct.unpack('c', b)[0]
@@ -202,14 +213,11 @@ class ImageInfo(object):
 		while (ord(b) != 0xFF):	b = jp2.read(1)
 		b = jp2.read(1) # 0x51: The SIZ marker segment
 		if (ord(b) == 0x51):
-			jp2.read(4) # get through Lsiz, Rsiz (16 bits each)
-			self.width = int(struct.unpack(">HH", jp2.read(4))[1]) # Xsiz (32)
-			self.height = int(struct.unpack(">HH", jp2.read(4))[1]) # Ysiz (32)
-			logger.debug("width: " + str(self.width))
-			logger.debug("height: " + str(self.height))
-			jp2.read(8) # get through XOsiz , YOsiz  (32 bits each)
-			self.tile_width = int(struct.unpack(">HH", jp2.read(4))[1]) # XTsiz (32)
-			self.tile_height = int(struct.unpack(">HH", jp2.read(4))[1]) # YTsiz (32)
+			jp2.read(4) # through Lsiz, Rsiz (16 bits each)
+			jp2.read(8) # through Xsiz, Ysiz (32 bits each)
+			jp2.read(8) # through XOsiz, YOsiz  (32 bits each)
+			self.tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
+			self.tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
 			logger.debug("tile width: " + str(self.tile_width))
 			logger.debug("tile height: " + str(self.tile_height))	
 

@@ -16,6 +16,7 @@ from the `/loris` (not `/loris/loris`) directory.
 
 class Test_B_InfoUnit(loris_t.LorisTest):
 	'Tests ImageInfo constructors.'
+
 	def test_color_jp2_info_from_image(self):
 		fp = self.test_jp2_color_fp
 		fmt = self.test_jp2_color_fmt
