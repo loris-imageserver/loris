@@ -24,7 +24,7 @@
 |jpg                           |       |x      |x      |        |x    |
 |tif                           |       |       |       |x       |x    |
 |png                           |       |       |x      |        |x    |
-|gif                           |       |       |       |x       |     |
+|gif                           |       |       |       |x       |x    |
 |pdf                           |       |       |       |x       |     |
 |jp2                           |       |       |       |x       |     |
 |__Image Information  Request__|       |       |       |        |     |
