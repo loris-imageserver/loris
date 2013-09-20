@@ -1,2 +1,2 @@
 # __init__.py
-__version__ = '0.1.0beta4'
+__version__ = '1.0.0'
