@@ -1,5 +1,9 @@
 # ![loris icon](www/icons/loris-icon-name.png?raw=true)  Loris IIIF Image Server
 
+## Demos
+ * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg)
+ * [Serving Images for OpenSeadragon](http://libimages.princeton.edu/osd-demo)
+
 ## Do Not!
 Run `setup.py` until you've read this file. You have some work to do. In 
 particular, you need to:
