@@ -38,7 +38,6 @@ from werkzeug.datastructures import Headers, ResponseCacheControl
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.http import parse_date, parse_accept_header, http_date
 from werkzeug.routing import Map, Rule, BaseConverter
-from werkzeug.utils import redirect
 from werkzeug.wrappers import Request, Response # TODO: BaseResponse may be enough
 import constants
 import img
@@ -254,26 +253,36 @@ class Loris(object):
 		# This isn't foolproof, an identifier with 5 path-like segments could 
 		# break it
 		tokens = wtf.split('/')
+
+		r = Response()
+
+		link_header = RelatedLinksHeader()
+		link_header['profile'] = constants.COMPLIANCE
+		r.headers['Link'] = link_header.to_header()
+
 		if len(tokens) >= 5: # all the parts are there for an image request
 			# check quality
 			if tokens[-1].split('.')[0] not in ('native','color','grey','bitonal'):
-				body = '(400) "%s" is not a valid quality' % (tokens[-1].split('.')[0],)
-				r = Response(body, status=400, mimetype='text/plain')
+				r.body = '(400) "%s" is not a valid quality' % (tokens[-1].split('.')[0],)
+				r.status_code = 400
+				r.mimetype = 'text/plain'
 				return r
 			# rotation, just make sure it's a digit here
 			elif not tokens[-2].isdigit():
 				body = '(400) rotation must be an integer between 0 and 360 ("%s" supplied)' % (tokens[-2],)
-				r = Response(body, status=400, mimetype='text/plain')
+				r.status_code = 400
+				r.mimetype = 'text/plain'
 				return r
 			# size
 			elif not re.match(Loris.SIZE_REGEX, tokens[-3]):
-				body = '(400) size syntax is not valid ("%s" supplied)' % (tokens[-3],)
+				r.body = '(400) size syntax is not valid ("%s" supplied)' % (tokens[-3],)
 				r = Response(body, status=400, mimetype='text/plain')
 				return r
 			# region
 			elif not re.match(Loris.REGION_REGEX, tokens[-4]):
-				body = '(400) region syntax is not valid ("%s" supplied)' % (tokens[-4],)
-				r = Response(body, status=400, mimetype='text/plain')
+				r.body = '(400) region syntax is not valid ("%s" supplied)' % (tokens[-4],)
+				r.status_code = 400
+				r.mimetype = 'text/plain'
 				return r
 			# ident
 			elif not self.resolver.is_resolvable('%2F'.join(tokens[0:-4])):
@@ -286,7 +295,9 @@ class Loris(object):
 			elif self.redirect_base_uri:
 				to_location = Loris._info_slash_json_from_request(request)
 				logger.debug('Redirected %s to %s' % (ident, to_location))
-				return redirect(to_location, code=303)
+				r.headers['Location'] = to_location
+				r.status_code = 303
+				return r
 			else:
 				return self.get_info(request, ident)
 
@@ -297,8 +308,6 @@ class Loris(object):
 
 	def get_info_conneg(self, request, ident):
 		accept = request.headers.get('accept')
-		logger.debug("==================== HERE",)
-		logger.debug(accept)
 		if accept and not ('application/json' in accept or '*/*' in accept):
 			return Loris._format_not_supported_response(accept)
 
@@ -308,7 +317,15 @@ class Loris(object):
 		elif self.redirect_conneg:
 			to_location = Loris._info_slash_json_from_request(request)
 			logger.debug('Redirected %s to %s' % (ident, to_location))
-			return redirect(to_location, code=301)
+
+			link_header = RelatedLinksHeader()
+			link_header['profile'] = constants.COMPLIANCE
+
+			r = Response()
+			r.headers['Link'] = link_header.to_header()
+			r.headers['Location'] = to_location
+			r.status_code = 301
+			return r
 
 		else:
 			return self.get_info(request, ident)
@@ -408,6 +425,14 @@ class Loris(object):
 				The identifier portion of the IIIF URI syntax
 
 		'''
+		headers = Headers()
+
+		link_header = RelatedLinksHeader()
+		link_header['profile'] = constants.COMPLIANCE
+		headers['Link'] = link_header.to_header()
+
+		r = Response(headers=headers)
+
 		if target_fmt == None:
 			target_fmt = self._format_from_request(request)
 			logger.debug('target_fmt: %s' % (target_fmt,))
@@ -416,22 +441,15 @@ class Loris(object):
 				logger.debug(ident)
 				image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 				logger.debug('Attempting redirect to %s' % (image_request.request_path,))
-				return redirect(image_request.request_path, code=301)
 
-		# start an ImageRequest object
+				# redirect (can't use redirect(location, code) because we need our compliance header
+				r.headers['Location'] = image_request.request_path
+				r.headers = headers
+				r.status_code = 301
+				return r
+
+
 		image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
-
-		# headers = Headers()
-		# headers['Link'] = RelatedLinksHeader()
-		# headers['Link']['profile'] = constants.COMPLIANCE
-
-		headers = Headers()
-
-		link_header = RelatedLinksHeader()
-		link_header['profile'] = constants.COMPLIANCE
-		headers['Link'] = link_header.to_header()
-
-		r = Response(headers=headers)
 
 		if self.enable_caching:
 			in_cache = image_request in self.img_cache
@@ -472,7 +490,9 @@ class Loris(object):
 				if self.redirect_cannonical_image_request:
 					if not image_request.is_cannonical:
 						logger.debug('Attempting redirect to %s' % (image_request.c14n_request_path,))
-						return redirect(image_request.c14n_request_path, code=301)
+						r.headers['Location'] = image_request.c14n_request_path
+						r.status_code = 301
+						return r
 
 				# 4. Make an image
 				fp = self._make_image(image_request, src_fp, src_format)
@@ -488,7 +508,9 @@ class Loris(object):
 
 			except transforms.ChangedFormatException as e:
 				to = '%s.%s' % ('/'.join((ident, region, size, rotation, quality)), e.to_ext)
-				return redirect(to, code=301)
+				r.headers['Location'] = to
+				r.status_code = 301
+				return r
 
 		r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
 		r.status_code = 200
@@ -594,14 +616,33 @@ class Loris(object):
 	def _not_resolveable_response(ident):
 		ident = quote_plus(ident)
 		msg = '404: Identifier "%s" does not resolve to an image.' % (ident,)
+		r = Response()
+
+		link_header = RelatedLinksHeader()
+		link_header['profile'] = constants.COMPLIANCE
+		r.headers['Link'] = link_header.to_header()
+		r.body = msg
+		r.content_type = 'text/plain'
+		r.status_code = 404
+		
 		logger.warn(msg)
-		return Response(msg, status=404, content_type='text/plain')
+		return r
 
 	@staticmethod
 	def _format_not_supported_response(format):
+
 		msg = '415: "%s" is not supported.' % (format,)
+		r = Response()
+
+		link_header = RelatedLinksHeader()
+		link_header['profile'] = constants.COMPLIANCE
+		r.headers['Link'] = link_header.to_header()
+		r.body = msg
+		r.content_type = 'text/plain'
+		r.status_code = 415
+		
 		logger.warn(msg)
-		return Response(msg, status=415, content_type='text/plain')
+		return r
 
 class RelatedLinksHeader(dict):
 	'''Not a full impl. of rfc 5988 (though that would be fun!); just enough 

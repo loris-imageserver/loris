@@ -3,6 +3,7 @@
 
 from datetime import datetime
 from loris import img_info
+from loris import constants
 from loris import webapp
 from os import path, listdir
 from time import sleep
@@ -125,7 +126,6 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		resp = self.client.get(to_get, headers=h, follow_redirects=True)
 		self.assertEqual(resp.status_code, 415)
 
-
 	def test_image_conneg_redirect(self):
 		self.app.redirect_conneg = True
 		h = Headers()
@@ -133,6 +133,16 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, headers=h, follow_redirects=False)
 		self.assertEqual(resp.status_code, 301)
+
+	def test_image_conneg_includes_location_and_compliance(self):
+		self.app.redirect_conneg = True
+		h = Headers()
+		h.add('accept','image/jpeg')
+		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
+		resp = self.client.get(to_get, headers=h, follow_redirects=False)
+		self.assertEqual(resp.headers['Location'], '%s%s%s' % (self.URI_BASE, to_get,'.jpg'))
+		self.assertEqual(resp.headers['Link'], '<%s>;rel="profile"' % (constants.COMPLIANCE))
+
 
 	def test_image_redirect_to_cannonical(self):
 		self.app.redirect_cannonical_image_request = True
