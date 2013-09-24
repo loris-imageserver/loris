@@ -230,55 +230,43 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		info = self._get_info()
 
 		rp = RegionParameter('full', info)
-		sp = SizeParameter('!120,140',rp, 'w') # preserve width
-		self.assertEquals(sp.force_aspect, False)
-		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '120,146')
-		
-		rp = RegionParameter('full', info)
-		sp = SizeParameter('!120,140',rp, 'h') # preserve height
+		sp = SizeParameter('!120,140',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.cannonical_uri_value, '114,140')
-
+		
 		rp = RegionParameter('0,0,125,160', info)
-		sp = SizeParameter('!120,140',rp,'w') # preserve width
-		self.assertEquals(sp.force_aspect, False)
-		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '120,153')
-
-		rp = RegionParameter('0,0,125,160', info)
-		sp = SizeParameter('!120,140',rp,'h') # preserve height
+		sp = SizeParameter('!120,140',rp,)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.cannonical_uri_value, '109,140')
 
-		# OOB w, preferring w, with in bounds h
+
 		rp = RegionParameter('0,0,125,160', info)
-		sp = SizeParameter('!130,140',rp,'w') # try to preserve width
+		sp = SizeParameter('!130,140',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '109,140') # but height is preserved
+		self.assertEquals(sp.cannonical_uri_value, '109,140')
 
 		# OOB h, preferring h, with in bounds w.
 		rp = RegionParameter('50,80,140,160', info)
-		sp = SizeParameter('!130,180',rp,'h') # try to preserve height
+		sp = SizeParameter('!130,180',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '130,148') # but width is preserved
+		self.assertEquals(sp.cannonical_uri_value, '130,148')
 
 		# all OOB, should act like anyt other req.
 		rp = RegionParameter('50,80,140,160', info)
-		sp = SizeParameter('!145,165',rp,'h') # prefer h
+		sp = SizeParameter('!145,165',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.cannonical_uri_value, '144,165')
 
 		rp = RegionParameter('50,80,140,180', info)
-		sp = SizeParameter('!145,185',rp,'w') # prefer w
+		sp = SizeParameter('!145,185',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
-		self.assertEquals(sp.cannonical_uri_value, '145,186')
+		self.assertEquals(sp.cannonical_uri_value, '143,185')
 
 class Test_J_SizeParameterFunctional(_ParameterUnitTest):
 	# TODO: with client once other parameters are impl.

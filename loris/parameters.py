@@ -232,7 +232,7 @@ class SizeParameter(object):
 	'''
 	__slots__ = ('uri_value','cannonical_uri_value','mode','force_aspect','w','h')
 
-	def __init__(self, uri_value, region_parameter, preferred_dimension='h'):
+	def __init__(self, uri_value, region_parameter):
 		'''Parse the URI slice into an object.
 
 		Args:
@@ -259,7 +259,7 @@ class SizeParameter(object):
 				if self.mode == PCT_MODE:
 					self.__populate_slots_from_pct(region_parameter)
 				else: # self.mode == PIXEL_MODE: 
-					self.__populate_slots_from_pixels(region_parameter, preferred_dimension)
+					self.__populate_slots_from_pixels(region_parameter)
 			except (RegionSyntaxException, RegionRequestException):
 				raise
 		
@@ -298,50 +298,31 @@ class SizeParameter(object):
 	 	# self.w = int(region_parameter.pixel_w * pct_decimal)
 	 	# self.h = int(region_parameter.pixel_h * pct_decimal)
 
-	def __populate_slots_from_pixels(self,region_parameter,preferred_dimension):
+	def __populate_slots_from_pixels(self,region_parameter):
 	
 		if self.uri_value.endswith(','):
 			self.force_aspect = False
 			self.w = int(self.uri_value[:-1])
 			reduce_by = Decimal(self.w) / region_parameter.pixel_w
 			self.h = region_parameter.pixel_h * reduce_by
+
 		elif self.uri_value.startswith(','):
 			self.force_aspect = False
 			self.h = int(self.uri_value[1:])
 			reduce_by = Decimal(self.h) / region_parameter.pixel_h
 			self.w = region_parameter.pixel_w * reduce_by
+
 		elif self.uri_value[0] == '!':
 			self.force_aspect = False
-			request_dims = map(int, self.uri_value[1:].split(','))
 
-			# get the dimensions of the region
-			region_dims = (region_parameter.pixel_w, region_parameter.pixel_h)
+			# azaroth42's impl
+			request_w, request_h = map(int, self.uri_value[1:].split(','))
 
-			# figure out which dimension to keep
-			req_vs_actual = [req <= actual for req,actual in zip(request_dims, region_dims)]
-			if all(req_vs_actual) or not any(req_vs_actual):
-				# both in or both out of bounds, use preferred
-				dim_to_keep = preferred_dimension
-			elif request_dims[0] > region_dims[0]:
-				# the requested width is wider than region, use height
-				dim_to_keep = 'h'
-			else:
-				dim_to_keep = 'w'
-
-			if dim_to_keep != preferred_dimension:
-				logger.debug('Preferring %s over %s to preserve aspect ratio' % (dim_to_keep,preferred_dimension))
-			else:
-				logger.debug('Preserving %s' % (dim_to_keep,))
-
-			# calculate the new other 
-			if dim_to_keep == 'w':
-				self.w = request_dims[0]
-				reduce_by = Decimal(self.w) / region_parameter.pixel_w
-				self.h = region_parameter.pixel_h * reduce_by
-			else: # h
-				self.h = request_dims[1]
-				reduce_by = Decimal(self.h) / region_parameter.pixel_h
-				self.w = region_parameter.pixel_w * reduce_by
+			ratio_w = Decimal(request_w) / region_parameter.pixel_w
+			ratio_h = Decimal(request_h) / region_parameter.pixel_h
+			ratio = min(ratio_w, ratio_h)
+			self.w = int(region_parameter.pixel_w * ratio)
+			self.h = int(region_parameter.pixel_h * ratio)
 
 		else:
 			self.force_aspect = True
