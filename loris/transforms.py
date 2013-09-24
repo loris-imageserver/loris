@@ -17,7 +17,7 @@ class _AbstractTransformer(object):
 		self.config = config
 		self.default_format = default_format
 		self.target_formats = config['target_formats']
-		logger.info('Initialized %s.%s' % (__name__, self.__class__.__name__))
+		logger.debug('Initialized %s.%s' % (__name__, self.__class__.__name__))
 
 	def transform(self, src_fp, target_fp, image_request):
 		'''
