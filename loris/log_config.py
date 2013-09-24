@@ -57,7 +57,8 @@ def get_logger(name):
 	# err_fp = '%s.err' % (os.path.join(LOG_DIR, name),)
 	# rferr_handler = logging.handlers.RotatingFileHandler(err_fp,
 	# 	maxBytes=MAX_ERR_LOG_SIZE, 
-	# 	backupCount=MAX_ERR_LOG_BACKUPS)
+	# 	backupCount=MAX_ERR_LOG_BACKUPS,
+	# 	delay=True)
 	# rferr_handler.addFilter(StdErrFilter())
 	# rferr_handler.setFormatter(formatter)
 	# logger.addHandler(rferr_handler)
@@ -66,7 +67,8 @@ def get_logger(name):
 	# out_fp = '%s.out' % (os.path.join(LOG_DIR, name),)
 	# rfout_handler = logging.handlers.RotatingFileHandler(out_fp,
 	# 	maxBytes=MAX_OUT_LOG_SIZE, 
-	# 	backupCount=MAX_OUT_LOG_BACKUPS)
+	# 	backupCount=MAX_OUT_LOG_BACKUPS,
+	# 	delay=True)
 	# rfout_handler.addFilter(StdOutFilter())
 	# rfout_handler.setFormatter(formatter)
 	# logger.addHandler(rfout_handler)

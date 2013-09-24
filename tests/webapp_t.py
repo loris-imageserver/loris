@@ -181,7 +181,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		# get an image
 		resp = self.client.get(to_get)
 		self.assertEqual(resp.status_code, 200)
-		lmod =  resp.headers['Last-Modified']
+		lmod = resp.headers['Last-Modified']
 
 		sleep(1) # just make sure.
 		headers = Headers([('if-modified-since', lmod)])
