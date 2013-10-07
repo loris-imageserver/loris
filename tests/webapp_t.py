@@ -215,6 +215,30 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(resp.headers['content-type'], 'image/jpeg')
 
+	def test_cors_whitelist_succeed(self):
+		self.app.enable_cors=True
+		self.app.cors_whitelist.append(self.URI_BASE)
+		to_get = '/%s/info.json' % (self.test_jp2_color_id,)
+		h = Headers([('origin', self.URI_BASE)])
+		resp = self.client.get(to_get, headers=h)
+		self.assertEqual(resp.headers['access-control-allow-origin'], self.URI_BASE)
+
+	def test_cors_whitelist_fail(self):
+		self.app.enable_cors=True
+		to_get = '/%s/info.json' % (self.test_jp2_color_id,)
+		h = Headers([('origin', self.URI_BASE)])
+		resp = self.client.get(to_get, headers=h)
+		self.assertFalse(self.URI_BASE in resp.headers)	
+
+	def test_cors_can_be_disabled(self):
+		# do exactly the same as above after disabling cors
+		self.app.enable_cors=False
+		self.app.cors_whitelist.append(self.URI_BASE)
+		to_get = '/%s/info.json' % (self.test_jp2_color_id,)
+		h = Headers([('origin', self.URI_BASE)])
+		resp = self.client.get(to_get, headers=h)
+		self.assertFalse('access-control-allow-origin' in resp.headers)
+
 	
 
 def suite():

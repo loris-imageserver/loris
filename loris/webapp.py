@@ -132,6 +132,13 @@ def __config_to_dict(conf_fp):
 	b = bool(int(config['loris.Loris']['redirect_cannonical_image_request']))
 	config['loris.Loris']['redirect_cannonical_image_request'] = b
 
+	b = bool(int(config['loris.Loris']['enable_cors']))
+	config['loris.Loris']['enable_cors'] = b
+
+	# convert lists
+	l = map(string.strip, config['loris.Loris']['cors_whitelist'].split(','))
+	config['loris.Loris']['cors_whitelist'] = l
+
 	# convert transforms.*.target_formats to lists
 	for tf in __transform_sections_from_config(config):
 		config[tf]['target_formats'] = [s.strip() for s in config[tf]['target_formats'].split(',')]
@@ -178,6 +185,8 @@ class Loris(object):
 		self.redirect_base_uri = _loris_config['redirect_base_uri']
 		self.redirect_cannonical_image_request = _loris_config['redirect_cannonical_image_request']
 		self.default_format = _loris_config['default_format']
+		self.enable_cors = _loris_config['enable_cors']
+		self.cors_whitelist = _loris_config['cors_whitelist']
 
 		deriv_formats = [tf.split('.')[1] 
 			for tf in filter(lambda k: k.startswith('transforms.'), self.app_configs)]
@@ -328,6 +337,9 @@ class Loris(object):
 
 	def get_info(self, request, ident):
 		r = LorisResponse()
+		if self.enable_cors and request.headers.get('origin'):
+			if request.headers['origin'] in self.cors_whitelist:
+				r.headers['access-control-allow-origin'] = request.headers['origin']
 
 		try:
 			info, last_mod = self._get_info(ident,request)
