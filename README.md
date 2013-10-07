@@ -68,6 +68,12 @@ some options:
  * __Redirect Cannonical Image Request URI.__ If the request for an image is not 
    the cannonical path, should the application redirect with a `301`?
    __Redirects if `redirect_cannonical_image_request=1`.__
+ * __Enable CORS / CORS Whitelist.__ If `enable_cors` is set to `1`, the 
+  following property, `cors_whitelist` will be read and and `Origin` header of 
+  the request will be checked against that list. If there is a match, the 
+  (`Access-Control-Allow-Origin`)[http://www.w3.org/TR/cors/#access-control-allow-origin-response-header] will contain that value and the request 
+  should go through.
+
 
 ### Notes about Configuration for Developers
 
