@@ -204,13 +204,13 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		any_files = any([path.isfile(path.join(tmp, n)) for n in listdir(tmp)])
 		self.assertTrue(not any_files)
 
-	def redirects_to_default_format(self):
-		to_get = '/%s/full/full/0/native.pdf' % (self.test_jp2_color_id,)
+	def test_redirects_to_default_format(self):
+		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=False)
 		self.assertEqual(resp.status_code, 301)
 
-	def redirects_to_default_format_follow(self):
-		to_get = '/%s/full/full/0/native.pdf' % (self.test_jp2_color_id,)
+	def test_redirects_to_default_format_follow(self):
+		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=True)
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(resp.headers['content-type'], 'image/jpeg')
