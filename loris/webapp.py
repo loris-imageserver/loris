@@ -314,7 +314,7 @@ class Loris(object):
 
 	def get_bad_img_format(self, request, ident, region, size, rotation, quality, bad_fmt):
 		body = '(400) format "%s" not supported or not valid' % (bad_fmt,)
-		r = LorisResponse(response=body, status=400, mimetype='text/plain')
+		r = LorisResponse(response=body, status=400, content_type='text/plain')
 		return r
 
 	def get_info_conneg(self, request, ident):
