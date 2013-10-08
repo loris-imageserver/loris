@@ -38,8 +38,8 @@ and the executable in the [configuration file](#configuration).
 
 PIL can be cause problems in particular because of its `libjpeg` and `zlib` 
 dependencies. You're best off getting it from a package manager, but even after
-that you may have trouble. Have a Google for 
-[posts like this](http://goo.gl/Jv9J0) about getting it working on your system. 
+that you may have trouble. Have a Google for [posts like this](http://goo.gl/Jv9J0) about getting 
+it working on your system. 
 
 ## Configuration and Options
 
@@ -47,32 +47,45 @@ In addition to a bunch of directory paths (items that end with `_dp`) which
 should be self-explanatory and the 
 [transformation options explained below](#image-transformations), there are 
 some options:
+
  * `run_as_user` and `run_as_group`. These are the user and group that will 
-   own the loris processes. When `setup.py` is run, everything is adusted to suit
-   this owner.
+   own the loris processes. When `setup.py` is run (likely as root or with sudo, 
+   everything is adusted to suit this owner.
+
  * __Default Format__. Default format to return when no request format is 
    supplied in the URI (`*.jpg`, `*.png`, etc.) or HTTP `Accept` header. Value 
    is any three character value for a supported format from 
    [Section 4.5](http://goo.gl/3BqIJ) of the spec. Out of the box, `jpg`,`png`, 
-   or `tif` are supported.
- * __Enable Caching__. No Memory or filesystem caching will happen and 
-   `Last-Modified` headers not be sent if `enable_caching=0`. 
- * __Redirect Base URIs.__ When a Base URI is dereferenced, should the image 
-   info be returned, or should there be a `303` redirect? 
-   __Redirects if `redirect_base_uri=1`.__
- * __Redirect Content Negotiation.__ When asking for, i.e., `/info` with 
+   `tif`, and `gif` are supported.
+
+ * __Enable Caching__. If `enable_caching=0` no Memory or filesystem caching 
+   will happen and `Last-Modified` headers not be sent. This should only be used
+   for testing/debugging.
+
+ * __Redirect Base URIs.__ If `1`, when a base URI is dereferenced (i.e. 
+   `{scheme}://{server}{/prefix}/{identifier}`) the server will redirect to
+   `{scheme}://{server}{/prefix}/{identifier}/**info.json**` with a `303`. Otherwise
+   the info json is just returned. 
+
+ * __Redirect Content Negotiation.__ If `1` when asking for, e.g., `/info` with 
    `Accept: application/json` (as opposed to the cannonical `/info.json`), 
-   should the info request be fulfilled directly, or should the client be 
-   redirected with a `301` to `/info.json`?  
-   Redirects if `redirect_conneg=1`.
- * __Redirect Cannonical Image Request URI.__ If the request for an image is not 
-   the cannonical path, should the application redirect with a `301`?
-   __Redirects if `redirect_cannonical_image_request=1`.__
+   the client will be redirected with a `301` to `/info.json`. This also applies
+   to image requests.
+
+ * __Redirect Cannonical Image Request URI.__ If `1` and the request for an 
+   image is not the cannonical path (e.g. only a width is supplied and the 
+   height is calculated by the server, the client will be redirected a `301`.
+
  * __Enable CORS / CORS Whitelist.__ If `enable_cors` is set to `1`, the 
-  following property, `cors_whitelist` will be read and and `Origin` header of 
-  the request will be checked against that list. If there is a match, the 
-  (`Access-Control-Allow-Origin`)[http://www.w3.org/TR/cors/#access-control-allow-origin-response-header] will contain that value and the request 
-  should go through.
+  following property, `cors_whitelist` will be read and and the `Origin` header 
+  of the request will be checked against that list. If there is a match, the 
+  [`Access-Control-Allow-Origin`](http://www.w3.org/TR/cors/#access-control-allow-origin-response-header) will contain that value and the request 
+  should go through. 
+
+  Note that you can also supply a `callback` parameter to requests (e.g. 
+  `?callback=myfunct`) to do [JSONP](http://en.wikipedia.org/wiki/JSONP) style 
+  requests. (This is not part of the IIIF API and may not work--probably will 
+  not--work with onther implementations.
 
 
 ### Notes about Configuration for Developers
@@ -156,7 +169,7 @@ There is also a sample file in the loris package called
 `log_config.py.production_sample` that can be used for reference.
 
 ## Resolving Identifiers
-The supplied implementation just unescapes the identifier and tacks constant 
+The supplied implementation just unescapes the identifier and tacks a constant 
 path onto the front. e.g. if `ident = 01%2F02%2F0001.jp2` and in the config 
 file:
 
@@ -180,7 +193,7 @@ section will be in the `self.config` dictionary as long as you subclass
 Loris is designed to make it possible for you to implement image 
 transformations using any libraries and utilities you choose. The transformers 
 are loaded dynamically at startup, and are configured in `etc/loris.conf`. See 
-`transforms.py` for details. Transformers for JPEG, TIFF, and JP2 (JP2 as 
+`transforms.py` for details. Transformers for JPEG, TIFF, GIF, and JP2 (JP2 as 
 long as you provide the Kakadu dependencies) using the Python Imaging Library 
 are provided. 
 
@@ -204,8 +217,8 @@ Every section requires these options:
 any other options provided will be automatically be available to the impl in 
 its config dictionary.
 
-At least for now, all implementation must be in (or aliased in) the 
-transforms module.
+At least for now, all implementation must be in (or aliased in) the transforms 
+module.
 
 ## Caching
 There is a Bash script at [`bin/loris-cache_clean.sh`](bin/loris-cache_clean.sh) 
