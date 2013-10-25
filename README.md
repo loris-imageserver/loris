@@ -43,6 +43,8 @@ it working on your system.
 
 ## Configuration and Options
 
+See `etc/loris/conf` (or `/etc/loris/loris.conf` after you've run `setup.py`).
+
 In addition to a bunch of directory paths (items that end with `_dp`) which 
 should be self-explanatory and the 
 [transformation options explained below](#image-transformations), there are 
