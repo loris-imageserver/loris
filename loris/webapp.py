@@ -3,7 +3,7 @@
 """
 webapp.py
 =========
-Implements IIIF 1.1 <http://www-sul.stanford.edu/iiif/image-api> level 2
+Implements IIIF 1.1 <http://www-sul.stanford.edu/iiif/image-api/1.1> level 2
 
 	Copyright (C) 2013 Jon Stroop
 
@@ -232,11 +232,18 @@ class Loris(object):
 		return response(environ, start_response)
 
 	def dispatch_request(self, request):
+		'''
+		Call the appropriate method based on the Rule that was matched. The Rule's
+		endpoint attribute plus 'get_' will be the name of the method.
+		'''
 		adapter = self.url_map.bind_to_environ(request.environ)
 		endpoint, values = adapter.match()
 		return getattr(self, 'get_'+endpoint)(request, **values)
 
 	def __call__(self, environ, start_response):
+		'''
+		This makes Loris executable.
+		'''
 		return self.wsgi_app(environ, start_response)
 
 	def get_environment(self, request, ident):
@@ -248,6 +255,9 @@ class Loris(object):
 		return BaseResponse(body, content_type='text/plain')
 
 	def get_index(self, request):
+		'''
+		Just so there's something at /.
+		'''
 		f = file(path.join(self.www_dp, 'index.txt'))
 		r = Response(f, content_type='text/plain')
 		if self.enable_caching:
@@ -304,7 +314,7 @@ class Loris(object):
 			if not self.resolver.is_resolvable(ident):
 				return Loris._not_resolveable_response(ident)
 			elif self.redirect_base_uri:
-				to_location = Loris._info_slash_json_from_request(request)
+				to_location = Loris._info_dot_json_from_request(request)
 				logger.debug('Redirected %s to %s' % (ident, to_location))
 				r.headers['Location'] = to_location
 				r.status_code = 303
@@ -326,7 +336,7 @@ class Loris(object):
 			return Loris._not_resolveable_response(ident)
 
 		elif self.redirect_conneg:
-			to_location = Loris._info_slash_json_from_request(request)
+			to_location = Loris._info_dot_json_from_request(request)
 			logger.debug('Redirected %s to %s' % (ident, to_location))
 			r = LorisResponse(status=301)
 			r.headers['Location'] = to_location
@@ -599,7 +609,7 @@ class Loris(object):
 		return uri
 
 	@staticmethod
-	def _info_slash_json_from_request(request):
+	def _info_dot_json_from_request(request):
 		base_uri = Loris._base_uri_from_request(request)
 		return '%s/info.json' % (base_uri,)
 
