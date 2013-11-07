@@ -447,11 +447,12 @@ class Loris(object):
 				image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 				logger.debug('Attempting redirect to %s' % (image_request.request_path,))
 
-				# redirect (can't use redirect(location, code) because we need our compliance header
 				r.headers['Location'] = image_request.request_path
 				r.status_code = 301
 				return r
-
+			# no reason for an else because the spec dictates that we should use a 
+			# default format, which _format_from_request will return if one can't be
+			# discerned from the Accept header.
 
 		image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
