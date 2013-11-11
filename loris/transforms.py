@@ -139,12 +139,17 @@ class JP2_Transformer(_AbstractTransformer):
 		self.tmp_dp = config['tmp_dp']
 		self.kdu_expand = config['kdu_expand']
 		self.mkfifo = config['mkfifo']
+		self.map_profile_to_srgb = bool(config['map_profile_to_srgb'])
+		self.srgb_profile_fp = bool(config['srgb_profile_fp'])
 		self.env = {
 			'LD_LIBRARY_PATH' : config['kdu_libs'], 
 			'PATH' : config['kdu_expand']
 		}
 		super(JP2_Transformer, self).__init__(config, default_format)
 
+		if self.map_profile_to_srgb:
+			from ImageCms import profileToProfile
+		# TODO: catch something.
 		try:
 			if not path.exists(self.tmp_dp):
 				makedirs(self.tmp_dp)
@@ -193,6 +198,7 @@ class JP2_Transformer(_AbstractTransformer):
 		self._check_format(image_request)
 
 		# kdu writes to this:
+
 		fifo_fp = JP2_Transformer._make_tmp_fp(self.tmp_dp, 'bmp')
 
 		# make the named pipe
@@ -231,7 +237,6 @@ class JP2_Transformer(_AbstractTransformer):
 		logger.debug('Opened %s' % fifo_fp)
 
 		# read from the named pipe
-		# itertools.takewhile() ?
 		p = Parser()
 		while True:
 			s = f.read(1024)
@@ -239,6 +244,7 @@ class JP2_Transformer(_AbstractTransformer):
 				break
 			p.feed(s)
 		im = p.close() # a PIL.Image
+
 
 		# finish kdu
 		kdu_exit = kdu_expand_proc.wait()

@@ -45,13 +45,14 @@ class ImageInfo(object):
 		tile_height (int)
 		scale_factors [(int)]
 		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
-		__native_quality: 'color' or 'grey'
 		src_format (str): as a three char file extension 
 		src_img_fp (str): the absolute path on the file system
+		color_profile_bytes []: the emebedded color profile, if any
+		self.color_profile_fp (str): path to the color profile on the file system
 	'''
 	__slots__ = ('scale_factors', 'width', 'tile_height', 'height', 
-		'__native_quality', 'tile_width', 'qualities', 'formats', 'ident', 
-		'src_format', 'src_img_fp')
+		'tile_width', 'qualities', 'formats', 'ident', 'src_format', 
+		'src_img_fp', 'color_profile_bytes')
 
 	@staticmethod
 	def from_image_file(ident, uri, src_img_fp, src_format, formats=[]):
@@ -132,6 +133,7 @@ class ImageInfo(object):
 		self.scale_factors = None
 		self.tile_width = None
 		self.tile_height = None
+		self.color_profile_bytes = None
 
 	def __from_png(self, fp):
 		logger.debug('Extracting info from PNG file.')
@@ -141,6 +143,7 @@ class ImageInfo(object):
 		self.scale_factors = None
 		self.tile_width = None
 		self.tile_height = None
+		self.color_profile_bytes = None
 
 	def __from_tif(self, fp):
 		logger.debug('Extracting info from TIFF file.')
@@ -150,13 +153,42 @@ class ImageInfo(object):
 		self.scale_factors = None
 		self.tile_width = None
 		self.tile_height = None
+		self.color_profile_bytes = None
+
+	# @staticmethod
+	# def embedded_icc_profile_from_jp2(fp):
+	# 	'''
+	# 	Returns the icc profile as a byte array if there is one embedded,
+	# 	otherwise None.
+	# 	'''
+	# 	jp2 = open(fp, 'rb')
+	# 	window =  deque([], 4)
+	# 	while ''.join(window) != 'colr':
+	# 		b = jp2.read(1)
+	# 		c = struct.unpack('c', b)[0]
+	# 		window.append(c)
+	# 	colr_meth = struct.unpack('B', jp2.read(1))[0]
+	# 	if colr_meth == 2:
+	# 		jp2.read(2) # over PREC, and APPROX, 1 byte each
+	# 		parts = []
+
+	# 		profile_size_bytes = jp2.read(4)
+	# 		parts += profile_size_bytes
+	# 		profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
+	# 		logger.debug('profile size: %d' % (profile_size))
+
+	# 		parts += jp2.read(profile_size-4)
+	# 		color_profile = ''.join(parts)
+	# 		return color_profile
+	# 		# logger.debug([color_profile])
+	# 	else:
+	# 		return None
 
 	def __from_jp2(self, fp):
 		'''Get info about a JP2. 
 		'''
 		logger.debug('Extracting info from JP2 file.')
 		self.qualities = ['native', 'bitonal']
-		self.__native_quality = 'color' # TODO: HACK, this is an assumption
 
 		jp2 = open(fp, 'rb')
 		b = jp2.read(1)
@@ -167,7 +199,6 @@ class ImageInfo(object):
 			b = jp2.read(1)
 			c = struct.unpack('c', b)[0]
 			window.append(c)
-		
 		self.height = int(struct.unpack(">I", jp2.read(4))[0]) # Height ("4-byte big endian unsigned integer"--pg. 136)
 		self.width = int(struct.unpack(">I", jp2.read(4))[0]) # Width (ditto)
 		logger.debug("width: " + str(self.width))
@@ -182,27 +213,34 @@ class ImageInfo(object):
 			c = struct.unpack('c', b)[0]
 			window.append(c)
 
-		b = jp2.read(1)
-		meth = struct.unpack('B', b)[0]
+		colr_meth = struct.unpack('B', jp2.read(1))[0]
+		logger.debug('colr METH: %d' % (colr_meth,))
 		jp2.read(2) # over PREC and APPROX, 1 byte each
 		
-		# TODO: this isn't quite complete.
-		if meth == 1: # Enumerated Colourspace
+		if colr_meth == 1: # Enumerated Colourspace
+			self.color_profile_bytes = None
 			enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
 			logger.debug('Image contains an enumerated colourspace: %d' % (enum_cs,))
-			# if enum_cs == 16:
-			# 	self.__native_quality = 'color'
-			# 	self.qualities += ['grey', 'color']
-			if enum_cs == 17:
-				self.__native_quality = 'grey'
+			logger.debug('Enumerated colourspace: %d' % (enum_cs))
+			if enum_cs == 16: # sRGB
+				self.qualities += ['grey', 'color']
+			elif enum_cs == 17: # greyscale
 				self.qualities += ['grey']
+			elif enum_cs == 18: # sYCC
+				pass
 			else:
-			 	self.__native_quality = 'color'
-			 	self.qualities += ['grey', 'color']
-		elif meth == 2:
-			# (Restricted ICC profile). See pg 139 of the spec. Need to examine
-			# the embedded profile.
-			pass
+				msg = 'Enumerated colourspace is neither "16", "17", or "18". See jp2 spec pg. 139.'
+				logger.warn(msg)
+		elif colr_meth == 2:
+			# (Restricted ICC profile).
+			logger.debug('Image contains a restricted, embedded colour profile')
+			# see http://www.color.org/icc-1_1998-09.pdf, page 18.
+			profile_size_bytes = jp2.read(4)
+			profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
+			logger.debug('profile size: %d' % (profile_size))
+			self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
+		else:
+			logger.warn('colr METH is neither "1" or "2". See jp2 spec pg. 139.')
 
 		logger.debug('qualities: ' + str(self.qualities))
 
@@ -236,7 +274,6 @@ class ImageInfo(object):
 		Returns:
 			str (json)
 		'''
-		# could probably just make a copy of self.__dict__ and delete a few entries
 		d = {}
 		d['@context'] = 'http://library.stanford.edu/iiif/image-api/1.1/context.json'
 		d['@id'] = self.ident
@@ -251,12 +288,7 @@ class ImageInfo(object):
 		d['formats'] = self.formats
 		d['qualities'] = self.qualities
 		d['profile'] = COMPLIANCE
-
 		return json.dumps(d)
-
-# TODO, provide an alternate cache implementation using Mongo inst. 
-# We'd probably still want some in memory, but we could avoid the file system. 
-# Which impl to be used could be configured by class name
 
 class InfoCache(object):
 	"""A dict-like cache for ImageInfo objects. The n most recently used are 
@@ -290,42 +322,48 @@ class InfoCache(object):
 		self._dict = OrderedDict()
 		self._lock = Lock()
 
-	def _get_fp(self,ident):
+	def _get_info_fp(self,ident):
 		return os.path.join(self.root,ident,'info.json')
+
+	def _get_color_profile_fp(self,ident):
+		return os.path.join(self.root,ident,'profile.icc')
 
 	def get(self, ident):
 		'''
 		Returns:
 			ImageInfo if it is in the cache, else None
 		'''
-		info_lastmod = None
+		info_and_lastmod = None
 		with self._lock:
-			info_lastmod = self._dict.get(ident)
-			if info_lastmod is not None:
+			info_and_lastmod = self._dict.get(ident)
+			if info_and_lastmod is not None:
 				logger.debug('Info for %s read from memory' % (ident,))
-		if info_lastmod is None:
-			fp = self._get_fp(ident)
-			if os.path.exists(fp):
+		if info_and_lastmod is None:
+			info_fp = self._get_info_fp(ident)
+			if os.path.exists(info_fp):
 				# from fs
-				info = ImageInfo.from_json(fp)
+				info = ImageInfo.from_json(info_fp)
 
-				lastmod = datetime.utcfromtimestamp(os.path.getmtime(fp))
-				info_lastmod = (info, lastmod)
+				# color profile fp and bytes
+				icc_fp = self._get_color_profile_fp(ident)
+				if os.path.exists(icc_fp):
+					with open(icc_fp, "rb") as f:
+						info.color_profile_bytes = f.read()
+				else: 
+					info.color_profile_bytes = None
+
+				lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
+				info_and_lastmod = (info, lastmod)
 				logger.debug('Info for %s read from file system' % (ident,))
 				# into mem:
-				self._dict[ident] = info_lastmod
+				self._dict[ident] = info_and_lastmod
 
-		return info_lastmod
+		return info_and_lastmod
 
 	def has_key(self, ident):
-		return os.path.exists(self._get_fp(ident))
+		return os.path.exists(self._get_info_fp(ident))
 
 	def __len__(self):
-		# c = 0
-		# for root, dirnames, filenames in os.walk(self.root):
-		# 	for filename in fnmatch.filter(filenames, STAR_DOT_JSON):
-		# 		c+=1
-		# return c
 		w = os.walk
 		ff = fnmatch.filter
 		pat = STAR_DOT_JSON
@@ -343,20 +381,26 @@ class InfoCache(object):
 
 	def __setitem__(self, ident, info):
 		# to fs
-		fp = self._get_fp(ident)
-		dp = os.path.dirname(fp)
+		info_fp = self._get_info_fp(ident)
+		dp = os.path.dirname(info_fp)
 		if not os.path.exists(dp): 
 			os.makedirs(dp, 0755)
 			logger.debug('Created %s' % (dp,))
 
+		with open(info_fp, 'w') as f:
+			f.write(info.to_json())
+			f.close()
+			logger.debug('Created %s' % (info_fp,))
 
-		f = open(fp, 'w')
-		f.write(info.to_json())
-		f.close()
-		logger.debug('Created %s' % (fp,))
+		if info.color_profile_bytes:
+			icc_fp = self._get_color_profile_fp(ident)
+			with open(icc_fp, 'wb') as f:
+				f.write(info.color_profile_bytes)
+				f.close()
+				logger.debug('Created %s' % (icc_fp,))
 
 		# into mem
-		lastmod = datetime.utcfromtimestamp(os.path.getmtime(fp))
+		lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
 		with self._lock:
 			while len(self._dict) >= self.size:
 				self._dict.popitem(last=False)
@@ -365,11 +409,38 @@ class InfoCache(object):
 	def __delitem__(self, ident):
 		with self._lock:
 			del self._dict[ident]
-		fp = self._get_fp(ident)
-		os.unlink(fp)
-		os.removedirs(os.path.dirname(fp))
 
+		info_fp = self._get_info_fp(ident)
+		os.unlink(info_fp)
 
+		icc_fp = self._getcolor_profile_bytes(ident)
+		if os.path.exists(icc_fp):
+			os.unlink(icc_fp)
 
+		os.removedirs(os.path.dirname(info_fp))
 
 class ImageInfoException(loris_exception.LorisException): pass
+
+
+if __name__ == '__main__':
+	from ImageCms import profileToProfile
+	import cStringIO
+	SRGB = "/home/jstroop/workspace/colorprofile/sRGB_v4_ICC_preference.icc"
+
+	fp = '/home/jstroop/workspace/colorprofile/47102787.jp2'
+	# info = ImageInfo.from_image_file('id', 'http://id', fp, 'jp2', [])
+
+	cache = InfoCache('/tmp')
+	# cache['id'] = info
+
+	info = cache['id']
+
+	profile_from_jp2 = info[0].color_profile_bytes
+
+	# get a bitmap from kdu_expand like normal
+	original_bmp = Image.open('/home/jstroop/workspace/colorprofile/47102787.bmp')
+	# map the profile to srgb
+	profile_io = cStringIO.StringIO(profile_from_jp2)
+	original_bmp = profileToProfile(original_bmp, profile_io, SRGB)
+	# save!
+	original_bmp.save('/home/jstroop/workspace/colorprofile/profile_to_bmp.jpg')
