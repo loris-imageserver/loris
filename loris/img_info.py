@@ -155,35 +155,6 @@ class ImageInfo(object):
 		self.tile_height = None
 		self.color_profile_bytes = None
 
-	# @staticmethod
-	# def embedded_icc_profile_from_jp2(fp):
-	# 	'''
-	# 	Returns the icc profile as a byte array if there is one embedded,
-	# 	otherwise None.
-	# 	'''
-	# 	jp2 = open(fp, 'rb')
-	# 	window =  deque([], 4)
-	# 	while ''.join(window) != 'colr':
-	# 		b = jp2.read(1)
-	# 		c = struct.unpack('c', b)[0]
-	# 		window.append(c)
-	# 	colr_meth = struct.unpack('B', jp2.read(1))[0]
-	# 	if colr_meth == 2:
-	# 		jp2.read(2) # over PREC, and APPROX, 1 byte each
-	# 		parts = []
-
-	# 		profile_size_bytes = jp2.read(4)
-	# 		parts += profile_size_bytes
-	# 		profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
-	# 		logger.debug('profile size: %d' % (profile_size))
-
-	# 		parts += jp2.read(profile_size-4)
-	# 		color_profile = ''.join(parts)
-	# 		return color_profile
-	# 		# logger.debug([color_profile])
-	# 	else:
-	# 		return None
-
 	def __from_jp2(self, fp):
 		'''Get info about a JP2. 
 		'''
@@ -428,12 +399,12 @@ if __name__ == '__main__':
 	SRGB = "/home/jstroop/workspace/colorprofile/sRGB_v4_ICC_preference.icc"
 
 	fp = '/home/jstroop/workspace/colorprofile/47102787.jp2'
-	# info = ImageInfo.from_image_file('id', 'http://id', fp, 'jp2', [])
+	info = ImageInfo.from_image_file('id', 'http://id', fp, 'jp2', [])
 
-	cache = InfoCache('/tmp')
+	# cache = InfoCache('/tmp')
 	# cache['id'] = info
 
-	info = cache['id']
+	# info = cache['id']
 
 	profile_from_jp2 = info[0].color_profile_bytes
 

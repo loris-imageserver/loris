@@ -32,6 +32,7 @@ class LorisTest(unittest.TestCase):
 		# constant info about test images.
 		test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
 		test_json_dir = path.join(path.abspath(path.dirname(__file__)), 'json')
+		test_icc_dir = path.join(path.abspath(path.dirname(__file__)), 'icc')
 
 		self.test_jp2_color_fp = path.join(test_img_dir,'01','02','0001.jp2')
 		self.test_jp2_color_info_fp = path.join(test_json_dir,'01','02','0001.jp2','info.json')
@@ -60,6 +61,12 @@ class LorisTest(unittest.TestCase):
 		self.test_tiff_id = '01%2F04%2F0001.tif'
 		self.test_tiff_uri = '%s/%s' % (self.URI_BASE,self.test_tiff_id)
 		self.test_tiff_dims = (839,1080)
+
+		self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,'47102787.jp2')
+		self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
+		self.test_jp2_with_embedded_profile_fmt = 'jp2'
+		self.test_jp2_with_embedded_profile_id = '47102787.jp2'
+		self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_grey_id)
 
 	def tearDown(self):
 		unittest.TestCase.tearDown(self)

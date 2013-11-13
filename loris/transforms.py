@@ -9,6 +9,13 @@ from os import makedirs, path, unlink
 import random
 import string
 import subprocess
+import cStringIO
+try:
+	from ImageCms import profileToProfile
+except ImportError:
+	pass
+
+import sys
 
 logger = get_logger(__name__)
 
@@ -140,16 +147,18 @@ class JP2_Transformer(_AbstractTransformer):
 		self.kdu_expand = config['kdu_expand']
 		self.mkfifo = config['mkfifo']
 		self.map_profile_to_srgb = bool(config['map_profile_to_srgb'])
-		self.srgb_profile_fp = bool(config['srgb_profile_fp'])
 		self.env = {
 			'LD_LIBRARY_PATH' : config['kdu_libs'], 
 			'PATH' : config['kdu_expand']
 		}
-		super(JP2_Transformer, self).__init__(config, default_format)
 
-		if self.map_profile_to_srgb:
-			from ImageCms import profileToProfile
-		# TODO: catch something.
+		if self.map_profile_to_srgb and 'ImageCms' not in sys.modules:
+			logger.warn('Could not import profileToProfile from ImageCms.')
+			logger.warn('Images will not have their embedded color profiles mapped to sSRGB.')
+			self.map_profile_to_srgb = False
+		else:
+			self.srgb_profile_fp = config['srgb_profile_fp']
+		
 		try:
 			if not path.exists(self.tmp_dp):
 				makedirs(self.tmp_dp)
@@ -160,6 +169,8 @@ class JP2_Transformer(_AbstractTransformer):
 			logger.fatal(msg)
 			logger.fatal('Exiting')
 			exit(77)
+
+		super(JP2_Transformer, self).__init__(config, default_format)
 
 	def _region_to_kdu(self, region_param):
 		'''
@@ -252,7 +263,14 @@ class JP2_Transformer(_AbstractTransformer):
 			map(logger.error, kdu_expand_proc.stderr)
 		unlink(fifo_fp)
 
+		if self.map_profile_to_srgb and image_request.info.color_profile_bytes:	 # i.e. is not None
+			emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+			im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+
 		JP2_Transformer._derive_with_pil(im, target_fp, image_request, rotate=rotate_downstream)
+
+		
+
 		
 
 class ChangedFormatException(Exception):

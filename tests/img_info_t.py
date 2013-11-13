@@ -33,6 +33,29 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.scale_factors, [1,2,4,8,16,32])
 		self.assertEqual(info.ident, uri)
 
+	def test_extract_icc_profile_from_jp2(self):
+		fp = self.test_jp2_with_embedded_profile_fp
+		fmt = self.test_jp2_with_embedded_profile_fmt
+		ident = self.test_jp2_with_embedded_profile_id
+		uri = self.test_jp2_with_embedded_profile_uri
+		profile_copy_fp = self.test_jp2_embedded_profile_copy_fp
+
+		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+
+		with open(self.test_jp2_embedded_profile_copy_fp, 'rb') as fixture_bytes:
+			self.assertEqual(info.color_profile_bytes, fixture_bytes.read())
+
+	def test_no_embedded_profile_info_color_profile_bytes_is_None(self):
+		fp = self.test_jp2_color_fp
+		fmt = self.test_jp2_color_fmt
+		ident = self.test_jp2_color_id
+		uri = self.test_jp2_color_uri
+
+		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+
+		self.assertEqual(info.color_profile_bytes, None)
+
+
 	def test_grey_jp2_info_from_image(self):
 		fp = self.test_jp2_grey_fp
 		fmt = self.test_jp2_grey_fmt

@@ -30,7 +30,8 @@ but:
 So you're better off installing these manually:
 
  * [Werkzeug](http://goo.gl/sPiHo)
- * [Python Imaging Library](http://goo.gl/E2Xv4)
+ * [Python Imaging Library](http://goo.gl/E2Xv4). See [further down the page](#installing-pil) for 
+ more specific instructions.
 
 For JPEG2000 support you also need [Kakadu](http://goo.gl/owJN8), and the 
 `kdu_expand` command line application in particular. Set the path to the libs
@@ -43,7 +44,7 @@ it working on your system.
 
 ## Configuration and Options
 
-See `etc/loris.conf` (or `/etc/loris/loris.conf` after you've run `setup.py`).
+See `etc/loris.conf` (or `/etc/loris/loris.conf` after you've run `setup.py install`).
 
 In addition to a bunch of directory paths (items that end with `_dp`) which 
 should be self-explanatory and the 
@@ -82,13 +83,32 @@ some options:
   following property, `cors_whitelist` will be read and and the `Origin` header 
   of the request will be checked against that list. If there is a match, the 
   [`Access-Control-Allow-Origin`](http://www.w3.org/TR/cors/#access-control-allow-origin-response-header) will contain that value and the request 
-  should go through. 
+  should go through.
 
   Note that you can also supply a `callback` parameter to requests (e.g. 
   `?callback=myfunct`) to do [JSONP](http://en.wikipedia.org/wiki/JSONP) style 
   requests. (This is not part of the IIIF API and may not work--probably will 
   not--work with onther implementations.
 
+There is one other option worth noting, under the `transforms.jp2` section. If:
+
+ 1. `map_embedded_profile_to_srgb` is set to `1` 
+ 2. You provide a path to an sRGB color profile on your system, and
+ 3. You're using Kakadu 7.2 or later
+
+e.g.:
+
+```
+[transforms.jp2]
+...
+map_embedded_profile_to_srgb=1
+srgb_profile_fp=/usr/share/color/icc/colord/sRGB.icc
+```
+
+Then Loris will, as the name of the option suggests, map the color profile that 
+is embedded in the JP2 to sRGB. To faciliate this, the Python Imaging Library has
+to be BUILT with [Little CMS](http://www.littlecms.com/) support. Instructions on
+how to do this (at least on an Ubuntu system) are [further down the page](#installing-pil).
 
 ### Notes about Configuration for Developers
 
@@ -255,6 +275,67 @@ On RedHat only you'll likely need to add
 WSGISocketPrefix /var/run/wsgi
 ```
 as well. See: [Location of Unix Sockets](http://code.google.com/p/modwsgi/wiki/ConfigurationIssues#Location_Of_UNIX_Sockets)
+
+## Installing PIL
+
+These instructions are known to work with Ubuntu 12.04.3. If you have further
+information, please provide it!
+
+First, remove all instances of PIL, including, but not limited to, the `python-imaging` package:
+
+```
+sudo pip uninstall PIL
+sudo apt-get purge python-imaging
+```
+
+Then, get install all of the dependencies:
+
+```
+sudo apt-get install libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 \
+libfreetype6-dev zlib1g-dev liblcms liblcms-dev liblcms-utils
+```
+
+Link them the dirs where PIL will find them (this is unfortunate):
+
+```
+sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
+sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
+sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
+sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/ # check this
+```
+
+Download the PIL source:
+
+```
+cd /tmp
+wget http://effbot.org/downloads/Imaging-1.1.7.tar.gz
+cd Imaging-1.1.7
+```
+
+Do a test build:
+
+```
+python setup.py build_ext -i
+python selftest.py
+```
+
+The Output MUST include these lines:
+
+```
+--- PIL CORE support ok
+--- JPEG support ok
+--- ZLIB (PNG/ZIP) support ok
+--- FREETYPE2 support ok
+--- LITTLECMS support ok
+```
+
+See the README for what to do if there's trouble, otherwise, do:
+
+```
+sudo python setup.py install
+```
+
+And you should be all set.
 
 ## IIIF 1.1 Compliance
 See [doc/compliance.md](doc/compliance.md)
