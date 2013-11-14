@@ -48,7 +48,6 @@ class ImageInfo(object):
 		src_format (str): as a three char file extension 
 		src_img_fp (str): the absolute path on the file system
 		color_profile_bytes []: the emebedded color profile, if any
-		self.color_profile_fp (str): path to the color profile on the file system
 	'''
 	__slots__ = ('scale_factors', 'width', 'tile_height', 'height', 
 		'tile_width', 'qualities', 'formats', 'ident', 'src_format', 
@@ -116,10 +115,6 @@ class ImageInfo(object):
 		new_inst.tile_height = j.get(u'tile_height')
 		new_inst.formats = j.get(u'formats')
 		new_inst.qualities = j.get(u'qualities')
-		# except Exception as e: # TODO: be more specific...
-		# 	iie = ImageInfoException(500, str(e))
-		# 	raise iie
-		# finally:
 		f.close()
 		return new_inst
 
@@ -392,26 +387,3 @@ class InfoCache(object):
 
 class ImageInfoException(loris_exception.LorisException): pass
 
-
-if __name__ == '__main__':
-	from ImageCms import profileToProfile
-	import cStringIO
-	SRGB = "/home/jstroop/workspace/colorprofile/sRGB_v4_ICC_preference.icc"
-
-	fp = '/home/jstroop/workspace/colorprofile/47102787.jp2'
-	info = ImageInfo.from_image_file('id', 'http://id', fp, 'jp2', [])
-
-	# cache = InfoCache('/tmp')
-	# cache['id'] = info
-
-	# info = cache['id']
-
-	profile_from_jp2 = info[0].color_profile_bytes
-
-	# get a bitmap from kdu_expand like normal
-	original_bmp = Image.open('/home/jstroop/workspace/colorprofile/47102787.bmp')
-	# map the profile to srgb
-	profile_io = cStringIO.StringIO(profile_from_jp2)
-	original_bmp = profileToProfile(original_bmp, profile_io, SRGB)
-	# save!
-	original_bmp.save('/home/jstroop/workspace/colorprofile/profile_to_bmp.jpg')

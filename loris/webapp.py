@@ -324,7 +324,7 @@ class Loris(object):
 
 	def get_bad_img_format(self, request, ident, region, size, rotation, quality, bad_fmt):
 		body = '(400) format "%s" not supported or not valid' % (bad_fmt,)
-		r = LorisResponse(response=body, status=400, content_type='text/plain')
+		r = LorisResponse(response=body, status=415, content_type='text/plain')
 		return r
 
 	def get_info_conneg(self, request, ident):
@@ -454,6 +454,9 @@ class Loris(object):
 			# default format, which _format_from_request will return if one can't be
 			# discerned from the Accept header.
 
+		# image request's parameter attributes, i.e. RegionParameter etc. are 
+		# decorated with @property and not constructed until they are first 
+		# accessed, which mean we don't have to catch any exceptions here.
 		image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
 		logger.debug(image_request.request_path)
@@ -466,24 +469,27 @@ class Loris(object):
 		if in_cache:
 			fp = self.img_cache[image_request]
 
-			img_last_mod = datetime.utcfromtimestamp(path.getmtime(fp))
-			# The stamp from the FS needs to be rounded using the same algo
-			# as when went sent it, so for an accurate comparison turn it into
-			# an http date and then parse it again :( :
-			img_last_mod = parse_date(http_date(img_last_mod))
 			ims_hdr = request.headers.get('If-Modified-Since')
 
-			logger.debug("From FS HTTP: " + http_date(img_last_mod))
-			logger.debug("IMS Header HTTP: " + http_date(img_last_mod))
-
-			if ims_hdr:
-				logger.debug("From FS (native, rounded): " + str(img_last_mod))
-				logger.debug("IMS Header (parsed): " + str(parse_date(ims_hdr)))
-				ims_hdr = parse_date(ims_hdr) # catch parsing errors?
-				if ims_hdr >= img_last_mod:
-					logger.debug('Sent 304 for %s ' % (fp,))
-					r.status_code = 304
-					return r
+			img_last_mod = datetime.utcfromtimestamp(path.getmtime(fp))
+			# The stamp from the FS needs to be rounded using the same precision
+			# as when went sent it, so for an accurate comparison turn it into
+			# an http date and then parse it again :-( :
+			img_last_mod = parse_date(http_date(img_last_mod))
+			logger.debug("Time from FS (native, rounded): " + str(img_last_mod))
+			logger.debug("Time from IMS Header (parsed): " + str(parse_date(ims_hdr)))
+			# ims_hdr = parse_date(ims_hdr) # catch parsing errors?
+			if ims_hdr and parse_date(ims_hdr) >= img_last_mod:
+				logger.debug('Sent 304 for %s ' % (fp,))
+				r.status_code = 304
+				return r
+			else:
+				r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
+				r.status_code = 200
+				r.last_modified = img_last_mod
+				r.headers['Content-Length'] = path.getsize(fp)
+				r.response = file(fp)
+				return r
 		else:
 			try:
 				# 1. resolve the identifier

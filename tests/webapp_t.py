@@ -175,6 +175,15 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		resp = self.client.get(to_get, headers=headers)
 		self.assertEqual(resp.status_code, 304)
 
+
+	def test_no_ims_header_ok(self):
+		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+
+		# get an image
+		resp = self.client.get(to_get, headers=Headers())
+		self.assertEqual(resp.status_code, 200)
+		
+
 	def test_info_sends_304(self):
 		to_get = '/%s/info.json' % (self.test_jp2_color_id,)
 
