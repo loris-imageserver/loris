@@ -30,7 +30,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.qualities, ['native','bitonal','grey','color'])
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
-		self.assertEqual(info.scale_factors, [1,2,4,8,16,32])
+		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, uri)
 
 	def test_extract_icc_profile_from_jp2(self):
@@ -69,7 +69,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.qualities, ['native','bitonal','grey'])
 		self.assertEqual(info.tile_width, self.test_jp2_grey_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_grey_tile_dims[1])
-		self.assertEqual(info.scale_factors, [1,2,4,8,16,32])
+		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, uri)
 
 	def test_jpeg_info_from_image(self):
@@ -110,7 +110,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.qualities, ['native','bitonal','grey','color'])
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
-		self.assertEqual(info.scale_factors, [1,2,4,8,16,32])
+		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, self.test_jp2_color_uri)
 
 
@@ -132,7 +132,7 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
 		self.assertEqual(info.qualities, ['native','bitonal','grey','color'])
 		self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
-		self.assertEqual(info.scale_factors, [1,2,4,8,16,32])
+		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, self.test_jp2_color_uri)
 
 	# def test_jp2_info_json_request(self):

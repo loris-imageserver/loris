@@ -231,8 +231,7 @@ class ImageInfo(object):
 			jp2.read(7) # through Lcod, Scod, SGcod (16 + 8 + 32 = 56 bits)
 			levels = int(struct.unpack(">B", jp2.read(1))[0])
 			logger.debug("levels: " + str(levels))	
-			# TODO: correct?
-			self.scale_factors = [pow(2, l) for l in range(0,levels)]
+			self.scale_factors = [pow(2, l) for l in range(0,levels+1)]
 		jp2.close()
 
 	def to_json(self):
