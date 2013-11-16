@@ -3,7 +3,7 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-from log_config import get_logger
+from log import get_logger
 from os.path import join, exists, isfile
 from urllib import unquote
 

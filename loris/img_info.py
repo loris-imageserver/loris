@@ -5,7 +5,7 @@ from collections import OrderedDict
 from collections import deque
 from constants import IMG_API_NS, COMPLIANCE
 from datetime import datetime
-from log_config import get_logger
+from log import get_logger
 from threading import Lock
 import fnmatch
 import json

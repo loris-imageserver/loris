@@ -7,7 +7,7 @@ Superclass for all other unit tests
 
 import unittest
 from loris.webapp import create_app
-from loris.log_config import get_logger
+from loris.log import get_logger
 from os import path, listdir, unlink
 from shutil import rmtree
 from werkzeug.test import Client

@@ -26,7 +26,7 @@ from decimal import Decimal, getcontext
 from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
-from log_config import get_logger
+from log import get_logger
 from os import path, makedirs, unlink, removedirs, symlink
 from parameters import RegionRequestException
 from parameters import RegionSyntaxException
@@ -51,7 +51,7 @@ try:
 except ImportError:
 	import uuid
 
-# Loris's etc dir MUST either be a sibling to the /loris/loris directory or at 
+# Loris's etc dir MUST either be a sibling to the loris/loris directory or at 
 # the below:
 ETC_DP = '/etc/loris'
 
@@ -86,6 +86,8 @@ def create_app(debug=False):
 	dirs_to_make = []
 	try:
 		dirs_to_make.append(config['loris.Loris']['tmp_dp'])
+		if config['log']['log_to'] == 'file':
+			dirs_to_make.append(config['logging']['log_dir'])
 		if config['loris.Loris']['enable_caching']:
 			dirs_to_make.append(config['img.ImageCache']['cache_dp'])
 			dirs_to_make.append(config['img.ImageCache']['cache_links'])

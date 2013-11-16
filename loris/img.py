@@ -2,7 +2,7 @@
 #-*-coding:utf-8-*-
 
 
-from log_config import get_logger
+from log import get_logger
 from loris_exception import LorisException
 from os import path,sep,symlink,makedirs,unlink
 from parameters import RegionParameter

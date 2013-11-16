@@ -179,15 +179,36 @@ included for testing by plugging any of these into the identifier slot:
  * `01%2F04%2F0001.tif`
 
 ## Logging
-Each module has its own logger and is chock-full of debug statements. IMO, 
-Python logging is easier to configure with python code than with the config 
-file syntax. See the comments in `loris/log_config.py` for details. You should 
-be able to comment existing code in and out to get what you need. If you need 
-to do something radically different, have a look at the  
-[Python Logging HOWTO](http://docs.python.org/2/howto/logging.html).
 
-There is also a sample file in the loris package called 
-`log_config.py.production_sample` that can be used for reference.
+**If a configuration file is found is `/etc/loris/loris.conf` then it will be 
+read, even if you are running the development server in debug mode.**
+
+Each module has its own logger and is chock-full of debug statements, so setting
+the level to to `INFO` or higher is highly recommended. Logging is configured
+in `loris.conf` in the `log` section:
+
+```ini
+log_to=file ; [console|file]
+log_level=WARNING ; [DEBUG|INFO|WARNING|ERROR|CRITICAL]
+log_dir=/var/log/loris
+max_size=5242880
+max_backups=5
+```
+
+The options are fairly self-explanatory; a few pointers
+ 
+ * `log_to`. Can be `file` or `console` If set to `console`, and you're in production behind Apache, statements will go to Apache's logs. `DEBUG` and `INFO` are mapped to stdout, the rest to stderr.
+ * `log_level`. Can be `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`
+
+ The rest only matter if `log_to` is set to `file`.
+
+ * `log_dir`. This MUST exist and be writable. `setup.py` will take care of this,
+ but it's your responsibility if you make changes once deployed.
+ * `max_size`. Is in bytes, e.g. 5242880 == 5 MB
+ * `max_backups`. This many previous logs will be kept.
+
+
+
 
 ## Resolving Identifiers
 The supplied implementation just unescapes the identifier and tacks a constant 

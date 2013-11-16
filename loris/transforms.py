@@ -3,7 +3,7 @@
 
 from PIL import Image
 from PIL.ImageFile import Parser
-from log_config import get_logger
+from log import get_logger
 from loris_exception import LorisException
 from os import makedirs, path, unlink
 import random

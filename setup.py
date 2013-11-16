@@ -1,4 +1,4 @@
-# /usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # setup.py
 
@@ -12,7 +12,6 @@ import loris
 import os
 
 VERSION = loris.__version__
-LOG_DP = '/var/log/loris' # if you change this, change it in log_config.py too!
 ETC_DP = '/etc/loris'
 BIN_DP = '/usr/local/bin'
 LORIS_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-cache_clean.sh')
@@ -49,6 +48,7 @@ cache_links = conf.get('img.ImageCache', 'cache_links')
 info_cache_dp = conf.get('img_info.InfoCache', 'cache_dp')
 www_dp = conf.get('loris.Loris', 'www_dp')
 tmp_dp = conf.get('loris.Loris', 'tmp_dp')
+log_dp = conf.get('log', 'log_dir')
 
 
 # If all of that worked, determine requirements
@@ -61,7 +61,7 @@ except ImportError:
 data_files=[
 	(ETC_DP, ['etc/loris.conf']),
 	(BIN_DP, ['bin/loris-cache_clean.sh']),
-	(LOG_DP, []),
+	(log_dp, []),
 	(cache_dp, []),
 	(cache_links, []),
 	(info_cache_dp, []),
@@ -177,7 +177,7 @@ Cheers! -Js
 	'cache_clean' : LORIS_CACHE_CLEAN,
 	'user_n' : user_n,
 	'rm_dirs': RMDIRS_SH,
-	'logs' : LOG_DP,
+	'logs' : log_dp,
 	'cache_dp' : cache_dp,
 	'cache_links' : cache_links,
 	'info_cache_dp' : info_cache_dp,
