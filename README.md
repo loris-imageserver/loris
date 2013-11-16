@@ -38,8 +38,7 @@ For JPEG2000 support you also need [Kakadu](http://goo.gl/owJN8), and the
 and the executable in the [configuration file](#configuration).
 
 PIL can be cause problems in particular because of its `libjpeg` and `zlib` 
-dependencies. You're best off getting it from a package manager, but even after
-that you may have trouble. Have a Google for [posts like this](http://goo.gl/Jv9J0) about getting 
+dependencies. See [further down the page](#installing-pil) or have a Google for [posts like this](http://goo.gl/Jv9J0) about getting 
 it working on your system. 
 
 ## Configuration and Options
