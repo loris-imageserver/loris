@@ -32,24 +32,9 @@ class _AbstractTransformer(object):
 			src_fp (str)
 			target_fp (str)
 			image (ImageRequest)
-		Raises:
-			ChangedFormatException:
-				From 4.5 Format: "If neither [a file extension or HTTP Accept 
-				header] are given, then the server should use a default format 
-				of its own choosing."
-
-				So 415 should never be an issue. Each _AbstractTransformer 
-				impl will need to first try to fulfill the request, or else 
-				fall back to a default format. ChangedFormatException should be 
-				raised when the format is changed, and it will be up to the 
-				caller to decide whether to continue or redirect first.
 		'''
 		e = self.__class__.__name__
 		raise NotImplementedError('transform() not implemented for %s' % (cn,))
-
-	def _check_format(self, image_request):
-		if image_request.format not in self.config['target_formats']:
-			raise ChangedFormatException(self.default_format)
 
 	@staticmethod
 	def _round_rotation(rotation):
@@ -125,7 +110,6 @@ class JPG_Transformer(_AbstractTransformer):
 		super(JPG_Transformer, self).__init__(config, default_format)
 
 	def transform(self, src_fp, target_fp, image_request):
-		self._check_format(image_request)
 		im = Image.open(src_fp)
 		JPG_Transformer._derive_with_pil(im, target_fp, image_request)
 
@@ -134,7 +118,6 @@ class TIF_Transformer(_AbstractTransformer):
 		super(TIF_Transformer, self).__init__(config, default_format)
 
 	def transform(self, src_fp, target_fp, image_request):
-		self._check_format(image_request)
 		im = Image.open(src_fp)
 		TIF_Transformer._derive_with_pil(im, target_fp, image_request)
 
@@ -206,10 +189,7 @@ class JP2_Transformer(_AbstractTransformer):
 		return arg
 
 	def transform(self, src_fp, target_fp, image_request):
-		self._check_format(image_request)
-
 		# kdu writes to this:
-
 		fifo_fp = JP2_Transformer._make_tmp_fp(self.tmp_dp, 'bmp')
 
 		# make the named pipe
@@ -268,13 +248,3 @@ class JP2_Transformer(_AbstractTransformer):
 			im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
 		JP2_Transformer._derive_with_pil(im, target_fp, image_request, rotate=rotate_downstream)
-
-		
-
-		
-
-class ChangedFormatException(Exception):
-	def __init__(self, to_ext):
-		super(ChangedFormatException, self).__init__()
-		msg = 'Changed request format to %s' % (to_ext,)
-		self.to_ext = to_ext

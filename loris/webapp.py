@@ -323,7 +323,7 @@ class Loris(object):
 				return self.get_info(request, ident)
 
 	def get_bad_img_format(self, request, ident, region, size, rotation, quality, bad_fmt):
-		body = '(400) format "%s" not supported or not valid' % (bad_fmt,)
+		body = '(415) format "%s" not supported or not valid' % (bad_fmt,)
 		r = LorisResponse(response=body, status=415, content_type='text/plain')
 		return r
 
@@ -454,7 +454,7 @@ class Loris(object):
 			# default format, which _format_from_request will return if one can't be
 			# discerned from the Accept header.
 
-		# image request's parameter attributes, i.e. RegionParameter etc. are 
+		# ImageRequest's Parameter attributes, i.e. RegionParameter etc. are 
 		# decorated with @property and not constructed until they are first 
 		# accessed, which mean we don't have to catch any exceptions here.
 		image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
@@ -519,12 +519,6 @@ class Loris(object):
 				r.mimetype = 'text/plain'
 				return r
 
-			except transforms.ChangedFormatException as e:
-				to = '%s.%s' % ('/'.join((ident, region, size, rotation, quality)), e.to_ext)
-				r.headers['Location'] = to
-				r.status_code = 301
-				return r
-
 		r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
 		r.status_code = 200
 		r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
@@ -542,9 +536,6 @@ class Loris(object):
 			image_request (img.ImageRequest)
 			src_fp (str)
 			src_format (str)
-		Raises:
-			transforms.ChangedFormatException 
-				If the transformer fell back to default format.
 		Returns:
 			(str) the fp of the new image
 		'''
@@ -565,14 +556,10 @@ class Loris(object):
 		# Get the transformer
 		transformer = self.transformers[src_format]
 
-		try:
-			transformer.transform(src_fp, target_fp, image_request)
-			#  cache if caching (this makes symlinks for next time)
-			if self.enable_caching:
-				self.img_cache[image_request] = target_fp
-			
-		except transforms.ChangedFormatException:
-			raise
+		transformer.transform(src_fp, target_fp, image_request)
+		#  cache if caching (this makes symlinks for next time)
+		if self.enable_caching:
+			self.img_cache[image_request] = target_fp
 
 		return target_fp
 
