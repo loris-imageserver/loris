@@ -175,6 +175,11 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		resp = self.client.get(to_get, headers=headers)
 		self.assertEqual(resp.status_code, 304)
 
+	def test_img_reduce(self):
+		to_get = '/%s/full/300,/0/native.jpg' % (self.test_jp2_color_id,)
+		resp = self.client.get(to_get)
+		self.assertEqual(resp.status_code, 200)
+
 
 	def test_no_ims_header_ok(self):
 		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)

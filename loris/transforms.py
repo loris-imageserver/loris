@@ -6,10 +6,12 @@ from PIL.ImageFile import Parser
 from log import get_logger
 from loris_exception import LorisException
 from os import makedirs, path, unlink
+from math import ceil, log
 import random
 import string
 import subprocess
 import cStringIO
+from parameters import FULL_MODE
 try:
 	from ImageCms import profileToProfile
 except ImportError:
@@ -50,6 +52,19 @@ class _AbstractTransformer(object):
 	def _make_tmp_fp(tmp, fmt):
 		n = ''.join(random.choice(string.ascii_lowercase) for x in range(5))
 		return '%s.%s' % (path.join(tmp,n), fmt)
+
+	@staticmethod
+	def _scale_dim(dim,scale):
+		return int(ceil(dim/float(scale)))
+
+	@staticmethod
+	def _get_closest_scale(req_w, req_h, full_w, full_h, scales):
+		if req_w > full_w or req_h > full_h:
+			return 1
+		else:
+			return max([s for s in scales \
+				if _AbstractTransformer._scale_dim(full_w,s) >= req_w and \
+					_AbstractTransformer._scale_dim(full_h,s) >= req_h])
 
 	@staticmethod
 	def _derive_with_pil(im, target_fp, image_request, rotate=True):
@@ -155,7 +170,8 @@ class JP2_Transformer(_AbstractTransformer):
 
 		super(JP2_Transformer, self).__init__(config, default_format)
 
-	def _region_to_kdu(self, region_param):
+	@staticmethod
+	def _region_to_kdu(region_param):
 		'''
 		Args:
 			region_param (params.RegionParam)
@@ -175,8 +191,8 @@ class JP2_Transformer(_AbstractTransformer):
 		logger.debug('kdu region parameter: %s' % (arg,))
 		return arg
 
-
-	def _rotation_to_kdu(self, rotation_param):
+	@staticmethod
+	def _rotation_to_kdu(rotation_param):
 		'''Get a `-rotate` argument for the `convert` utility.
 
 		Returns:
@@ -187,6 +203,26 @@ class JP2_Transformer(_AbstractTransformer):
 			arg = '-rotate %s' % (rotation_param.cannonical_uri_value,)
 		logger.debug('kdu rotation parameter: %s' % (arg,))
 		return arg
+
+	# @staticmethod
+	# def _scale_to_kdu_reduce_arg(s):
+	# 	return int(log(s, 2))
+
+	@staticmethod
+	def _scales_to_kdu_reduce(image_request):
+		scales = image_request.info.scale_factors
+		is_full_region = image_request.region_param.uri_value == FULL_MODE
+
+		if scales and is_full_region:
+			full_w = image_request.info.width
+			full_h = image_request.info.height
+			req_w = image_request.size_param.w
+			req_h = image_request.size_param.w
+			closest_scale = JP2_Transformer._get_closest_scale(req_w, req_h, full_w, full_h, scales)
+			reduce_arg = int(log(closest_scale, 2))
+			return '-reduce %d' % (reduce_arg,)
+		else:
+			return ''
 
 	def transform(self, src_fp, target_fp, image_request):
 		# kdu writes to this:
@@ -205,17 +241,18 @@ class JP2_Transformer(_AbstractTransformer):
 		t = '-num_threads 8'
 		i = '-i %s' % (src_fp,)
 		o = '-o %s' % (fifo_fp,)
-		region_arg = self._region_to_kdu(image_request.region_param)
+
+		region_arg = JP2_Transformer._region_to_kdu(image_request.region_param)
+		reduce_arg = JP2_Transformer._scales_to_kdu_reduce(image_request)
 
 		# kdu can do the rotation if it's a multiple of 90:
-		
 		if int(image_request.rotation_param.uri_value) % 90 == 0:
 			rotate_downstream = False
-			kdu_rotation_arg = self._rotation_to_kdu(image_request.rotation_param)
-			kdu_cmd = ' '.join((self.kdu_expand,q,i,t,region_arg,kdu_rotation_arg,o))
+			kdu_rotation_arg = JP2_Transformer._rotation_to_kdu(image_request.rotation_param)
+			kdu_cmd = ' '.join((self.kdu_expand,q,i,t,region_arg,reduce_arg,kdu_rotation_arg,o))
 		else:
 			rotate_downstream = True
-			kdu_cmd = ' '.join((self.kdu_expand,q,i,region_arg,o))
+			kdu_cmd = ' '.join((self.kdu_expand,q,i,t,region_arg,reduce_arg,o))
 
 
 		logger.debug('Calling: %s' % (kdu_cmd,))
