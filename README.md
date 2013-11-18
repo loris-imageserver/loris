@@ -82,7 +82,9 @@ some options:
   following property, `cors_whitelist` will be read and and the `Origin` header 
   of the request will be checked against that list. If there is a match, the 
   [`Access-Control-Allow-Origin`](http://www.w3.org/TR/cors/#access-control-allow-origin-response-header) will contain that value and the request 
-  should go through.
+  should go through. The value of this option can also be set to `*`, which will
+  make info requests publicly available (responses will include 
+  `Access-Control-Allow-Origin=*`)
 
   Note that you can also supply a `callback` parameter to requests (e.g. 
   `?callback=myfunct`) to do [JSONP](http://en.wikipedia.org/wiki/JSONP) style 

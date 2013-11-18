@@ -352,7 +352,9 @@ class Loris(object):
 	def get_info(self, request, ident):
 		r = LorisResponse()
 		if self.enable_cors and request.headers.get('origin'):
-			if request.headers['origin'] in self.cors_whitelist:
+			if self.cors_whitelist[0] == '*':
+				r.headers['access-control-allow-origin'] = '*'
+			elif request.headers['origin'] in self.cors_whitelist:
 				r.headers['access-control-allow-origin'] = request.headers['origin']
 
 		try:
