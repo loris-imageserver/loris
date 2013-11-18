@@ -77,6 +77,8 @@ def create_app(debug=False):
 		config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
 		config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
 		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
+
+		config['log']['log_to'] == 'console'
 	else:
 		logger.debug('Running in production mode.')
 		conf_fp = path.join(ETC_DP, 'loris.conf')
@@ -87,7 +89,7 @@ def create_app(debug=False):
 	try:
 		dirs_to_make.append(config['loris.Loris']['tmp_dp'])
 		if config['log']['log_to'] == 'file':
-			dirs_to_make.append(config['logging']['log_dir'])
+			dirs_to_make.append(config['log']['log_dir'])
 		if config['loris.Loris']['enable_caching']:
 			dirs_to_make.append(config['img.ImageCache']['cache_dp'])
 			dirs_to_make.append(config['img.ImageCache']['cache_links'])
