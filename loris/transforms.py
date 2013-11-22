@@ -13,13 +13,13 @@ import subprocess
 import cStringIO
 from parameters import FULL_MODE
 from PIL.ImageCms import profileToProfile
-# try:
-# 	from PIL.ImageCms import profileToProfile
-# except ImportError:
-# 	try:
-# 		from ImageCms import profileToProfile
-# 	except:
-# 		pass
+try:
+	from PIL.ImageCms import profileToProfile
+except ImportError:
+ 	try:
+ 		from ImageCms import profileToProfile
+ 	except ImportError:
+ 		pass
 
 import sys
 
