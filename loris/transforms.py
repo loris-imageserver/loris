@@ -14,10 +14,10 @@ import cStringIO
 from parameters import FULL_MODE
 from PIL.ImageCms import profileToProfile
 try:
-	from PIL.ImageCms import profileToProfile
+	from PIL.ImageCms import profileToProfile # Pillow
 except ImportError:
  	try:
- 		from ImageCms import profileToProfile
+ 		from ImageCms import profileToProfile # PIL
  	except ImportError:
  		pass
 
