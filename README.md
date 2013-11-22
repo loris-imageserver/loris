@@ -20,26 +20,21 @@ everything in the correct places and set permissions.
 
 ## Dependencies
 You need [Werkzeug](http://goo.gl/3IWJn) (`>=0.8.3`) and 
-[PIL](http://goo.gl/E2Xv4). `setup.py` will install Werkzeug
+[PIL](http://goo.gl/E2Xv4) or [Pillow](http://pillow.readthedocs.org/). `setup.py` will install Werkzeug
 but:
 
  1. You should run tests before installing
- 2. The Python Imaging Library has dependencies that you can't get with 
- `easy_install` or `pip`.
+ 2. The Python Imaging Library and Pillow have dependencies that you can't get with `easy_install` or `pip`.
 
 So you're better off installing these manually:
 
  * [Werkzeug](http://goo.gl/sPiHo)
- * [Python Imaging Library](http://goo.gl/E2Xv4). See [further down the page](#installing-pil) for 
+ * [Python Imaging Library](http://goo.gl/E2Xv4) or [Pillow](http://pillow.readthedocs.org/). See [further down the page](#installing-pil-or-pillow) for 
  more specific instructions.
 
 For JPEG2000 support you also need [Kakadu](http://goo.gl/owJN8), and the 
 `kdu_expand` command line application in particular. Set the path to the libs
 and the executable in the [configuration file](#configuration).
-
-PIL can be cause problems in particular because of its `libjpeg` and `zlib` 
-dependencies. See [further down the page](#installing-pil) or have a Google for [posts like this](http://goo.gl/Jv9J0) about getting 
-it working on your system. 
 
 ## Configuration and Options
 
@@ -109,7 +104,7 @@ srgb_profile_fp=/usr/share/color/icc/colord/sRGB.icc
 Then Loris will, as the name of the option suggests, map the color profile that 
 is embedded in the JP2 to sRGB. To faciliate this, the Python Imaging Library has
 to be BUILT with [Little CMS](http://www.littlecms.com/) support. Instructions on
-how to do this (at least on an Ubuntu system) are [further down the page](#installing-pil).
+how to do this (at least on an Ubuntu system) are [further down the page](#installing-pil-or-pillow).
 
 ### Notes about Configuration for Developers
 
@@ -209,9 +204,6 @@ The options are fairly self-explanatory; a few pointers
  * `max_size`. Is in bytes, e.g. 5242880 == 5 MB
  * `max_backups`. This many previous logs will be kept.
 
-
-
-
 ## Resolving Identifiers
 The supplied implementation just unescapes the identifier and tacks a constant 
 path onto the front. e.g. if `ident = 01%2F02%2F0001.jp2` and in the config 
@@ -298,34 +290,37 @@ WSGISocketPrefix /var/run/wsgi
 ```
 as well. See: [Location of Unix Sockets](http://code.google.com/p/modwsgi/wiki/ConfigurationIssues#Location_Of_UNIX_Sockets)
 
-## Installing PIL
+## Installing PIL or Pillow
 
 These instructions are known to work with Ubuntu 12.04.3. If you have further
 information, please provide it!
 
-First, remove all instances of PIL, including, but not limited to, the `python-imaging` package:
+PIL or Pillow have to be built/installed **after** Little CMS, so first remove all instances of PIL and Pillow, including, but not limited to, the `python-imaging` package:
 
 ```
 sudo pip uninstall PIL
+sudo pip uninstall Pillow
 sudo apt-get purge python-imaging
 ```
 
-Then, get install all of the dependencies:
+Then, get install all of the dependencies (same for PIL or Pillow):
 
 ```
 sudo apt-get install libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 \
-libfreetype6-dev zlib1g-dev liblcms liblcms-dev liblcms-utils
+libfreetype6-dev zlib1g-dev liblcms liblcms-dev liblcms-utils libtiff5-dev
 ```
 
-Link them the dirs where PIL will find them (this is unfortunate):
+Link them the dirs where PIL or Pillow will find them (this is unfortunate):
 
 ```
 sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
 sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
 sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
-sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/ # check this
+sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/
+sudo ln -s /usr/lib/`uname -i`-linux-gnu/libtiff.so /usr/lib/
 ```
 
+### For PIL
 Download the PIL source:
 
 ```
@@ -341,7 +336,7 @@ python setup.py build_ext -i
 python selftest.py
 ```
 
-The Output MUST include these lines:
+The output MUST include these lines:
 
 ```
 --- PIL CORE support ok
@@ -358,6 +353,23 @@ sudo python setup.py install
 ```
 
 And you should be all set.
+
+### For Pillow
+
+```
+pip install Pillow
+```
+
+The output MUST include these lines:
+
+```
+[...]
+--- ZLIB (PNG/ZIP) support available
+--- TIFF G3/G4 (experimental) support available
+--- FREETYPE2 support available
+--- LITTLECMS support available
+[...]
+```
 
 ## IIIF 1.1 Compliance
 See [doc/compliance.md](doc/compliance.md)

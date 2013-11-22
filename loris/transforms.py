@@ -12,10 +12,14 @@ import string
 import subprocess
 import cStringIO
 from parameters import FULL_MODE
-try:
-	from ImageCms import profileToProfile
-except ImportError:
-	pass
+from PIL.ImageCms import profileToProfile
+# try:
+# 	from PIL.ImageCms import profileToProfile
+# except ImportError:
+# 	try:
+# 		from ImageCms import profileToProfile
+# 	except:
+# 		pass
 
 import sys
 
@@ -150,7 +154,8 @@ class JP2_Transformer(_AbstractTransformer):
 			'PATH' : config['kdu_expand']
 		}
 
-		if self.map_profile_to_srgb and 'ImageCms' not in sys.modules:
+		if self.map_profile_to_srgb and \
+			('PIL.ImageCms' not in sys.modules and 'ImageCms' not in sys.modules):
 			logger.warn('Could not import profileToProfile from ImageCms.')
 			logger.warn('Images will not have their embedded color profiles mapped to sSRGB.')
 			self.map_profile_to_srgb = False

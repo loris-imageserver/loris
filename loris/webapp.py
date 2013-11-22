@@ -51,11 +51,14 @@ try:
 except ImportError:
 	import uuid
 
-# Loris's etc dir MUST either be a sibling to the loris/loris directory or at 
-# the below:
+# Loris's etc dir MUST either be a sibling to the loris/loris directory or at the below:
 ETC_DP = '/etc/loris'
-
 # We can figure out everything else from there.
+
+
+# TODO: configure the 'loris' logger within #create_app, based on what we do
+# in the log module now. Then add logging.getLogger(__name__) to each module.
+# I believe the configuration should inherit.
 
 logger = get_logger(__name__)
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -77,8 +80,6 @@ def create_app(debug=False):
 		config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
 		config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
 		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
-
-		config['log']['log_to'] == 'console'
 	else:
 		logger.debug('Running in production mode.')
 		conf_fp = path.join(ETC_DP, 'loris.conf')
