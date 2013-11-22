@@ -3,9 +3,9 @@
 from PIL import Image
 from collections import OrderedDict
 from collections import deque
-from constants import IMG_API_NS, COMPLIANCE
+from constants import COMPLIANCE
 from datetime import datetime
-from log import get_logger
+from logging import getLogger
 from threading import Lock
 import fnmatch
 import json
@@ -13,9 +13,7 @@ import loris_exception
 import os
 import struct
 
-logger = get_logger(__name__)
-
-# TODO: we may want a little more exception handling in here.
+logger = getLogger(__name__)
 
 STAR_DOT_JSON = '*.json'
 

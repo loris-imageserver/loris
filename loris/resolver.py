@@ -3,13 +3,13 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-from log import get_logger
+from logging import getLogger
 from os.path import join, exists, isfile
 from urllib import unquote
 
 import loris_exception
 
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 class _AbstractResolver(object):
 	def __init__(self, config):

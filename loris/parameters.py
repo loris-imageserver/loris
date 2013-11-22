@@ -10,10 +10,10 @@ libraries without any further need to process the IIIF syntax.
 
 from decimal import Decimal
 from math import floor
-from log import get_logger
+from logging import getLogger
 from loris_exception import LorisException
 
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 FULL_MODE = 'full'
 PCT_MODE = 'pct'

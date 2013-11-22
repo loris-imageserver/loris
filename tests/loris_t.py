@@ -7,14 +7,13 @@ Superclass for all other unit tests
 
 import unittest
 from loris.webapp import create_app
-from loris.log import get_logger
 from os import path, listdir, unlink
 from shutil import rmtree
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse, Request
+from logging import getLogger
 
-
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 class LorisTest(unittest.TestCase):
 

@@ -2,17 +2,18 @@
 # -*- coding: utf-8 -*-
 
 from PIL import Image
+from PIL.ImageCms import profileToProfile
 from PIL.ImageFile import Parser
-from log import get_logger
+from logging import getLogger
 from loris_exception import LorisException
-from os import makedirs, path, unlink
 from math import ceil, log
+from os import makedirs, path, unlink
+from parameters import FULL_MODE
+import cStringIO
 import random
 import string
 import subprocess
-import cStringIO
-from parameters import FULL_MODE
-from PIL.ImageCms import profileToProfile
+import sys
 try:
 	from PIL.ImageCms import profileToProfile # Pillow
 except ImportError:
@@ -21,9 +22,8 @@ except ImportError:
  	except ImportError:
  		pass
 
-import sys
 
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 class _AbstractTransformer(object):
 	def __init__(self, config, default_format):

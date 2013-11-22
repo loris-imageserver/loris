@@ -2,7 +2,7 @@
 #-*-coding:utf-8-*-
 
 
-from log import get_logger
+from logging import getLogger
 from loris_exception import LorisException
 from os import path,sep,symlink,makedirs,unlink
 from parameters import RegionParameter
@@ -16,7 +16,7 @@ from parameters import SizeSyntaxException
 from urllib import unquote, quote_plus
 from werkzeug.http import generate_etag
 
-logger = get_logger(__name__)
+logger = getLogger(__name__)
 
 class ImageRequest(object):
 	'''
@@ -102,7 +102,7 @@ class ImageRequest(object):
 		self._rotation_param = None
 		self._size_param = None
 
-		# This is awkward. We may need it, but not right away (only if we're 
+		# This is a little awkward. We may need it, but not right away (only if we're 
 		# filling out the param slots), so the user (of the class) has to set 
 		# it before accessing most of the above.
 		self._info = None

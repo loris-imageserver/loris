@@ -177,12 +177,9 @@ included for testing by plugging any of these into the identifier slot:
 
 ## Logging
 
-**If a configuration file is found is `/etc/loris/loris.conf` then it will be 
-read, even if you are running the development server in debug mode.**
-
 Each module has its own logger and is chock-full of debug statements, so setting
 the level to to `INFO` or higher is highly recommended. Logging is configured
-in `loris.conf` in the `log` section:
+in `loris.conf` in the `logging` section:
 
 ```ini
 log_to=file ; [console|file]
@@ -190,6 +187,7 @@ log_level=WARNING ; [DEBUG|INFO|WARNING|ERROR|CRITICAL]
 log_dir=/var/log/loris
 max_size=5242880
 max_backups=5
+format=%(asctime)s (%(name)s) [%(levelname)s]: %(message)s
 ```
 
 The options are fairly self-explanatory; a few pointers
@@ -203,6 +201,7 @@ The options are fairly self-explanatory; a few pointers
  but it's your responsibility if you make changes once deployed.
  * `max_size`. Is in bytes, e.g. 5242880 == 5 MB
  * `max_backups`. This many previous logs will be kept.
+ * `format`. Format of the log entries. See [Python LogRecord attributes](http://docs.python.org/2/library/logging.html#logrecord-attributes) for options.
 
 ## Resolving Identifiers
 The supplied implementation just unescapes the identifier and tacks a constant 

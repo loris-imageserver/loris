@@ -26,7 +26,7 @@ from decimal import Decimal, getcontext
 from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
-from log import get_logger
+from logging.handlers import RotatingFileHandler
 from os import path, makedirs, unlink, removedirs, symlink
 from parameters import RegionRequestException
 from parameters import RegionSyntaxException
@@ -39,6 +39,7 @@ from werkzeug.routing import Map, Rule
 from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
 import constants
 import img
+import logging
 import loris_exception
 import random
 import re
@@ -60,17 +61,24 @@ ETC_DP = '/etc/loris'
 # in the log module now. Then add logging.getLogger(__name__) to each module.
 # I believe the configuration should inherit.
 
-logger = get_logger(__name__)
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
 def create_app(debug=False):
+	global logger
 	if debug:
-		logger.debug('Running in debug mode.')
 		project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-
 		# read the config
 		conf_fp = path.join(project_dp, 'etc', 'loris.conf')
 		config = __config_to_dict(conf_fp)
+
+		config['logging']['log_to'] = 'console'
+		config['logging']['log_level'] = 'DEBUG'
+
+		__configure_logging(config['logging'])
+
+		logger = logging.getLogger('webapp')
+
+		logger.debug('Running in debug mode.')
 
 		# override some stuff to look at relative directories.
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
@@ -81,16 +89,19 @@ def create_app(debug=False):
 		config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
 		config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
 	else:
-		logger.debug('Running in production mode.')
 		conf_fp = path.join(ETC_DP, 'loris.conf')
 		config = __config_to_dict(conf_fp)
+		__configure_logging(config['logging'])
+		logger = logging.getLogger(__name__)
+		logger.debug('Running in production mode.')
+
 
 	# Make any dirs we may need 
 	dirs_to_make = []
 	try:
 		dirs_to_make.append(config['loris.Loris']['tmp_dp'])
-		if config['log']['log_to'] == 'file':
-			dirs_to_make.append(config['log']['log_dir'])
+		if config['logging']['log_to'] == 'file':
+			dirs_to_make.append(config['logging']['log_dir'])
 		if config['loris.Loris']['enable_caching']:
 			dirs_to_make.append(config['img.ImageCache']['cache_dp'])
 			dirs_to_make.append(config['img.ImageCache']['cache_links'])
@@ -149,6 +160,57 @@ def __config_to_dict(conf_fp):
 		config[tf]['target_formats'] = [s.strip() for s in config[tf]['target_formats'].split(',')]
 
 	return config
+
+def __configure_logging(config):
+	logger = logging.getLogger()
+
+	conf_level = config['log_level']
+
+	if conf_level == 'CRITICAL': LOG_LEVEL = logger.setLevel(logging.CRITICAL)
+	elif conf_level == 'ERROR':	LOG_LEVEL = logger.setLevel(logging.ERROR)
+	elif conf_level == 'WARNING': LOG_LEVEL = logger.setLevel(logging.WARNING)
+	elif conf_level == 'INFO': LOG_LEVEL = logger.setLevel(logging.INFO)
+	else: LOG_LEVEL = logger.setLevel(logging.DEBUG)
+
+	formatter = logging.Formatter(fmt=config['format'])
+
+	if config['log_to'] == 'file':
+		if not getattr(logger, 'handler_set', None):
+			fp = '%s.log' % (path.join(config['log_dir'], 'loris'),)
+			handler = RotatingFileHandler(fp,
+				maxBytes=config['max_size'], 
+				backupCount=config['max_backups'],
+				delay=True)
+			handler.setFormatter(formatter)
+			logger.addHandler(handler)
+	else:
+		# STDERR
+		if not getattr(logger, 'handler_set', None):
+			from sys import __stderr__, __stdout__
+			err_handler = logging.StreamHandler(__stderr__)
+			err_handler.addFilter(StdErrFilter())
+			err_handler.setFormatter(formatter)
+			logger.addHandler(err_handler)
+			
+			# STDOUT
+			out_handler = logging.StreamHandler(__stdout__)
+			out_handler.addFilter(StdOutFilter())
+			out_handler.setFormatter(formatter)
+			logger.addHandler(out_handler)
+
+			logger.handler_set = True
+
+class StdErrFilter(logging.Filter):
+	'''Logging filter for stderr
+	'''
+	def filter(self,record):
+		return 1 if record.levelno >= 30 else 0
+
+class StdOutFilter(logging.Filter):
+	'''Logging filter for stdout
+	'''
+	def filter(self,record):
+		return 1 if record.levelno <= 20 else 0
 
 class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
 	'''Similar to Response, but IIIF Compliance Header is added and none of the
