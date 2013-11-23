@@ -17,7 +17,7 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
 
  * `enable_caching`. If `enable_caching=0` no Memory or filesystem caching will happen and `Last-Modified` headers not be sent. This should only be used for testing/development/debugging.
 
- * `redirect_base_uri` If `redirect_base_uri=1`, when a base URI is dereferenced (i.e. `{scheme}://{server}{/prefix}/{identifier}`) the server will redirect to `{scheme}://{server}{/prefix}/{identifier}/**info.json**` with a `303`. Otherwise the info json is just returned directly. 
+ * `redirect_base_uri` If `redirect_base_uri=1`, when a base URI is dereferenced (i.e. `{scheme}://{server}{/prefix}/{identifier}`) the server will redirect to `{scheme}://{server}{/prefix}/{identifier}/info.json` with a `303`. Otherwise the info json is just returned directly. 
 
  * `redirect_cannonical_image_request` If `redirect_cannonical_image_request=1` and the request for an image is not the cannonical path (e.g. only a width is supplied and the height is calculated by the server), the client will be redirected a `301`.
 
