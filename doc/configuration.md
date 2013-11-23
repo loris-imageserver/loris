@@ -5,7 +5,7 @@ See `etc/loris.conf` (or `/etc/loris/loris.conf` after you've run `setup.py inst
 
 In addition to a bunch of directory paths (items that end with `_dp`) which should be self-explanatory and the [transformation options explained below](#image-transformations), there are some options:
 
-###`[loris.Loris]`
+### `[loris.Loris]`
 
  * `tmp_dp`. A temporary directory that loris can write to. `setup.py` will create this for you.
 
@@ -17,13 +17,13 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
 
  * `enable_caching`. If `enable_caching=0` no Memory or filesystem caching will happen and `Last-Modified` headers not be sent. This should only be used for testing/development/debugging.
 
- * `redirect_base_uri` If `redirect_base_uri=1`, when a base URI is dereferenced (i.e. `{scheme}://{server}{/prefix}/{identifier}`) the server will redirect to `{scheme}://{server}{/prefix}/{identifier}/info.json` with a `303`. Otherwise the info json is just returned directly. 
+ * `redirect_base_uri`. If `redirect_base_uri=1`, when a base URI is dereferenced (i.e. `{scheme}://{server}{/prefix}/{identifier}`) the server will redirect to `{scheme}://{server}{/prefix}/{identifier}/info.json` with a `303`. Otherwise the info json is just returned directly. 
 
- * `redirect_cannonical_image_request` If `redirect_cannonical_image_request=1` and the request for an image is not the cannonical path (e.g. only a width is supplied and the height is calculated by the server), the client will be redirected a `301`.
+ * `redirect_cannonical_image_request` .If `redirect_cannonical_image_request=1` and the request for an image is not the cannonical path (e.g. only a width is supplied and the height is calculated by the server), the client will be redirected a `301`.
 
- * `redirect_conneg` If `redirect_conneg=1` when asking for, e.g., `/info` with `Accept: application/json` (as opposed to the cannonical `/info.json`), the client will be redirected with a `301` to `/info.json`. This also applies to image requests.
+ * `redirect_conneg`. If `redirect_conneg=1` when asking for, e.g., `/info` with `Accept: application/json` (as opposed to the cannonical `/info.json`), the client will be redirected with a `301` to `/info.json`. This also applies to image requests.
 
- * `enable_cors` / `cors_whitelist` If `enable_cors=1`, the following property, `cors_whitelist` will be read and and the `Origin` header of the request will be checked against that list. If there is a match, the [`Access-Control-Allow-Origin`](http://www.w3.org/TR/cors/#access-control-allow-origin-response-header) will contain that value and the request should go through. **The value of this option can also be set to `*`**, which will make info requests publicly available (responses will include `Access-Control-Allow-Origin=*`)
+ * `enable_cors` / `cors_whitelist`. If `enable_cors=1`, the following property, `cors_whitelist` will be read and and the `Origin` header of the request will be checked against that list. If there is a match, the [`Access-Control-Allow-Origin`](http://www.w3.org/TR/cors/#access-control-allow-origin-response-header) will contain that value and the request should go through. **The value of this option can also be set to `*`**, which will make info requests publicly available (responses will include `Access-Control-Allow-Origin=*`)
 
  Note that you can also supply a `callback` parameter to requests (e.g. `?callback=myfunct`) to do [JSONP](http://en.wikipedia.org/wiki/JSONP) style requests. (This is not part of the IIIF API and may not work--probably will not--work with on other implementations.
 
