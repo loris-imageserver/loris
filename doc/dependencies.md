@@ -9,9 +9,9 @@ In order from least to most tedious:
 
  1. Install [Werkzeug](http://goo.gl/3IWJn) (`>=0.8.3`)
 
-```
+ ```
  $ sudo pip install Werkzeug
-```
+ ```
 
  2. Install Kakadu. [Download the appropriate version or Kakadu](http://goo.gl/owJN8) for your system. **You need at least version 7.2 for all feature to work properly.** Unzip and put the files somewhere on your system. The defaults are `/usr/local/lib` for the shared object file (`libkdu_v72R.so`) and `/usr/local/bin` for `kdu_*`. If you do something different you'll need to change the locations in the `transforms.jp2` section of `etc/loris.conf`. `kdu_libs` should point to a directory, `kdu_expand` should point to a file. **Make sure that `kdu_expand` is executable.**
 
