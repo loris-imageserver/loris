@@ -9,7 +9,7 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
 
  * `tmp_dp`. A temporary directory that loris can write to. `setup.py` will create this for you.
 
- * The destination for the WSGI script. If you change this, it needs to be reflected in the Apache configuration (see [Apache Deployment Notes](apache.md)).
+ * `www_dp`. The destination for the WSGI script. If you change this, it needs to be reflected in the Apache configuration (see [Apache Deployment Notes](apache.md)).
 
  * `run_as_user` and `run_as_group`. These are the user and group that will own the loris processes. When `setup.py` is run (likely as root or with sudo, everything is adusted to suit this owner.
 
