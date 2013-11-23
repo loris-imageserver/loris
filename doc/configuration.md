@@ -9,7 +9,7 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
 
  * `tmp_dp`. A temporary directory that loris can write to. `setup.py` will create this for you.
 
- * The destination for the WSGI script. If you change this, it needs to be reflected in the Apache configuration (see [Apache Deployment Notes](doc/apache.md)).
+ * The destination for the WSGI script. If you change this, it needs to be reflected in the Apache configuration (see [Apache Deployment Notes](apache.md)).
 
  * `run_as_user` and `run_as_group`. These are the user and group that will own the loris processes. When `setup.py` is run (likely as root or with sudo, everything is adusted to suit this owner.
 
@@ -46,11 +46,11 @@ The options are fairly self-explanatory; a few pointers
 
 ### `[resolver.Resolver]`
 
-Any options you add here will be passed through to the resolver you implement. For an explanation of the default resolver, see the [Resolver page](doc/resolver.md).
+Any options you add here will be passed through to the resolver you implement. For an explanation of the default resolver, see the [Resolver page](resolver.md).
 
 ### `[transforms.*]`
 
-Probably safe to leave these as-is. See the [Developer Notes](doc/develop.md#image-transformations) for when this may not be the case. The exceptions are `kdu_expand` and `kdu_libs` in the `[transforms.jp2]` (see [Installing Dependenccies](doc/dependencies.md) step 2) or if you're not concerned about color profiles (see next).
+Probably safe to leave these as-is. See the [Developer Notes](develop.md#image-transformations) for when this may not be the case. The exceptions are `kdu_expand` and `kdu_libs` in the `[transforms.jp2]` (see [Installing Dependenccies](dependencies.md) step 2) or if you're not concerned about color profiles (see next).
 
 ### `[transforms.jp2]`
  * `map_embedded_profile_to_srgb`. If is set to `map_embedded_profile_to_srgb=1` and you provide a path to an sRGB color profile on your system, e.g.:
@@ -60,8 +60,8 @@ map_embedded_profile_to_srgb=1
 srgb_profile_fp=/usr/share/color/icc/colord/sRGB.icc
 ```
 
-Then Loris will, as the name of the option suggests, map the color profile that is embedded in the JP2 to sRGB. To faciliate this, the Python Imaging Library has to be installed with [Little CMS](http://www.littlecms.com/) support. Instructions on how to do this are on the [Configuration page](doc/configuration.md).
+Then Loris will, as the name of the option suggests, map the color profile that is embedded in the JP2 to sRGB. To faciliate this, the Python Imaging Library has to be installed with [Little CMS](http://www.littlecms.com/) support. Instructions on how to do this are on the [Configuration page](configuration.md).
 
 * * *
 
-Proceed to [Cache Maintenance](doc/cache_maintenance.md) or go [Back to README](README.md)
+Proceed to [Cache Maintenance](cache_maintenance.md) or go [Back to README](README.md)

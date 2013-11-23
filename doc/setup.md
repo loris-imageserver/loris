@@ -15,4 +15,4 @@ Finally, from the `loris` (not `loris/loris`) directory, either as root or with 
 
 * * *
 
-Proceed to [Deploy with Apache](doc/apache.md) or go [Back to README](README.md)
+Proceed to [Deploy with Apache](apache.md) or go [Back to README](README.md)
