@@ -100,4 +100,4 @@ Once you done all of this, go ahead and run the tests. From the `loris` director
 
 * * *
 
-Proceed to set [Configuration Options](configuration.md) or go [Back to README](README.md)
+Proceed to set [Configuration Options](configuration.md) or go [Back to README](../README.md)

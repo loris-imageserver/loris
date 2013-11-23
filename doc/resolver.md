@@ -18,4 +18,4 @@ You'll probably want to do something smarter. See `resolver._AbstractResolver` f
 
 * * *
 
-Proceed to the [Run `setup.py`](setup.md) or go [Back to README](README.md)
+Proceed to the [Run `setup.py`](setup.md) or go [Back to README](../README.md)

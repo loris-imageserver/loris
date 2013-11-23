@@ -7,4 +7,4 @@ After you run `setup.py install` this script will be a `/usr/local/bin/loris-cac
 
 * * *
 
-Proceed to the [Resolver Instructions](resolver.md) or go [Back to README](README.md)
+Proceed to the [Resolver Instructions](resolver.md) or go [Back to README](../README.md)

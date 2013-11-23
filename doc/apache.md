@@ -70,4 +70,4 @@ Finally, restart Apache and have a look (start at http://{your_server}/loris).
 
 * * *
 
-Proceed to [Developer Notes](develop.md) (optional) or go [Back to README](README.md)
+Proceed to [Developer Notes](develop.md) (optional) or go [Back to README](../README.md)

@@ -64,4 +64,4 @@ Then Loris will, as the name of the option suggests, map the color profile that 
 
 * * *
 
-Proceed to [Cache Maintenance](cache_maintenance.md) or go [Back to README](README.md)
+Proceed to [Cache Maintenance](cache_maintenance.md) or go [Back to README](../README.md)
