@@ -5,6 +5,8 @@ See `etc/loris.conf` (or `/etc/loris/loris.conf` after you've run `setup.py inst
 
 In addition to a bunch of directory paths (items that end with `_dp`) which should be self-explanatory and the [transformation options explained below](#image-transformations), there are some options:
 
+**Quick Start:** Nearly everything should fine with the default settings. As long as you're pointing to `kdu_expand` and the Kakadu libs (as discussed in the [previous](dependencies.md) section) and pointing to an sRGB icc color profile on your system in the `[transforms.jp2]` section (you can download a copy from the [International Color Consortium](http://www.color.org/srgbprofiles.xalter) or disable this feature by setting `map_embedded_profile_to_srgb=0`), you can proceed to [Cache Maintenance](cache_maintenance.md) and come back later.
+
 ### `[loris.Loris]`
 
  * `tmp_dp`. A temporary directory that loris can write to. `setup.py` will create this for you.
@@ -53,7 +55,7 @@ Any options you add here will be passed through to the resolver you implement. F
 Probably safe to leave these as-is. See the [Developer Notes](develop.md#image-transformations) for when this may not be the case. The exceptions are `kdu_expand` and `kdu_libs` in the `[transforms.jp2]` (see [Installing Dependenccies](dependencies.md) step 2) or if you're not concerned about color profiles (see next).
 
 ### `[transforms.jp2]`
- * `map_embedded_profile_to_srgb`. If is set to `map_embedded_profile_to_srgb=1` and you provide a path to an sRGB color profile on your system, e.g.:
+ * `map_embedded_profile_to_srgb`. If set to `map_embedded_profile_to_srgb=1` and you provide a path to an sRGB color profile on your system, e.g.:
 ``` 
 ...
 map_embedded_profile_to_srgb=1
