@@ -1,4 +1,4 @@
-Run `setup.md`
+Run `setup.py`
 ==============
 
 You should have the tests passing by now, and have `loris/etc/loris.conf` set the way you want it.
