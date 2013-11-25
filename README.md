@@ -6,13 +6,9 @@ Demos
  * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg)
  * [Serving Images for OpenSeadragon](http://libimages.princeton.edu/osd-demo)
 
-IIIF 1.1 Compliance
--------------------
-See [doc/compliance.md](doc/compliance.md)
-
-Do Not!
--------
-Run `setup.py` until you've read the following:
+Installation Instructions
+-------------------------
+**Do Not!** Run `setup.py` until you've read the following:
 
  * [Install Dependencies](doc/dependencies.md)
  * [Configuration Options](doc/configuration.md)
@@ -23,6 +19,10 @@ Run `setup.py` until you've read the following:
  * (Optional) [Developer Notes](develop.md)
 
 You're best off working through these steps in order.
+
+IIIF 1.1 Compliance
+-------------------
+See [doc/compliance.md](doc/compliance.md)
 
 License
 -------
