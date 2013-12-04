@@ -48,7 +48,7 @@ cache_links = conf.get('img.ImageCache', 'cache_links')
 info_cache_dp = conf.get('img_info.InfoCache', 'cache_dp')
 www_dp = conf.get('loris.Loris', 'www_dp')
 tmp_dp = conf.get('loris.Loris', 'tmp_dp')
-log_dp = conf.get('logging', 'log_dir')
+log_dp = conf.get('log', 'log_dir')
 
 
 # If all of that worked, determine requirements
