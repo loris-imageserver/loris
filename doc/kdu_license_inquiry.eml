@@ -1,0 +1,382 @@
+Received: from csgsmtp200l.Princeton.EDU (128.112.130.131) by
+ CSGHUB209W.pu.win.princeton.edu (128.112.128.68) with Microsoft SMTP Server
+ (TLS) id 14.3.158.1; Sun, 15 Dec 2013 22:31:39 -0500
+Return-Path: <daniel@kakadusoftware.com>
+Received: from Princeton.EDU (ppa02.Princeton.EDU [128.112.128.216])	by
+ csgsmtp200l.Princeton.EDU (8.13.8/8.12.9) with ESMTP id rBG3Vc0O008802	for
+ <jstroop@exchange.Princeton.EDU>; Sun, 15 Dec 2013 22:31:39 -0500
+Received: from INFPACM005.services.comms.unsw.edu.au (smtp.unsw.edu.au
+ [149.171.193.32])	by ppa02.princeton.edu (8.14.5/8.14.5) with ESMTP id
+ rBG3VZgv017487	for <jstroop@princeton.edu>; Sun, 15 Dec 2013 22:31:37 -0500
+X-IronPort-Anti-Spam-Filtered: true
+X-IronPort-Anti-Spam-Result: AjoIAOhzrlKBXpPF/2dsb2JhbAA/Gg6COHymdkiJKoUagmlOgTJ0giUBAQUIAh4FHCMKEAMCBgMOAwQBASgHGS0JCAIEARILBQSHcA02xmoXjjcKBwEgDh0BAQkBBoQwBI8eiiiQZIJrUyg9bwkX
+X-IronPort-AV: E=Sophos;i="4.95,492,1384261200"; 
+   d="scan'208,217";a="52829773"
+Received: from l-cnd01212rl.ad.unsw.edu.au (HELO LCND01212RL)
+ ([129.94.147.197])  by INFPACM005.services.comms.unsw.edu.au with ESMTP; 16
+ Dec 2013 14:31:15 +1100
+From: Daniel Gronowski <daniel@kakadusoftware.com>
+To: 'Jon Stroop' <jstroop@princeton.edu>, <sales@kakadusoftware.com>
+References: <52AB1014.90700@princeton.edu>
+In-Reply-To: <52AB1014.90700@princeton.edu>
+Subject: RE: license inquiry
+Date: Mon, 16 Dec 2013 14:31:10 +1100
+Message-ID: <004601cefa0f$441ba940$cc52fbc0$@kakadusoftware.com>
+Content-Type: multipart/alternative;
+	boundary="----=_NextPart_000_0047_01CEFA6B.778DA7E0"
+X-Mailer: Microsoft Outlook 14.0
+Thread-Index: AQD0odcACzpIZndJTqKc5FZotTJuMpwK2IWw
+Content-Language: en-au
+X-Proofpoint-Virus-Version: vendor=fsecure engine=2.50.10432:5.11.87,1.0.14,0.0.0000
+ definitions=2013-12-15_01:2013-12-12,2013-12-15,1970-01-01 signatures=0
+X-Proofpoint-Spam-Details: rule=quarantine_notspam policy=quarantine score=0 spamscore=0
+ suspectscore=10 phishscore=0 adultscore=0 bulkscore=0 classifier=spam
+ adjust=0 reason=mlx scancount=1 engine=7.0.1-1305240000
+ definitions=main-1312150249
+X-MS-Exchange-Organization-AuthSource: CSGHUB209W.pu.win.princeton.edu
+X-MS-Exchange-Organization-AuthAs: Anonymous
+MIME-Version: 1.0
+
+------=_NextPart_000_0047_01CEFA6B.778DA7E0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+
+Hi Jon,
+
+ 
+
+Thank you for your email, Firstly let me say I would be happy for you to
+continue to use the binaries in your work so long as you credit Kakadu as
+their source and refer people to our website. Our business is around
+providing the SDK and as such if your application can showcase the
+advantages of JPEG2000 using our binaries alone I am happy to support this
+so long as it's use is not for financial return. If in the future you want
+to take this further we do have a public service licence for the SDK that
+may be attractive.
+
+
+
+Regarding the language, simply replicating our binary's copyright notice
+should be sufficient. I would be happy to review your text and homepage once
+ready if you would like further confirmation. Please note that external
+users of your application will need to be aware this is not for use enabling
+businesses or organisations and that they may need to seek a licence from us
+if they wish to do so. Other than that we are keen to support those in the
+community which support the use of Kakadu and JPEG2000 as a whole.
+
+ 
+
+Regards,
+
+Daniel Gronowski
+
+Kakadu SoftwareT Sales
+
+
+
+Kakadu SoftwareT | A business of NewSouth Innovations Pty Limited 
+Rupert Myers Building | UNSW Sydney | NSW 2052 | Australia 
+ABN 25 000 263 025 
+Fax +61 2 9385 6600 | E: Daniel@Kakadusoftware.com 
+www.kakadusoftware.com  
+
+University of New South Wales
+
+This email and its attachments are confidential to the named addressee and
+may contain legally privileged information. They are subject to copyright
+and must not be reproduced without our written consent. If you have received
+this email in error please let us know and immediately delete it from your
+system. We do not warrant that this email and its attachments have not been
+interfered with or are virus free. If you do not wish to receive further
+emails from us regarding the content of this message please notify us by
+replying to this email.
+
+P Please consider the environment before printing this e-mail
+
+ 
+
+ 
+
+ 
+
+ 
+
+From: Jon Stroop [mailto:jstroop@princeton.edu] 
+Sent: Saturday, 14 December 2013 12:48 AM
+To: sales@kakadusoftware.com
+Subject: license inquiry
+
+ 
+
+Greetings,
+I'm the developer of Loris[1], an image server that supports, among others,
+JP2 as a source image format (demo[2]). Right now, in the Loris deployment
+instructions I simply ask users to get a copy of the Kakadu binaries and
+point to them in a configuration file. However, I would very much like to
+include a copy of the binaries with the source code for Loris so that I can
+run a continuous integration server (Travis[3]) on our Github repository,
+but of course nearly all of the tests would fail without a copy of
+kdu_expand and the shared objects file available. I believe this falls
+within the terms you describe here[4], i.e.
+
+
+
+
+You are free to trial these executables and even to re-distribute them, so
+long as such use or re-distribution is accompanied with this copyright
+notice and is not for commercial gain. Note: Binaries can only be used for
+non-commercial purposes.
+
+
+But could you please indicate exactly what language you would like in the
+README.md file (shows up on the project's Github homepage) and in the
+LICENSE.txt file? I would also be happy to clarify your terms in the
+deployment instructions.
+
+Also, we'll be deploying Loris into production (not for profit) here at
+Princeton University Library in April or May 2014. Prior to that, I assume
+we should be using a licensed copy of the binaries, as we'll no longer be
+"trial[ing]" Kakadu. We have no need for the SDK at this time, just the
+binaries for 64-bit Linux. Is my understanding correct? If so, could you
+please send a price quote or let me know what other information you need? 
+
+Thanks in advance,
+Jon Stroop
+
+
+1. https://github.com/pulibrary/loris
+2.
+http://libimages.princeton.edu/osd-demo/?feedme=new_jp2s%2Fpudl0052%2F613170
+7%2F00000001.jp2
+3. https://travis-ci.org/
+4. http://www.kakadusoftware.com/index.php?option=com_content
+<http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&
+Itemid=22> &task=view&id=26&Itemid=22
+
+
+
+
+
+-- 
+Jon Stroop
+Digital Initiatives Programmer/Analyst
+Princeton University Library
+jstroop@princeton.edu
+ 
+
+------=_NextPart_000_0047_01CEFA6B.778DA7E0
+Content-Type: text/html; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+<html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:schemas-micr=
+osoft-com:office:office" xmlns:w=3D"urn:schemas-microsoft-com:office:word" =
+xmlns:m=3D"http://schemas.microsoft.com/office/2004/12/omml" xmlns=3D"http:=
+//www.w3.org/TR/REC-html40"><head>
+<meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dus-ascii"=
+><meta name=3D"Generator" content=3D"Microsoft Word 14 (filtered medium)"><=
+style><!--
+/* Font Definitions */
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+@font-face
+	{font-family:"Lucida Sans";
+	panose-1:2 11 6 2 3 5 4 2 2 4;}
+@font-face
+	{font-family:Webdings;
+	panose-1:5 3 1 2 1 5 9 6 7 3;}
+@font-face
+	{font-family:Tahoma;
+	panose-1:2 11 6 4 3 5 4 4 2 4;}
+@font-face
+	{font-family:Consolas;
+	panose-1:2 11 6 9 2 2 4 3 2 4;}
+/* Style Definitions */
+p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0cm;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	color:black;}
+a:link, span.MsoHyperlink
+	{mso-style-priority:99;
+	color:blue;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{mso-style-priority:99;
+	color:purple;
+	text-decoration:underline;}
+pre
+	{mso-style-priority:99;
+	mso-style-link:"HTML Preformatted Char";
+	margin:0cm;
+	margin-bottom:.0001pt;
+	font-size:10.0pt;
+	font-family:"Courier New";
+	color:black;}
+span.HTMLPreformattedChar
+	{mso-style-name:"HTML Preformatted Char";
+	mso-style-priority:99;
+	mso-style-link:"HTML Preformatted";
+	font-family:Consolas;
+	color:black;}
+span.EmailStyle21
+	{mso-style-type:personal-reply;
+	font-family:"Calibri","sans-serif";
+	color:#1F497D;}
+.MsoChpDefault
+	{mso-style-type:export-only;
+	font-size:10.0pt;}
+@page WordSection1
+	{size:612.0pt 792.0pt;
+	margin:72.0pt 72.0pt 72.0pt 72.0pt;}
+div.WordSection1
+	{page:WordSection1;}
+--></style><!--[if gte mso 9]><xml>
+<o:shapedefaults v:ext=3D"edit" spidmax=3D"1026" />
+</xml><![endif]--><!--[if gte mso 9]><xml>
+<o:shapelayout v:ext=3D"edit">
+<o:idmap v:ext=3D"edit" data=3D"1" />
+</o:shapelayout></xml><![endif]--></head><body bgcolor=3D"white" lang=3D"EN=
+-AU" link=3D"blue" vlink=3D"purple"><div class=3D"WordSection1"><p class=3D=
+"MsoNormal"><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&quot;=
+,&quot;sans-serif&quot;;color:#1F497D">Hi Jon,<o:p></o:p></span></p><p clas=
+s=3D"MsoNormal"><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&q=
+uot;,&quot;sans-serif&quot;;color:#1F497D"><o:p>&nbsp;</o:p></span></p><p c=
+lass=3D"MsoNormal"><span style=3D"font-size:11.0pt;font-family:&quot;Calibr=
+i&quot;,&quot;sans-serif&quot;;color:#1F497D">Thank you for your email, Fir=
+stly let me say I would be happy for you to continue to use the binaries in=
+ your work so long as you credit Kakadu as their source and refer people to=
+ our website. Our business is around providing the SDK and as such if your =
+application can showcase the advantages of JPEG2000 using our binaries alon=
+e I am happy to support this so long as it&#8217;s use is not for financial=
+ return. If in the future you want to take this further we do have a public=
+ service licence for the SDK that may be attractive.<br><br><o:p></o:p></sp=
+an></p><p class=3D"MsoNormal"><span style=3D"font-size:11.0pt;font-family:&=
+quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D">Regarding the lang=
+uage, simply replicating our binary&#8217;s copyright notice should be suff=
+icient. I would be happy to review your text and homepage once ready if you=
+ would like further confirmation. Please note that external users of your a=
+pplication will need to be aware this is not for use enabling businesses or=
+ organisations and that they may need to seek a licence from us if they wis=
+h to do so. Other than that we are keen to support those in the community w=
+hich support the use of Kakadu and JPEG2000 as a whole.<o:p></o:p></span></=
+p><p class=3D"MsoNormal"><span style=3D"font-size:11.0pt;font-family:&quot;=
+Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D"><o:p>&nbsp;</o:p></span=
+></p><p class=3D"MsoNormal"><span style=3D"font-size:11.0pt;font-family:&qu=
+ot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D">Regards,<o:p></o:p><=
+/span></p><p class=3D"MsoNormal"><span style=3D"font-size:11.0pt;font-famil=
+y:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D">Daniel Gronowsk=
+i<o:p></o:p></span></p><p class=3D"MsoNormal"><span style=3D"font-size:11.0=
+pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D">Ka=
+kadu Software&#8482; Sales<br><br></span><b><span style=3D"font-size:11.0pt=
+;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#A50021"><o:p=
+></o:p></span></b></p><p class=3D"MsoNormal"><b><span style=3D"font-size:11=
+.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#A50021">=
+Kakadu Software</span></b><b><span style=3D"font-size:11.0pt;font-family:&q=
+uot;Calibri&quot;,&quot;sans-serif&quot;;color:#990000">&#8482;</span></b><=
+b><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&quot;,&quot;san=
+s-serif&quot;;color:#A50021"> | A business of NewSouth Innovations Pty Limi=
+ted </span></b><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&qu=
+ot;,&quot;sans-serif&quot;;color:#A50021"><br></span><span style=3D"font-si=
+ze:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F4=
+97D">Rupert Myers Building </span><b><span style=3D"font-size:11.0pt;font-f=
+amily:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#A50021">|</span></b=
+><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans=
+-serif&quot;;color:#1F497D"> UNSW Sydney </span><b><span style=3D"font-size=
+:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#A5002=
+1">|</span></b><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&qu=
+ot;,&quot;sans-serif&quot;;color:#1F497D"> NSW 2052 </span><b><span style=
+=3D"font-size:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;=
+;color:#A50021">|</span></b><span style=3D"font-size:11.0pt;font-family:&qu=
+ot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D"> Australia <br>ABN 2=
+5 000 263 025 <br>Fax &#43;61 2 9385 6600 </span><b><span style=3D"font-siz=
+e:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#A500=
+21">| </span></b><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&=
+quot;,&quot;sans-serif&quot;;color:#1F497D">E: <a href=3D"mailto:Daniel@Kak=
+adusoftware.com">Daniel@Kakadusoftware.com</a> <br></span><b><span style=3D=
+"font-size:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;co=
+lor:#A50021"><a href=3D"www.kakadusoftware.com"><span style=3D"color:#A5002=
+1">www.kakadusoftware.com</span></a></span></b><b><span style=3D"font-size:=
+11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D=
+"> </span></b><span style=3D"font-size:11.0pt;font-family:&quot;Calibri&quo=
+t;,&quot;sans-serif&quot;;color:#1F497D">&nbsp;</span><b><span style=3D"fon=
+t-size:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:=
+#A50021"><o:p></o:p></span></b></p><p class=3D"MsoNormal" style=3D"mso-marg=
+in-top-alt:auto;mso-margin-bottom-alt:auto"><span style=3D"font-size:11.0pt=
+;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D">Univ=
+ersity of New South Wales<o:p></o:p></span></p><p class=3D"MsoNormal" style=
+=3D"mso-margin-top-alt:auto;mso-margin-bottom-alt:auto"><span style=3D"font=
+-size:7.5pt;font-family:&quot;Lucida Sans&quot;,&quot;sans-serif&quot;;colo=
+r:#1F497D">This email and its attachments are confidential to the named add=
+ressee and may contain legally privileged information. They are subject to =
+copyright and must not be reproduced without our written consent. If you ha=
+ve received this email in error please let us know and immediately delete i=
+t from your system. We do not warrant that this email and its attachments h=
+ave not been interfered with or are virus free. If you do not wish to recei=
+ve further emails from us regarding the content of this message please noti=
+fy us by replying to this email.<o:p></o:p></span></p><p class=3D"MsoNormal=
+"><b><span lang=3D"EN-US" style=3D"font-size:18.0pt;font-family:Webdings;co=
+lor:#00B050">P</span></b><b><span lang=3D"EN-US" style=3D"font-size:11.0pt;=
+font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#00B050"> </sp=
+an></b><b><span lang=3D"EN-US" style=3D"font-size:10.0pt;font-family:&quot;=
+Lucida Sans&quot;,&quot;sans-serif&quot;;color:#00B050">Please consider the=
+ environment before printing this e-mail</span></b><span style=3D"font-size=
+:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497=
+D"><o:p></o:p></span></p><p class=3D"MsoNormal"><span style=3D"font-size:11=
+.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497D">=
+<o:p>&nbsp;</o:p></span></p><p class=3D"MsoNormal"><span style=3D"font-size=
+:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F497=
+D"><o:p>&nbsp;</o:p></span></p><p class=3D"MsoNormal"><span style=3D"font-s=
+ize:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:#1F=
+497D"><o:p>&nbsp;</o:p></span></p><p class=3D"MsoNormal"><span style=3D"fon=
+t-size:11.0pt;font-family:&quot;Calibri&quot;,&quot;sans-serif&quot;;color:=
+#1F497D"><o:p>&nbsp;</o:p></span></p><div><div style=3D"border:none;border-=
+top:solid #B5C4DF 1.0pt;padding:3.0pt 0cm 0cm 0cm"><p class=3D"MsoNormal"><=
+b><span lang=3D"EN-US" style=3D"font-size:10.0pt;font-family:&quot;Tahoma&q=
+uot;,&quot;sans-serif&quot;;color:windowtext">From:</span></b><span lang=3D=
+"EN-US" style=3D"font-size:10.0pt;font-family:&quot;Tahoma&quot;,&quot;sans=
+-serif&quot;;color:windowtext"> Jon Stroop [mailto:jstroop@princeton.edu] <=
+br><b>Sent:</b> Saturday, 14 December 2013 12:48 AM<br><b>To:</b> sales@kak=
+adusoftware.com<br><b>Subject:</b> license inquiry<o:p></o:p></span></p></d=
+iv></div><p class=3D"MsoNormal"><o:p>&nbsp;</o:p></p><p class=3D"MsoNormal"=
+>Greetings,<br>I'm the developer of Loris[1], an image server that supports=
+, among others, JP2 as a source image format (demo[2]). Right now, in the L=
+oris deployment instructions I simply ask users to get a copy of the Kakadu=
+ binaries and point to them in a configuration file. However, I would very =
+much like to include a copy of the binaries with the source code for Loris =
+so that I can run a continuous integration server (Travis[3]) on our Github=
+ repository, but of course nearly all of the tests would fail without a cop=
+y of kdu_expand and the shared objects file available. I believe this falls=
+ within the terms you describe here[4], i.e.<br><br><br><o:p></o:p></p><p c=
+lass=3D"MsoNormal"><em><b><span style=3D"font-size:9.0pt;font-family:&quot;=
+Arial&quot;,&quot;sans-serif&quot;;color:#4D4D4D;background:white">You are =
+free to trial these executables and even to re-distribute them, so long as =
+such use or re-distribution is accompanied with this copyright notice and i=
+s not for commercial gain. Note: Binaries can only be used for non-commerci=
+al purposes.</span></b></em><o:p></o:p></p><p class=3D"MsoNormal"><br>But c=
+ould you please indicate exactly what language you would like in the README=
+.md file (shows up on the project's Github homepage) and in the LICENSE.txt=
+ file? I would also be happy to clarify your terms in the deployment instru=
+ctions.<br><br>Also, we'll be deploying Loris into production (not for prof=
+it) here at Princeton University Library in April or May 2014. Prior to tha=
+t, I assume we should be using a licensed copy of the binaries, as we'll no=
+ longer be &quot;trial[ing]&quot; Kakadu. We have no need for the SDK at th=
+is time, just the binaries for 64-bit Linux. Is my understanding correct? I=
+f so, could you please send a price quote or let me know what other informa=
+tion you need? <br><br>Thanks in advance,<br>Jon Stroop<br><br><br>1. <a hr=
+ef=3D"https://github.com/pulibrary/loris">https://github.com/pulibrary/lori=
+s</a><br>2. <a href=3D"http://libimages.princeton.edu/osd-demo/?feedme=3Dne=
+w_jp2s%2Fpudl0052%2F6131707%2F00000001.jp2">http://libimages.princeton.edu/=
+osd-demo/?feedme=3Dnew_jp2s%2Fpudl0052%2F6131707%2F00000001.jp2</a><br>3. <=
+a href=3D"https://travis-ci.org/">https://travis-ci.org/</a><br>4. <a href=
+=3D"http://www.kakadusoftware.com/index.php?option=3Dcom_content&amp;task=
+=3Dview&amp;id=3D26&amp;Itemid=3D22">http://www.kakadusoftware.com/index.ph=
+p?option=3Dcom_content&amp;task=3Dview&amp;id=3D26&amp;Itemid=3D22</a><br><=
+br><br><br><o:p></o:p></p><pre>-- <o:p></o:p></pre><pre>Jon Stroop<o:p></o:=
+p></pre><pre>Digital Initiatives Programmer/Analyst<o:p></o:p></pre><pre>Pr=
+inceton University Library<o:p></o:p></pre><pre><a href=3D"mailto:jstroop@p=
+rinceton.edu">jstroop@princeton.edu</a><o:p></o:p></pre><pre><o:p>&nbsp;</o=
+:p></pre></div></body></html>=
+
+------=_NextPart_000_0047_01CEFA6B.778DA7E0--

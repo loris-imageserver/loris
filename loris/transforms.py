@@ -10,6 +10,7 @@ from math import ceil, log
 from os import makedirs, path, unlink
 from parameters import FULL_MODE
 import cStringIO
+import platform
 import random
 import string
 import subprocess
@@ -17,10 +18,10 @@ import sys
 try:
 	from PIL.ImageCms import profileToProfile # Pillow
 except ImportError:
- 	try:
- 		from ImageCms import profileToProfile # PIL
- 	except ImportError:
- 		pass
+	try:
+		from ImageCms import profileToProfile # PIL
+	except ImportError:
+		pass
 
 
 logger = getLogger(__name__)
@@ -174,6 +175,31 @@ class JP2_Transformer(_AbstractTransformer):
 			exit(77)
 
 		super(JP2_Transformer, self).__init__(config, default_format)
+
+	### These four methods re: kakadu are used in dev, tests, and by setup ###
+	@staticmethod
+	def local_kdu_expand_path():
+		return 'bin/%s/%s/kdu_expand' % (platform.system(),platform.machine())
+	#
+	@staticmethod
+	def local_libkdu_dir():
+		return 'lib/%s/%s' % (platform.system(),platform.machine())
+	#
+	@staticmethod
+	def libkdu_name():
+		system = platform.system()
+		if system == 'Linux':
+			return 'libkdu_v72R.so'
+		elif system == 'Darwin':
+			return 'libkdu_v73R.dylib'
+	#
+	@staticmethod
+	def local_libkdu_path():
+		dir_ = JP2_Transformer.local_libkdu_dir()
+		name = JP2_Transformer.libkdu_name()
+		return '%s/%s' % (dir_,name)
+
+	###                                ###                                  ###
 
 	@staticmethod
 	def _region_to_kdu(region_param):

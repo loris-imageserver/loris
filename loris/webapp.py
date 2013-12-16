@@ -33,6 +33,7 @@ from parameters import RegionSyntaxException
 from parameters import RotationSyntaxException
 from parameters import SizeRequestException
 from parameters import SizeSyntaxException
+from transforms import JP2_Transformer
 from urllib import unquote, quote_plus
 from werkzeug.http import parse_date, parse_accept_header, http_date
 from werkzeug.routing import Map, Rule
@@ -55,11 +56,6 @@ except ImportError:
 # Loris's etc dir MUST either be a sibling to the loris/loris directory or at the below:
 ETC_DP = '/etc/loris'
 # We can figure out everything else from there.
-
-
-# TODO: configure the 'loris' logger within #create_app, based on what we do
-# in the log module now. Then add logging.getLogger(__name__) to each module.
-# I believe the configuration should inherit.
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
@@ -84,6 +80,10 @@ def create_app(debug=False):
 		config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
 		config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
 		config['loris.Loris']['enable_caching'] = True
+		kdu_expand = JP2_Transformer.local_kdu_expand_path()
+		config['transforms.jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
+		libkdu_dir = JP2_Transformer.local_libkdu_dir()
+		config['transforms.jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 		config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
 		config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
 		config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
@@ -160,6 +160,7 @@ def __config_to_dict(conf_fp):
 		config[tf]['target_formats'] = [s.strip() for s in config[tf]['target_formats'].split(',')]
 
 	return config
+
 
 def __configure_logging(config):
 	logger = logging.getLogger()

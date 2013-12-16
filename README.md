@@ -26,6 +26,7 @@ See [doc/compliance.md](doc/compliance.md)
 
 License
 -------
+### Loris
 Copyright (C) 2013 Jon Stroop
 
 This program is free software: you can redistribute it and/or modify it 
@@ -40,3 +41,12 @@ more details.
 
 You should have received a copy of the GNU General Public License along 
 with this program. If not, see <http://www.gnu.org/licenses/>.
+
+### Kakadu
+#### Downloadable Executables Copyright and Disclaimer
+
+The executables available [here](http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22) are made available for demonstration purposes only. Neither the author, Dr. Taubman, nor the University of New South Wales accept any liability arising from their use or re-distribution.
+
+Copyright is owned by NewSouth Innovations Pty Limited, commercial arm of the University of New South Wales, Sydney, Australia. **You are free to trial these executables and even to re-distribute them, so long as such use or re-distribution is accompanied with this copyright notice and is not for commercial gain. Note: Binaries can only be used for non-commercial purposes.** If in doubt please [contact Dr. Taubman](http://www.kakadusoftware.com/index.php?option=com_content&task=blogcategory&id=8&Itemid=14).
+
+For further details, please see visit the [Kakadu website](http://www.kakadusoftware.com/)
