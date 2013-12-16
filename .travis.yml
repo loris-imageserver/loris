@@ -16,11 +16,6 @@ install:
 
 script: "python ./test.py" # setup.py test checks for a loris user, which we only need for prod
 
-# whitelist
-# branches:
-#   only:
-#     - development
-
 notifications:
   email:
     recipients: "jpstroop@gmail.com"
