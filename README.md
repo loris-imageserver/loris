@@ -49,4 +49,4 @@ The executables available [here](http://www.kakadusoftware.com/index.php?option=
 
 Copyright is owned by NewSouth Innovations Pty Limited, commercial arm of the University of New South Wales, Sydney, Australia. **You are free to trial these executables and even to re-distribute them, so long as such use or re-distribution is accompanied with this copyright notice and is not for commercial gain. Note: Binaries can only be used for non-commercial purposes.** If in doubt please [contact Dr. Taubman](http://www.kakadusoftware.com/index.php?option=com_content&task=blogcategory&id=8&Itemid=14).
 
-For further details, please see visit the [Kakadu website](http://www.kakadusoftware.com/)
+For further details, please visit the [Kakadu website](http://www.kakadusoftware.com/)
