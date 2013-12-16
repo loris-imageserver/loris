@@ -20,6 +20,12 @@ Installation Instructions
 
 You're best off working through these steps in order.
 
+Toubleshooting
+--------------
+If you run into any pitfalls with the steps above, [Regis Robineau](https://github.com/regisrob) of the [Biblissima Project](http://www.biblissima-condorcet.fr/) has created an [excellent set of instructions](http://doc.biblissima-condorcet.fr/loris-setup-guide-ubuntu-debian) that may help.
+
+As always, clarifications, notes (issues, pull requests) regarding experiences on different platforms are most welcome.
+
 IIIF 1.1 Compliance
 -------------------
 See [doc/compliance.md](doc/compliance.md)
