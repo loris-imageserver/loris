@@ -1,0 +1,30 @@
+language: python
+python: "2.7"
+
+before_install:
+ - sudo apt-get install -qq libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 
+ - sudo apt-get install -qq libfreetype6-dev zlib1g-dev liblcms liblcms-dev 
+ - sudo apt-get install -qq liblcms-utils libtiff5-dev
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libtiff.so /usr/lib/
+
+install: 
+ - pip install -r requirements.txt --use-mirrors
+
+script: "python setup.py test"
+
+# whitelist
+# branches:
+#   only:
+#     - development
+
+notifications:
+  email:
+    recipients: "jpstroop@gmail.com"
+    on_success: "always"
+    on_failure: "always"
+    template:
+      - "%{repository}//%{branch}@%{commit} by %{author}: %{message} - %{build_url}"

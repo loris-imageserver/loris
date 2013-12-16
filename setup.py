@@ -90,6 +90,7 @@ setup(
 	packages=['loris'],
 	install_requires=install_requires,
 	data_files=data_files,
+	test_suite = 'tests'
 )
 
 loris_owned_dirs = list(set([n[0] for n in data_files]))

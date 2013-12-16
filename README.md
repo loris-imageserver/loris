@@ -1,6 +1,8 @@
 ![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
+[![Build Status](https://travis-ci.org/pulibrary/loris.png)](https://travis-ci.org/pulibrary/loris.png)
+
 Demos
 -----
  * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg)
