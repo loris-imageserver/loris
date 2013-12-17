@@ -72,7 +72,7 @@ class _AbstractTransformer(object):
 					_AbstractTransformer._scale_dim(full_h,s) >= req_h])
 
 	@staticmethod
-	def _derive_with_pil(im, target_fp, image_request, rotate=True):
+	def _derive_with_pil(im, target_fp, image_request, rotate=True, crop=True):
 		'''
 		Once you have a PIL.Image, this can be used to do the IIIF operations.
 
@@ -83,10 +83,24 @@ class _AbstractTransformer(object):
 			rotate (bool):
 				True by default; can be set to False in case the rotation was
 				done further upstream.
+			crop (bool):
+				True by default; can be set to False when the region was aleady 
+				extracted further upstream.
 		Returns:
 			void (puts an image at target_fp)
 
 		'''
+		if crop and image_request.region_param.cannonical_uri_value != 'full':
+			# For PIL: "The box is a 4-tuple defining the left, upper, right,
+			# and lower pixel coordinate."
+			box = (
+				image_request.region_param.pixel_x,
+				image_request.region_param.pixel_y,
+				image_request.region_param.pixel_w,
+				image_request.region_param.pixel_h
+			)
+			im = im.crop(box)
+
 		if image_request.size_param.cannonical_uri_value != 'full':
 			wh = (int(image_request.size_param.w),int(image_request.size_param.h))
 			logger.debug(wh)
@@ -248,7 +262,7 @@ class JP2_Transformer(_AbstractTransformer):
 			full_w = image_request.info.width
 			full_h = image_request.info.height
 			req_w = image_request.size_param.w
-			req_h = image_request.size_param.w
+			req_h = image_request.size_param.h
 			closest_scale = JP2_Transformer._get_closest_scale(req_w, req_h, full_w, full_h, scales)
 			reduce_arg = int(log(closest_scale, 2))
 			return '-reduce %d' % (reduce_arg,)
@@ -315,4 +329,4 @@ class JP2_Transformer(_AbstractTransformer):
 			emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
 			im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
-		JP2_Transformer._derive_with_pil(im, target_fp, image_request, rotate=rotate_downstream)
+		JP2_Transformer._derive_with_pil(im, target_fp, image_request, rotate=rotate_downstream, crop=False)
