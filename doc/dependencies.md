@@ -13,9 +13,9 @@ In order from least to most tedious:
  $ sudo pip install Werkzeug
  ```
 
- 2. Kakadu. A from Version 1.2.2 on, a copies of Kakadu for 64-bit Linux and OS X are included with Loris. These copies may be used, provided you comply with the [terms outline by NewSouth Innovations](http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22). Please see their website or [LICENSE-Kakadu.txt](https://github.com/pulibrary/loris/blob/development/LICENSE-Kakadu.txt) for the details. 
+ 2. Kakadu. A from Version 1.2.2 on, a copies of Kakadu for 64-bit Linux and OS X are included with Loris. These copies may be used, provided you comply with the [terms outlined by NewSouth Innovations](http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22). Please see their website or [LICENSE-Kakadu.txt](https://github.com/pulibrary/loris/blob/development/LICENSE-Kakadu.txt) for details. 
 
- If you are deploying on a different system or architecture, you can [Download the appropriate version or Kakadu](http://goo.gl/owJN8) for your system, if it is available, or else contact Kakadu for a license. **You need at least version 7.2 for all features to work properly.**
+ If you are deploying on a different system or architecture, you can [Download the appropriate version of Kakadu](http://goo.gl/owJN8) for your system, if it is available, or else contact Kakadu for a license. **You need at least version 7.0 for all features to work properly.**
 
  The binaries and shared object file are stored in the source code at `loris/(bin|lib)/$system/$machine` where `$system/$machine` is the response from the following command:
 
