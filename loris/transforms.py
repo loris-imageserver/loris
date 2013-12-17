@@ -96,8 +96,8 @@ class _AbstractTransformer(object):
 			box = (
 				image_request.region_param.pixel_x,
 				image_request.region_param.pixel_y,
-				image_request.region_param.pixel_w,
-				image_request.region_param.pixel_h
+				image_request.region_param.pixel_x+image_request.region_param.pixel_w,
+				image_request.region_param.pixel_y+image_request.region_param.pixel_h
 			)
 			im = im.crop(box)
 
