@@ -101,8 +101,13 @@ class _AbstractTransformer(object):
 			)
 			im = im.crop(box)
 
+		# resize
 		if image_request.size_param.cannonical_uri_value != 'full':
-			wh = (int(image_request.size_param.w),int(image_request.size_param.h))
+			wh = [int(image_request.size_param.w),int(image_request.size_param.h)]
+			# if kdu did the rotation and it's 90 or 270 then reverse w & h
+			if image_request.rotation_param.uri_value in ['90','270']:
+				wh.reverse()
+
 			logger.debug(wh)
 			im = im.resize(wh)
 

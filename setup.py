@@ -132,22 +132,19 @@ In particular:
 
  0. You should have read README.md already, and know what I'm talking about.
 
- 1. Double check that the kakadu libraries and executable are where you said 
-	they'd be in the config file (etc/loris.conf, now at %(config)s).
+ 1. Make sure that the Python Imaging Library is installed and working. See 
+	notes about this in doc/dependencies.md.
 
- 2. Make sure that the Python Imaging Library is installed and working. See 
-	notes about this in README.md.
-
- 3. Configure the cron job that manages the cache (bin/loris-cache_clean.sh, 
+ 2. Configure the cron job that manages the cache (bin/loris-cache_clean.sh, 
 	now at %(cache_clean)s). Make sure the constants match 
 	how you have Loris configured, and then set up the cron 
 	(e.g. `crontab -e -u %(user_n)s`).
 
- 4. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but 
+ 3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but 
 	there's always a chance that it isn't. The first thing to try is explictly
 	adding the package to your PYTHONPATH (see commented code).
 
- 5. Configure Apache.
+ 4. Configure Apache (see doc/apache.md).
 
 You may want to save this message as the path information above is the most 
 comprehensive information about what this script just did, what's installed 
