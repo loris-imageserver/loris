@@ -41,7 +41,7 @@ In order from least to most tedious:
 
  ```
  sudo apt-get install libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 \
- libfreetype6-dev zlib1g-dev liblcms liblcms-dev liblcms-utils libtiff5-dev
+ libfreetype6-dev zlib1g-dev liblcms2-2 liblcms2-dev liblcms-utils libtiff5-dev
  ``` 
 
  Link them the dirs where PIL or Pillow will find them (this is unfortunate): 
