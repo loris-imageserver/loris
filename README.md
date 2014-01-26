@@ -10,6 +10,7 @@ Demos
 
 Installation Instructions
 -------------------------
+Theses instructions are known to work on Ubuntu 12.04 or greater. See below for some help with RedHat/CentOS and Debian.
 **Do Not!** Run `setup.py` until you've read the following:
 
  * [Install Dependencies](doc/dependencies.md)
@@ -22,9 +23,12 @@ Installation Instructions
 
 You're best off working through these steps in order.
 
-Toubleshooting
---------------
-If you run into any pitfalls with the steps above, [Regis Robineau](https://github.com/regisrob) of the [Biblissima Project](http://www.biblissima-condorcet.fr/) has created an [excellent set of instructions](http://doc.biblissima-condorcet.fr/loris-setup-guide-ubuntu-debian) that may help.
+
+RedHat, Debian and Troublshooting
+---------------------------------
+[mmcclimon](https://github.com/mmcclimon) has provided some excellent [instructions for deploying Loris on RedHat 6 or the equivalent CentOS](doc/redhat-install.md). 
+
+If you're running Debian and/or run into any pitfalls with the steps above, [Regis Robineau](https://github.com/regisrob) of the [Biblissima Project](http://www.biblissima-condorcet.fr/) has created an [excellent set of instructions](http://doc.biblissima-condorcet.fr/loris-setup-guide-ubuntu-debian) that may help.
 
 As always, clarifications, notes (issues, pull requests) regarding experiences on different platforms are most welcome.
 
