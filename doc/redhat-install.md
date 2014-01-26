@@ -83,32 +83,20 @@ Install image libraries
 -----------------------
 
 Next you'll need to install all the necessary image libraries so that loris
-will work properly. The `lcms` libraries (for LittleCMS support) aren't in the
-main Red Hat RPM repository, so first you'll need to add the EPEL repository.
-
-```
-wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-rpm -Uvh epel-release-6*.rpm
-```
-
-Once that's done, you can get what you need through yum.
+will work properly. You can get what you need through yum:
 
 ```
 yum install libjpeg-turbo libjpeg-turbo-devel \
     freetype freetype-devel \
     zlib-devel \
-    lcms2 lcms2-devel lcms2-utils \
     libtiff-devel
 ```
 
-Install Kakadu
---------------
-
-Kakadu is packaged with Loris now, but the version is not correct. Version 7.2
-is compiled with glibc 2.14, and Red Hat only has version 2.12. This means that
-the bundled `kdu_expand` program won't work at all. Fortunately we can get
-an older version from Github. These are the 64-bit versions; if you need 32-bit
-change the portion of the URL from `x86-64` to `x86-32`.
+Loris ships with Kakadu version Version 7.2 which is compiled with glibc 2.14, 
+and Red Hat only has version 2.12. This means that the bundled `kdu_expand` program 
+won't work at all. Fortunately we can get an older version from Github. These are 
+the 64-bit versions; if you need 32-bit change the portion of the URL from `x86-64` 
+to `x86-32`.
 
 ```
 wget https://github.com/sul-dlss/Djatoka/raw/master/lib/Linux-x86-64/libkdu_v60R.so
@@ -118,6 +106,10 @@ mv libkdu_v60R.so /usr/local/lib
 mv kdu_expand /usr/local/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 ```
+
+This earlier version of Kakadu does not support JPEG2000 images in colorspaces other 
+that those allowed by an earlier version of the JPEG2000 specification. Chances are very good
+that this won't be a problem for you, but you should disable the [`map_profile_to_srgb`](https://github.com/pulibrary/loris/blob/development/etc/loris.conf#L66) feature just in case.
 
 
 Install pip dependencies
@@ -136,8 +128,8 @@ should have no problems.
 Install Loris
 -------------
 
-Now you're ready ton install Loris proper. This is usually a matter of `git
-clone`ing this repo, adding the loris user, and running `setup.py`. The only
+Now you're ready ton install Loris proper. This is usually a matter of `git clone`ing 
+this repo, adding the loris user, and running `setup.py`. The only
 caveat here is that you must be sure to install using Python 2.7.
 
 Note that if you run `test.py` that things will probably fail since it tries to
