@@ -128,7 +128,7 @@ should have no problems.
 Install Loris
 -------------
 
-Now you're ready ton install Loris proper. This is usually a matter of `git clone`ing 
+Now you're ready to install Loris proper. This is usually a matter of `git clone`ing 
 this repo, adding the loris user, and running `setup.py`. The only
 caveat here is that you must be sure to install using Python 2.7.
 
