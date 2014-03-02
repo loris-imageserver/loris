@@ -53,7 +53,8 @@ try:
 except ImportError:
 	import uuid
 
-# Loris's etc dir MUST either be a sibling to the loris/loris directory or at the below:
+# Loris's etc dir MUST either be a sibling to the loris/loris directory or at 
+# the below:
 ETC_DP = '/etc/loris'
 # We can figure out everything else from there.
 
@@ -216,6 +217,7 @@ class StdOutFilter(logging.Filter):
 class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
 	'''Similar to Response, but IIIF Compliance Header is added and none of the
 	ETagResponseMixin, ResponseStreamMixin, or WWWAuthenticateMixin capabilities
+	are included.
 	See: http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
 	'''
 	def __init__(self, response=None, status=None, content_type=None):
@@ -475,7 +477,7 @@ class Loris(object):
 			logger.debug('Identifier: %s' % (ident,))
 
 			# get the info
-			info = ImageInfo.from_image_file(ident, uri, src_fp, src_format, formats)
+			info = ImageInfo.from_image_file(uri, src_fp, src_format, formats)
 
 			# store
 			if self.enable_caching:

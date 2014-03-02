@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+#-*-coding:utf-8-*-
+
+# iiif_img_info
+#
+# Command line tool for extracting dumping iiif info.json to stdout.
+#
+# Syntax: $ iiif_img_info [-v] path/to/an/image.fmt
+#	-v will show loris's debug logging.
+#
+# This tool does not report a profile or formats available as they are
+# depend on the server. The file extension must be a conventional image format
+# extension, e.g.: jpg, jp2, tif
+#
+
+from json import dumps
+from os.path import dirname
+from os.path import exists
+from os.path import isfile
+from os.path import join
+from os.path import realpath
+from os.path import splitext
+from sys import argv
+from sys import exit
+from sys import stderr
+from sys import stdout
+from urllib import pathname2url
+from urlparse import urljoin
+
+try:
+	# Use the version on the system if it's there
+ 	from loris.img_info import ImageInfo
+except ImportError:
+	# Otherwise try from the source
+	loris_proj_dp = dirname(dirname(realpath(__file__)))
+	from sys import path
+	path.append(loris_proj_dp)
+	from loris.img_info import ImageInfo
+
+EX_USAGE = 64
+EX_DATAERR = 65 
+EX_NOINPUT = 66
+VERBOSE = '-v'
+
+
+if VERBOSE in argv:
+	import logging
+	logging.basicConfig(level=logging.DEBUG)
+	argv.remove(VERBOSE)
+
+try:
+	fp = realpath(argv[1])
+except IndexError:
+	stderr.write("\nPlease supply the path to an image file.\n\n")
+	exit(EX_USAGE)
+
+if not exists(fp):
+	stderr.write("\n%s does not exist.\n\n" % (fp,))
+	exit(EX_NOINPUT)
+
+fmt = splitext(fp)[1][1:]
+uri = urljoin('file:', pathname2url(fp))
+
+try:
+	info = ImageInfo.from_image_file(uri, fp, fmt)
+except Exception as e:
+	stderr.write("\n%s\n\n" % (e,))
+	exit(EX_DATAERR)
+
+info_dict = info.to_dict()
+del info_dict['profile']
+del info_dict['formats']
+
+stdout.write("%s\n" % (dumps(info_dict, sort_keys=True, indent=4),))
