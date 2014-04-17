@@ -19,7 +19,7 @@ Theses instructions are known to work on Ubuntu 12.04 or greater. See below for 
  * [Resolver Implementation](doc/resolver.md)
  * [Run `setup.py`](doc/setup.md)
  * [Deploy with Apache](doc/apache.md)
- * (Optional) [Developer Notes](develop.md)
+ * (Optional) [Developer Notes](doc/develop.md)
 
 You're best off working through these steps in order.
 
