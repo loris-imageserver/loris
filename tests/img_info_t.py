@@ -23,7 +23,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		ident = self.test_jp2_color_id
 		uri = self.test_jp2_color_uri
 
-		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 		self.assertEqual(info.width, self.test_jp2_color_dims[0])
 		self.assertEqual(info.height, self.test_jp2_color_dims[1])
@@ -40,7 +40,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		uri = self.test_jp2_with_embedded_profile_uri
 		profile_copy_fp = self.test_jp2_embedded_profile_copy_fp
 
-		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 		with open(self.test_jp2_embedded_profile_copy_fp, 'rb') as fixture_bytes:
 			self.assertEqual(info.color_profile_bytes, fixture_bytes.read())
@@ -51,7 +51,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		ident = self.test_jp2_color_id
 		uri = self.test_jp2_color_uri
 
-		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 		self.assertEqual(info.color_profile_bytes, None)
 
@@ -62,7 +62,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		ident = self.test_jp2_grey_id
 		uri = self.test_jp2_grey_uri
 
-		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 		self.assertEqual(info.width, self.test_jp2_grey_dims[0])
 		self.assertEqual(info.height, self.test_jp2_grey_dims[1])
@@ -78,7 +78,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		ident = self.test_jpeg_id
 		uri = self.test_jpeg_uri
 
-		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 		self.assertEqual(info.width, self.test_jpeg_dims[0])
 		self.assertEqual(info.height, self.test_jpeg_dims[1])
@@ -92,7 +92,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		ident = self.test_tiff_id
 		uri = self.test_tiff_uri
 
-		info = img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 		self.assertEqual(info.width, self.test_tiff_dims[0])
 		self.assertEqual(info.height, self.test_tiff_dims[1])

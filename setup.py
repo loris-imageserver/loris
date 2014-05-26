@@ -64,7 +64,7 @@ except ImportError:
 
 data_files=[
 	(ETC_DP, ['etc/loris.conf']),
-	(BIN_DP, ['bin/loris-cache_clean.sh', JP2_Transformer.local_kdu_expand_path()]),
+	(BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', JP2_Transformer.local_kdu_expand_path()]),
 	(LIB_DP, [JP2_Transformer.local_libkdu_path()]),
 	(log_dp, []),
 	(cache_dp, []),

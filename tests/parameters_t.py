@@ -33,7 +33,7 @@ class _ParameterUnitTest(loris_t.LorisTest):
 		fmt = self.test_jp2_color_fmt
 		ident = self.test_jp2_color_id
 		uri = self.test_jp2_color_uri
-		return img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		return img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 	def _get_info2(self):
 		# jpeg, x is long dimension
@@ -41,7 +41,7 @@ class _ParameterUnitTest(loris_t.LorisTest):
 		fmt = self.test_jpeg_fmt
 		ident = self.test_jpeg_id
 		uri = self.test_jpeg_uri
-		return img_info.ImageInfo.from_image_file(ident, uri, fp, fmt)
+		return img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 
 class Test_G_RegionParameterUnit(_ParameterUnitTest):
