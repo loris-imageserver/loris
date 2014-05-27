@@ -24,7 +24,7 @@ Theses instructions are known to work on Ubuntu 12.04 or greater. See below for 
 You're best off working through these steps in order.
 
 
-RedHat, Debian and Troublshooting
+RedHat, Debian and Troubleshooting
 ---------------------------------
 [mmcclimon](https://github.com/mmcclimon) has provided some excellent [instructions for deploying Loris on RedHat 6 or the equivalent CentOS](doc/redhat-install.md). 
 
@@ -39,7 +39,7 @@ See [doc/compliance.md](doc/compliance.md)
 License
 -------
 ### Loris
-Copyright (C) 2013 Jon Stroop
+Copyright (C) 2013-4 Jon Stroop
 
 This program is free software: you can redistribute it and/or modify it 
 under the terms of the GNU General Public License as published by the Free 

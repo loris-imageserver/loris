@@ -1,7 +1,8 @@
 # constants.py
 # -*- coding: utf-8 -*-
 
-COMPLIANCE='http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2'
+COMPLIANCE = 'http://iiif.io/api/image/2/level2.json'
+PROTOCOL = 'http://iiif.io/api/image'
 
 __formats = (
 	('gif','image/gif'),

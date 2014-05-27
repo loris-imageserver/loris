@@ -3,7 +3,7 @@
 from PIL import Image
 from collections import OrderedDict
 from collections import deque
-from constants import COMPLIANCE
+from constants import COMPLIANCE, PROTOCOL
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
@@ -48,8 +48,11 @@ class ImageInfo(object):
 		color_profile_bytes []: the emebedded color profile, if any
 	'''
 	__slots__ = ('scale_factors', 'width', 'tile_height', 'height', 
-		'tile_width', 'qualities', 'formats', 'ident', 'src_format', 
+		'tile_width', 'qualities', 'formats', 'ident', 'protocol', 'src_format', 
 		'src_img_fp', 'color_profile_bytes')
+
+	def __init__(self):
+		self.protocol = PROTOCOL
 
 	@staticmethod
 	def from_image_file(uri, src_img_fp, src_format, formats=[]):
@@ -60,8 +63,8 @@ class ImageInfo(object):
 			src_format (str): The format of the image as a three-char str.
 			formats ([str]): The derivative formats the application can produce.
 		'''
-		# We're going to assume the image exists and the format is supported.
-		# Exceptions should be raised by the resolver if that's not the case.
+		# Assumes that the image exists and the format is supported. Exceptions 
+		# should be raised by the resolver if that's not the case.
 		new_inst = ImageInfo()
 		new_inst.ident = uri
 		new_inst.src_img_fp = src_img_fp
@@ -76,18 +79,14 @@ class ImageInfo(object):
 		logger.debug('Identifier: %s' % (new_inst.ident,))
 
 		if new_inst.src_format == 'jp2':
-			new_inst.__from_jp2(src_img_fp)
-		elif new_inst.src_format == 'jpg':
-			new_inst.__from_jpg(src_img_fp)
-		elif new_inst.src_format == 'tif':
-			new_inst.__from_tif(src_img_fp)
-		elif new_inst.src_format == 'png':
-			new_inst.__from_png(src_img_fp)
+			new_inst._from_jp2(src_img_fp)
+		elif new_inst.src_format  in ('jpg','tif','png'):
+			new_inst._from_pillow(src_img_fp)
 		else:
-			raise Exception('Didn\'t get a source format, or at least one we recognize')
+			m = 'Didn\'t get a source format, or at least one we recognize ().' % (src_format,)
+			raise Exception(m)
 
 		return new_inst
-
 
 	@staticmethod
 	def from_json(path):
@@ -106,7 +105,7 @@ class ImageInfo(object):
 		new_inst.ident = j.get(u'@id')
 		new_inst.width = j.get(u'width')
 		new_inst.height = j.get(u'height')
-		# TODO: make sure these are resulting in error or Nones/nulls when 
+		# TODO: make sure these are resulting in error or Nones when 
 		# we load from the filesystem
 		new_inst.scale_factors = j.get(u'scale_factors')
 		new_inst.tile_width = j.get(u'tile_width')
@@ -116,10 +115,8 @@ class ImageInfo(object):
 		f.close()
 		return new_inst
 
-	def __from_jpg(self, fp):
-		# This is cheap, and presumably we're pulling the whole image into 
-		# memory...
-		logger.debug('Extracting info from JPEG file.')
+	def _from_pillow(self, fp):
+		logger.debug('Extracting info from file with Pillow.')
 		im = Image.open(fp)
 		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
 		self.width, self.height = im.size
@@ -128,33 +125,11 @@ class ImageInfo(object):
 		self.tile_height = None
 		self.color_profile_bytes = None
 
-	def __from_png(self, fp):
-		logger.debug('Extracting info from PNG file.')
-		im = Image.open(fp)
-		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
-		self.width, self.height = im.size
-		self.scale_factors = None
-		self.tile_width = None
-		self.tile_height = None
-		self.color_profile_bytes = None
-
-	def __from_tif(self, fp):
-		logger.debug('Extracting info from TIFF file.')
-		im = Image.open(fp)
-		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
-		self.width, self.height = im.size
-		self.scale_factors = None
-		self.tile_width = None
-		self.tile_height = None
-		self.color_profile_bytes = None
-
-	def __from_jp2(self, fp):
+	def _from_jp2(self, fp):
 		'''Get info about a JP2. 
 		'''
 		logger.debug('Extracting info from JP2 file.')
 		self.qualities = ['native', 'bitonal']
-		scod_is_0 = True
-		scoc_is_0 = True # TODO. 
 
 		jp2 = open(fp, 'rb')
 		b = jp2.read(1)
@@ -195,7 +170,8 @@ class ImageInfo(object):
 			elif enum_cs == 18: # sYCC
 				pass
 			else:
-				msg = 'Enumerated colourspace is neither "16", "17", or "18". See jp2 spec pg. 139.'
+				msg =  'Enumerated colourspace is neither "16", "17", or "18". '
+				msg += 'See jp2 spec pg. 139.'
 				logger.warn(msg)
 		elif colr_meth == 2:
 			# (Restricted ICC profile).
@@ -255,10 +231,10 @@ class ImageInfo(object):
 				y = i >> 4
 				self.tile_width = 2**x
 				self.tile_height = 2**y
-				logger.debug("using tile width from precint: " + str(self.tile_width))
-				logger.debug("using tile height from precint: " + str(self.tile_height))
+				logger.debug("Using tile width from precint: " + str(self.tile_width))
+				logger.debug("Using tile height from precint: " + str(self.tile_height))
 
-				# Still debugging...this prints all levels
+				# This prints precinct size for all levels
 				# for _ in range(levels+1):
 				# 	i = int(bin(struct.unpack(">B", b)[0])[2:].zfill(8),2)
 				# 	x = i&15
@@ -267,7 +243,6 @@ class ImageInfo(object):
 				# 	h = 2**y
 				# 	b = jp2.read(1)
 				# 	print "{%d,%d}" % (w,h)
-
 
 		jp2.close()
 

@@ -2,6 +2,7 @@
 #-*- coding: utf-8 -*-
 
 from loris import img_info
+from loris.constants import PROTOCOL
 from os import path
 import json
 import loris_t
@@ -32,6 +33,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, uri)
+		self.assertEqual(info.protocol, PROTOCOL)
 
 	def test_extract_icc_profile_from_jp2(self):
 		fp = self.test_jp2_with_embedded_profile_fp
@@ -71,6 +73,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.tile_height, self.test_jp2_grey_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, uri)
+		self.assertEqual(info.protocol, PROTOCOL)
 
 	def test_jpeg_info_from_image(self):
 		fp = self.test_jpeg_fp
@@ -85,6 +88,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.qualities, ['native','color','grey','bitonal'])
 		self.assertEqual(info.scale_factors, None)
 		self.assertEqual(info.ident, uri)
+		self.assertEqual(info.protocol, PROTOCOL)
 
 	def test_tiff_info_from_image(self):
 		fp = self.test_tiff_fp
@@ -99,6 +103,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.qualities, ['native','color','grey','bitonal'])
 		self.assertEqual(info.scale_factors, None)
 		self.assertEqual(info.ident, uri)
+		self.assertEqual(info.protocol, PROTOCOL)
 
 	def test_info_from_json(self):
 		json_fp = self.test_jp2_color_info_fp
@@ -112,6 +117,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 		self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
 		self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
 		self.assertEqual(info.ident, self.test_jp2_color_uri)
+		self.assertEqual(info.protocol, PROTOCOL)
 
 
 class Test_C_InfoFunctional(loris_t.LorisTest):
