@@ -109,7 +109,7 @@ class _AbstractTransformer(object):
 				wh.reverse()
 
 			logger.debug(wh)
-			im = im.resize(wh)
+			im = im.resize(wh, resample=Image.ANTIALIAS)
 
 		if im.mode != "RGB":
 			im = im.convert("RGB")
