@@ -3,6 +3,13 @@
 
 COMPLIANCE = 'http://iiif.io/api/image/2/level2.json'
 PROTOCOL = 'http://iiif.io/api/image'
+CONTEXT = 'http://iiif.io/api/image/2/context.json'
+
+OPTIONAL_FEATURES = [
+  'canonical_link_header',
+  'rotation_arbitrary',
+  'size_above_full'
+]
 
 __formats = (
 	('gif','image/gif'),
