@@ -1,1 +1,38 @@
-{"profile": "http://library.stanford.edu/iiif/image-api/compliance.html#level1", "scale_factors": [1, 2, 4, 8, 16, 32, 64], "tile_height": 256, "height": 7200, "width": 5906, "tile_width": 256, "qualities": ["native", "bitonal", "grey", "color"], "formats": ["jpg", "png"], "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", "@id": "http://localhost/01%2F02%2F0001.jp2"}
+{
+  "@context": "http://iiif.io/api/image/2/context.json",
+  "@id": "http://localhost/01%2F02%2F0001.jp2",
+  "height": 7200,
+  "profile": [
+    "http://iiif.io/api/image/2/level2.json",
+    {
+      "formats": [
+        "jpg",
+        "png",
+        "gif"
+      ],
+      "qualities": [
+        "native",
+        "bitonal",
+        "grey",
+        "color"
+      ],
+      "supports": [
+        "canonical_link_header",
+        "rotation_arbitrary",
+        "size_above_full"
+      ]
+    }
+  ],
+  "scale_factors": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64
+  ],
+  "tile_height": 256,
+  "tile_width": 256,
+  "width": 5906
+}

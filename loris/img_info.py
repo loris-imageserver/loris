@@ -3,7 +3,7 @@
 from PIL import Image
 from collections import OrderedDict
 from collections import deque
-from constants import COMPLIANCE, PROTOCOL
+from constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
 from datetime import datetime
 from logging import getLogger
 from threading import Lock
@@ -32,7 +32,6 @@ PIL_MODES_TO_QUALITIES = {
 
 class ImageInfo(object):
 	'''Info about the image.
-
 	See: <http://www-sul.stanford.edu/iiif/image-api/#info>
 
 	Slots:
@@ -43,13 +42,14 @@ class ImageInfo(object):
 		tile_height (int)
 		scale_factors [(int)]
 		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
-		src_format (str): as a three char file extension 
 		src_img_fp (str): the absolute path on the file system
+		protocol (str): the profile URI (constant)
+		profile []: Features supported by the server/available for this image
 		color_profile_bytes []: the emebedded color profile, if any
 	'''
 	__slots__ = ('scale_factors', 'width', 'tile_height', 'height', 
-		'tile_width', 'qualities', 'formats', 'ident', 'protocol', 'src_format', 
-		'src_img_fp', 'color_profile_bytes')
+		'tile_width', 'ident', 'profile', 'protocol', 
+		'src_format', 'src_img_fp', 'color_profile_bytes')
 
 	def __init__(self):
 		self.protocol = PROTOCOL
@@ -68,19 +68,19 @@ class ImageInfo(object):
 		new_inst = ImageInfo()
 		new_inst.ident = uri
 		new_inst.src_img_fp = src_img_fp
-		new_inst.src_format = src_format
 		new_inst.tile_width = None
 		new_inst.tile_height = None
 		new_inst.scale_factors = None
-		new_inst.formats = formats
+		local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES}
+		new_inst.profile = [ COMPLIANCE, local_profile ]
 
-		logger.debug('Source Format: %s' % (new_inst.src_format,))
+		logger.debug('Source Format: %s' % (src_format,))
 		logger.debug('Source File Path: %s' % (new_inst.src_img_fp,))
 		logger.debug('Identifier: %s' % (new_inst.ident,))
 
-		if new_inst.src_format == 'jp2':
+		if src_format == 'jp2':
 			new_inst._from_jp2(src_img_fp)
-		elif new_inst.src_format  in ('jpg','tif','png'):
+		elif src_format  in ('jpg','tif','png'):
 			new_inst._from_pillow(src_img_fp)
 		else:
 			m = 'Didn\'t get a source format, or at least one we recognize ().' % (src_format,)
@@ -110,26 +110,26 @@ class ImageInfo(object):
 		new_inst.scale_factors = j.get(u'scale_factors')
 		new_inst.tile_width = j.get(u'tile_width')
 		new_inst.tile_height = j.get(u'tile_height')
-		new_inst.formats = j.get(u'formats')
-		new_inst.qualities = j.get(u'qualities')
+		new_inst.profile = j.get(u'profile') # TODO: see if this works, may need to explicitly put COMPLAINCE first.
+
 		f.close()
 		return new_inst
 
 	def _from_pillow(self, fp):
 		logger.debug('Extracting info from file with Pillow.')
 		im = Image.open(fp)
-		self.qualities = PIL_MODES_TO_QUALITIES[im.mode]
 		self.width, self.height = im.size
 		self.scale_factors = None
 		self.tile_width = None
 		self.tile_height = None
 		self.color_profile_bytes = None
+		self.profile[1]['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
 
 	def _from_jp2(self, fp):
 		'''Get info about a JP2. 
 		'''
 		logger.debug('Extracting info from JP2 file.')
-		self.qualities = ['native', 'bitonal']
+		self.profile[1]['qualities'] = ['native', 'bitonal']
 
 		jp2 = open(fp, 'rb')
 		b = jp2.read(1)
@@ -164,9 +164,9 @@ class ImageInfo(object):
 			logger.debug('Image contains an enumerated colourspace: %d' % (enum_cs,))
 			logger.debug('Enumerated colourspace: %d' % (enum_cs))
 			if enum_cs == 16: # sRGB
-				self.qualities += ['grey', 'color']
+				self.profile[1]['qualities'] += ['grey', 'color']
 			elif enum_cs == 17: # greyscale
-				self.qualities += ['grey']
+				self.profile[1]['qualities'] += ['grey']
 			elif enum_cs == 18: # sYCC
 				pass
 			else:
@@ -184,7 +184,7 @@ class ImageInfo(object):
 		else:
 			logger.warn('colr METH is neither "1" or "2". See jp2 spec pg. 139.')
 
-		logger.debug('qualities: ' + str(self.qualities))
+		logger.debug('qualities: ' + str(self.profile[1]['qualities']))
 
 		b = jp2.read(1)
 		while (ord(b) != 0xFF):	b = jp2.read(1)
@@ -246,11 +246,9 @@ class ImageInfo(object):
 
 		jp2.close()
 
-
-
 	def to_dict(self):
 		d = {}
-		d['@context'] = 'http://library.stanford.edu/iiif/image-api/1.1/context.json'
+		d['@context'] = CONTEXT
 		d['@id'] = self.ident
 		d['width'] = self.width
 		d['height'] = self.height
@@ -260,9 +258,7 @@ class ImageInfo(object):
 			d['tile_width'] = self.tile_width
 		if self.tile_height:
 			d['tile_height'] = self.tile_height
-		d['formats'] = self.formats
-		d['qualities'] = self.qualities
-		d['profile'] = COMPLIANCE
+		d['profile'] = self.profile
 		return d
 
 	def to_json(self):
