@@ -1,6 +1,8 @@
 ![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
+__If you're looking for a stable version, please use the [latest release](https://github.com/pulibrary/loris/releases/tag/1.2.2). The development branch is working toward [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).__
+
 [![Build Status](https://travis-ci.org/pulibrary/loris.png)](https://travis-ci.org/pulibrary/loris.png)
 
 Demos
