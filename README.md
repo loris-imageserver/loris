@@ -7,7 +7,7 @@ __If you're looking for a stable version, please use the [latest release](https:
 
 Demos
 -----
- * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg)
+ * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/default.jpg) (link is broken until PUL is running IIIF 2.0 instance. See [here](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg) for 1.1 compliant demo image)
  * [Serving Images for OpenSeadragon](http://libimages.princeton.edu/osd-demo)
 
 Installation Instructions

@@ -19,15 +19,15 @@ STAR_DOT_JSON = '*.json'
 
 PIL_MODES_TO_QUALITIES = {
 	# Thanks to http://stackoverflow.com/a/1996609/714478
-	'1' : ['native','bitonal'],
-	'L' : ['native','grey','bitonal'],
-	'P' : ['native','grey','bitonal'],
-	'RGB': ['native','color','grey','bitonal'],
-	'RGBA': ['native','color','grey','bitonal'],
-	'CMYK': ['native','color','grey','bitonal'],
-	'YCbCr': ['native','color','grey','bitonal'],
-	'I': ['native','color','grey','bitonal'],
-	'F': ['native','color','grey','bitonal']
+	'1' : ['default','bitonal'],
+	'L' : ['default','gray','bitonal'],
+	'P' : ['default','gray','bitonal'],
+	'RGB': ['default','color','gray','bitonal'],
+	'RGBA': ['default','color','gray','bitonal'],
+	'CMYK': ['default','color','gray','bitonal'],
+	'YCbCr': ['default','color','gray','bitonal'],
+	'I': ['default','color','gray','bitonal'],
+	'F': ['default','color','gray','bitonal']
 }
 
 class ImageInfo(object):
@@ -41,7 +41,7 @@ class ImageInfo(object):
 		tile_width (int)
 		tile_height (int)
 		scale_factors [(int)]
-		qualities [(str)]: 'native', 'bitonal', 'color', or 'grey'
+		qualities [(str)]: 'default', 'bitonal', 'color', or 'gray'
 		src_img_fp (str): the absolute path on the file system
 		protocol (str): the profile URI (constant)
 		profile []: Features supported by the server/available for this image
@@ -129,7 +129,7 @@ class ImageInfo(object):
 		'''Get info about a JP2. 
 		'''
 		logger.debug('Extracting info from JP2 file.')
-		self.profile[1]['qualities'] = ['native', 'bitonal']
+		self.profile[1]['qualities'] = ['default', 'bitonal']
 
 		jp2 = open(fp, 'rb')
 		b = jp2.read(1)
@@ -145,7 +145,7 @@ class ImageInfo(object):
 		logger.debug("width: " + str(self.width))
 		logger.debug("height: " + str(self.height))
 
-		# Figure out color or greyscale. 
+		# Figure out color or grayscale. 
 		# Depending color profiles; there's probably a better way (or more than
 		# one, anyway.)
 		# see: JP2 I.5.3.3 Colour Specification box
@@ -164,9 +164,9 @@ class ImageInfo(object):
 			logger.debug('Image contains an enumerated colourspace: %d' % (enum_cs,))
 			logger.debug('Enumerated colourspace: %d' % (enum_cs))
 			if enum_cs == 16: # sRGB
-				self.profile[1]['qualities'] += ['grey', 'color']
-			elif enum_cs == 17: # greyscale
-				self.profile[1]['qualities'] += ['grey']
+				self.profile[1]['qualities'] += ['gray', 'color']
+			elif enum_cs == 17: # grayscale
+				self.profile[1]['qualities'] += ['gray']
 			elif enum_cs == 18: # sYCC
 				pass
 			else:

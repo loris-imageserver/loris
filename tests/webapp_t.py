@@ -37,7 +37,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
 		self.assertEqual(uri, expected)
 
 	def test_uri_from_img_request(self):
-		img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+		img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 
 		builder = EnvironBuilder(path=img_path)
 		env = builder.get_environ()
@@ -130,7 +130,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		self.app.redirect_conneg = True
 		h = Headers()
 		h.add('accept','image/jpeg')
-		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, headers=h, follow_redirects=False)
 		self.assertEqual(resp.status_code, 301)
 
@@ -138,7 +138,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		self.app.redirect_conneg = True
 		h = Headers()
 		h.add('accept','image/jpeg')
-		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, headers=h, follow_redirects=False)
 		self.assertEqual(resp.headers['Location'], '%s%s%s' % (self.URI_BASE, to_get,'.jpg'))
 		self.assertEqual(resp.headers['Link'], '<%s>;rel="profile"' % (constants.COMPLIANCE))
@@ -146,18 +146,18 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 
 	def test_image_redirect_to_cannonical(self):
 		self.app.redirect_cannonical_image_request = True
-		to_get = '/%s/0,0,500,600/!550,600/0/native.jpg' % (self.test_jp2_color_id,)
+		to_get = '/%s/0,0,500,600/!550,600/0/default.jpg' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=False)
 		self.assertEqual(resp.status_code, 301)
 
 	def test_image_no_redirect_to_cannonical(self):
 		self.app.redirect_cannonical_image_request = False
-		to_get = '/%s/0,0,500,600/!550,600/0/native.jpg' % (self.test_jp2_color_id,)
+		to_get = '/%s/0,0,500,600/!550,600/0/default.jpg' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=False)
 		self.assertEqual(resp.status_code, 200)
 
 	def test_img_sends_304(self):
-		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 
 		# get an image
 		resp = self.client.get(to_get)
@@ -176,13 +176,13 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		self.assertEqual(resp.status_code, 304)
 
 	def test_img_reduce(self):
-		to_get = '/%s/full/300,/0/native.jpg' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/300,/0/default.jpg' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get)
 		self.assertEqual(resp.status_code, 200)
 
 
 	def test_no_ims_header_ok(self):
-		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 
 		# get an image
 		resp = self.client.get(to_get, headers=Headers())
@@ -210,7 +210,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 
 	def test_cleans_up_when_not_caching(self):
 		self.app.enable_caching = False
-		to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get)
 		# callback should delete the image before the test ends, so the tmp dir
 		# should not contain any files (there may be dirs)
@@ -219,12 +219,12 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 		self.assertTrue(not any_files)
 
 	def test_redirects_to_default_format(self):
-		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=False)
 		self.assertEqual(resp.status_code, 301)
 
 	def test_redirects_to_default_format_follow(self):
-		to_get = '/%s/full/full/0/native' % (self.test_jp2_color_id,)
+		to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
 		resp = self.client.get(to_get, follow_redirects=True)
 		self.assertEqual(resp.status_code, 200)
 		self.assertEqual(resp.headers['content-type'], 'image/jpeg')

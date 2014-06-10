@@ -269,9 +269,9 @@ class Loris(object):
 
 		exts = ','.join(deriv_formats)
 		rules = [
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<any(png,jpg,gif):target_fmt>', endpoint='img'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>.<bad_fmt>', endpoint='bad_img_format'),
-			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(native,color,bitonal,grey):quality>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(default,color,bitonal,gray):quality>.<any(png,jpg,gif):target_fmt>', endpoint='img'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(default,color,bitonal,gray):quality>.<bad_fmt>', endpoint='bad_img_format'),
+			Rule('/<path:ident>/<region>/<size>/<rotation>/<any(default,color,bitonal,gray):quality>', endpoint='img'),
 			Rule('/<path:ident>/info.json', endpoint='info'),
 			Rule('/<path:ident>/info', endpoint='info_conneg'),
 			Rule('/<path:wtf>', endpoint='info_redirect_or_error'),
@@ -352,7 +352,7 @@ class Loris(object):
 
 		if len(tokens) >= 5: # all the parts are there for an image request
 			# check quality
-			if tokens[-1].split('.')[0] not in ('native','color','grey','bitonal'):
+			if tokens[-1].split('.')[0] not in ('default','color','gray','bitonal'):
 				r.body = '(400) "%s" is not a valid quality' % (tokens[-1].split('.')[0],)
 				r.status_code = 400
 				r.mimetype = 'text/plain'
@@ -550,7 +550,7 @@ class Loris(object):
 			# as when went sent it, so for an accurate comparison turn it into
 			# an http date and then parse it again :-( :
 			img_last_mod = parse_date(http_date(img_last_mod))
-			logger.debug("Time from FS (native, rounded): " + str(img_last_mod))
+			logger.debug("Time from FS (default, rounded): " + str(img_last_mod))
 			logger.debug("Time from IMS Header (parsed): " + str(parse_date(ims_hdr)))
 			# ims_hdr = parse_date(ims_hdr) # catch parsing errors?
 			if ims_hdr and parse_date(ims_hdr) >= img_last_mod:
@@ -657,7 +657,7 @@ class Loris(object):
 		if r.path.endswith('info') or r.path.endswith('info.json') :
 			ident = '/'.join(r.path[1:].split('/')[:-1])
 		# image
-		elif r.path.split('/')[-1].split('.')[0] in ('native','color','grey','bitonal'):
+		elif r.path.split('/')[-1].split('.')[0] in ('default','color','gray','bitonal'):
 			ident = '/'.join(r.path[1:].split('/')[:-4])
 		# bare
 		else:

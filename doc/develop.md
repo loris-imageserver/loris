@@ -46,7 +46,7 @@ Using the Development Server
 
  * `01%2F02%2F0001.jp2`
  * `01%2F03%2F0001.jpg`
- * `01%2F02%2Fgrey.jp2`
+ * `01%2F02%2Fgray.jp2`
  * `01%2F04%2F0001.tif`
  * `47102787.jp2` # use this one to make sure color profile mapping is working.
 
