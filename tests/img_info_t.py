@@ -110,8 +110,9 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jpeg_dims[0])
         self.assertEqual(info.height, self.test_jpeg_dims[1])
+        self.assertEqual(info.sizes, self.test_jpeg_sizes)
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.scale_factors, None)
+        self.assertEqual(info.scale_factors, [1])
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
@@ -134,8 +135,9 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_tiff_dims[0])
         self.assertEqual(info.height, self.test_tiff_dims[1])
+        self.assertEqual(info.sizes, self.test_tiff_sizes)
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.scale_factors, None)
+        self.assertEqual(info.scale_factors, [1])
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
@@ -159,6 +161,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
         self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
         self.assertEqual(info.ident, self.test_jp2_color_uri)
+        self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.protocol, PROTOCOL)
 
 

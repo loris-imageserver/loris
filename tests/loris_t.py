@@ -41,6 +41,7 @@ class LorisTest(unittest.TestCase):
 		self.test_jp2_color_dims = (5906,7200) 
 		self.test_jp2_color_tile_dims = (256,256)
 		self.test_jp2_color_levels = 6
+		self.test_jp2_color_sizes = ['5906,7200', '2953,3600', '1477,1800', '739,900', '370,450', '185,225', '93,113']
 
 		self.test_jp2_gray_fp = path.join(test_img_dir,'01','02','gray.jp2')
 		self.test_jp2_gray_fmt = 'jp2'
@@ -54,12 +55,14 @@ class LorisTest(unittest.TestCase):
 		self.test_jpeg_id = '01%2F03%2F0001.jpg'
 		self.test_jpeg_uri = '%s/%s' % (self.URI_BASE,self.test_jpeg_id)
 		self.test_jpeg_dims = (3600,2987) # w,h
+		self.test_jpeg_sizes = ["3600,2987"] # w,h
 
 		self.test_tiff_fp = path.join(test_img_dir,'01','04','0001.tif')
 		self.test_tiff_fmt = 'tif'
 		self.test_tiff_id = '01%2F04%2F0001.tif'
 		self.test_tiff_uri = '%s/%s' % (self.URI_BASE,self.test_tiff_id)
 		self.test_tiff_dims = (839,1080)
+		self.test_tiff_sizes = ["839,1080"]
 
 		self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,'47102787.jp2')
 		self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
