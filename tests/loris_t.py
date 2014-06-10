@@ -42,12 +42,12 @@ class LorisTest(unittest.TestCase):
 		self.test_jp2_color_tile_dims = (256,256)
 		self.test_jp2_color_levels = 6
 
-		self.test_jp2_grey_fp = path.join(test_img_dir,'01','02','grey.jp2')
-		self.test_jp2_grey_fmt = 'jp2'
-		self.test_jp2_grey_id = '01%2F02%2Fgrey.jp2'
-		self.test_jp2_grey_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_grey_id)
-		self.test_jp2_grey_dims = (2477,3200) # w,h
-		self.test_jp2_grey_tile_dims = (256,256) # w,h
+		self.test_jp2_gray_fp = path.join(test_img_dir,'01','02','gray.jp2')
+		self.test_jp2_gray_fmt = 'jp2'
+		self.test_jp2_gray_id = '01%2F02%2Fgray.jp2'
+		self.test_jp2_gray_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
+		self.test_jp2_gray_dims = (2477,3200) # w,h
+		self.test_jp2_gray_tile_dims = (256,256) # w,h
 
 		self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
 		self.test_jpeg_fmt = 'jpg'
@@ -65,7 +65,7 @@ class LorisTest(unittest.TestCase):
 		self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
 		self.test_jp2_with_embedded_profile_fmt = 'jp2'
 		self.test_jp2_with_embedded_profile_id = '47102787.jp2'
-		self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_grey_id)
+		self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
 
 	def tearDown(self):
 		unittest.TestCase.tearDown(self)

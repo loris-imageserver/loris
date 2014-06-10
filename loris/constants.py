@@ -32,6 +32,6 @@ SRC_FORMATS_SUPPORTED = (
 
 BITONAL = 'bitonal'
 COLOR = 'color'
-GREY = 'grey'
-NATIVE = 'native'
-QUALITIES = (BITONAL, COLOR, GREY, NATIVE)
+GREY = 'gray'
+DEFAULT = 'default'
+QUALITIES = (BITONAL, COLOR, GREY, DEFAULT)

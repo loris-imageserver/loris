@@ -26,7 +26,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
-                "qualities": [ "native", "bitonal", "grey", "color" ],
+                "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ "canonical_link_header", "rotation_arbitrary",
                     "size_above_full" ]
             }
@@ -66,15 +66,15 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.color_profile_bytes, None)
 
-    def test_grey_jp2_info_from_image(self):
-        fp = self.test_jp2_grey_fp
-        fmt = self.test_jp2_grey_fmt
-        ident = self.test_jp2_grey_id
-        uri = self.test_jp2_grey_uri
+    def test_gray_jp2_info_from_image(self):
+        fp = self.test_jp2_gray_fp
+        fmt = self.test_jp2_gray_fmt
+        ident = self.test_jp2_gray_id
+        uri = self.test_jp2_gray_uri
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
             "formats": [ "jpg", "png", "gif" ],
-            "qualities": [ "native", "bitonal", "grey" ],
+            "qualities": [ "default", "bitonal", "gray" ],
             "supports": [ "canonical_link_header", "rotation_arbitrary",
                 "size_above_full" ]
             }
@@ -82,11 +82,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         formats = ["jpg", "png", "gif"]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
-        self.assertEqual(info.width, self.test_jp2_grey_dims[0])
-        self.assertEqual(info.height, self.test_jp2_grey_dims[1])
+        self.assertEqual(info.width, self.test_jp2_gray_dims[0])
+        self.assertEqual(info.height, self.test_jp2_gray_dims[1])
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.tile_width, self.test_jp2_grey_tile_dims[0])
-        self.assertEqual(info.tile_height, self.test_jp2_grey_tile_dims[1])
+        self.assertEqual(info.tile_width, self.test_jp2_gray_tile_dims[0])
+        self.assertEqual(info.tile_height, self.test_jp2_gray_tile_dims[1])
         self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
@@ -102,7 +102,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
-                "qualities": [ "native", "color", "grey", "bitonal" ],
+                "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [ "canonical_link_header", "rotation_arbitrary",
                     "size_above_full" ]
             }
@@ -126,7 +126,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
-                "qualities": [ "native", "color", "grey", "bitonal" ],
+                "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [ "canonical_link_header", "rotation_arbitrary",
                     "size_above_full" ]
             }
@@ -146,7 +146,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
-                "qualities": [ "native", "bitonal", "grey", "color" ],
+                "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ "canonical_link_header", "rotation_arbitrary",
                     "size_above_full" ]
             }
@@ -176,7 +176,7 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
-                "qualities": [ "native", "bitonal", "grey", "color" ],
+                "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ "canonical_link_header", "rotation_arbitrary",
                     "size_above_full" ]
             }

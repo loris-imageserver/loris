@@ -15,9 +15,9 @@
 |90,180,270                    |       |x      |x      |        |x    |
 |arbitrary                     |       |       |       |x       |x    |
 |__Quality__                   |**Level 0**|**Level 1**|**Level 2**|**Optional**|**Loris**|
-|native                        |x      |x      |x      |        |x    |
+|default                       |x      |x      |x      |        |x    |
 |color                         |       |       |x      |        |x    |
-|grey                          |       |       |x      |        |x    |
+|gray                          |       |       |x      |        |x    |
 |bitonal                       |       |       |x      |        |x    |
 |__Format__                    |**Level 0**|**Level 1**|**Level 2**|**Optional**|**Loris**|
 |jpg                           |       |x      |x      |        |x    |

@@ -127,7 +127,7 @@ class _AbstractTransformer(object):
 			# Problem is that we'd need to cache each...and that logic would 
 			# bleed around the app quite a bit for a not-often used feature.
 
-		if image_request.quality == 'grey':
+		if image_request.quality == 'gray':
 			im = im.convert('L')
 		elif image_request.quality == 'bitonal':
 			# not 1-bit w. JPG

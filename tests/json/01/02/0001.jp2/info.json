@@ -11,9 +11,9 @@
         "gif"
       ],
       "qualities": [
-        "native",
+        "default",
         "bitonal",
-        "grey",
+        "gray",
         "color"
       ],
       "supports": [
