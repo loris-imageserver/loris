@@ -32,9 +32,9 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        uri = webapp.Loris._base_uri_from_request(req)
+        base_uri, ident, params = webapp.Loris._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(uri, expected)
+        self.assertEqual(base_uri, expected)
 
     def test_uri_from_img_request(self):
         img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
@@ -43,9 +43,9 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        uri = webapp.Loris._base_uri_from_request(req)
+        base_uri, ident, params = webapp.Loris._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(uri, expected)
+        self.assertEqual(base_uri, expected)
 
 class Test_F_WebappFunctional(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
@@ -63,20 +63,6 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         uri = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(uri)
         self.assertEqual(resp.headers['access-control-allow-origin'], '*')
-
-    def test_bare_identifier_request_without_303_enabled(self):
-        # disable the redirect
-        self.app.redirect_base_uri = False
-        resp = self.client.get('/%s' % (self.test_jp2_color_id,))
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.headers['content-type'], 'application/json')
-
-        tmp_fp = path.join(self.app.tmp_dp, 'loris_test_info.json')
-        with open(tmp_fp, 'wb') as f:
-            f.write(resp.data)
-
-        info = img_info.ImageInfo.from_json(tmp_fp)
-        self.assertEqual(info.width, self.test_jp2_color_dims[0])
 
     def test_bare_identifier_request_404(self):
         resp = self.client.get('/foo%2Fbar')
@@ -98,61 +84,17 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         info = img_info.ImageInfo.from_json(tmp_fp)
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
 
-    def test_info_conneg_does_redirect(self):
+    def test_info_without_dot_json_404(self):
+        # Note that this isn't what we really want...should be 400, but this
+        # gets through as an ID. Technically OK, I think.
         to_get = '/%s/info' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, follow_redirects=False)
-        self.assertEqual(resp.status_code, 301)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 404)
 
-    def test_info_conneg_gets_info_after_redirect(self):
-        to_get = '/%s/info' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, follow_redirects=True)
-        self.assertEqual(resp.status_code, 200)
-
-        tmp_fp = path.join(self.app.tmp_dp, 'loris_test_info.json')
-        with open(tmp_fp, 'wb') as f:
-            f.write(resp.data)
-
-        info = img_info.ImageInfo.from_json(tmp_fp)
-        self.assertEqual(info.width, self.test_jp2_color_dims[0])
-
-    def test_info_conneg_does_not_redirect_and_returns_info(self):
-        self.app.redirect_conneg = False
-        to_get = '/%s/info' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, follow_redirects=True)
-        self.assertEqual(resp.status_code, 200)
-
-        tmp_fp = path.join(self.app.tmp_dp, 'loris_test_info.json')
-        with open(tmp_fp, 'wb') as f:
-            f.write(resp.data)
-
-        info = img_info.ImageInfo.from_json(tmp_fp)
-        self.assertEqual(info.width, self.test_jp2_color_dims[0])
-
-    def test_info_conneg_415(self):
-        self.app.redirect_conneg = False
-        h = Headers()
-        h.add('accept','text/plain')
-        to_get = '/%s/info' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, headers=h, follow_redirects=True)
-        self.assertEqual(resp.status_code, 415)
-
-    def test_image_conneg_redirect(self):
-        self.app.redirect_conneg = True
-        h = Headers()
-        h.add('accept','image/jpeg')
+    def test_image_without_format_400(self):
         to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, headers=h, follow_redirects=False)
-        self.assertEqual(resp.status_code, 301)
-
-    def test_image_conneg_includes_location_and_compliance(self):
-        self.app.redirect_conneg = True
-        h = Headers()
-        h.add('accept','image/jpeg')
-        to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, headers=h, follow_redirects=False)
-        self.assertEqual(resp.headers['Location'], '%s%s%s' % (self.URI_BASE, to_get,'.jpg'))
-        self.assertEqual(resp.headers['Link'], '<%s>;rel="profile"' % (constants.COMPLIANCE))
-
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
 
     def test_image_redirect_to_cannonical(self):
         self.app.redirect_cannonical_image_request = True
@@ -227,17 +169,6 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         tmp = self.app.tmp_dp
         any_files = any([path.isfile(path.join(tmp, n)) for n in listdir(tmp)])
         self.assertTrue(not any_files)
-
-    def test_redirects_to_default_format(self):
-        to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, follow_redirects=False)
-        self.assertEqual(resp.status_code, 301)
-
-    def test_redirects_to_default_format_follow(self):
-        to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get, follow_redirects=True)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.headers['content-type'], 'image/jpeg')
 
 
 def suite():

@@ -36,7 +36,6 @@ from parameters import SizeSyntaxException
 from transforms import JP2_Transformer
 from urllib import unquote, quote_plus
 from werkzeug.http import parse_date, parse_accept_header, http_date
-from werkzeug.routing import Map, Rule
 from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
 import constants
 import img
@@ -140,12 +139,6 @@ def __config_to_dict(conf_fp):
     b = bool(int(config['loris.Loris']['enable_caching']))
     config['loris.Loris']['enable_caching'] = b
 
-    b = bool(int(config['loris.Loris']['redirect_conneg']))
-    config['loris.Loris']['redirect_conneg'] = b
-
-    b = bool(int(config['loris.Loris']['redirect_base_uri']))
-    config['loris.Loris']['redirect_base_uri'] = b
-
     b = bool(int(config['loris.Loris']['redirect_cannonical_image_request']))
     config['loris.Loris']['redirect_cannonical_image_request'] = b
 
@@ -208,9 +201,10 @@ class StdOutFilter(logging.Filter):
         return 1 if record.levelno <= 20 else 0
 
 class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
-    '''Similar to Response, but IIIF Compliance Header is added and none of the
-    ETagResponseMixin, ResponseStreamMixin, or WWWAuthenticateMixin capabilities
-    are included.
+    '''Similar to Response, but IIIF Compliance Link and 
+    Access-Control-Allow-Origin Headers are added and none of the
+    ETagResponseMixin, ResponseStreamMixin, or WWWAuthenticateMixin 
+    capabilities are included.
     See: http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
     '''
     def __init__(self, response=None, status=None, content_type=None):
@@ -218,13 +212,19 @@ class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
         self.headers['Link'] = '<%s>;rel="profile"' % (constants.COMPLIANCE,)
         self.headers['Access-Control-Allow-Origin'] = "*"
 
+class BadRequestResponse(LorisResponse):
+    def __init__(self, message=None):
+        if message is None:
+            message = "Request does not match the IIIF Syntax (400)"
+        super(BadRequestResponse, self).__init__(message, 400, 'text/plain')
+
+class NotFoundResponse(LorisResponse):
+    def __init__(self, message):
+        super(NotFoundResponse, self).__init__(message, 404, 'text/plain')
+
 class Loris(object):
 
-    DEFAULT_IMAGE_FMT = 'DEFAULT'
-
-    SIZE_REGEX = re.compile('^(full|\d+,|,\d+|!?\d+,\d+|pct:\d+)$')
-    REGION_REGEX = re.compile('^(full|(pct:)?(\d+,){3}\d+)$')
-
+    FMT_REGEX = re.compile('^(default|color|gray|bitonal).\w{3}$')
     def __init__(self, app_configs={ }, debug=False):
         '''The WSGI Application.
         Args:
@@ -245,11 +245,11 @@ class Loris(object):
         self.tmp_dp = _loris_config['tmp_dp']
         self.www_dp = _loris_config['www_dp']
         self.enable_caching = _loris_config['enable_caching']
-        self.redirect_conneg = _loris_config['redirect_conneg']
-        self.redirect_base_uri = _loris_config['redirect_base_uri']
         self.redirect_cannonical_image_request = _loris_config['redirect_cannonical_image_request']
         self.default_format = _loris_config['default_format']
 
+        # TODO: make sure loading  transformers makes sense. What am I doing
+        # with derive_formats here?
         deriv_formats = [tf.split('.')[1] 
             for tf in filter(lambda k: k.startswith('transforms.'), self.app_configs)]
 
@@ -258,20 +258,7 @@ class Loris(object):
         self.transformers = {}
         for f in deriv_formats:
             self.transformers[f] = self._load_transformer('transforms.'+f)
-
-        exts = ','.join(deriv_formats)
-        rules = [
-            Rule('/<path:ident>/<region>/<size>/<rotation>/<any(default,color,bitonal,gray):quality>.<any(png,jpg,gif):target_fmt>', endpoint='img'),
-            Rule('/<path:ident>/<region>/<size>/<rotation>/<any(default,color,bitonal,gray):quality>.<bad_fmt>', endpoint='bad_img_format'),
-            Rule('/<path:ident>/<region>/<size>/<rotation>/<any(default,color,bitonal,gray):quality>', endpoint='img'),
-            Rule('/<path:ident>/info.json', endpoint='info'),
-            Rule('/<path:ident>/info', endpoint='info_conneg'),
-            Rule('/<path:wtf>', endpoint='info_redirect_or_error'),
-            Rule('/favicon.ico', endpoint='favicon'),
-            Rule('/', endpoint='index')
-        ]
-
-        self.url_map = Map(rules)
+        ####        
 
         self.resolver = resolver.Resolver(self.app_configs['resolver.Resolver'])
 
@@ -290,31 +277,48 @@ class Loris(object):
 
     def wsgi_app(self, environ, start_response):
         request = Request(environ)
-        response = self.dispatch_request(request)
+        # response = self.dispatch_request(request)
+        response = self.route(request)
         return response(environ, start_response)
 
-    def dispatch_request(self, request):
-        '''
-        Call the appropriate method based on the Rule that was matched. The Rule's
-        endpoint attribute plus 'get_' will be the name of the method.
-        '''
-        adapter = self.url_map.bind_to_environ(request.environ)
-        endpoint, values = adapter.match()
-        return getattr(self, 'get_'+endpoint)(request, **values)
+    def route(self, request):
+        base_uri, ident, params = Loris._dissect_uri(request)
+        # index.txt
+        if ident == '': 
+            return self.get_index(request)
+        slices = params.split('/')
+        info_or_quality_dot_format = slices.pop()
+
+        if not self.resolver.is_resolvable(ident):
+            msg = "Could not resolve identifier: %s (404)" % (ident)
+            return NotFoundResponse(msg)
+        elif params == '':
+            r = LorisResponse()
+            r.headers['Location'] = '/%s/info.json' % (ident,)
+            r.status_code = 303
+            return r
+        # pixels
+        elif Loris.FMT_REGEX.match(info_or_quality_dot_format):
+            quality,fmt = info_or_quality_dot_format.split('.')
+            rotation = slices.pop()
+            size = slices.pop()
+            region = slices.pop()
+            return self.get_img(request, ident, region, size, rotation, quality, fmt)
+        # info
+        elif info_or_quality_dot_format == 'info.json':
+            return self.get_info(request, ident, base_uri)
+            
+        # favicon.ico
+        elif params == 'favicon.ico':
+            return self.get_favicon(request)
+        else:
+            return BadRequestResponse()
 
     def __call__(self, environ, start_response):
         '''
         This makes Loris executable.
         '''
         return self.wsgi_app(environ, start_response)
-
-    def get_environment(self, request, ident):
-        # For dev/debugging. Change any route to dispatch to 'environment'
-        body = 'REQUEST ENVIRONMENT\n===================\n'
-        for key in request.environ:
-            body += '%s\n' % (key,)
-            body += '\t%s\n' % (request.environ[key],)
-        return BaseResponse(body, content_type='text/plain')
 
     def get_index(self, request):
         '''
@@ -335,82 +339,10 @@ class Loris(object):
             r.make_conditional(request)
         return r
 
-    def get_info_redirect_or_error(self, request, wtf):
-        # This isn't foolproof, an identifier with 5 path-like segments could 
-        # break it
-        tokens = wtf.split('/')
-
-        r = LorisResponse()
-
-        if len(tokens) >= 5: # all the parts are there for an image request
-            # check quality
-            if tokens[-1].split('.')[0] not in ('default','color','gray','bitonal'):
-                r.body = '(400) "%s" is not a valid quality' % (tokens[-1].split('.')[0],)
-                r.status_code = 400
-                r.mimetype = 'text/plain'
-                return r
-            # rotation, just make sure it's a digit here
-            elif not tokens[-2].isdigit():
-                body = '(400) rotation must be an integer between 0 and 360 ("%s" supplied)' % (tokens[-2],)
-                r.status_code = 400
-                r.mimetype = 'text/plain'
-                return r
-            # size
-            elif not re.match(Loris.SIZE_REGEX, tokens[-3]):
-                r.body = '(400) size syntax is not valid ("%s" supplied)' % (tokens[-3],)
-                r.status_code = 400
-                r.mimetype = 'text/plain'
-                return r
-            # region
-            elif not re.match(Loris.REGION_REGEX, tokens[-4]):
-                r.body = '(400) region syntax is not valid ("%s" supplied)' % (tokens[-4],)
-                r.status_code = 400
-                r.mimetype = 'text/plain'
-                return r
-            # ident
-            elif not self.resolver.is_resolvable('%2F'.join(tokens[0:-4])):
-                ident = '%2F'.join(tokens[0:-4])
-                return Loris._not_resolveable_response(ident)
-        else: #len(tokens) < 5:
-            ident = '%2F'.join(tokens)
-            if not self.resolver.is_resolvable(ident):
-                return Loris._not_resolveable_response(ident)
-            elif self.redirect_base_uri:
-                to_location = Loris._info_dot_json_from_request(request)
-                logger.debug('Redirected %s to %s' % (ident, to_location))
-                r.headers['Location'] = to_location
-                r.status_code = 303
-                return r
-            else:
-                return self.get_info(request, ident)
-
-    def get_bad_img_format(self, request, ident, region, size, rotation, quality, bad_fmt):
-        body = '(415) format "%s" not supported or not valid' % (bad_fmt,)
-        r = LorisResponse(response=body, status=415, content_type='text/plain')
-        return r
-
-    def get_info_conneg(self, request, ident):
-        accept = request.headers.get('accept')
-        if accept and not ('application/json' in accept or '*/*' in accept):
-            return Loris._format_not_supported_response(accept)
-
-        elif not self.resolver.is_resolvable(ident):
-            return Loris._not_resolveable_response(ident)
-
-        elif self.redirect_conneg:
-            to_location = Loris._info_dot_json_from_request(request)
-            logger.debug('Redirected %s to %s' % (ident, to_location))
-            r = LorisResponse(status=301)
-            r.headers['Location'] = to_location
-            return r
-
-        else:
-            return self.get_info(request, ident)
-
-    def get_info(self, request, ident):
+    def get_info(self, request, ident, base_uri):
         r = LorisResponse()
         try:
-            info, last_mod = self._get_info(ident,request)
+            info, last_mod = self._get_info(ident,request,base_uri)
         except (ImageInfoException,resolver.ResolverException) as e:
             r.response = e
             r.status_code = e.http_status
@@ -428,7 +360,6 @@ class Loris(object):
                 if last_mod:
                     r.last_modified = last_mod
                 r.automatically_set_content_length
-                # r.headers['Cache-control'] = 'public'
                 callback = request.args.get('callback', None)
                 if callback:
                     r.mimetype = 'application/javascript'
@@ -439,7 +370,7 @@ class Loris(object):
         finally:
             return r
 
-    def _get_info(self,ident,request,src_fp=None,src_format=None):
+    def _get_info(self,ident,request,base_uri,src_fp=None,src_format=None):
         if self.enable_caching:
             in_cache = ident in self.info_cache
         else:
@@ -453,7 +384,6 @@ class Loris(object):
                 # elsewhere; get_info does not.
                 src_fp, src_format = self.resolver.resolve(ident)
 
-            uri = Loris._base_uri_from_request(request)
             formats = self.transformers[src_format].target_formats
             
             logger.debug('Format: %s' % (src_format,))
@@ -461,7 +391,7 @@ class Loris(object):
             logger.debug('Identifier: %s' % (ident,))
 
             # get the info
-            info = ImageInfo.from_image_file(uri, src_fp, src_format, formats)
+            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats)
 
             # store
             if self.enable_caching:
@@ -472,20 +402,8 @@ class Loris(object):
                 last_mod = None
 
             return (info,last_mod)
-
     
-    def _format_from_request(self, r):
-        filt = lambda v: v.startswith('image/')
-        preferred_fmts = filter(filt, r.accept_mimetypes.values())
-        if len(preferred_fmts) == 0:
-            fmt = self.default_format
-            logger.debug('No image type in accept header, using default: %s' % fmt)
-        else:
-            fmt = constants.FORMATS_BY_MEDIA_TYPE[preferred_fmts[0]]
-            logger.debug('Format from conneg: %s' % fmt)
-        return fmt
-
-    def get_img(self, request, ident, region, size, rotation, quality, target_fmt=None):
+    def get_img(self, request, ident, region, size, rotation, quality, target_fmt):
         '''Get an Image. 
         Args:
             request (Request): 
@@ -495,23 +413,6 @@ class Loris(object):
 
         '''
         r = LorisResponse()
-
-        if target_fmt == None:
-            target_fmt = self._format_from_request(request)
-            logger.debug('target_fmt: %s' % (target_fmt,))
-
-            if self.redirect_conneg:
-                logger.debug(ident)
-                image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
-                logger.debug('Attempting redirect to %s' % (image_request.request_path,))
-
-                r.headers['Location'] = image_request.request_path
-                r.status_code = 301
-                return r
-            # no reason for an else because the spec dictates that we should use a 
-            # default format, which _format_from_request will return if one can't be
-            # discerned from the Accept header.
-
         # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are 
         # decorated with @property and not constructed until they are first 
         # accessed, which mean we don't have to catch any exceptions here.
@@ -526,9 +427,7 @@ class Loris(object):
 
         if in_cache:
             fp = self.img_cache[image_request]
-
             ims_hdr = request.headers.get('If-Modified-Since')
-
             img_last_mod = datetime.utcfromtimestamp(path.getmtime(fp))
             # The stamp from the FS needs to be rounded using the same precision
             # as when went sent it, so for an accurate comparison turn it into
@@ -630,57 +529,28 @@ class Loris(object):
         return path.sep.join([_id[i:i+2] for i in range(0, len(_id), 2)])
 
     @staticmethod
-    def _base_uri_from_request(r):
-        # See http://www-sul.stanford.edu/iiif/image-api/1.1/#url_encoding
-        #
-        # Consider a translation table (or whatever) instead of #quote_plus for 
-        #   "/" / "?" / "#" / "[" / "]" / "@" / "%"
-        # if we run into trouble.
-
+    def _dissect_uri(r):
         # info
-        if r.path.endswith('info') or r.path.endswith('info.json') :
+        if r.path.endswith('info.json'):
             ident = '/'.join(r.path[1:].split('/')[:-1])
+            params = ('info.json')
         # image
         elif r.path.split('/')[-1].split('.')[0] in ('default','color','gray','bitonal'):
             ident = '/'.join(r.path[1:].split('/')[:-4])
+            params = '/'.join(r.path[1:].split('/')[3:])
         # bare
         else:
             ident = r.path[1:] # no leading slash
-
-        logger.debug(r.path)
-
-        ident_encoded = quote_plus(ident)
-        logger.debug('Re-encoded identifier: %s' % (ident_encoded,))
+            params = ''
+        ident = quote_plus(ident)
 
         if r.script_root != u'':
-            uri = '%s%s' % (r.url_root,ident_encoded)
+            base_uri = '%s%s' % (r.url_root,ident)
         else:
-            uri = r.host_url + ident_encoded
+            base_uri = '%s%s' % (r.host_url,ident)
 
-        logger.debug('uri_from_request: %s' % (uri,))
-        return uri
-
-    @staticmethod
-    def _info_dot_json_from_request(request):
-        base_uri = Loris._base_uri_from_request(request)
-        return '%s/info.json' % (base_uri,)
-
-    @staticmethod
-    def _not_resolveable_response(ident):
-        ident = quote_plus(ident)
-        msg = '404: Identifier "%s" does not resolve to an image.' % (ident,)
-        r = LorisResponse(response=msg, content_type='text/plain', status=404)
-        logger.warn(msg)
-        return r
-
-    @staticmethod
-    def _format_not_supported_response(format):
-        msg = '415: "%s" is not supported.' % (format,)
-        r = LorisResponse(response=msg, content_type='text/plain', status=415)
-        logger.warn(msg)
-        
-        logger.warn(msg)
-        return r
+        logger.debug('base_uri_from_request: %s' % (base_uri,))
+        return (base_uri, ident, params)
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
