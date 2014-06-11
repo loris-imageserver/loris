@@ -44,33 +44,33 @@ except ImportError:
     VERBOSE = '-v'
 
 
-    if VERBOSE in argv:
-        import logging
-        logging.basicConfig(level=logging.DEBUG)
-        argv.remove(VERBOSE)
+if VERBOSE in argv:
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    argv.remove(VERBOSE)
 
-        try:
-            fp = realpath(argv[1])
-        except IndexError:
-            stderr.write("\nPlease supply the path to an image file.\n\n")
-            exit(EX_USAGE)
+try:
+    fp = realpath(argv[1])
+except IndexError:
+    stderr.write("\nPlease supply the path to an image file.\n\n")
+    exit(EX_USAGE)
 
-        if not exists(fp):
-            stderr.write("\n%s does not exist.\n\n" % (fp,))
-            exit(EX_NOINPUT)
+if not exists(fp):
+    stderr.write("\n%s does not exist.\n\n" % (fp,))
+    exit(EX_NOINPUT)
 
-        fmt = splitext(fp)[1][1:]
-        uri = urljoin('file:', pathname2url(fp))
+fmt = splitext(fp)[1][1:]
+uri = urljoin('file:', pathname2url(fp))
 
-        try:
-            info = ImageInfo.from_image_file(uri, fp, fmt)
-            info_dict = info.to_dict()
-            del info_dict['profile'][1]['formats']
-            del info_dict['profile'][1]['supports']
-            del info_dict['profile'][0]
+try:
+    info = ImageInfo.from_image_file(uri, fp, fmt)
+    info_dict = info.to_dict()
+    del info_dict['profile'][1]['formats']
+    del info_dict['profile'][1]['supports']
+    del info_dict['profile'][0]
 
-            stdout.write("%s\n" % (dumps(info_dict, sort_keys=True, indent=4),))
-        except Exception as e:
-            stderr.write("\n%s\n\n" % (e,))
-            exit(EX_DATAERR)
+    stdout.write("%s\n" % (dumps(info_dict, sort_keys=True, indent=4),))
+except Exception as e:
+    stderr.write("\n%s\n\n" % (e,))
+    exit(EX_DATAERR)
 
