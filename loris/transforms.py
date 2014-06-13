@@ -4,6 +4,7 @@
 from PIL import Image
 from PIL.ImageCms import profileToProfile
 from PIL.ImageFile import Parser
+from PIL.ImageOps import mirror
 from logging import getLogger
 from loris_exception import LorisException
 from math import ceil, log
@@ -105,7 +106,7 @@ class _AbstractTransformer(object):
 		if image_request.size_param.cannonical_uri_value != 'full':
 			wh = [int(image_request.size_param.w),int(image_request.size_param.h)]
 			# if kdu did the rotation and it's 90 or 270 then reverse w & h
-			if image_request.rotation_param.uri_value in ['90','270']:
+			if image_request.rotation_param.rotation in ['90','270']:
 				wh.reverse()
 
 			logger.debug(wh)
@@ -114,11 +115,13 @@ class _AbstractTransformer(object):
 		if im.mode != "RGB":
 			im = im.convert("RGB")
 
-		if image_request.rotation_param.uri_value != '0' and rotate:
-			r = 0-int(image_request.rotation_param.uri_value)
+		if image_request.rotation_param.mirror:
+			im = mirror(im)
+
+		if image_request.rotation_param.rotation != '0' and rotate:
+			r = 0-float(image_request.rotation_param.rotation)
 			im = im.rotate(r, expand=1)
 
-			# im = im.resize(wh)
 
 			# Here's a recipe for setting different background colors
 			# http://stackoverflow.com/a/5253554/714478
@@ -249,8 +252,8 @@ class JP2_Transformer(_AbstractTransformer):
 			str. E.g. `-rotate 180`.
 		'''
 		arg = ''
-		if rotation_param.cannonical_uri_value != '0':
-			arg = '-rotate %s' % (rotation_param.cannonical_uri_value,)
+		if rotation_param.rotation != '0':
+			arg = '-rotate %s' % (rotation_param.rotation,)
 		logger.debug('kdu rotation parameter: %s' % (arg,))
 		return arg
 
@@ -296,7 +299,7 @@ class JP2_Transformer(_AbstractTransformer):
 		reduce_arg = JP2_Transformer._scales_to_kdu_reduce(image_request)
 
 		# kdu can do the rotation if it's a multiple of 90:
-		if int(image_request.rotation_param.uri_value) % 90 == 0:
+		if float(image_request.rotation_param.rotation) % 90 == 0.0:
 			rotate_downstream = False
 			kdu_rotation_arg = JP2_Transformer._rotation_to_kdu(image_request.rotation_param)
 			kdu_cmd = ' '.join((self.kdu_expand,q,i,t,region_arg,reduce_arg,kdu_rotation_arg,o))
