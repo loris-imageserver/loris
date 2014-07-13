@@ -23,25 +23,56 @@
       ]
     }
   ],
-  "scale_factors": [
-    1,
-    2,
-    4,
-    8,
-    16,
-    32,
-    64
-  ],
-  "tile_height": 256,
-  "tile_width": 256,
   "width": 5906,
   "sizes": [
-    "5906,7200",
-    "2953,3600",
-    "1477,1800",
-    "739,900",
-    "370,450",
-    "185,225",
-    "93,113"
+    {
+      "height": 113,
+      "viewing_hint": "pct:1.5625",
+      "width": 93
+    },
+    {
+      "height": 225,
+      "viewing_hint": "pct:3.125",
+      "width": 185
+    },
+    {
+      "height": 450,
+      "viewing_hint": "pct:6.25",
+      "width": 370
+    },
+    {
+      "height": 900,
+      "viewing_hint": "pct:12.5",
+      "width": 739
+    },
+    {
+      "height": 1800,
+      "viewing_hint": "pct:25",
+      "width": 1477
+    },
+    {
+      "height": 3600,
+      "viewing_hint": "pct:50",
+      "width": 2953
+    },
+    {
+      "height": 7200,
+      "viewing_hint": "pct:100",
+      "width": 5906
+    }
+  ],
+  "tiles": [
+    {
+      "scale_factors": [
+        1,
+        2,
+        4,
+        8,
+        16,
+        32,
+        64
+      ],
+      "width": 256
+    }
   ]
 }

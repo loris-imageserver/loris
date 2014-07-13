@@ -39,36 +39,210 @@ class LorisTest(unittest.TestCase):
 		self.test_jp2_color_id = '01%2F02%2F0001.jp2'
 		self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_color_id)
 		self.test_jp2_color_dims = (5906,7200) 
-		self.test_jp2_color_tile_dims = (256,256)
 		self.test_jp2_color_levels = 6
-		self.test_jp2_color_sizes = ['5906,7200', '2953,3600', '1477,1800', '739,900', '370,450', '185,225', '93,113']
+		self.test_jp2_color_tiles = [
+	        {
+	            "scale_factors": [
+	                1, 
+	                2, 
+	                4, 
+	                8, 
+	                16, 
+	                32, 
+	                64
+	            ], 
+	            "width": 256
+	        }
+	    ]
+		self.test_jp2_color_sizes =  [
+	        {
+	            "height": 113, 
+	            "viewing_hint": "pct:1.5625", 
+	            "width": 93
+	        }, 
+	        {
+	            "height": 225, 
+	            "viewing_hint": "pct:3.125", 
+	            "width": 185
+	        }, 
+	        {
+	            "height": 450, 
+	            "viewing_hint": "pct:6.25", 
+	            "width": 370
+	        }, 
+	        {
+	            "height": 900, 
+	            "viewing_hint": "pct:12.5", 
+	            "width": 739
+	        }, 
+	        {
+	            "height": 1800, 
+	            "viewing_hint": "pct:25", 
+	            "width": 1477
+	        }, 
+	        {
+	            "height": 3600, 
+	            "viewing_hint": "pct:50", 
+	            "width": 2953
+	        }, 
+	        {
+	            "height": 7200, 
+	            "viewing_hint": "pct:100", 
+	            "width": 5906
+	        }
+	    ]
 
 		self.test_jp2_gray_fp = path.join(test_img_dir,'01','02','gray.jp2')
 		self.test_jp2_gray_fmt = 'jp2'
 		self.test_jp2_gray_id = '01%2F02%2Fgray.jp2'
 		self.test_jp2_gray_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
 		self.test_jp2_gray_dims = (2477,3200) # w,h
-		self.test_jp2_gray_tile_dims = (256,256) # w,h
+		self.test_jp2_gray_sizes =  [
+	        {
+	            "height": 50, 
+	            "viewing_hint": "pct:1.5625", 
+	            "width": 39
+	        }, 
+	        {
+	            "height": 100, 
+	            "viewing_hint": "pct:3.125", 
+	            "width": 78
+	        }, 
+	        {
+	            "height": 200, 
+	            "viewing_hint": "pct:6.25", 
+	            "width": 155
+	        }, 
+	        {
+	            "height": 400, 
+	            "viewing_hint": "pct:12.5", 
+	            "width": 310
+	        }, 
+	        {
+	            "height": 800, 
+	            "viewing_hint": "pct:25", 
+	            "width": 620
+	        }, 
+	        {
+	            "height": 1600, 
+	            "viewing_hint": "pct:50", 
+	            "width": 1239
+	        }, 
+	        {
+	            "height": 3200, 
+	            "viewing_hint": "pct:100", 
+	            "width": 2477
+	        }
+	    ]
+		self.test_jp2_gray_tiles = [
+	        {
+	            "scale_factors": [
+	                1, 
+	                2, 
+	                4, 
+	                8, 
+	                16, 
+	                32, 
+	                64
+	            ], 
+	            "width": 256
+	        }
+	    ]
+
 
 		self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
 		self.test_jpeg_fmt = 'jpg'
 		self.test_jpeg_id = '01%2F03%2F0001.jpg'
 		self.test_jpeg_uri = '%s/%s' % (self.URI_BASE,self.test_jpeg_id)
 		self.test_jpeg_dims = (3600,2987) # w,h
-		self.test_jpeg_sizes = ["3600,2987"] # w,h
+		self.test_jpeg_sizes = [
+	        {
+	            "height": 2987, 
+	            "viewing_hint": "pct:100", 
+	            "width": 3600
+	        }
+	    ]
 
 		self.test_tiff_fp = path.join(test_img_dir,'01','04','0001.tif')
 		self.test_tiff_fmt = 'tif'
 		self.test_tiff_id = '01%2F04%2F0001.tif'
 		self.test_tiff_uri = '%s/%s' % (self.URI_BASE,self.test_tiff_id)
 		self.test_tiff_dims = (839,1080)
-		self.test_tiff_sizes = ["839,1080"]
+		self.test_tiff_sizes = [
+	        {
+	            "height": 1080, 
+	            "viewing_hint": "pct:100", 
+	            "width": 839
+	        }
+	    ]
 
-		self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,'47102787.jp2')
+		self.test_jp2_with_embedded_profile_id = '47102787.jp2'
+		self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,self.test_jp2_with_embedded_profile_id)
 		self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
 		self.test_jp2_with_embedded_profile_fmt = 'jp2'
-		self.test_jp2_with_embedded_profile_id = '47102787.jp2'
-		self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
+		self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_embedded_profile_id)
+
+		self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
+		self.test_jp2_with_precincts_fp = path.join(test_img_dir,self.test_jp2_with_precincts_id)
+		self.test_jp2_with_precincts_fmt = 'jp2'
+		self.test_jp2_with_precincts_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_precincts_id)
+		self.test_jp2_with_precincts_sizes =  [
+	        {
+	            "height": 93, 
+	            "viewing_hint": "pct:1.5625", 
+	            "width": 71
+	        }, 
+	        {
+	            "height": 186, 
+	            "viewing_hint": "pct:3.125", 
+	            "width": 141
+	        }, 
+	        {
+	            "height": 372, 
+	            "viewing_hint": "pct:6.25", 
+	            "width": 281
+	        }, 
+	        {
+	            "height": 743, 
+	            "viewing_hint": "pct:12.5", 
+	            "width": 561
+	        }, 
+	        {
+	            "height": 1486, 
+	            "viewing_hint": "pct:25", 
+	            "width": 1122
+	        }, 
+	        {
+	            "height": 2972, 
+	            "viewing_hint": "pct:50", 
+	            "width": 2244
+	        }, 
+	        {
+	            "height": 5944, 
+	            "viewing_hint": "pct:100", 
+	            "width": 4488
+	        }
+	    ]
+		self.test_jp2_with_precincts_tiles = [
+	        {
+	            "scale_factors": [
+	                1, 
+	                2, 
+	                4, 
+	                8, 
+	                16
+	            ], 
+	            "width": 128
+	        }, 
+	        {
+	            "scale_factors": [
+	                32, 
+	                64
+	            ], 
+	            "width": 256
+	        }
+	    ]
+
 
 	def tearDown(self):
 		unittest.TestCase.tearDown(self)

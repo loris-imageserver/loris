@@ -38,11 +38,22 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
-        self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
-        self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
+        self.assertEqual(info.tiles, self.test_jp2_color_tiles)
+        self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
+
+    def test_precinct_jp2_tiles_from_image(self):
+        formats = ["jpg", "png", "gif"]
+        fp = self.test_jp2_with_precincts_fp
+        fmt = self.test_jp2_with_precincts_fmt
+        ident = self.test_jp2_with_precincts_id
+        uri = self.test_jp2_with_precincts_uri
+
+        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+
+        self.assertEqual(info.tiles, self.test_jp2_with_precincts_tiles)
+        self.assertEqual(info.sizes, self.test_jp2_with_precincts_sizes)
 
     def test_extract_icc_profile_from_jp2(self):
         fp = self.test_jp2_with_embedded_profile_fp
@@ -85,9 +96,8 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.width, self.test_jp2_gray_dims[0])
         self.assertEqual(info.height, self.test_jp2_gray_dims[1])
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.tile_width, self.test_jp2_gray_tile_dims[0])
-        self.assertEqual(info.tile_height, self.test_jp2_gray_tile_dims[1])
-        self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
+        self.assertEqual(info.tiles, self.test_jp2_gray_tiles)
+        self.assertEqual(info.sizes, self.test_jp2_gray_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
@@ -110,9 +120,8 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jpeg_dims[0])
         self.assertEqual(info.height, self.test_jpeg_dims[1])
-        self.assertEqual(info.sizes, self.test_jpeg_sizes)
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.scale_factors, [1])
+        self.assertEqual(info.sizes, self.test_jpeg_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
@@ -137,7 +146,6 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.height, self.test_tiff_dims[1])
         self.assertEqual(info.sizes, self.test_tiff_sizes)
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.scale_factors, [1])
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
@@ -157,9 +165,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
-        self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
-        self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
+        self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.ident, self.test_jp2_color_uri)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.protocol, PROTOCOL)
@@ -189,9 +195,7 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
         self.assertEqual(info.profile, profile)
-        self.assertEqual(info.tile_width, self.test_jp2_color_tile_dims[0])
-        self.assertEqual(info.tile_height, self.test_jp2_color_tile_dims[1])
-        self.assertEqual(info.scale_factors, [1,2,4,8,16,32,64])
+        self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.ident, self.test_jp2_color_uri)
 
 
