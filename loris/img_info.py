@@ -3,11 +3,14 @@
 from PIL import Image
 from collections import OrderedDict
 from collections import deque
-from constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
+from constants import COMPLIANCE
+from constants import CONTEXT
+from constants import OPTIONAL_FEATURES
+from constants import PROTOCOL
 from datetime import datetime
 from logging import getLogger
-from threading import Lock
 from math import ceil
+from threading import Lock
 import fnmatch
 import json
 import loris_exception
@@ -39,8 +42,6 @@ class ImageInfo(object):
         ident (str): The image identifier.
         width (int)
         height (int)
-        tile_width (int)
-        tile_height (int)
         scale_factors [(int)]
         qualities [(str)]: 'default', 'bitonal', 'color', or 'gray'
         src_img_fp (str): the absolute path on the file system
@@ -48,9 +49,10 @@ class ImageInfo(object):
         profile []: Features supported by the server/available for this image
         color_profile_bytes []: the emebedded color profile, if any
         sizes [(str)]: the optimal sizes of the image to request
+        tiles: [{}]
     '''
-    __slots__ = ('scale_factors', 'width', 'tile_height', 'height', 
-        'tile_width', 'ident', 'profile', 'protocol', 'sizes', 
+    __slots__ = ('scale_factors', 'width', 'tiles', 'height', 
+        'ident', 'profile', 'protocol', 'sizes', 
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
     def __init__(self):
@@ -70,8 +72,7 @@ class ImageInfo(object):
         new_inst = ImageInfo()
         new_inst.ident = uri
         new_inst.src_img_fp = src_img_fp
-        new_inst.tile_width = None
-        new_inst.tile_height = None
+        new_inst.tiles = []
         new_inst.sizes = None
         new_inst.scale_factors = None
         local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES}
@@ -84,7 +85,7 @@ class ImageInfo(object):
         if src_format == 'jp2':
             new_inst._from_jp2(src_img_fp)
         elif src_format  in ('jpg','tif','png'):
-            new_inst._from_pillow(src_img_fp)
+            new_inst._extract_with_pillow(src_img_fp)
         else:
             m = 'Didn\'t get a source format, or at least one we recognize ().' % (src_format,)
             raise Exception(m)
@@ -111,30 +112,29 @@ class ImageInfo(object):
         # TODO: make sure these are resulting in error or Nones when 
         # we load from the filesystem
         new_inst.scale_factors = j.get(u'scale_factors')
-        new_inst.tile_width = j.get(u'tile_width')
-        new_inst.tile_height = j.get(u'tile_height')
+        new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
         new_inst.profile = j.get(u'profile')
 
         f.close()
         return new_inst
 
-    def _from_pillow(self, fp):
+    def _extract_with_pillow(self, fp):
         logger.debug('Extracting info from file with Pillow.')
         im = Image.open(fp)
         self.width, self.height = im.size
-        self.scale_factors = [1]
-        self.tile_width = None
-        self.tile_height = None
+        self.tiles = []
         self.color_profile_bytes = None
         self.profile[1]['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
-        self.sizes = ["%d,%d" % (w,h) for w,h in self.sizes_for_scales()]
+        self.sizes = [ { 'width' : self.width, 'height' : self.height, 'viewing_hint' : 'pct:100' } ]
 
     def _from_jp2(self, fp):
         '''Get info about a JP2. 
         '''
         logger.debug('Extracting info from JP2 file.')
         self.profile[1]['qualities'] = ['default', 'bitonal']
+
+        scale_factors = []
 
         jp2 = open(fp, 'rb')
         b = jp2.read(1)
@@ -145,8 +145,8 @@ class ImageInfo(object):
             b = jp2.read(1)
             c = struct.unpack('c', b)[0]
             window.append(c)
-        self.height = int(struct.unpack(">I", jp2.read(4))[0]) # Height ("4-byte big endian unsigned integer"--pg. 136)
-        self.width = int(struct.unpack(">I", jp2.read(4))[0]) # Width (ditto)
+        self.height = int(struct.unpack(">I", jp2.read(4))[0]) # height (pg. 136)
+        self.width = int(struct.unpack(">I", jp2.read(4))[0]) # width
         logger.debug("width: " + str(self.width))
         logger.debug("height: " + str(self.height))
 
@@ -198,26 +198,24 @@ class ImageInfo(object):
         while (ord(b) != 0xFF): b = jp2.read(1)
         b = jp2.read(1) # 0x51: The SIZ marker segment
         if (ord(b) == 0x51):
-            jp2.read(4) # through Lsiz, Rsiz (16 bits each)
-            jp2.read(8) # through Xsiz, Ysiz (32 bits each)
-            jp2.read(8) # through XOsiz, YOsiz  (32 bits each)
-            self.tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
-            self.tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
-            logger.debug("tile width: " + str(self.tile_width))
-            logger.debug("tile height: " + str(self.tile_height))
-            jp2.read(4) # XTOsiz (32)
-            jp2.read(4) # YTOsiz (32)
-            csiz = struct.unpack(">h", jp2.read(2)) # may need this later
+            jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
+            tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
+            tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
+            logger.debug("tile width: " + str(tile_width))
+            logger.debug("tile height: " + str(tile_height))
+            self.tiles.append( { 'width' : tile_width } )
+            if tile_width != tile_height:
+                self.tiles[0]['height'] = tile_height
+            jp2.read(10) # XTOsiz (32), YTOsiz (32), Csiz (16)
 
         while (ord(b) != 0xFF): b = jp2.read(1)
         b = jp2.read(1) # 0x52: The COD marker segment
         if (ord(b) == 0x52):
-            jp2.read(2) # through Lcod (16)
-            jp2.read(1) # Scod (8)
-            jp2.read(4) # SGcod (32)
+            jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
             levels = int(struct.unpack(">B", jp2.read(1))[0])
-            logger.debug("levels: " + str(levels))  
-            self.scale_factors = [pow(2, l) for l in range(0,levels+1)]
+            logger.debug("levels: " + str(levels))
+            scale_factors = [pow(2, l) for l in range(0,levels+1)]
+            self.tiles[0]['scale_factors'] = scale_factors
             jp2.read(4) # through code block stuff
 
             # We may have precincts if Scod or Scoc = xxxx xxx0
@@ -227,35 +225,42 @@ class ImageInfo(object):
             # the COC (optional, marker = 0xFF53) or the QCD (required,
             # marker = 0xFF5C)
             b = jp2.read(1)
-            if ord(b) != 0xFF and self.tile_width == self.width and self.tile_height == self.height:
-                [jp2.read(1) for _ in range(levels-1)]
-                b = jp2.read(1)
-                b_str = bin(struct.unpack(">B", b)[0])[2:].zfill(8)
-                i = int(b_str,2)
-                x = i&15
-                y = i >> 4
-                self.tile_width = 2**x
-                self.tile_height = 2**y
-                logger.debug("Using tile width from precint: " + str(self.tile_width))
-                logger.debug("Using tile height from precint: " + str(self.tile_height))
+            if ord(b) != 0xFF:
+                if self.tiles[0]['width'] == self.width \
+                    and self.tiles[0]['height'] == self.height:
+                    # Clear what we got above in SIZ and prefer this. This could 
+                    # technically break as it's possible to have precincts inside tiles.
+                    # Let's wait for that to come up....
+                    self.tiles = []
 
-                # This prints precinct size for all levels
-                # for _ in range(levels+1):
-                #   i = int(bin(struct.unpack(">B", b)[0])[2:].zfill(8),2)
-                #   x = i&15
-                #   y = i >> 4
-                #   w = 2**x
-                #   h = 2**y
-                #   b = jp2.read(1)
-                #   print "{%d,%d}" % (w,h)
+                    for level in range(levels+1):
+                        i = int(bin(struct.unpack(">B", b)[0])[2:].zfill(8),2)
+                        x = i&15
+                        y = i >> 4
+                        w = 2**x
+                        h = 2**y
+                        b = jp2.read(1)
+                        try:
+                            entry = next((i for i in self.tiles if i['width'] == w))
+                            entry['scale_factors'].append(pow(2, level))
+                        except StopIteration:
+                            self.tiles.append({'width':w, 'scale_factors':[pow(2, level)]})
 
         jp2.close()
 
-        self.sizes = ["%d,%d" % (w,h) for w,h in self.sizes_for_scales()]
+        self.sizes = []
+        [self.sizes.append( { 
+            'width' : w, 
+            'height' : h, 
+            'viewing_hint' : 'pct:%g' % (1.0/s*100.0,)
+         } )
+            for w,h,s in self.sizes_for_scales(scale_factors)]
+        self.sizes.sort(key=lambda size: max([size['width'], size['height']]))
 
-    def sizes_for_scales(self):
+
+    def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
-        return [(fn(self.width, sf), fn(self.height, sf)) for sf in self.scale_factors]
+        return [(fn(self.width, sf), fn(self.height, sf), sf) for sf in scales]
 
     @staticmethod
     def scale_dim(dim_len, scale):
@@ -267,12 +272,8 @@ class ImageInfo(object):
         d['@id'] = self.ident
         d['width'] = self.width
         d['height'] = self.height
-        if self.scale_factors:
-            d['scale_factors'] = self.scale_factors
-        if self.tile_width:
-            d['tile_width'] = self.tile_width
-        if self.tile_height:
-            d['tile_height'] = self.tile_height
+        if self.tiles:
+            d['tiles'] = self.tiles
         d['sizes'] = self.sizes
         d['profile'] = self.profile
         return d
