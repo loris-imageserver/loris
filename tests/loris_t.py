@@ -17,287 +17,146 @@ logger = getLogger(__name__)
 
 class LorisTest(unittest.TestCase):
 
-	def setUp(self):
-		unittest.TestCase.setUp(self)
+    def setUp(self):
+        unittest.TestCase.setUp(self)
 
-		self.URI_BASE = 'http://localhost'
-		
-		# create an instance of the app here that we can use in tests
-		# see http://werkzeug.pocoo.org/docs/test/
-		self.app = create_app(debug=True)
-		self.client = Client(self.app, BaseResponse)
-		
+        self.URI_BASE = 'http://localhost'
+        
+        # create an instance of the app here that we can use in tests
+        # see http://werkzeug.pocoo.org/docs/test/
+        self.app = create_app(debug=True)
+        self.client = Client(self.app, BaseResponse)
 
-		# constant info about test images.
-		test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
-		test_json_dir = path.join(path.abspath(path.dirname(__file__)), 'json')
-		test_icc_dir = path.join(path.abspath(path.dirname(__file__)), 'icc')
+        # constant info about test images.
+        test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
+        test_json_dir = path.join(path.abspath(path.dirname(__file__)), 'json')
+        test_icc_dir = path.join(path.abspath(path.dirname(__file__)), 'icc')
 
-		self.test_jp2_color_fp = path.join(test_img_dir,'01','02','0001.jp2')
-		self.test_jp2_color_info_fp = path.join(test_json_dir,'01','02','0001.jp2','info.json')
-		self.test_jp2_color_fmt = 'jp2'
-		self.test_jp2_color_id = '01%2F02%2F0001.jp2'
-		self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_color_id)
-		self.test_jp2_color_dims = (5906,7200) 
-		self.test_jp2_color_levels = 6
-		self.test_jp2_color_tiles = [
-	        {
-	            "scale_factors": [
-	                1, 
-	                2, 
-	                4, 
-	                8, 
-	                16, 
-	                32, 
-	                64
-	            ], 
-	            "width": 256
-	        }
-	    ]
-		self.test_jp2_color_sizes =  [
-	        {
-	            "height": 113, 
-	            "viewing_hint": "pct:1.5625", 
-	            "width": 93
-	        }, 
-	        {
-	            "height": 225, 
-	            "viewing_hint": "pct:3.125", 
-	            "width": 185
-	        }, 
-	        {
-	            "height": 450, 
-	            "viewing_hint": "pct:6.25", 
-	            "width": 370
-	        }, 
-	        {
-	            "height": 900, 
-	            "viewing_hint": "pct:12.5", 
-	            "width": 739
-	        }, 
-	        {
-	            "height": 1800, 
-	            "viewing_hint": "pct:25", 
-	            "width": 1477
-	        }, 
-	        {
-	            "height": 3600, 
-	            "viewing_hint": "pct:50", 
-	            "width": 2953
-	        }, 
-	        {
-	            "height": 7200, 
-	            "viewing_hint": "pct:100", 
-	            "width": 5906
-	        }
-	    ]
+        self.test_jp2_color_fp = path.join(test_img_dir,'01','02','0001.jp2')
+        self.test_jp2_color_info_fp = path.join(test_json_dir,'01','02','0001.jp2','info.json')
+        self.test_jp2_color_fmt = 'jp2'
+        self.test_jp2_color_id = '01%2F02%2F0001.jp2'
+        self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_color_id)
+        self.test_jp2_color_dims = (5906,7200) 
+        self.test_jp2_color_levels = 6
+        self.test_jp2_color_tiles = [ 
+            { "width": 256, "scale_factors": [1,2,4,8,16,32,64] }
+        ]
+        self.test_jp2_color_sizes =  [
+            { "height": 113, "viewing_hint": "pct:1.5625", "width": 93 },
+            { "height": 225, "viewing_hint": "pct:3.125", "width": 185 },
+            { "height": 450, "viewing_hint": "pct:6.25", "width": 370 },
+            { "height": 900, "viewing_hint": "pct:12.5", "width": 739 },
+            { "height": 1800, "viewing_hint": "pct:25", "width": 1477 },
+            { "height": 3600, "viewing_hint": "pct:50", "width": 2953 },
+            { "height": 7200, "viewing_hint": "pct:100", "width": 5906 }
+        ]
 
-		self.test_jp2_gray_fp = path.join(test_img_dir,'01','02','gray.jp2')
-		self.test_jp2_gray_fmt = 'jp2'
-		self.test_jp2_gray_id = '01%2F02%2Fgray.jp2'
-		self.test_jp2_gray_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
-		self.test_jp2_gray_dims = (2477,3200) # w,h
-		self.test_jp2_gray_sizes =  [
-	        {
-	            "height": 50, 
-	            "viewing_hint": "pct:1.5625", 
-	            "width": 39
-	        }, 
-	        {
-	            "height": 100, 
-	            "viewing_hint": "pct:3.125", 
-	            "width": 78
-	        }, 
-	        {
-	            "height": 200, 
-	            "viewing_hint": "pct:6.25", 
-	            "width": 155
-	        }, 
-	        {
-	            "height": 400, 
-	            "viewing_hint": "pct:12.5", 
-	            "width": 310
-	        }, 
-	        {
-	            "height": 800, 
-	            "viewing_hint": "pct:25", 
-	            "width": 620
-	        }, 
-	        {
-	            "height": 1600, 
-	            "viewing_hint": "pct:50", 
-	            "width": 1239
-	        }, 
-	        {
-	            "height": 3200, 
-	            "viewing_hint": "pct:100", 
-	            "width": 2477
-	        }
-	    ]
-		self.test_jp2_gray_tiles = [
-	        {
-	            "scale_factors": [
-	                1, 
-	                2, 
-	                4, 
-	                8, 
-	                16, 
-	                32, 
-	                64
-	            ], 
-	            "width": 256
-	        }
-	    ]
+        self.test_jp2_gray_fp = path.join(test_img_dir,'01','02','gray.jp2')
+        self.test_jp2_gray_fmt = 'jp2'
+        self.test_jp2_gray_id = '01%2F02%2Fgray.jp2'
+        self.test_jp2_gray_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
+        self.test_jp2_gray_dims = (2477,3200) # w,h
+        self.test_jp2_gray_sizes =  [
+            { "height": 50,  "viewing_hint": "pct:1.5625", "width": 39 },
+            { "height": 100, "viewing_hint": "pct:3.125", "width": 78 },
+            { "height": 200, "viewing_hint": "pct:6.25", "width": 155 },
+            { "height": 400, "viewing_hint": "pct:12.5", "width": 310 },
+            { "height": 800, "viewing_hint": "pct:25", "width": 620 },
+            { "height": 1600, "viewing_hint": "pct:50", "width": 1239 },
+            { "height": 3200, "viewing_hint": "pct:100", "width": 2477 }
+        ]
+        self.test_jp2_gray_tiles = [ 
+            { "width": 256, "scale_factors": [1,2,4,8,16,32,64] }
+        ]
+
+        self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
+        self.test_jpeg_fmt = 'jpg'
+        self.test_jpeg_id = '01%2F03%2F0001.jpg'
+        self.test_jpeg_uri = '%s/%s' % (self.URI_BASE,self.test_jpeg_id)
+        self.test_jpeg_dims = (3600,2987) # w,h
+        self.test_jpeg_sizes = [ 
+            { "height": 2987, "viewing_hint": "pct:100", "width": 3600 }
+        ]
+
+        self.test_tiff_fp = path.join(test_img_dir,'01','04','0001.tif')
+        self.test_tiff_fmt = 'tif'
+        self.test_tiff_id = '01%2F04%2F0001.tif'
+        self.test_tiff_uri = '%s/%s' % (self.URI_BASE,self.test_tiff_id)
+        self.test_tiff_dims = (839,1080)
+        self.test_tiff_sizes = [ 
+            { "height": 1080, "viewing_hint": "pct:100", "width": 839 }
+        ]
+
+        self.test_jp2_with_embedded_profile_id = '47102787.jp2'
+        self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,self.test_jp2_with_embedded_profile_id)
+        self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
+        self.test_jp2_with_embedded_profile_fmt = 'jp2'
+        self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_embedded_profile_id)
+
+        self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
+        self.test_jp2_with_precincts_fp = path.join(test_img_dir,self.test_jp2_with_precincts_id)
+        self.test_jp2_with_precincts_fmt = 'jp2'
+        self.test_jp2_with_precincts_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_precincts_id)
+        self.test_jp2_with_precincts_sizes =  [
+            { "height": 93, "viewing_hint": "pct:1.5625", "width": 71 },
+            { "height": 186, "viewing_hint": "pct:3.125", "width": 141 },
+            { "height": 372, "viewing_hint": "pct:6.25", "width": 281 },
+            { "height": 743, "viewing_hint": "pct:12.5", "width": 561 },
+            { "height": 1486, "viewing_hint": "pct:25", "width": 1122 }, 
+            { "height": 2972, "viewing_hint": "pct:50", "width": 2244 }, 
+            { "height": 5944, "viewing_hint": "pct:100", "width": 4488 }
+        ]
+        self.test_jp2_with_precincts_tiles = [ 
+            { "width": 128, "scale_factors": [1,2,4,8,16] }, 
+            { "width": 256, "scale_factors": [32,64] }
+        ]
 
 
-		self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
-		self.test_jpeg_fmt = 'jpg'
-		self.test_jpeg_id = '01%2F03%2F0001.jpg'
-		self.test_jpeg_uri = '%s/%s' % (self.URI_BASE,self.test_jpeg_id)
-		self.test_jpeg_dims = (3600,2987) # w,h
-		self.test_jpeg_sizes = [
-	        {
-	            "height": 2987, 
-	            "viewing_hint": "pct:100", 
-	            "width": 3600
-	        }
-	    ]
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        # empty the cache
+        dps = (
+            self.app.app_configs['img.ImageCache']['cache_dp'],
+            self.app.app_configs['img.ImageCache']['cache_links'],
+            self.app.app_configs['img_info.InfoCache']['cache_dp'],
+            self.app.tmp_dp
+        )
+        for dp in dps:
+            if path.exists(dp):
+                for node in listdir(dp):
+                    p = path.join(dp, node)
+                    if path.isdir(p):
+                        rmtree(p)
+                        logger.debug('Removed %s' % (p,))
+                    else: # TODO: make sure this covers symlinks
+                        unlink(p)
+                        logger.debug('Removed %s' % (p,))
+                rmtree(dp)
+                logger.debug('Removed %s' % (dp,))
 
-		self.test_tiff_fp = path.join(test_img_dir,'01','04','0001.tif')
-		self.test_tiff_fmt = 'tif'
-		self.test_tiff_id = '01%2F04%2F0001.tif'
-		self.test_tiff_uri = '%s/%s' % (self.URI_BASE,self.test_tiff_id)
-		self.test_tiff_dims = (839,1080)
-		self.test_tiff_sizes = [
-	        {
-	            "height": 1080, 
-	            "viewing_hint": "pct:100", 
-	            "width": 839
-	        }
-	    ]
-
-		self.test_jp2_with_embedded_profile_id = '47102787.jp2'
-		self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,self.test_jp2_with_embedded_profile_id)
-		self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
-		self.test_jp2_with_embedded_profile_fmt = 'jp2'
-		self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_embedded_profile_id)
-
-		self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
-		self.test_jp2_with_precincts_fp = path.join(test_img_dir,self.test_jp2_with_precincts_id)
-		self.test_jp2_with_precincts_fmt = 'jp2'
-		self.test_jp2_with_precincts_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_precincts_id)
-		self.test_jp2_with_precincts_sizes =  [
-	        {
-	            "height": 93, 
-	            "viewing_hint": "pct:1.5625", 
-	            "width": 71
-	        }, 
-	        {
-	            "height": 186, 
-	            "viewing_hint": "pct:3.125", 
-	            "width": 141
-	        }, 
-	        {
-	            "height": 372, 
-	            "viewing_hint": "pct:6.25", 
-	            "width": 281
-	        }, 
-	        {
-	            "height": 743, 
-	            "viewing_hint": "pct:12.5", 
-	            "width": 561
-	        }, 
-	        {
-	            "height": 1486, 
-	            "viewing_hint": "pct:25", 
-	            "width": 1122
-	        }, 
-	        {
-	            "height": 2972, 
-	            "viewing_hint": "pct:50", 
-	            "width": 2244
-	        }, 
-	        {
-	            "height": 5944, 
-	            "viewing_hint": "pct:100", 
-	            "width": 4488
-	        }
-	    ]
-		self.test_jp2_with_precincts_tiles = [
-	        {
-	            "scale_factors": [
-	                1, 
-	                2, 
-	                4, 
-	                8, 
-	                16
-	            ], 
-	            "width": 128
-	        }, 
-	        {
-	            "scale_factors": [
-	                32, 
-	                64
-	            ], 
-	            "width": 256
-	        }
-	    ]
-
-
-	def tearDown(self):
-		unittest.TestCase.tearDown(self)
-		# empty the cache
-		dps = (
-			self.app.app_configs['img.ImageCache']['cache_dp'],
-			self.app.app_configs['img.ImageCache']['cache_links'],
-			self.app.app_configs['img_info.InfoCache']['cache_dp'],
-			self.app.tmp_dp
-		)
-		for dp in dps:
-			if path.exists(dp):
-				for node in listdir(dp):
-					p = path.join(dp, node)
-					if path.isdir(p):
-						rmtree(p)
-						logger.debug('Removed %s' % (p,))
-					else: # TODO: make sure this covers symlinks
-						unlink(p)
-						logger.debug('Removed %s' % (p,))
-				rmtree(dp)
-				logger.debug('Removed %s' % (dp,))
-
-	def get_jpeg_dimensions(self, path):
-		"""Get the dimensions of a JPEG
-		"""
-		jpeg = open(path, 'r')
-		jpeg.read(2)
-		b = jpeg.read(1)
-		try:
-			while (b and ord(b) != 0xDA):
-				while (ord(b) != 0xFF): b = jpeg.read(1)
-				while (ord(b) == 0xFF): b = jpeg.read(1)
-				if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-					jpeg.read(3)
-					h, w = struct.unpack(">HH", jpeg.read(4))
-					break
-				else:
-					jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-				   
-				b = jpeg.read(1)
-			width = int(w)
-			height = int(h)
-		except Exception, e:
-			raise
-		finally:
-			jpeg.close()
-		return (width, height)
-
-	# def dims_from_uri(self, uri):
-	# 	"""Make a request, save it out, and return the dimensions.
-	# 	"""
-	# 	resp = self.client.get(uri)
-	# 	fp = path.join(loris.app.TMP, 'result.jpg')
-	# 	f = open(fp, 'w')
-	# 	f.write(resp.data)
-	# 	f.close()
-	# 	return self.get_jpeg_dimensions(fp)
+    def get_jpeg_dimensions(self, path):
+        """Get the dimensions of a JPEG
+        """
+        jpeg = open(path, 'r')
+        jpeg.read(2)
+        b = jpeg.read(1)
+        try:
+            while (b and ord(b) != 0xDA):
+                while (ord(b) != 0xFF): b = jpeg.read(1)
+                while (ord(b) == 0xFF): b = jpeg.read(1)
+                if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
+                    jpeg.read(3)
+                    h, w = struct.unpack(">HH", jpeg.read(4))
+                    break
+                else:
+                    jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
+                   
+                b = jpeg.read(1)
+            width = int(w)
+            height = int(h)
+        except Exception, e:
+            raise
+        finally:
+            jpeg.close()
+        return (width, height)
