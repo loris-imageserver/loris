@@ -87,7 +87,8 @@ def create_app(debug=False):
         config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
         config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
         config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-        config['resolver.Resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
+        config['resolver']['impl'] = 'SimpleFSResolver' 
+        config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     else:
         conf_fp = path.join(ETC_DP, 'loris.conf')
         config = __config_to_dict(conf_fp)
@@ -258,9 +259,8 @@ class Loris(object):
         self.transformers = {}
         for f in deriv_formats:
             self.transformers[f] = self._load_transformer('transforms.'+f)
-        ####        
 
-        self.resolver = resolver.Resolver(self.app_configs['resolver.Resolver'])
+        self.resolver = self._load_resolver()
 
         if self.enable_caching:
             self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
@@ -269,15 +269,24 @@ class Loris(object):
             self.img_cache = img.ImageCache(cache_dp,cache_links)
 
     def _load_transformer(self, name):
-        clazz = self.app_configs[name]['impl']
+        impl = self.app_configs[name]['impl']
         default_format = self.default_format
-        transformer = getattr(transforms,clazz)(self.app_configs[name], default_format)
-        logger.debug('Loaded Transformer %s' % self.app_configs[name]['impl'])
-        return transformer
+        Klass = getattr(transforms,impl)
+        instance = Klass(self.app_configs[name], default_format)
+        logger.debug('Loaded Transformer %s' % (impl,))
+        return instance
+
+    def _load_resolver(self):
+        impl = self.app_configs['resolver']['impl']
+        config = self.app_configs['resolver'].copy()
+        del config['impl']
+        Klass = getattr(resolver,impl)
+        instance = Klass(config)
+        logger.debug('Loaded Resolver %s' % (impl,))
+        return instance
 
     def wsgi_app(self, environ, start_response):
         request = Request(environ)
-        # response = self.dispatch_request(request)
         response = self.route(request)
         return response(environ, start_response)
 
