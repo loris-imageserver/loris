@@ -41,8 +41,8 @@ class ImageRequest(object):
 		rotation_param (parameters.RotationParameter)
 			See RotationParameter.__slots__.
 		info (ImageInfo):
-		is_cannonical (bool):
-			True if this is a cannonical path.
+		is_canonical (bool):
+			True if this is a canonical path.
 		cache_path (str): 
 			Relative path from the cache root, based on the original request values.
 		c14n_cache_path (str):
@@ -52,9 +52,8 @@ class ImageRequest(object):
 			a URI based on the original request.
 		c14n_request_path
 			Path of the request for tacking on to the service host and creating 
-			a URI based on the normalized ('cannonical') values.
-			('cannonical') values.
-
+			a URI based on the normalized ('canonical') values.
+			('canonical') values.
 		Raises:
 
 
@@ -64,7 +63,7 @@ class ImageRequest(object):
 		'_c14n_request_path',
 		'_cache_path',
 		'_info',
-		'_is_cannonical',
+		'_is_canonical',
 		'_region_param',
 		'_request_path',
 		'_rotation_param',
@@ -96,7 +95,7 @@ class ImageRequest(object):
 		self._cache_path = None
 		self._request_path = None
 
-		self._is_cannonical = None
+		self._is_canonical = None
 
 		self._region_param = None
 		self._rotation_param = None
@@ -151,9 +150,9 @@ class ImageRequest(object):
 	def c14n_request_path(self):
 		if self._c14n_request_path is None:
 			p = '/'.join((quote_plus(self.ident), 
-				self.region_param.cannonical_uri_value, 
-				self.size_param.cannonical_uri_value, 
-				self.rotation_param.cannonical_uri_value, 
+				self.region_param.canonical_uri_value, 
+				self.size_param.canonical_uri_value, 
+				self.rotation_param.canonical_uri_value, 
 				self.quality
 			))
 			self._c14n_request_path = '%s.%s' % (p,self.format)
@@ -170,19 +169,19 @@ class ImageRequest(object):
 	def c14n_cache_path(self):
 		if self._c14n_cache_path is None:
 			p = path.join(self.ident, 
-					self.region_param.cannonical_uri_value, 
-					self.size_param.cannonical_uri_value, 
-					self.rotation_param.cannonical_uri_value, 
+					self.region_param.canonical_uri_value, 
+					self.size_param.canonical_uri_value, 
+					self.rotation_param.canonical_uri_value, 
 					self.quality
 				)
 			self._c14n_cache_path = '%s.%s' % (p,self.format)
 		return self._c14n_cache_path
 
 	@property
-	def is_cannonical(self):
-		if self._is_cannonical is None:
-			self._is_cannonical = self.cache_path == self.c14n_cache_path
-		return self._is_cannonical
+	def is_canonical(self):
+		if self._is_canonical is None:
+			self._is_canonical = self.cache_path == self.c14n_cache_path
+		return self._is_canonical
 
 	@property
 	def info(self):
@@ -226,9 +225,9 @@ class ImageCache(dict):
 		# Does this make sense? It's a little strange because we already know
 		# the cache root in the webapp. We'll use the Image object (the key)
 		# to make any additional smlinks.
-		cannonical_fp = path.join(self._links_root, image_request.c14n_cache_path)
-		ImageCache._link(fp, cannonical_fp)
-		if not image_request.is_cannonical:
+		canonical_fp = path.join(self._links_root, image_request.c14n_cache_path)
+		ImageCache._link(fp, canonical_fp)
+		if not image_request.is_canonical:
 			alt_fp = path.join(self._links_root, image_request.cache_path)
 			ImageCache._link(fp, alt_fp)
 
