@@ -20,8 +20,8 @@ class _AbstractResolver(object):
     def is_resolvable(self, ident):
         """
         The idea here is that in some scenarios it may be cheaper to check 
-        that an id is resolvable than to actually resolve it and retrieve or
-        calculate the fp.
+        that an id is resolvable than to actually resolve it. For example, for 
+        an HTTP resolver, this could be a HEAD instead of a GET.
 
         Args:
             ident (str):
@@ -84,21 +84,41 @@ class SimpleFSResolver(_AbstractResolver):
 
         return (fp, format)
 
-class SourceImageCachingResolver(SimpleFSResolver):
-
+class SourceImageCachingResolver(_AbstractResolver):
+    '''
+    Example resolver that one might use if image files were coming from
+    mounted network storage. The first call to `resolve()` copies the source
+    image into a local cache; subsequent calls use local copy from the cache.
+ 
+    The config dictionary MUST contain 
+     * `cache_root`, which is the absolute path to the directory where images 
+        should be cached.
+     * `source_root`, the root directory for source images.
+    '''
     def __init__(self, config):
         super(SourceImageCachingResolver, self).__init__(config)
+        self.cache_root = self.config['cache_root']
+        self.source_root = self.config['source_root']
+
+    def is_resolvable(self, ident):
+        ident = unquote(ident)
+        fp = join(self.cache_root, ident)
+        return exists(fp)
+
+    @staticmethod
+    def _format_from_ident(ident):
+        return ident.split('.')[-1]
 
     def resolve(self, ident):
         ident = unquote(ident)
-        local_fp = join(self.disk_cache_root, ident)
+        local_fp = join(self.cache_root, ident)
 
         if exists(local_fp):
             format = SourceImageCachingResolver._format_from_ident(ident)
             logger.debug('src image from local disk: %s' % (local_fp,))
             return (local_fp, format)
         else:
-            fp = join(self.cache_root, ident)
+            fp = join(self.source_root, ident)
             logger.debug('src image: %s' % (fp,))
             if not exists(fp):
                 public_message = 'Source image not found for identifier: %s.' % (ident,)
@@ -110,7 +130,7 @@ class SourceImageCachingResolver(SimpleFSResolver):
             copy(fp, local_fp)
             logger.info("Copied %s to %s" % (fp, local_fp))
 
-            format = SimpleFSResolver._format_from_ident(ident)
+            format = SourceImageCachingResolver._format_from_ident(ident)
             logger.debug('src format %s' % (format,))
 
             return (local_fp, format)

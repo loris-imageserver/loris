@@ -76,7 +76,7 @@ def create_app(debug=False):
 
         logger.debug('Running in debug mode.')
 
-        # override some stuff to look at relative directories.
+        # override some stuff to look at relative or tmp directories.
         config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
         config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
         config['loris.Loris']['enable_caching'] = True
