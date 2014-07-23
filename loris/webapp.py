@@ -539,19 +539,25 @@ class Loris(object):
 
     @staticmethod
     def _dissect_uri(r):
+        ident = None
+        params = None
         # info
         if r.path.endswith('info.json'):
             ident = '/'.join(r.path[1:].split('/')[:-1])
             params = ('info.json')
+
         # image
         elif r.path.split('/')[-1].split('.')[0] in ('default','color','gray','bitonal'):
             ident = '/'.join(r.path[1:].split('/')[:-4])
-            params = '/'.join(r.path[1:].split('/')[3:])
+            params = '/'.join(r.path.split('/')[-4:])
         # bare
         else:
             ident = r.path[1:] # no leading slash
             params = ''
         ident = quote_plus(ident)
+
+        logger.debug('_dissect_uri ident: %s' % (ident,))
+        logger.debug('_dissect_uri params: %s' % (params,))
 
         if r.script_root != u'':
             base_uri = '%s%s' % (r.url_root,ident)
