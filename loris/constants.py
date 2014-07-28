@@ -7,6 +7,7 @@ CONTEXT = 'http://iiif.io/api/image/2/context.json'
 
 OPTIONAL_FEATURES = [
   'canonical_link_header',
+  'mirroring',
   'rotation_arbitrary',
   'size_above_full'
 ]

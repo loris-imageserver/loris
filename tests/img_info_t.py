@@ -26,9 +26,18 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
-                "qualities": [ "default", "bitonal", "gray", "color" ],
-                "supports": [ "canonical_link_header", "rotation_arbitrary",
-                    "size_above_full" ]
+                "qualities": [ 
+                    "default", 
+                    "bitonal", 
+                    "gray", 
+                    "color" 
+                ],
+                "supports": [ 
+                    "canonical_link_header",
+                    "mirroring",
+                    "rotation_arbitrary",
+                    "size_above_full"
+                ]
             }
         ]
 
@@ -85,8 +94,15 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
             "formats": [ "jpg", "png", "gif" ],
-            "qualities": [ "default", "bitonal", "gray" ],
-            "supports": [ "canonical_link_header", "rotation_arbitrary",
+            "qualities": [ 
+                "default", 
+                "bitonal", 
+                "gray"
+            ],
+            "supports": [ 
+                "canonical_link_header", 
+                "mirroring",
+                "rotation_arbitrary",
                 "size_above_full" ]
             }
         ]
@@ -113,8 +129,12 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
-                "supports": [ "canonical_link_header", "rotation_arbitrary",
-                    "size_above_full" ]
+                "supports": [ 
+                    "canonical_link_header", 
+                    "mirroring",
+                    "rotation_arbitrary",
+                    "size_above_full" 
+                ]
             }
         ]
 
@@ -137,8 +157,12 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
-                "supports": [ "canonical_link_header", "rotation_arbitrary",
-                    "size_above_full" ]
+                "supports": [ 
+                    "canonical_link_header", 
+                    "mirroring", 
+                    "rotation_arbitrary",
+                    "size_above_full" 
+                ]
             }
         ]
 
@@ -157,8 +181,12 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
-                "supports": [ "canonical_link_header", "rotation_arbitrary",
-                    "size_above_full" ]
+                "supports": [ 
+                    "canonical_link_header", 
+                    "mirroring", 
+                    "rotation_arbitrary",
+                    "size_above_full" 
+                ]
             }
         ]
 
@@ -186,8 +214,12 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
         profile = ["http://iiif.io/api/image/2/level2.json", { 
                 "formats": [ "jpg", "png", "gif" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
-                "supports": [ "canonical_link_header", "rotation_arbitrary",
-                    "size_above_full" ]
+                "supports": [ 
+                    "canonical_link_header",
+                    "mirroring",
+                    "rotation_arbitrary",
+                    "size_above_full"
+                ]
             }
         ]
 

@@ -45,7 +45,7 @@ class ImageInfo(object):
         scale_factors [(int)]
         qualities [(str)]: 'default', 'bitonal', 'color', or 'gray'
         src_img_fp (str): the absolute path on the file system
-        protocol (str): the profile URI (constant)
+        protocol (str): the protocol URI (constant)
         profile []: Features supported by the server/available for this image
         color_profile_bytes []: the emebedded color profile, if any
         sizes [(str)]: the optimal sizes of the image to request
@@ -126,7 +126,7 @@ class ImageInfo(object):
         self.tiles = []
         self.color_profile_bytes = None
         self.profile[1]['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
-        self.sizes = [ { 'width' : self.width, 'height' : self.height, 'viewing_hint' : 'pct:100' } ]
+        self.sizes = []
 
     def _from_jp2(self, fp):
         '''Get info about a JP2. 
@@ -249,18 +249,14 @@ class ImageInfo(object):
         jp2.close()
 
         self.sizes = []
-        [self.sizes.append( { 
-            'width' : w, 
-            'height' : h, 
-            'viewing_hint' : 'pct:%g' % (1.0/s*100.0,)
-         } )
-            for w,h,s in self.sizes_for_scales(scale_factors)]
+        [self.sizes.append( { 'width' : w, 'height' : h } )
+            for w,h in self.sizes_for_scales(scale_factors)]
         self.sizes.sort(key=lambda size: max([size['width'], size['height']]))
 
 
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
-        return [(fn(self.width, sf), fn(self.height, sf), sf) for sf in scales]
+        return [(fn(self.width, sf), fn(self.height, sf)) for sf in scales]
 
     @staticmethod
     def scale_dim(dim_len, scale):
@@ -270,12 +266,13 @@ class ImageInfo(object):
         d = {}
         d['@context'] = CONTEXT
         d['@id'] = self.ident
+        d['protocol'] = self.protocol
+        d['profile'] = self.profile
         d['width'] = self.width
         d['height'] = self.height
         if self.tiles:
             d['tiles'] = self.tiles
         d['sizes'] = self.sizes
-        d['profile'] = self.profile
         return d
 
     def to_json(self):
