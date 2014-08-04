@@ -140,8 +140,8 @@ def __config_to_dict(conf_fp):
     b = bool(int(config['loris.Loris']['enable_caching']))
     config['loris.Loris']['enable_caching'] = b
 
-    b = bool(int(config['loris.Loris']['redirect_cannonical_image_request']))
-    config['loris.Loris']['redirect_cannonical_image_request'] = b
+    b = bool(int(config['loris.Loris']['redirect_canonical_image_request']))
+    config['loris.Loris']['redirect_canonical_image_request'] = b
 
     # convert transforms.*.target_formats to lists
     for tf in __transform_sections_from_config(config):
@@ -246,7 +246,7 @@ class Loris(object):
         self.tmp_dp = _loris_config['tmp_dp']
         self.www_dp = _loris_config['www_dp']
         self.enable_caching = _loris_config['enable_caching']
-        self.redirect_cannonical_image_request = _loris_config['redirect_cannonical_image_request']
+        self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
         self.default_format = _loris_config['default_format']
 
         # TODO: make sure loading  transformers makes sense. What am I doing
@@ -455,19 +455,32 @@ class Loris(object):
                 r.last_modified = img_last_mod
                 r.headers['Content-Length'] = path.getsize(fp)
                 r.response = file(fp)
+
+                # resolve the identifier
+                src_fp, src_format = self.resolver.resolve(ident)
+                # hand the Image object its info
+                info = self._get_info(ident, request, src_fp, src_format)[0]
+                image_request.info = info
+                # we need to do the above to set the canonical link header
+
+                canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
+                r.headers['Link'] = '%s,%s;rel="canonical"' % (r.headers['Link'], canonical_uri,)
+
+
                 return r
         else:
             try:
-                # 1. resolve the identifier
+
+                # 1. Resolve the identifier
                 src_fp, src_format = self.resolver.resolve(ident)
 
-                # 2 hand the Image object its info
+                # 2. Hand the Image object its info
                 info = self._get_info(ident, request, src_fp, src_format)[0]
                 image_request.info = info
 
                 # 3. Redirect if appropriate
-                if self.redirect_cannonical_image_request:
-                    if not image_request.is_cannonical:
+                if self.redirect_canonical_image_request:
+                    if not image_request.is_canonical:
                         logger.debug('Attempting redirect to %s' % (image_request.c14n_request_path,))
                         r.headers['Location'] = image_request.c14n_request_path
                         r.status_code = 301
@@ -489,6 +502,8 @@ class Loris(object):
         r.status_code = 200
         r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
         r.headers['Content-Length'] = path.getsize(fp)
+        canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
+        r.headers['Link'] = '%s,%s;rel="canonical"' % (r.headers['Link'], canonical_uri,)
         r.response = file(fp)
 
         if not self.enable_caching:

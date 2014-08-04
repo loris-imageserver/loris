@@ -27,7 +27,7 @@ class RegionParameter(object):
     Slots:
         uri_value (str): 
             The region slice of the URI.
-        cannonical_uri_value (str): 
+        canonical_uri_value (str): 
             The normalized (pixel-based, in-bounds) region slice of the URI.
         mode (str): 
             One of 'full', 'pct', or 'pixel'
@@ -41,7 +41,7 @@ class RegionParameter(object):
         pixel_h (int)
         decimal_h (Decimal)
     '''
-    __slots__ = ('uri_value','cannonical_uri_value','pixel_x','decimal_x', 
+    __slots__ = ('uri_value','canonical_uri_value','pixel_x','decimal_x', 
         'pixel_y','decimal_y','pixel_w','decimal_w','pixel_h','decimal_h', 
         'mode','img_info')
 
@@ -69,7 +69,7 @@ class RegionParameter(object):
             raise
 
         if self.mode == FULL_MODE:
-            self.cannonical_uri_value = FULL_MODE
+            self.canonical_uri_value = FULL_MODE
             self.pixel_x = 0
             self.decimal_x = 0
             self.pixel_y = 0
@@ -117,16 +117,16 @@ class RegionParameter(object):
                 msg = 'Region x parameter is greater than the width of the image.\n'
                 msg +='Image width is %d' % (img_info.width,)
                 raise RegionRequestException(http_status=400, message=msg)
-            if self.decimal_x >= DECIMAL_ONE:
+            if self.decimal_y >= DECIMAL_ONE:
                 msg = 'Region y parameter is greater than the height of the image.\n'
                 msg +='Image height is %d' % (img_info.height,)
                 raise RegionRequestException(http_status=400, message=msg)
 
-            # set cannonical_uri_value to the equivalent pixel-based syntax after
+            # set canonical_uri_value to the equivalent pixel-based syntax after
             # all adjustments have been made.
             px = (self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h)
-            self.cannonical_uri_value = ','.join(map(str, px))
-            logger.debug('Cannonical uri_value for region %s' % (self.cannonical_uri_value,))
+            self.canonical_uri_value = ','.join(map(str, px))
+            logger.debug('canonical uri_value for region %s' % (self.canonical_uri_value,))
             
 
     def __populate_slots_from_pct(self):
@@ -222,8 +222,8 @@ class SizeParameter(object):
             The region slice of the URI.
         mode (str): 
             One of 'full', 'pct', or 'pixel'
-        cannonical_uri_value (str):
-            The uri_value after it has been normalized to the 'w,h' form.
+        canonical_uri_value (str):
+            The uri_value after it has been normalized to the 'w,' form.
         force_aspect (bool): 
             True if the aspect ratio of the image should not be preserved.
         w (int): 
@@ -231,7 +231,7 @@ class SizeParameter(object):
         h (int): 
             The height.
     '''
-    __slots__ = ('uri_value','cannonical_uri_value','mode','force_aspect','w','h')
+    __slots__ = ('uri_value','canonical_uri_value','mode','force_aspect','w','h')
 
     def __init__(self, uri_value, region_parameter):
         '''Parse the URI slice into an object.
@@ -254,7 +254,7 @@ class SizeParameter(object):
             self.force_aspect = False
             self.w = region_parameter.pixel_w
             self.h = region_parameter.pixel_h
-            self.cannonical_uri_value = FULL_MODE
+            self.canonical_uri_value = FULL_MODE
         else:
             try:
                 if self.mode == PCT_MODE:
@@ -264,9 +264,12 @@ class SizeParameter(object):
             except (RegionSyntaxException, RegionRequestException):
                 raise
         
-            self.cannonical_uri_value = '%d,%d' % (self.w,self.h)   
-            logger.debug('Cannonical uri_value for size: %s' % (self.cannonical_uri_value,))
+            if self.force_aspect:
+                self.canonical_uri_value = '%d,%d' % (self.w,self.h)
+            else:
+                self.canonical_uri_value = '%d,' % (self.w,)
 
+            logger.debug('canonical uri_value for size: %s' % (self.canonical_uri_value,))
             logger.debug('w %d', self.w)
             logger.debug('h %d', self.h)
             if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
@@ -296,8 +299,6 @@ class SizeParameter(object):
             self.h = 1
         else:
             self.h = int(h_decimal)
-        # self.w = int(region_parameter.pixel_w * pct_decimal)
-        # self.h = int(region_parameter.pixel_h * pct_decimal)
 
     def __populate_slots_from_pixels(self,region_parameter):
     
@@ -316,7 +317,6 @@ class SizeParameter(object):
         elif self.uri_value[0] == '!':
             self.force_aspect = False
 
-            # azaroth42's impl
             request_w, request_h = map(int, self.uri_value[1:].split(','))
 
             ratio_w = Decimal(request_w) / region_parameter.pixel_w
@@ -369,13 +369,13 @@ class RotationParameter(object):
 
     Slots:
         uri_value (str)
-        cannonical_uri_value (str)
+        canonical_uri_value (str)
         mirror (str)
         rotation (str)
     '''
     ROTATION_REGEX = re.compile('^!?[\d.]+$')
 
-    __slots__ = ('uri_value','cannonical_uri_value','mirror','rotation')
+    __slots__ = ('uri_value','canonical_uri_value','mirror','rotation')
 
     def __init__(self, uri_value):
         '''Take the uri value and round it to the nearest 90.
@@ -393,17 +393,18 @@ class RotationParameter(object):
         if uri_value[0] == '!':
             self.mirror = True
             self.rotation = uri_value[1:]
+            self.canonical_uri_value = '!%g' % (float(uri_value[1:]),)
         else:
             self.mirror = False
             self.rotation = uri_value
+            self.canonical_uri_value = '%g' % (float(uri_value),)
 
         if not 0.0 <= float(self.rotation) <= 360.0:
             msg = 'Rotation argument "%s" is not between 0 and 360' % (uri_value,)
             raise RotationSyntaxException(http_status=400, message=msg)
 
-        self.cannonical_uri_value = uri_value
         
-        logger.debug('Cannonical rotation is %s' % (self.cannonical_uri_value,))
+        logger.debug('canonical rotation is %s' % (self.canonical_uri_value,))
 
 class RotationSyntaxException(LorisException): pass
 

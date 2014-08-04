@@ -96,14 +96,14 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 400)
 
-    def test_image_redirect_to_cannonical(self):
-        self.app.redirect_cannonical_image_request = True
+    def test_image_redirect_to_canonical(self):
+        self.app.redirect_canonical_image_request = True
         to_get = '/%s/0,0,500,600/!550,600/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get, follow_redirects=False)
         self.assertEqual(resp.status_code, 301)
 
-    def test_image_no_redirect_to_cannonical(self):
-        self.app.redirect_cannonical_image_request = False
+    def test_image_no_redirect_to_canonical(self):
+        self.app.redirect_canonical_image_request = False
         to_get = '/%s/0,0,500,600/!550,600/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get, follow_redirects=False)
         self.assertEqual(resp.status_code, 200)

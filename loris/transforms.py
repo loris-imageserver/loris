@@ -91,7 +91,7 @@ class _AbstractTransformer(object):
 			void (puts an image at target_fp)
 
 		'''
-		if crop and image_request.region_param.cannonical_uri_value != 'full':
+		if crop and image_request.region_param.canonical_uri_value != 'full':
 			# For PIL: "The box is a 4-tuple defining the left, upper, right,
 			# and lower pixel coordinate."
 			box = (
@@ -103,7 +103,7 @@ class _AbstractTransformer(object):
 			im = im.crop(box)
 
 		# resize
-		if image_request.size_param.cannonical_uri_value != 'full':
+		if image_request.size_param.canonical_uri_value != 'full':
 			wh = [int(image_request.size_param.w),int(image_request.size_param.h)]
 			# if kdu did the rotation and it's 90 or 270 then reverse w & h
 			if image_request.rotation_param.rotation in ['90','270']:
