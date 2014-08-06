@@ -171,6 +171,7 @@ class JP2_Transformer(_AbstractTransformer):
 		self.tmp_dp = config['tmp_dp']
 		self.kdu_expand = config['kdu_expand']
 		self.mkfifo = config['mkfifo']
+		self.num_threads = config['num_threads']
 		self.map_profile_to_srgb = bool(config['map_profile_to_srgb'])
 		self.env = {
 			'LD_LIBRARY_PATH' : config['kdu_libs'], 
@@ -291,7 +292,7 @@ class JP2_Transformer(_AbstractTransformer):
 
 		# kdu command
 		q = '-quiet'
-		t = '-num_threads 8'
+		t = '-num_threads %s' % (self.num_threads)
 		i = '-i %s' % (src_fp,)
 		o = '-o %s' % (fifo_fp,)
 
