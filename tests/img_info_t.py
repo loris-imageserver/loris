@@ -4,8 +4,10 @@
 from loris import img_info
 from loris.constants import PROTOCOL
 from os import path
+from werkzeug.datastructures import Headers
 import json
 import loris_t
+
 
 """
 Info unit and function tests. To run this test on its own, do:
@@ -205,7 +207,6 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
     def test_jp2_info_dot_json_request(self):
         resp = self.client.get('/%s/%s' % (self.test_jp2_color_id,'info.json'))
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.headers['content-type'], 'application/json')
 
         tmp_fp = path.join(self.app.app_configs['loris.Loris']['tmp_dp'], 'loris_test_info.json')
         with open(tmp_fp, 'wb') as f:
@@ -230,6 +231,33 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.ident, self.test_jp2_color_uri)
 
+    def test_json_ld_headers(self):
+        'We should get jsonld if we ask for it'
+        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        headers = Headers([('accept', 'application/ld+json')])
+        resp = self.client.get(request_uri, headers=headers)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers['content-type'], 'application/ld+json')
+
+    def test_json_by_default(self):
+        'We should get json by default'
+        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        resp = self.client.get(request_uri)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers['content-type'], 'application/json')
+
+    def test_json_includes_a_link_to_the_context(self):
+        'The Link header should include a link to the context'
+        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        resp = self.client.get(request_uri)
+        self.assertEqual(resp.status_code, 200)
+        link_header = resp.headers['link']
+        lh = '''
+        <http://iiif.io/api/image/2/context.json>;
+            rel="http://www.w3.org/ns/json-ld#context";
+            type="application/ld+json"
+        '''
+        self.assertTrue(''.join(lh.split()) in link_header)
 
 class Test_D_InfoCache(loris_t.LorisTest):
     pass

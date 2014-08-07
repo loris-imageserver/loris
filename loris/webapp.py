@@ -368,13 +368,18 @@ class Loris(object):
             else:
                 if last_mod:
                     r.last_modified = last_mod
-                r.automatically_set_content_length
+                # r.automatically_set_content_length
                 callback = request.args.get('callback', None)
                 if callback:
                     r.mimetype = 'application/javascript'
                     r.data = '%s(%s);' % (callback, info.to_json())
                 else:
-                    r.content_type = 'application/json'
+                    if request.headers.get('accept') == 'application/ld+json':
+                        r.content_type = 'application/ld+json'
+                    else:
+                        r.content_type = 'application/json'
+                        l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
+                        r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
                     r.data = info.to_json()
         finally:
             return r
@@ -464,7 +469,7 @@ class Loris(object):
                 # we need to do the above to set the canonical link header
 
                 canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
-                r.headers['Link'] = '%s,%s;rel="canonical"' % (r.headers['Link'], canonical_uri,)
+                r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
 
 
                 return r
