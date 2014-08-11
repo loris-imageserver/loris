@@ -32,7 +32,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params = webapp.Loris._dissect_uri(req)
+        base_uri, ident, params = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
 
@@ -43,7 +43,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params = webapp.Loris._dissect_uri(req)
+        base_uri, ident, params = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
 
@@ -53,6 +53,15 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
+
+    def test_bare_identifier_request_with_trailing_slash_303(self):
+        resp = self.client.get('/%s/' % (self.test_jp2_color_id,))
+        self.assertEqual(resp.status_code, 303)
+
+    def test_bare_identifier_with_trailing_slash_404s_with_redir_off(self):
+        self.app.redirect_id_slash_to_info = False
+        resp = self.client.get('/%s/' % (self.test_jp2_color_id,))
+        self.assertEqual(resp.status_code, 404)
 
     def test_access_control_allow_origin_on_info_requests(self):
         uri = '/%s/info.json' % (self.test_jp2_color_id,)

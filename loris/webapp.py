@@ -226,6 +226,7 @@ class Loris(object):
         self.www_dp = _loris_config['www_dp']
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
+        self.redirect_id_slash_to_info = _loris_config['redirect_id_slash_to_info']
         self.default_format = _loris_config['default_format']
 
         # TODO: make sure loading  transformers makes sense. What am I doing
@@ -270,7 +271,7 @@ class Loris(object):
         return response(environ, start_response)
 
     def route(self, request):
-        base_uri, ident, params = Loris._dissect_uri(request)
+        base_uri, ident, params = self._dissect_uri(request)
         # index.txt
         if ident == '': 
             return self.get_index(request)
@@ -536,8 +537,7 @@ class Loris(object):
         _id = uuid.uuid1().hex
         return path.sep.join([_id[i:i+2] for i in range(0, len(_id), 2)])
 
-    @staticmethod
-    def _dissect_uri(r):
+    def _dissect_uri(self, r):
         ident = None
         params = None
         # info
@@ -552,6 +552,10 @@ class Loris(object):
         # bare
         else:
             ident = r.path[1:] # no leading slash
+            if self.redirect_id_slash_to_info and ident.endswith('/'): 
+                ident = ident[:-1]
+                # ... you're in trouble if your identifier has a trailing slash
+
             params = ''
         ident = quote_plus(ident)
 
