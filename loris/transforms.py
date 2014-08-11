@@ -190,6 +190,7 @@ class JP2_Transformer(_AbstractTransformer):
 			if not path.exists(self.tmp_dp):
 				makedirs(self.tmp_dp)
 		except OSError as ose: 
+			# Almost certainly a permissions error on one of the required dirs
 			from sys import exit
 			from os import strerror
 			msg = '%s (%s)' % (strerror(ose.errno),ose.filename)
