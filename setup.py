@@ -2,21 +2,38 @@
 # -*- coding: utf-8 -*-
 # setup.py
 
-from ConfigParser import ConfigParser
+EX_NOUSER = 67
+EX_TEMPFAIL = 75
+BIN_DP = '/usr/local/bin'
+ETC_DP = '/etc/loris'
+LIB_DP = '/usr/local/lib'
+
+from sys import stderr, stdout, exit
 from grp import getgrnam
 from pwd import getpwnam
 from setuptools import setup
 from distutils.sysconfig import get_python_lib
-from sys import stderr, stdout, exit
 import loris
 import os
 from loris.transforms import JP2_Transformer 
+from loris.constants import CONFIG_FILE_NAME
+
+try:
+	from configobj import ConfigObj
+except ImportError:
+	msg = '''
+configobj <http://www.voidspace.org.uk/python/configobj.html> is required before
+setup.py can be run. Please do (with sudo if necessary):
+
+$ pip install configobj
+
+and then run setup again.
+'''
+	stderr.write(msg)
+	exit(EX_TEMPFAIL)
 		
 VERSION = loris.__version__
 
-BIN_DP = '/usr/local/bin'
-ETC_DP = '/etc/loris'
-LIB_DP = '/usr/local/lib'
 
 KDU_EXPAND_TARGET = os.path.join(BIN_DP, 'kdu_expand')
 KDU_LIBS_TARGET = os.path.join(LIB_DP, JP2_Transformer.libkdu_name())
@@ -25,14 +42,13 @@ LORIS_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-cache_clean.sh')
 this_dp = os.path.abspath(os.path.dirname(__file__))
 
 # Get the config file
-conf_fp = os.path.join(this_dp, 'etc', 'loris.conf')
-conf = ConfigParser()
-conf.read(conf_fp)
+config_fp = os.path.join(this_dp, 'etc', CONFIG_FILE_NAME)
+config = ConfigObj(config_fp, unrepr=True, interpolation=False)
 
 # Make sure the ultimate owner of the app exists before we go any further
 try:
-	user_n = conf.get('loris.Loris', 'run_as_user')
-	group_n = conf.get('loris.Loris', 'run_as_group')
+	user_n = config['loris.Loris']['run_as_user']
+	group_n = config['loris.Loris']['run_as_group']
 	user = getpwnam(user_n)
 	group = getgrnam(group_n)
 	user_id = user.pw_uid
@@ -45,15 +61,15 @@ Please create this user, e.g.:
 
 '''% (user_n,group_n)
 	stderr.write(msg)
-	exit(67)
+	exit(EX_NOUSER)
 
 
-cache_dp = conf.get('img.ImageCache', 'cache_dp')
-cache_links = conf.get('img.ImageCache', 'cache_links')
-info_cache_dp = conf.get('img_info.InfoCache', 'cache_dp')
-www_dp = conf.get('loris.Loris', 'www_dp')
-tmp_dp = conf.get('loris.Loris', 'tmp_dp')
-log_dp = conf.get('logging', 'log_dir')
+cache_dp = config['img.ImageCache']['cache_dp']
+cache_links = config['img.ImageCache']['cache_links']
+info_cache_dp = config['img_info.InfoCache']['cache_dp']
+www_dp = config['loris.Loris']['www_dp']
+tmp_dp = config['loris.Loris']['tmp_dp']
+log_dp = config['logging']['log_dir']
 
 # If all of that worked, determine requirements
 install_requires = []
@@ -63,8 +79,12 @@ except ImportError:
 	install_requires.append('werkzeug>=0.8.3')
 
 data_files=[
-	(ETC_DP, ['etc/loris.conf']),
-	(BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', JP2_Transformer.local_kdu_expand_path()]),
+	(ETC_DP, [os.path.join('etc', CONFIG_FILE_NAME)]),
+	(BIN_DP, [
+		'bin/loris-cache_clean.sh', 
+		'bin/iiif_img_info', 
+		JP2_Transformer.local_kdu_expand_path() 
+	]),
 	(LIB_DP, [JP2_Transformer.local_libkdu_path()]),
 	(log_dp, []),
 	(cache_dp, []),
@@ -72,7 +92,7 @@ data_files=[
 	(info_cache_dp, []),
 	(www_dp, ['www/loris.wsgi']),
 	(www_dp, ['www/index.txt']),
-	(tmp_dp, []),
+	(tmp_dp, [])
 ]
 
 def read(fname):

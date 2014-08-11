@@ -20,7 +20,8 @@ Implements IIIF 1.1 <http://www-sul.stanford.edu/iiif/image-api/1.1> level 2
     You should have received a copy of the GNU General Public License along 
     with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-from ConfigParser import RawConfigParser
+# from ConfigParser import RawConfigParser
+from configobj import ConfigObj
 from datetime import datetime
 from decimal import Decimal, getcontext
 from img_info import ImageInfo
@@ -63,9 +64,10 @@ def create_app(debug=False):
     global logger
     if debug:
         project_dp = path.dirname(path.dirname(path.realpath(__file__)))
+
         # read the config
-        conf_fp = path.join(project_dp, 'etc', 'loris.conf')
-        config = __config_to_dict(conf_fp)
+        config_fp = path.join(project_dp, 'etc', constants.CONFIG_FILE_NAME)
+        config = ConfigObj(config_fp, unrepr=True, interpolation=False)
 
         config['logging']['log_to'] = 'console'
         config['logging']['log_level'] = 'DEBUG'
@@ -90,8 +92,8 @@ def create_app(debug=False):
         config['resolver']['impl'] = 'SimpleFSResolver' 
         config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     else:
-        conf_fp = path.join(ETC_DP, 'loris.conf')
-        config = __config_to_dict(conf_fp)
+        config_fp = path.join(ETC_DP, constants.CONFIG_FILE_NAME)
+        config = ConfigObj(config_fp, unrepr=True, interpolation=False)
         __configure_logging(config['logging'])
         logger = logging.getLogger(__name__)
         logger.debug('Running in production mode.')
@@ -126,29 +128,6 @@ def __transform_sections_from_config(config):
     '''
     filt = lambda s: s.split('.')[0] == 'transforms'
     return filter(filt, config.keys())
-
-def __config_to_dict(conf_fp):
-    config_parser = RawConfigParser()
-    config_parser.read(conf_fp)
-    config = {}
-
-    # shortcut, but everything comes in as a str
-    [config.__setitem__(section, dict(config_parser.items(section)))
-        for section in config_parser.sections()]
-
-    # convert bools
-    b = bool(int(config['loris.Loris']['enable_caching']))
-    config['loris.Loris']['enable_caching'] = b
-
-    b = bool(int(config['loris.Loris']['redirect_canonical_image_request']))
-    config['loris.Loris']['redirect_canonical_image_request'] = b
-
-    # convert transforms.*.target_formats to lists
-    for tf in __transform_sections_from_config(config):
-        config[tf]['target_formats'] = [s.strip() for s in config[tf]['target_formats'].split(',')]
-
-    return config
-
 
 def __configure_logging(config):
     logger = logging.getLogger()
