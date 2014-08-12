@@ -488,7 +488,7 @@ class Loris(object):
         r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
         r.headers['Content-Length'] = path.getsize(fp)
         canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
-        r.headers['Link'] = '%s,%s;rel="canonical"' % (r.headers['Link'], canonical_uri,)
+        r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
         r.response = file(fp)
 
         if not self.enable_caching:
