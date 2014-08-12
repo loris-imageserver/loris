@@ -226,8 +226,9 @@ class ImageInfo(object):
             # marker = 0xFF5C)
             b = jp2.read(1)
             if ord(b) != 0xFF:
+                logger.debug('*'*80)
                 if self.tiles[0]['width'] == self.width \
-                    and self.tiles[0]['height'] == self.height:
+                    and self.tiles[0].get('height') in (self.height, None):
                     # Clear what we got above in SIZ and prefer this. This could 
                     # technically break as it's possible to have precincts inside tiles.
                     # Let's wait for that to come up....
@@ -245,6 +246,7 @@ class ImageInfo(object):
                             entry['scale_factors'].append(pow(2, level))
                         except StopIteration:
                             self.tiles.append({'width':w, 'scale_factors':[pow(2, level)]})
+
 
         jp2.close()
 
