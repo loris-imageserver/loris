@@ -1,7 +1,6 @@
 # img_info.py
 
 from PIL import Image
-from collections import OrderedDict
 from collections import deque
 from constants import COMPLIANCE
 from constants import CONTEXT
@@ -16,6 +15,10 @@ import json
 import loris_exception
 import os
 import struct
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 
 logger = getLogger(__name__)
 

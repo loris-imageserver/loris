@@ -52,10 +52,10 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		self.assertEquals(rp.pixel_y, int(info.height*0.25))
 		self.assertEquals(rp.pixel_w, int(info.width*0.50))
 		self.assertEquals(rp.pixel_h, int(info.height*0.50))
-		self.assertEquals(rp.decimal_x, Decimal(0.25))
-		self.assertEquals(rp.decimal_y, Decimal(0.25))
-		self.assertEquals(rp.decimal_w, Decimal(0.50))
-		self.assertEquals(rp.decimal_h, Decimal(0.50))
+		self.assertEquals(rp.decimal_x, Decimal('0.25'))
+		self.assertEquals(rp.decimal_y, Decimal('0.25'))
+		self.assertEquals(rp.decimal_w, Decimal('0.50'))
+		self.assertEquals(rp.decimal_h, Decimal('0.50'))
 
 	def test_b_populate_slots_from_pixel(self):
 		info = self._get_info2()
@@ -64,10 +64,10 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		self.assertEquals(rp.pixel_y, 900) 
 		self.assertEquals(rp.pixel_w, 1594)
 		self.assertEquals(rp.pixel_h, 1600)
-		self.assertEquals(rp.decimal_x, rp.pixel_x / Decimal(info.width))
-		self.assertEquals(rp.decimal_y, rp.pixel_y / Decimal(info.height))
-		self.assertEquals(rp.decimal_w, rp.pixel_w / Decimal(info.width))
-		self.assertEquals(rp.decimal_h, rp.pixel_h / Decimal(info.height))
+		self.assertEquals(rp.decimal_x, rp.pixel_x / Decimal(str(info.width)))
+		self.assertEquals(rp.decimal_y, rp.pixel_y / Decimal(str(info.height)))
+		self.assertEquals(rp.decimal_w, rp.pixel_w / Decimal(str(info.width)))
+		self.assertEquals(rp.decimal_h, rp.pixel_h / Decimal(str(info.height)))
 
 	def test_c_canonical_uri_value_oob_w_pixel(self):
 		info = self._get_info2() # x is long dimension
@@ -109,24 +109,35 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 
 	def test_g_syntax_exceptions(self):
 		info = self._get_info()
-		with self.assertRaises(RegionSyntaxException):
-			RegionParameter('n:1,2,3,4', info)
-		with self.assertRaises(RegionSyntaxException):
-			RegionParameter('1,2,3,q', info)
-		with self.assertRaises(RegionSyntaxException):
-			RegionParameter('1,2,3', info)
-		with self.assertRaises(RegionSyntaxException):
-			RegionParameter('something', info)
+		try:
+			with self.assertRaises(RegionSyntaxException):
+				RegionParameter('n:1,2,3,4', info)
+			with self.assertRaises(RegionSyntaxException):
+				RegionParameter('1,2,3,q', info)
+			with self.assertRaises(RegionSyntaxException):
+				RegionParameter('1,2,3', info)
+			with self.assertRaises(RegionSyntaxException):
+				RegionParameter('something', info)
+		except TypeError: # python < 2.7
+			self.assertRaises(RegionSyntaxException, RegionParameter, 'something', info)
+			self.assertRaises(RegionSyntaxException, RegionParameter, '1,2,3,q', info)
+			self.assertRaises(RegionSyntaxException, RegionParameter, '1,2,3', info)
+			self.assertRaises(RegionSyntaxException, RegionParameter, 'something', info)
 
 	def test_h_request_exceptions(self):
 		info = self._get_info()
-		with self.assertRaises(RegionRequestException):
-			RegionParameter('1,2,0,3', info)
-		with self.assertRaises(RegionRequestException):
-			RegionParameter('1,2,3,0', info)
-		with self.assertRaises(RegionRequestException):
-			RegionParameter('pct:100,2,3,0', info)
-
+		try:
+			with self.assertRaises(RegionRequestException):
+				RegionParameter('1,2,0,3', info)
+			with self.assertRaises(RegionRequestException):
+				RegionParameter('1,2,3,0', info)
+			with self.assertRaises(RegionRequestException):
+				RegionParameter('pct:100,2,3,0', info)
+		except TypeError: # python < 2.7
+			self.assertRaises(RegionRequestException, RegionParameter, '1,2,0,3', info)
+			self.assertRaises(RegionRequestException, RegionParameter, '1,2,3,0', info)
+			self.assertRaises(RegionRequestException, RegionParameter, 'pct:100,2,3,0', info)
+			
 class Test_H_RegionParameterFunctional(_ParameterUnitTest):
 	# TODO: with client once other parameters are impl.
 	pass
@@ -135,12 +146,17 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 	def test_a_exceptions(self):
 		info = self._get_info()
 		rp = RegionParameter('pct:25,25,75,75', info)
-		with self.assertRaises(SizeSyntaxException):
-			SizeParameter('!25,',rp)
-		with self.assertRaises(SizeSyntaxException):
-			SizeParameter('!25',rp)
-		with self.assertRaises(SizeSyntaxException):
-			SizeParameter('25',rp)
+		try:
+			with self.assertRaises(SizeSyntaxException):
+				SizeParameter('!25,',rp)
+			with self.assertRaises(SizeSyntaxException):
+				SizeParameter('!25',rp)
+			with self.assertRaises(SizeSyntaxException):
+				SizeParameter('25',rp)
+		except TypeError: # python < 2.7
+			self.assertRaises(SizeSyntaxException, SizeParameter, '!25,', rp)
+			self.assertRaises(SizeSyntaxException, SizeParameter, '!25', rp)
+			self.assertRaises(SizeSyntaxException, SizeParameter, '25', rp)
 
 	def test_b_populate_slots_from_full(self):
 		# full
@@ -273,18 +289,26 @@ class Test_J_SizeParameterFunctional(_ParameterUnitTest):
 
 class Test_K_RotationParameterUnit(_ParameterUnitTest):
 	def test_exceptions(self):
-		with self.assertRaises(RotationSyntaxException):
-			rp = RotationParameter('a')
-		with self.assertRaises(RotationSyntaxException):
-			rp = RotationParameter('361')
-		with self.assertRaises(RotationSyntaxException):
-			rp = RotationParameter('-1')
-		with self.assertRaises(RotationSyntaxException):
-			rp = RotationParameter('!-1')
-		with self.assertRaises(RotationSyntaxException):
-			rp = RotationParameter('!361')
-		with self.assertRaises(RotationSyntaxException):
-			rp = RotationParameter('-0.1')
+		try:
+			with self.assertRaises(RotationSyntaxException):
+				rp = RotationParameter('a')
+			with self.assertRaises(RotationSyntaxException):
+				rp = RotationParameter('361')
+			with self.assertRaises(RotationSyntaxException):
+				rp = RotationParameter('-1')
+			with self.assertRaises(RotationSyntaxException):
+				rp = RotationParameter('!-1')
+			with self.assertRaises(RotationSyntaxException):
+				rp = RotationParameter('!361')
+			with self.assertRaises(RotationSyntaxException):
+				rp = RotationParameter('-0.1')
+		except TypeError: # Python < 2.7
+			self.assertRaises(RotationSyntaxException, RotationParameter, 'a')
+			self.assertRaises(RotationSyntaxException, RotationParameter, '361')
+			self.assertRaises(RotationSyntaxException, RotationParameter, '-1')
+			self.assertRaises(RotationSyntaxException, RotationParameter, '!-1')
+			self.assertRaises(RotationSyntaxException, RotationParameter, '!361')
+			self.assertRaises(RotationSyntaxException, RotationParameter, '-0.1')
 
 	def test_uri_value(self):
 		rp = RotationParameter('0')

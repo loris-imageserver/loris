@@ -19,7 +19,7 @@ logger = getLogger(__name__)
 FULL_MODE = 'full'
 PCT_MODE = 'pct'
 PIXEL_MODE = 'pixel'
-DECIMAL_ONE = Decimal(1.0)
+DECIMAL_ONE = Decimal('1.0')
 
 class RegionParameter(object):
     '''Internal representation of the region slice of an IIIF image URI.
@@ -177,10 +177,10 @@ class RegionParameter(object):
         self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h = dimensions
 
         # decimals
-        self.decimal_x = self.pixel_x / Decimal(self.img_info.width)
-        self.decimal_y = self.pixel_y / Decimal(self.img_info.height)
-        self.decimal_w = self.pixel_w / Decimal(self.img_info.width)
-        self.decimal_h = self.pixel_h / Decimal(self.img_info.height)
+        self.decimal_x = self.pixel_x / Decimal(str(self.img_info.width))
+        self.decimal_y = self.pixel_y / Decimal(str(self.img_info.height))
+        self.decimal_w = self.pixel_w / Decimal(str(self.img_info.width))
+        self.decimal_h = self.pixel_h / Decimal(str(self.img_info.height))
 
     @staticmethod
     def __mode_from_region_segment(region_segment):
@@ -207,7 +207,7 @@ class RegionParameter(object):
 
     @staticmethod
     def __pct_to_decimal(n):
-        return Decimal(n) / Decimal(100.0)
+        return Decimal(str(n)) / Decimal('100.0')
 
 class RegionSyntaxException(LorisException): pass
 class RegionRequestException(LorisException): pass
@@ -278,11 +278,11 @@ class SizeParameter(object):
 
     def __populate_slots_from_pct(self,region_parameter):
         self.force_aspect = False
-        pct_decimal = Decimal(str(self.uri_value.split(':')[1])) * Decimal(0.01)
+        pct_decimal = Decimal(str(self.uri_value.split(':')[1])) * Decimal('0.01')
         logger.debug(pct_decimal <= Decimal(0))
         logger.debug('pct_decimal: %s', pct_decimal)
 
-        if pct_decimal <= Decimal(0):
+        if pct_decimal <= Decimal('0'):
             msg = 'Percentage supplied is less than 0 (%s).' % (self.uri_value,)
             raise SizeRequestException(http_status=400, message=msg)
 
@@ -305,13 +305,13 @@ class SizeParameter(object):
         if self.uri_value.endswith(','):
             self.force_aspect = False
             self.w = int(self.uri_value[:-1])
-            reduce_by = Decimal(self.w) / region_parameter.pixel_w
+            reduce_by = Decimal(str(self.w)) / region_parameter.pixel_w
             self.h = region_parameter.pixel_h * reduce_by
 
         elif self.uri_value.startswith(','):
             self.force_aspect = False
             self.h = int(self.uri_value[1:])
-            reduce_by = Decimal(self.h) / region_parameter.pixel_h
+            reduce_by = Decimal(str(self.h)) / region_parameter.pixel_h
             self.w = region_parameter.pixel_w * reduce_by
 
         elif self.uri_value[0] == '!':
@@ -319,8 +319,8 @@ class SizeParameter(object):
 
             request_w, request_h = map(int, self.uri_value[1:].split(','))
 
-            ratio_w = Decimal(request_w) / region_parameter.pixel_w
-            ratio_h = Decimal(request_h) / region_parameter.pixel_h
+            ratio_w = Decimal(str(request_w)) / region_parameter.pixel_w
+            ratio_h = Decimal(str(request_h)) / region_parameter.pixel_h
             ratio = min(ratio_w, ratio_h)
             self.w = int(region_parameter.pixel_w * ratio)
             self.h = int(region_parameter.pixel_h * ratio)
