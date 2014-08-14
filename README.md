@@ -12,7 +12,7 @@ Demos
 
 Installation Instructions
 -------------------------
-Theses instructions are known to work on Ubuntu 12.04 or greater. See below for some help with RedHat/CentOS and Debian.
+Theses instructions are known to work on Ubuntu 12.04 or greater and Python 2.6.3 or greater (but less than 3.0.0). See below for some help with RedHat/CentOS and Debian.
 **Do Not!** Run `setup.py` until you've read the following:
 
  * [Install Dependencies](doc/dependencies.md)
