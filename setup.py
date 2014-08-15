@@ -15,7 +15,6 @@ from setuptools import setup
 from distutils.sysconfig import get_python_lib
 import loris
 import os
-from loris.transforms import JP2_Transformer 
 from loris.constants import CONFIG_FILE_NAME
 
 try:
@@ -34,9 +33,6 @@ and then run setup again.
 		
 VERSION = loris.__version__
 
-
-KDU_EXPAND_TARGET = os.path.join(BIN_DP, 'kdu_expand')
-KDU_LIBS_TARGET = os.path.join(LIB_DP, JP2_Transformer.libkdu_name())
 LORIS_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-cache_clean.sh')
 
 this_dp = os.path.abspath(os.path.dirname(__file__))
@@ -78,14 +74,8 @@ try:
 except ImportError:
 	install_requires.append('werkzeug>=0.8.3')
 
-data_files=[
+data_files = [
 	(ETC_DP, [os.path.join('etc', CONFIG_FILE_NAME)]),
-	(BIN_DP, [
-		'bin/loris-cache_clean.sh', 
-		'bin/iiif_img_info', 
-		JP2_Transformer.local_kdu_expand_path() 
-	]),
-	(LIB_DP, [JP2_Transformer.local_libkdu_path()]),
 	(log_dp, []),
 	(cache_dp, []),
 	(cache_links, []),
@@ -95,15 +85,34 @@ data_files=[
 	(tmp_dp, [])
 ]
 
+JP2_EXECUTABLE = None
+JP2_LIBS = None
+
+if config['transforms.jp2']['impl'] == 'KakaduJP2Transformer':
+	from loris.transforms import KakaduJP2Transformer 
+	JP2_EXECUTABLE = os.path.join(BIN_DP, 'kdu_expand')
+	JP2_LIBS = os.path.join(LIB_DP, KakaduJP2Transformer.libkdu_name())
+	data_files.append( (LIB_DP, [KakaduJP2Transformer.local_libkdu_path()]) )
+	kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
+	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', kdu_expand]) )
+
+elif config['transforms.jp2']['impl'] == 'OPJ_JP2Transformer':
+	from loris.transforms import OPJ_JP2Transformer
+	JP2_EXECUTABLE = os.path.join(BIN_DP, 'opj_decompress')
+	JP2_LIBS = os.path.join(LIB_DP, OPJ_JP2Transformer.libopenjp2_name())
+	data_files.append( (LIB_DP, [OPJ_JP2Transformer.local_libopenjp2_path()]) )
+	opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
+	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', opj_decompress]) )		
+
 def read(fname):
 	return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
 	name='Loris',
 	author='Jon Stroop',
-	author_email='jstroop@princeton.edu',
+	author_email='jpstroop@gmail.com',
 	url='https://github.com/pulibrary/loris',
-	description = ('IIIF Image API 1.1 Level 2 compliant Image Server'),
+	description = ('IIIF Image API 2.0 Level 2 compliant Image Server'),
 	long_description=read('README.md'),
 	license='GPL',
 	version=VERSION,
@@ -123,7 +132,7 @@ for fs_node in loris_owned_dirs:
 	os.chown(fs_node, user_id, group_id)
 
 wsgi_script = os.path.join(www_dp, 'loris.wsgi')
-executables = (LORIS_CACHE_CLEAN, KDU_EXPAND_TARGET, wsgi_script)
+executables = (LORIS_CACHE_CLEAN, JP2_EXECUTABLE, wsgi_script)
 for ex in executables:
 	os.chmod(ex, 0755)
 	os.chown(ex, user_id, group_id)
@@ -132,14 +141,28 @@ index = os.path.join(www_dp, 'index.txt')
 os.chmod(index, 0644)
 os.chown(index, user_id, group_id)
 
+d = {
+	'cache_clean' : LORIS_CACHE_CLEAN,
+	'cache_dp' : cache_dp,
+	'cache_links' : cache_links,
+	'config' : ETC_DP,
+	'info_cache_dp' : info_cache_dp,
+	'jptoo_exe' : JP2_EXECUTABLE,
+	'jptoo_lib' : JP2_LIBS,
+	'logs' : log_dp,
+	'tmp_dp' : tmp_dp,
+	'user_n' : user_n,
+	'www_dp' : www_dp
+}
+
 todo = '''
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
 Installation was successful. Here's where things are:
 
  * Loris configuration: %(config)s
  * Cache cleaner cron: %(cache_clean)s
- * kdu_expand: %(kdu_expand)s
- * Kakadu libraries: %(libkdu)s
+ * JP2 executable: %(jptoo_exe)s (kdu_expand or opj_decompress)
+ * JP2 libraries: %(jptoo_lib)s (libkdu or libopenjp2)
  * Logs: %(logs)s
  * Image cache (opaque): %(cache_dp)s
  * Image cache (symlinks that look like IIIF URIs): %(cache_links)s
@@ -172,18 +195,6 @@ where, etc.
 
 Cheers! -Js
 *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-''' % {
-	'cache_clean' : LORIS_CACHE_CLEAN,
-	'cache_dp' : cache_dp,
-	'cache_links' : cache_links,
-	'config' : ETC_DP,
-	'info_cache_dp' : info_cache_dp,
-	'kdu_expand' : KDU_EXPAND_TARGET,
-	'libkdu' : KDU_LIBS_TARGET,
-	'logs' : log_dp,
-	'tmp_dp' : tmp_dp,
-	'user_n' : user_n,
-	'www_dp' : www_dp
-}
+''' % d
 
 stdout.write(todo)

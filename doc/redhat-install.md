@@ -167,7 +167,7 @@ This happens even when Loris is set up under mod_wsgi to run as user/group
 directory is owned by loris. The issue is that the `httpd` process doesn't have
 permissions to deal with FIFOs by default, even in directories that it owns.
 The relevant Python code is in `loris/transforms.py`, in the method
-`JP2_Transformer.transform()`.
+`KakaduJP2Transformer.transform()`.
 
 I have a hunch that you could get around this particular security restriction
 by patching the code to write to a file, then reading from the file, rather

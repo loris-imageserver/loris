@@ -114,7 +114,6 @@ class ImageInfo(object):
         new_inst.height = j.get(u'height')
         # TODO: make sure these are resulting in error or Nones when 
         # we load from the filesystem
-        new_inst.scale_factors = j.get(u'scale_factors')
         new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
         new_inst.profile = j.get(u'profile')

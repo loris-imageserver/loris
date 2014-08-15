@@ -34,7 +34,7 @@ from parameters import RegionSyntaxException
 from parameters import RotationSyntaxException
 from parameters import SizeRequestException
 from parameters import SizeSyntaxException
-from transforms import JP2_Transformer
+
 from urllib import unquote, quote_plus
 from werkzeug.http import parse_date, parse_accept_header, http_date
 from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
@@ -60,7 +60,7 @@ ETC_DP = '/etc/loris'
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
-def create_app(debug=False):
+def create_app(debug=False, debug_jp2_transformer='kdu'):
     global logger
     if debug:
         project_dp = path.dirname(path.dirname(path.realpath(__file__)))
@@ -82,15 +82,25 @@ def create_app(debug=False):
         config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
         config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
         config['loris.Loris']['enable_caching'] = True
-        kdu_expand = JP2_Transformer.local_kdu_expand_path()
-        config['transforms.jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
-        libkdu_dir = JP2_Transformer.local_libkdu_dir()
-        config['transforms.jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
         config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
         config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
         config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
         config['resolver']['impl'] = 'SimpleFSResolver' 
         config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+        
+        if debug_jp2_transformer == 'opj':
+            from transforms import OPJ_JP2Transformer
+            opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
+            config['transforms.jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
+            libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
+            config['transforms.jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
+        else: # kdu
+            from transforms import KakaduJP2Transformer
+            kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
+            config['transforms.jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
+            libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
+            config['transforms.jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
+
     else:
         config_fp = path.join(ETC_DP, constants.CONFIG_FILE_NAME)
         config = ConfigObj(config_fp, unrepr=True, interpolation=False)
@@ -578,7 +588,7 @@ if __name__ == '__main__':
     conf_fp = path.join(project_dp, 'etc', 'loris.conf')
     extra_files.append(conf_fp)
 
-    app = create_app(debug=True)
+    app = create_app(debug=True, debug_jp2_transformer='kdu') # or 'opj'
 
     run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
         extra_files=extra_files)
