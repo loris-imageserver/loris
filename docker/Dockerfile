@@ -1,4 +1,4 @@
-FROM ubuntu:12.10
+FROM ubuntu
 
 MAINTAINER eliotj@princeton.edu
 
@@ -23,6 +23,7 @@ RUN apt-get install -y python-dev python-setuptools python-pip
 RUN pip install --upgrade pip		
 RUN pip2.7 install Werkzeug
 RUN pip2.7 install uwsgi
+RUN pip2.7 install configobj
 
 # Install kakadu
 WORKDIR /usr/local/lib
