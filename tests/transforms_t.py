@@ -15,7 +15,7 @@ $ python -m unittest tests.transforms_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class Test_JP2_Transformer(loris_t.LorisTest):
+class Test_KakaduJP2Transformer(loris_t.LorisTest):
 
     def test_allows_jp2_upsample(self):
         # Makes a request rather than building everything from scratch
@@ -38,6 +38,6 @@ class Test_JP2_Transformer(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
-    test_suites.append(unittest.makeSuite(Test_JP2_Transformer, 'test'))
+    test_suites.append(unittest.makeSuite(Test_KakaduJP2Transformer, 'test'))
     test_suite = unittest.TestSuite(test_suites)
     return test_suite
