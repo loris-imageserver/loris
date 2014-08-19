@@ -23,10 +23,10 @@ except ImportError:
 logger = getLogger(__name__)
 
 class _AbstractTransformer(object):
-    def __init__(self, config, default_format):
+    def __init__(self, config):
         self.config = config
-        self.default_format = default_format
         self.target_formats = config['target_formats']
+        self.dither_bitonal_images = config['dither_bitonal_images']
         logger.debug('Initialized %s.%s' % (__name__, self.__class__.__name__))
 
     def transform(self, src_fp, target_fp, image_request):
@@ -39,8 +39,7 @@ class _AbstractTransformer(object):
         e = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
 
-    @staticmethod
-    def _derive_with_pil(im, target_fp, image_request, rotate=True, crop=True):
+    def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
         '''
         Once you have a PIL.Image, this can be used to do the IIIF operations.
 
@@ -103,33 +102,37 @@ class _AbstractTransformer(object):
             im = im.convert('L')
         elif image_request.quality == 'bitonal':
             # not 1-bit w. JPG
-            im = im.convert('1')
+            dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
+            im = im.convert('1', dither=dither)
 
         if image_request.format == 'jpg':
-            # see http://www.pythonware.com/library/pil/handbook/format-jpeg.htm
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
-        elif image_request.format == 'png':
-            # see http://www.pythonware.com/library/pil/handbook/format-png.htm
+        if image_request.format == 'png':
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
             im.save(target_fp, optimize=True, bits=256)
         elif image_request.format == 'gif':
-            # see http://www.pythonware.com/library/pil/handbook/format-png.htm
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
             im.save(target_fp)
+        elif image_request.format == 'webp':
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
+            im.save(target_fp, quality=90)
 
 class JPG_Transformer(_AbstractTransformer):
-    def __init__(self, config, default_format):
-        super(JPG_Transformer, self).__init__(config, default_format)
+    def __init__(self, config):
+        super(JPG_Transformer, self).__init__(config)
 
     def transform(self, src_fp, target_fp, image_request):
         im = Image.open(src_fp)
-        JPG_Transformer._derive_with_pil(im, target_fp, image_request)
+        self._derive_with_pil(im, target_fp, image_request)
 
 class TIF_Transformer(_AbstractTransformer):
-    def __init__(self, config, default_format):
-        super(TIF_Transformer, self).__init__(config, default_format)
+    def __init__(self, config):
+        super(TIF_Transformer, self).__init__(config)
 
     def transform(self, src_fp, target_fp, image_request):
         im = Image.open(src_fp)
-        TIF_Transformer._derive_with_pil(im, target_fp, image_request)
+        self._derive_with_pil(im, target_fp, image_request)
 
 class _AbstractJP2Transformer(_AbstractTransformer):
     '''
@@ -137,7 +140,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
 
     Exits if OSError is raised during init.
     '''
-    def __init__(self, config, default_format):
+    def __init__(self, config):
         self.map_profile_to_srgb = bool(config['map_profile_to_srgb'])
         self.mkfifo = config['mkfifo']
         self.tmp_dp = config['tmp_dp']
@@ -162,7 +165,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             logger.fatal('Exiting')
             exit(77)
 
-        super(_AbstractJP2Transformer, self).__init__(config, default_format)
+        super(_AbstractJP2Transformer, self).__init__(config)
 
     def _make_tmp_fp(self, fmt='bmp'):
         n = ''.join(random.choice(string.ascii_lowercase) for x in range(5))
@@ -196,13 +199,13 @@ class _AbstractJP2Transformer(_AbstractTransformer):
         return arg
 
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
-    def __init__(self, config, default_format):
+    def __init__(self, config):
         self.opj_decompress = config['opj_decompress']
         self.env = {
             'LD_LIBRARY_PATH' : config['opj_libs'], 
             'PATH' : config['opj_decompress']
         }
-        super(OPJ_JP2Transformer, self).__init__(config, default_format)
+        super(OPJ_JP2Transformer, self).__init__(config)
 
     @staticmethod
     def local_opj_decompress_path():
@@ -302,10 +305,10 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
-        OPJ_JP2Transformer._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(im, target_fp, image_request, crop=False)
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
-    def __init__(self, config, default_format):
+    def __init__(self, config):
         self.kdu_expand = config['kdu_expand']
         
         self.num_threads = config['num_threads']
@@ -313,7 +316,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             'LD_LIBRARY_PATH' : config['kdu_libs'], 
             'PATH' : config['kdu_expand']
         }
-        super(KakaduJP2Transformer, self).__init__(config, default_format)
+        super(KakaduJP2Transformer, self).__init__(config)
 
     @staticmethod
     def local_kdu_expand_path():
@@ -416,4 +419,4 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
-        KakaduJP2Transformer._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(im, target_fp, image_request, crop=False)

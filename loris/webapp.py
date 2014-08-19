@@ -91,15 +91,15 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
         if debug_jp2_transformer == 'opj':
             from transforms import OPJ_JP2Transformer
             opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-            config['transforms.jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
+            config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
             libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
-            config['transforms.jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
+            config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
         else: # kdu
             from transforms import KakaduJP2Transformer
             kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
-            config['transforms.jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
+            config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
             libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
-            config['transforms.jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
+            config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
     else:
         config_fp = path.join(ETC_DP, constants.CONFIG_FILE_NAME)
@@ -130,14 +130,6 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
         exit(77)
     else:
         return Loris(config, debug)
-
-def __transform_sections_from_config(config):
-    '''
-    Args:
-        config (dict)
-    '''
-    filt = lambda s: s.split('.')[0] == 'transforms'
-    return filter(filt, config.keys())
 
 def __configure_logging(config):
     logger = logging.getLogger()
@@ -214,7 +206,7 @@ class NotFoundResponse(LorisResponse):
 
 class Loris(object):
 
-    FMT_REGEX = re.compile('^(default|color|gray|bitonal).\w{3}$')
+    FMT_REGEX = re.compile('^(default|color|gray|bitonal).\w{3,4}$')
     def __init__(self, app_configs={ }, debug=False):
         '''The WSGI Application.
         Args:
@@ -237,19 +229,8 @@ class Loris(object):
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
         self.redirect_id_slash_to_info = _loris_config['redirect_id_slash_to_info']
-        self.default_format = _loris_config['default_format']
 
-        # TODO: make sure loading  transformers makes sense. What am I doing
-        # with derive_formats here?
-        deriv_formats = [tf.split('.')[1] 
-            for tf in filter(lambda k: k.startswith('transforms.'), self.app_configs)]
-
-        logger.debug(deriv_formats)
-
-        self.transformers = {}
-        for f in deriv_formats:
-            self.transformers[f] = self._load_transformer('transforms.'+f)
-
+        self.transformers = self._load_transformers()
         self.resolver = self._load_resolver()
 
         if self.enable_caching:
@@ -258,12 +239,24 @@ class Loris(object):
             cache_dp = self.app_configs['img.ImageCache']['cache_dp']
             self.img_cache = img.ImageCache(cache_dp,cache_links)
 
-    def _load_transformer(self, name):
-        impl = self.app_configs[name]['impl']
-        default_format = self.default_format
-        Klass = getattr(transforms,impl)
-        instance = Klass(self.app_configs[name], default_format)
-        logger.debug('Loaded Transformer %s' % (impl,))
+    def _load_transformers(self):
+        tforms = self.app_configs['transforms']
+        source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
+        logger.debug('Source formats: %s' % (repr(source_formats),))
+        global_tranform_options = dict((k, v) for k, v in tforms.iteritems() if not isinstance(v, dict))
+        logger.debug('Global transform options: %s' % (repr(global_tranform_options),))
+
+        transformers = {}
+        for sf in source_formats:
+            # merge [transforms] options and [transforms][source_format]] options
+            config = dict(self.app_configs['transforms'][sf].items() + global_tranform_options.items())
+            transformers[sf] = self._load_transformer(config)
+        return transformers
+
+    def _load_transformer(self, config):
+        Klass = getattr(transforms, config['impl'])
+        instance = Klass(config)
+        logger.debug('Loaded Transformer %s' % (config['impl'],))
         return instance
 
     def _load_resolver(self):
