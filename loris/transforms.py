@@ -108,12 +108,15 @@ class _AbstractTransformer(object):
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
-        if image_request.format == 'png':
+
+        elif image_request.format == 'png':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
             im.save(target_fp, optimize=True, bits=256)
+
         elif image_request.format == 'gif':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
             im.save(target_fp)
+
         elif image_request.format == 'webp':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
             im.save(target_fp, quality=90)
