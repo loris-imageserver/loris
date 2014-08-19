@@ -88,7 +88,7 @@ data_files = [
 JP2_EXECUTABLE = None
 JP2_LIBS = None
 
-if config['transforms.jp2']['impl'] == 'KakaduJP2Transformer':
+if config['transforms']['jp2']['impl'] == 'KakaduJP2Transformer':
 	from loris.transforms import KakaduJP2Transformer 
 	JP2_EXECUTABLE = os.path.join(BIN_DP, 'kdu_expand')
 	JP2_LIBS = os.path.join(LIB_DP, KakaduJP2Transformer.libkdu_name())
@@ -96,7 +96,7 @@ if config['transforms.jp2']['impl'] == 'KakaduJP2Transformer':
 	kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
 	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', kdu_expand]) )
 
-elif config['transforms.jp2']['impl'] == 'OPJ_JP2Transformer':
+elif config['transforms']['jp2']['impl'] == 'OPJ_JP2Transformer':
 	from loris.transforms import OPJ_JP2Transformer
 	JP2_EXECUTABLE = os.path.join(BIN_DP, 'opj_decompress')
 	JP2_LIBS = os.path.join(LIB_DP, OPJ_JP2Transformer.libopenjp2_name())
