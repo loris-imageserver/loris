@@ -228,7 +228,6 @@ class ImageInfo(object):
             # marker = 0xFF5C)
             b = jp2.read(1)
             if ord(b) != 0xFF:
-                logger.debug('*'*80)
                 if self.tiles[0]['width'] == self.width \
                     and self.tiles[0].get('height') in (self.height, None):
                     # Clear what we got above in SIZ and prefer this. This could 

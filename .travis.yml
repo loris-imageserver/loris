@@ -6,12 +6,14 @@ python:
 before_install:
  - sudo apt-get install -qq libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 
  - sudo apt-get install -qq libfreetype6-dev zlib1g-dev liblcms2-2 liblcms2-dev 
- - sudo apt-get install -qq liblcms-utils libtiff-dev
+ - sudo apt-get install -qq liblcms-utils libtiff-dev libwebp-dev
  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/
  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libtiff.so /usr/lib/
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebp.so /usr/lib/
+ - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebpdemux.so.so /usr/lib/
 
 install: 
  - pip install -r requirements.txt --use-mirrors

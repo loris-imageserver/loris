@@ -21,17 +21,12 @@ __formats = (
 	('pdf','application/pdf'),
 	('png','image/png'),
 	('tif','image/tiff'),
+	('webp','image/webp'),
 )
 
 FORMATS_BY_EXTENSION = dict(__formats)
 
 FORMATS_BY_MEDIA_TYPE = dict([(f[1],f[0]) for f in __formats])
-
-SRC_FORMATS_SUPPORTED = (
-	FORMATS_BY_MEDIA_TYPE['image/jpeg'],
-	FORMATS_BY_MEDIA_TYPE['image/jp2'],
-	FORMATS_BY_MEDIA_TYPE['image/tiff']
-)
 
 BITONAL = 'bitonal'
 COLOR = 'color'

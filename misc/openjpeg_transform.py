@@ -1,7 +1,6 @@
 
 # Here's why we can't use PIL's API for OpenJPEG
 # See http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg-2000
-from PIL import Image
 import timeit
 import subprocess
 from PIL import Image
