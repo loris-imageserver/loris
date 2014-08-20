@@ -292,7 +292,7 @@ class Loris(object):
 
         elif params == '':
             r = LorisResponse()
-            r.headers['Location'] = '/%s/info.json' % (ident,)
+            r.headers['Location'] = '%s/info.json' % (base_uri,)
             r.status_code = 303
             return r
 

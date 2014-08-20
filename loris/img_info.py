@@ -46,7 +46,6 @@ class ImageInfo(object):
         width (int)
         height (int)
         scale_factors [(int)]
-        qualities [(str)]: 'default', 'bitonal', 'color', or 'gray'
         src_img_fp (str): the absolute path on the file system
         protocol (str): the protocol URI (constant)
         profile []: Features supported by the server/available for this image
@@ -333,6 +332,7 @@ class InfoCache(object):
         with self._lock:
             info_and_lastmod = self._dict.get(ident)
             if info_and_lastmod is not None:
+                logger.debug('@id from info: %s' % (repr(info_and_lastmod[0].ident),))
                 logger.debug('Info for %s read from memory' % (ident,))
         if info_and_lastmod is None:
             info_fp = self._get_info_fp(ident)
