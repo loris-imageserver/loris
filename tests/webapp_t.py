@@ -32,7 +32,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params = self.app._dissect_uri(req)
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
 
@@ -43,7 +43,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params = self.app._dissect_uri(req)
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
 
@@ -168,6 +168,21 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         headers = Headers([('if-modified-since', dt)])
         resp = self.client.get(to_get, headers=headers)
         self.assertEqual(resp.status_code, 304)
+
+    def test_bad_format_returns_400(self):
+        to_get = '/%s/full/full/0/default.hey' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_bad_quality_returns_400(self):
+        to_get = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_bad_quality_for_image_returns_400(self):
+        to_get = '/%s/full/full/0/color.jpg' % (self.test_jp2_gray_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
 
     def test_cleans_up_when_not_caching(self):
         self.app.enable_caching = False
