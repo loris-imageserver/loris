@@ -27,7 +27,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         uri = self.test_jp2_color_uri
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
-                "formats": [ "jpg", "png", "gif" ],
+                "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ 
                     "default", 
                     "bitonal", 
@@ -43,7 +43,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
             }
         ]
 
-        formats = ["jpg", "png", "gif"]
+        formats = ["jpg", "png", "gif", "webp"]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
@@ -55,7 +55,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.protocol, PROTOCOL)
 
     def test_precinct_jp2_tiles_from_image(self):
-        formats = ["jpg", "png", "gif"]
+        formats = [ "jpg", "png", "gif", "webp"]
         fp = self.test_jp2_with_precincts_fp
         fmt = self.test_jp2_with_precincts_fmt
         ident = self.test_jp2_with_precincts_id
@@ -95,7 +95,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         uri = self.test_jp2_gray_uri
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
-            "formats": [ "jpg", "png", "gif" ],
+            "formats": [ "jpg", "png", "gif", "webp" ],
             "qualities": [ 
                 "default", 
                 "bitonal", 
@@ -108,7 +108,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
                 "size_above_full" ]
             }
         ]
-        formats = ["jpg", "png", "gif"]
+        formats = [ "jpg", "png", "gif", "webp" ]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
         self.assertEqual(info.width, self.test_jp2_gray_dims[0])
@@ -125,11 +125,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         ident = self.test_jpeg_id
         uri = self.test_jpeg_uri
 
-        formats = ["jpg", "png", "gif"]
+        formats = [ "jpg", "png", "gif", "webp" ]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
-                "formats": [ "jpg", "png", "gif" ],
+                "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [ 
                     "canonical_link_header", 
@@ -153,11 +153,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         ident = self.test_tiff_id
         uri = self.test_tiff_uri
 
-        formats = ["jpg", "png", "gif"]
+        formats = [ "jpg", "png", "gif", "webp" ]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
-                "formats": [ "jpg", "png", "gif" ],
+                "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [ 
                     "canonical_link_header", 
@@ -181,7 +181,7 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         info = img_info.ImageInfo.from_json(json_fp)
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
-                "formats": [ "jpg", "png", "gif" ],
+                "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ 
                     "canonical_link_header", 
@@ -213,7 +213,7 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
             f.write(resp.data)
 
         profile = ["http://iiif.io/api/image/2/level2.json", { 
-                "formats": [ "jpg", "png", "gif" ],
+                "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ 
                     "canonical_link_header",

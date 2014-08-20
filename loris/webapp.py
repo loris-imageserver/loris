@@ -197,8 +197,10 @@ class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
 class BadRequestResponse(LorisResponse):
     def __init__(self, message=None):
         if message is None:
-            message = "Request does not match the IIIF Syntax (400)"
-        super(BadRequestResponse, self).__init__(message, 400, 'text/plain')
+            message = "Request does not match the IIIF Syntax"
+        status = 400
+        message = 'Bad Request: %s (%d)' % (message, status)
+        super(BadRequestResponse, self).__init__(message, status, 'text/plain')
 
 class NotFoundResponse(LorisResponse):
     def __init__(self, message):
@@ -207,6 +209,9 @@ class NotFoundResponse(LorisResponse):
 class Loris(object):
 
     FMT_REGEX = re.compile('^(default|color|gray|bitonal).\w{3,4}$')
+    REGION_REGEX = re.compile('^(full|(pct:)?([\d.]+,){3}([\d.]+))$')
+    SIZE_REGEX = re.compile('^(full|[\d.]+,|,[\d.]+|pct:[\d.]+|[\d.]+,[\d.]+|![\d.]+,[\d.]+)$')
+    ROTATION_REGEX= re.compile('^(!)?([0-9.]+)$')
     def __init__(self, app_configs={ }, debug=False):
         '''The WSGI Application.
         Args:
@@ -273,31 +278,45 @@ class Loris(object):
         response = self.route(request)
         return response(environ, start_response)
 
+
     def route(self, request):
-        base_uri, ident, params = self._dissect_uri(request)
+        base_uri, ident, params, request_type = self._dissect_uri(request)
+
         # index.txt
         if ident == '': 
             return self.get_index(request)
-        slices = params.split('/')
-        info_or_quality_dot_format = slices.pop()
 
         if not self.resolver.is_resolvable(ident):
             msg = "Could not resolve identifier: %s (404)" % (ident)
             return NotFoundResponse(msg)
+
         elif params == '':
             r = LorisResponse()
             r.headers['Location'] = '/%s/info.json' % (ident,)
             r.status_code = 303
             return r
+
         # pixels
-        elif Loris.FMT_REGEX.match(info_or_quality_dot_format):
-            quality,fmt = info_or_quality_dot_format.split('.')
-            rotation = slices.pop()
-            size = slices.pop()
-            region = slices.pop()
-            return self.get_img(request, ident, region, size, rotation, quality, fmt)
+        elif request_type == 'image':
+            try:
+                slices = params.split('/')
+                info_or_quality_dot_format = slices.pop()
+                quality,fmt = info_or_quality_dot_format.split('.')
+
+                if fmt not in self.app_configs['transforms']['target_formats']:
+                    return BadRequestResponse('"%s" is not a supported format' % (fmt,))
+                if quality not in constants.QUALITIES:
+                    return BadRequestResponse('"%s" is not a supported quality' % (quality,))
+
+                rotation = slices.pop()
+                size = slices.pop()
+                region = slices.pop()
+
+                return self.get_img(request, ident, region, size, rotation, quality, fmt)
+            except ValueError:
+                return BadRequestResponse('could not parse image request')
         # info
-        elif info_or_quality_dot_format == 'info.json':
+        elif request_type == 'info':
             return self.get_info(request, ident, base_uri)
             
         # favicon.ico
@@ -305,6 +324,45 @@ class Loris(object):
             return self.get_favicon(request)
         else:
             return BadRequestResponse()
+
+    def _dissect_uri(self, r):
+        ident = None
+        params = None
+        request_type = 'info'
+        # info
+        if r.path.endswith('info.json'):
+            ident = '/'.join(r.path[1:].split('/')[:-1])
+            params = ('info.json')
+
+        # image
+        # elif r.path.split('/')[-1].split('.')[0] in ('default','color','gray','bitonal'):
+        # test against rotation and size since we need to catch a bad quality here...
+        elif Loris.ROTATION_REGEX.match(r.path.split('/')[-2]) and \
+                Loris.SIZE_REGEX.match(r.path.split('/')[-3]) and \
+                Loris.REGION_REGEX.match(r.path.split('/')[-4]):
+            ident = '/'.join(r.path[1:].split('/')[:-4])
+            params = '/'.join(r.path.split('/')[-4:])
+            request_type = 'image'
+        # bare
+        else:
+            ident = r.path[1:] # no leading slash
+            if self.redirect_id_slash_to_info and ident.endswith('/'): 
+                ident = ident[:-1]
+                 # ... you're in trouble if your identifier has a trailing slash
+            params = ''
+
+        ident = quote_plus(ident)
+
+        logger.debug('_dissect_uri ident: %s' % (ident,))
+        logger.debug('_dissect_uri params: %s' % (params,))
+
+        if r.script_root != u'':
+            base_uri = '%s%s' % (r.url_root,ident)
+        else:
+            base_uri = '%s%s' % (r.host_url,ident)
+
+        logger.debug('base_uri_from_request: %s' % (base_uri,))
+        return (base_uri, ident, params, request_type)
 
     def __call__(self, environ, start_response):
         '''
@@ -466,7 +524,11 @@ class Loris(object):
                 info = self._get_info(ident, request, src_fp, src_format)[0]
                 image_request.info = info
 
-                # 3. Redirect if appropriate
+                # 3. Check that we can make the quality requested
+                if image_request.quality not in info.profile[1]['qualities']:
+                    return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
+
+                # 4. Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical:
                         logger.debug('Attempting redirect to %s' % (image_request.c14n_request_path,))
@@ -474,7 +536,7 @@ class Loris(object):
                         r.status_code = 301
                         return r
 
-                # 4. Make an image
+                # 5. Make an image
                 fp = self._make_image(image_request, src_fp, src_format)
                 
             except (resolver.ResolverException, ImageInfoException, 
@@ -540,38 +602,6 @@ class Loris(object):
         _id = uuid.uuid1().hex
         return path.sep.join([_id[i:i+2] for i in range(0, len(_id), 2)])
 
-    def _dissect_uri(self, r):
-        ident = None
-        params = None
-        # info
-        if r.path.endswith('info.json'):
-            ident = '/'.join(r.path[1:].split('/')[:-1])
-            params = ('info.json')
-
-        # image
-        elif r.path.split('/')[-1].split('.')[0] in ('default','color','gray','bitonal'):
-            ident = '/'.join(r.path[1:].split('/')[:-4])
-            params = '/'.join(r.path.split('/')[-4:])
-        # bare
-        else:
-            ident = r.path[1:] # no leading slash
-            if self.redirect_id_slash_to_info and ident.endswith('/'): 
-                ident = ident[:-1]
-                # ... you're in trouble if your identifier has a trailing slash
-
-            params = ''
-        ident = quote_plus(ident)
-
-        logger.debug('_dissect_uri ident: %s' % (ident,))
-        logger.debug('_dissect_uri params: %s' % (params,))
-
-        if r.script_root != u'':
-            base_uri = '%s%s' % (r.url_root,ident)
-        else:
-            base_uri = '%s%s' % (r.host_url,ident)
-
-        logger.debug('base_uri_from_request: %s' % (base_uri,))
-        return (base_uri, ident, params)
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
