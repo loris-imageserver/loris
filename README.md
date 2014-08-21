@@ -12,7 +12,8 @@ Demos
 
 Installation Instructions
 -------------------------
-Theses instructions are known to work on Ubuntu 12.04 or greater and Python 2.6.3 or greater (but less than 3.0.0). See below for some help with RedHat/CentOS and Debian.
+These instructions are known to work on Ubuntu 12.04 or greater and Python 2.6.3 or greater (but less than 3.0.0). See below for some help with RedHat/CentOS and Debian.
+
 **Do Not!** Run `setup.py` until you've read the following:
 
  * [Install Dependencies](doc/dependencies.md)
@@ -35,9 +36,16 @@ If you're running Debian and/or run into any pitfalls with the steps above, [Reg
 
 As always, clarifications, notes (issues, pull requests) regarding experiences on different platforms are most welcome.
 
-IIIF 1.1 Compliance
+IIIF 2.0 Compliance
 -------------------
-See [doc/compliance.md](doc/compliance.md)
+Loris Implements all of the IIIF Image API level 2 features, plus nearly all of the "optional" features:
+
+ * `size_above_full`
+ * `rotation_arbitraty`
+ * `mirroring`
+ * `webp` and `gif` formats 
+ 
+See http://iiif.io/api/image/2.0/compliance.html for details.
 
 License
 -------
