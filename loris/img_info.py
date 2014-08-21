@@ -8,13 +8,14 @@ from constants import OPTIONAL_FEATURES
 from constants import PROTOCOL
 from datetime import datetime
 from logging import getLogger
+from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
 import fnmatch
 import json
-import loris_exception
 import os
 import struct
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -89,8 +90,8 @@ class ImageInfo(object):
         elif src_format  in ('jpg','tif','png'):
             new_inst._extract_with_pillow(src_img_fp)
         else:
-            m = 'Didn\'t get a source format, or at least one we recognize ().' % (src_format,)
-            raise Exception(m)
+            m = 'Didn\'t get a source format, or at least one we recognize ()' % (src_format,)
+            raise ImageInfoException(http_status=500, message=m)
 
         return new_inst
 
@@ -415,5 +416,4 @@ class InfoCache(object):
 
         os.removedirs(os.path.dirname(info_fp))
 
-class ImageInfoException(loris_exception.LorisException): pass
 

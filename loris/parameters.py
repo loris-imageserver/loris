@@ -12,7 +12,8 @@ import re
 from decimal import Decimal
 from math import floor
 from logging import getLogger
-from loris_exception import LorisException
+from loris_exception import SyntaxException
+from loris_exception import RequestException
 
 logger = getLogger(__name__)
 
@@ -45,7 +46,6 @@ class RegionParameter(object):
         'pixel_y','decimal_y','pixel_w','decimal_w','pixel_h','decimal_h', 
         'mode','img_info')
 
-
     def __str__(self):
         return self.uri_value
 
@@ -57,15 +57,15 @@ class RegionParameter(object):
             img_info (ImgInfo)
 
         Raises:
-            RegionSyntaxException
-            RegionRequestException
+            SyntaxException
+            RequestException
         '''
         self.uri_value = uri_value
         self.img_info = img_info
         try:
             self.mode = RegionParameter.__mode_from_region_segment(self.uri_value)
             logger.debug('Region mode is "%s" (from "%s")' % (self.mode,uri_value))
-        except RegionSyntaxException:
+        except SyntaxException:
             raise
 
         if self.mode == FULL_MODE:
@@ -84,7 +84,7 @@ class RegionParameter(object):
                     self.__populate_slots_from_pct()
                 else: # self.mode == PIXEL_MODE: 
                     self.__populate_slots_from_pixels()
-            except (RegionSyntaxException, RegionRequestException):
+            except (SyntaxException, RequestException):
                 raise
 
             logger.debug('decimal_x: %s' % (str(self.decimal_x),))
@@ -112,15 +112,15 @@ class RegionParameter(object):
             # Catch OOB errors:
             if any(axis < 0 for axis in (self.pixel_x, self.pixel_y)):
                 msg = 'x and y region parameters must be 0 or greater (%s)' % (self.uri_value,)
-                raise RegionRequestException(http_status=400, message=msg)
+                raise RequestException(http_status=400, message=msg)
             if self.decimal_x >= DECIMAL_ONE:
                 msg = 'Region x parameter is greater than the width of the image.\n'
                 msg +='Image width is %d' % (img_info.width,)
-                raise RegionRequestException(http_status=400, message=msg)
+                raise RequestException(http_status=400, message=msg)
             if self.decimal_y >= DECIMAL_ONE:
                 msg = 'Region y parameter is greater than the height of the image.\n'
                 msg +='Image height is %d' % (img_info.height,)
-                raise RegionRequestException(http_status=400, message=msg)
+                raise RequestException(http_status=400, message=msg)
 
             # set canonical_uri_value to the equivalent pixel-based syntax after
             # all adjustments have been made.
@@ -132,21 +132,21 @@ class RegionParameter(object):
     def __populate_slots_from_pct(self):
         '''
         Raises:
-            RegionSyntaxException
-            RegionRequestException
+            SyntaxException
+            RequestException
         '''
         # we convert these to pixels and update uri_value
         dimensions = map(float, self.uri_value.split(':')[1].split(',')) 
 
         if len(dimensions) != 4:
             msg = 'Exactly (4) coordinates must be supplied'
-            raise RegionSyntaxException(http_status=400, message=msg)
+            raise SyntaxException(http_status=400, message=msg)
         if any(n > 100.0 for n in dimensions):
             msg = 'Region percentages must be less than or equal to 100.'
-            raise RegionRequestException(http_status=400, message=msg)
+            raise RequestException(http_status=400, message=msg)
         if any((n <= 0) for n in dimensions[2:]):
             msg = 'Width and Height Percentages must be greater than 0.'
-            raise RegionRequestException(http_status=400, message=msg)
+            raise RequestException(http_status=400, message=msg)
 
         # decimals
         self.decimal_x, self.decimal_y, self.decimal_w, \
@@ -161,17 +161,17 @@ class RegionParameter(object):
     def __populate_slots_from_pixels(self):
         '''
         Raises:
-            RegionRequestException
-            RegionSyntaxException
+            RequestException
+            SyntaxException
         '''
         dimensions = map(int, self.uri_value.split(','))
 
         if any(n <= 0 for n in dimensions[2:]):
             msg = 'Width and height must be greater than 0'
-            raise RegionRequestException(http_status=400, message=msg)
+            raise RequestException(http_status=400, message=msg)
         if len(dimensions) != 4:
             msg = 'Exactly (4) coordinates must be supplied'
-            raise RegionSyntaxException(http_status=400, message=msg)
+            raise SyntaxException(http_status=400, message=msg)
         
         # pixels
         self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h = dimensions
@@ -193,7 +193,7 @@ class RegionParameter(object):
             PCT_MODE, FULL_MODE, or
             PIXEL_MODE
         Raises:
-            RegionSyntaxException if this can't be determined.
+            SyntaxException if this can't be determined.
         '''
         if region_segment.split(':')[0] == 'pct':
             return PCT_MODE
@@ -203,16 +203,11 @@ class RegionParameter(object):
             return PIXEL_MODE
         else:
             msg = 'Region syntax "%s" is not valid' % (region_segment,)
-            raise RegionSyntaxException(http_status=400, message=msg)
+            raise SyntaxException(http_status=400, message=msg)
 
     @staticmethod
     def __pct_to_decimal(n):
         return Decimal(str(n)) / Decimal('100.0')
-
-class RegionSyntaxException(LorisException): pass
-class RegionRequestException(LorisException): pass
-
-
 
 class SizeParameter(object):
     '''Internal representation of the size slice of an IIIF image URI.
@@ -243,8 +238,8 @@ class SizeParameter(object):
                 The region parameter of the request.
 
         Raises:
-            SizeSyntaxException
-            SizeRequestException
+            SyntaxException
+            RequestException
         '''
         self.uri_value = uri_value
         self.mode = SizeParameter.__mode_from_size_segment(self.uri_value)
@@ -261,7 +256,7 @@ class SizeParameter(object):
                     self.__populate_slots_from_pct(region_parameter)
                 else: # self.mode == PIXEL_MODE: 
                     self.__populate_slots_from_pixels(region_parameter)
-            except (RegionSyntaxException, RegionRequestException):
+            except (SyntaxException, RequestException):
                 raise
         
             if self.force_aspect:
@@ -274,7 +269,7 @@ class SizeParameter(object):
             logger.debug('h %d', self.h)
             if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
                 msg = 'Width and height must both be positive numbers'
-                raise SizeRequestException(http_status=400, message=msg)
+                raise RequestException(http_status=400, message=msg)
 
     def __populate_slots_from_pct(self,region_parameter):
         self.force_aspect = False
@@ -284,7 +279,7 @@ class SizeParameter(object):
 
         if pct_decimal <= Decimal('0'):
             msg = 'Percentage supplied is less than 0 (%s).' % (self.uri_value,)
-            raise SizeRequestException(http_status=400, message=msg)
+            raise RequestException(http_status=400, message=msg)
 
         w_decimal = region_parameter.pixel_w * pct_decimal
         h_decimal = region_parameter.pixel_h * pct_decimal
@@ -339,7 +334,7 @@ class SizeParameter(object):
         Returns:
             PCT_MODE, FULL_MODE, or PIXEL_MODE
         Raises:
-            SizeSyntaxException if this can't be determined.
+            SyntaxException if this can't be determined.
         '''
         # TODO: wish this were cleaner.
         if size_segment.split(':')[0] == 'pct':
@@ -348,7 +343,7 @@ class SizeParameter(object):
             return FULL_MODE
         elif not ',' in size_segment:
             msg = 'Size syntax "%s" is not valid' % (size_segment,)
-            raise SizeSyntaxException(http_status=400, message=msg)
+            raise SyntaxException(http_status=400, message=msg)
         elif all([(n.isdigit() or n == '') for n in size_segment.split(',')]):
             return PIXEL_MODE
         elif all([n.isdigit() for n in size_segment[1:].split(',')]) and \
@@ -356,13 +351,10 @@ class SizeParameter(object):
             return PIXEL_MODE
         else:
             msg = 'Size syntax "%s" is not valid' % (size_segment,)
-            raise SizeSyntaxException(http_status=400, message=msg)
+            raise SyntaxException(http_status=400, message=msg)
 
     def __str__(self):
         return self.uri_value
-
-class SizeSyntaxException(LorisException): pass
-class SizeRequestException(LorisException): pass
 
 class RotationParameter(object):
     '''Internal representation of the rotation slice of an IIIF image URI.
@@ -382,13 +374,13 @@ class RotationParameter(object):
         Args:
             uri_value (str): the rotation slice of the request URI.
         Raises:
-            RotationSyntaxException:
+            SyntaxException:
                 If the argument is not a digit, is < 0, or > 360
         '''
 
         if not RotationParameter.ROTATION_REGEX.match(uri_value):
-            msg = 'Rotation argument "%s" is not a number or' % (uri_value,)
-            raise RotationSyntaxException(http_status=400, message=msg)
+            msg = 'Rotation "%s" is not a number'  % (uri_value,)
+            raise SyntaxException(http_status=400, message=msg)
 
         if uri_value[0] == '!':
             self.mirror = True
@@ -401,10 +393,8 @@ class RotationParameter(object):
 
         if not 0.0 <= float(self.rotation) <= 360.0:
             msg = 'Rotation argument "%s" is not between 0 and 360' % (uri_value,)
-            raise RotationSyntaxException(http_status=400, message=msg)
+            raise SyntaxException(http_status=400, message=msg)
 
         
         logger.debug('canonical rotation is %s' % (self.canonical_uri_value,))
-
-class RotationSyntaxException(LorisException): pass
 

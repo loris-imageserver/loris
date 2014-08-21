@@ -73,7 +73,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         resp = self.client.get(uri)
         self.assertEqual(resp.headers['access-control-allow-origin'], '*')
 
-    def test_bare_identifier_request_404(self):
+    def test_bare_broken_identifier_request_404(self):
         resp = self.client.get('/foo%2Fbar')
         self.assertEqual(resp.status_code, 404)
         self.assertEqual(resp.headers['content-type'], 'text/plain')
@@ -179,8 +179,23 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 400)
 
-    def test_bad_quality_for_image_returns_400(self):
+    def test_bad_quality_for_gray_image_returns_400(self):
         to_get = '/%s/full/full/0/color.jpg' % (self.test_jp2_gray_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_bad_rotation_returns_400(self):
+        to_get = '/%s/full/full/x/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_bad_size_returns_400(self):
+        to_get = '/%s/full/xyz/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_bad_region_returns_400(self):
+        to_get = '/%s/foo_/full/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 400)
 

@@ -16,6 +16,12 @@ class LorisException(Exception):
 			msg (str): any additional info about what went wrong.
 			supplied_value (str): the parameter that caused the problem.
 		"""
-		super(LorisException, self).__init__('(%d) %s' % (http_status, message))
+		# message = '%s: %s (%d)' % (self.__class__.__name__, message, http_status)
+		super(LorisException, self).__init__(message)
 		self.http_status = http_status
 		
+class SyntaxException(LorisException): pass
+class RequestException(LorisException): pass
+class ImageException(LorisException): pass
+class ImageInfoException(LorisException): pass
+class ResolverException(LorisException): pass
