@@ -6,13 +6,11 @@ from logging import getLogger
 from loris_exception import LorisException
 from os import path,sep,symlink,makedirs,unlink
 from parameters import RegionParameter
-from parameters import RegionRequestException
-from parameters import RegionSyntaxException
 from parameters import RotationParameter
-from parameters import RotationSyntaxException
 from parameters import SizeParameter
-from parameters import SizeRequestException
-from parameters import SizeSyntaxException
+from loris_exception import RequestException
+from loris_exception import SyntaxException
+from loris_exception import ImageException
 from urllib import unquote, quote_plus
 from werkzeug.http import generate_etag
 
@@ -111,7 +109,7 @@ class ImageRequest(object):
 		if self._region_param is None:
 			try:
 				self._region_param = RegionParameter(self.region_value, self.info)
-			except (RegionSyntaxException,RegionRequestException):
+			except (SyntaxException,RequestException):
 				raise
 		return self._region_param
 
@@ -120,7 +118,7 @@ class ImageRequest(object):
 		if self._size_param is None:
 			try:
 				self._size_param = SizeParameter(self.size_value, self.region_param)
-			except (SizeRequestException,SizeSyntaxException):
+			except (RequestException,SyntaxException):
 				raise
 		return self._size_param
 
@@ -129,7 +127,7 @@ class ImageRequest(object):
 		if self._rotation_param is None:
 			try:
 				self._rotation_param = RotationParameter(self.rotation_value)
-			except (RotationParameter,RotationSyntaxException):
+			except (RotationParameter,SyntaxException):
 				raise
 		return self._rotation_param
 
@@ -139,7 +137,7 @@ class ImageRequest(object):
 			p = '/'.join((
 				quote_plus(self.ident), 
 				self.region_value, 
-				self.size_value, 
+				self.size_value,
 				self.rotation_value, 
 				self.quality
 			))
@@ -251,9 +249,5 @@ class ImageCache(dict):
 		return path.realpath(path.join(self._links_root, image_request.cache_path))
 		
 
-
-
-
-class ImageException(LorisException): pass
 
 

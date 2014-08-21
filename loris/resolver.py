@@ -10,6 +10,7 @@ from urllib import unquote
 from shutil import copy
 from os import makedirs
 from os.path import dirname
+from loris_exception import ResolverException
 
 logger = getLogger(__name__)
 
@@ -124,7 +125,7 @@ class SourceImageCachingResolver(_AbstractResolver):
                 public_message = 'Source image not found for identifier: %s.' % (ident,)
                 log_message = 'Source image not found at %s for identifier: %s.' % (fp,ident)
                 logger.warn(log_message)
-                raise ResolverException(400, public_message)
+                raise ResolverException(404, public_message)
 
             makedirs(dirname(local_fp))
             copy(fp, local_fp)
@@ -137,4 +138,4 @@ class SourceImageCachingResolver(_AbstractResolver):
 
 
 
-class ResolverException(loris_exception.LorisException): pass
+

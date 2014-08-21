@@ -28,20 +28,18 @@ from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
 from logging.handlers import RotatingFileHandler
+from loris_exception import LorisException
+from loris_exception import RequestException
+from loris_exception import SyntaxException
+from loris_exception import ImageException
+from loris_exception import ResolverException
 from os import path, makedirs, unlink, removedirs, symlink
-from parameters import RegionRequestException
-from parameters import RegionSyntaxException
-from parameters import RotationSyntaxException
-from parameters import SizeRequestException
-from parameters import SizeSyntaxException
-
 from urllib import unquote, quote_plus
 from werkzeug.http import parse_date, parse_accept_header, http_date
 from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
 import constants
 import img
 import logging
-import loris_exception
 import random
 import re
 import resolver
@@ -65,17 +63,14 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
     if debug:
         project_dp = path.dirname(path.dirname(path.realpath(__file__)))
 
-        # read the config
+        # change a few things, read the config and set up logging
         config_fp = path.join(project_dp, 'etc', constants.CONFIG_FILE_NAME)
         config = ConfigObj(config_fp, unrepr=True, interpolation=False)
-
         config['logging']['log_to'] = 'console'
         config['logging']['log_level'] = 'DEBUG'
-
         __configure_logging(config['logging'])
 
         logger = logging.getLogger('webapp')
-
         logger.debug('Running in debug mode.')
 
         # override some stuff to look at relative or tmp directories.
@@ -107,7 +102,6 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
         __configure_logging(config['logging'])
         logger = logging.getLogger(__name__)
         logger.debug('Running in production mode.')
-
 
     # Make any dirs we may need 
     dirs_to_make = []
@@ -154,9 +148,9 @@ def __configure_logging(config):
             handler.setFormatter(formatter)
             logger.addHandler(handler)
     else:
-        # STDERR
         if not getattr(logger, 'handler_set', None):
             from sys import __stderr__, __stdout__
+            # STDERR
             err_handler = logging.StreamHandler(__stderr__)
             err_handler.addFilter(StdErrFilter())
             err_handler.setFormatter(formatter)
@@ -197,21 +191,25 @@ class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
 class BadRequestResponse(LorisResponse):
     def __init__(self, message=None):
         if message is None:
-            message = "Request does not match the IIIF Syntax"
+            message = "request does not match the IIIF syntax"
         status = 400
         message = 'Bad Request: %s (%d)' % (message, status)
         super(BadRequestResponse, self).__init__(message, status, 'text/plain')
 
 class NotFoundResponse(LorisResponse):
     def __init__(self, message):
-        super(NotFoundResponse, self).__init__(message, 404, 'text/plain')
+        status = 404
+        message = 'Not Found: %s (%d)' % (message, status)
+        super(NotFoundResponse, self).__init__(message, status, 'text/plain')
+
+class ServerSideErrorResponse(LorisResponse):
+    def __init__(self, message):
+        status = 500
+        message = 'Server Side Error: %s (%d)' % (message, status)
+        super(ServerSideErrorResponse, self).__init__(message, status, 'text/plain')
 
 class Loris(object):
 
-    FMT_REGEX = re.compile('^(default|color|gray|bitonal).\w{3,4}$')
-    REGION_REGEX = re.compile('^(full|(pct:)?([\d.]+,){3}([\d.]+))$')
-    SIZE_REGEX = re.compile('^(full|[\d.]+,|,[\d.]+|pct:[\d.]+|[\d.]+,[\d.]+|![\d.]+,[\d.]+)$')
-    ROTATION_REGEX= re.compile('^(!)?([0-9.]+)$')
     def __init__(self, app_configs={ }, debug=False):
         '''The WSGI Application.
         Args:
@@ -287,10 +285,10 @@ class Loris(object):
             return self.get_index(request)
 
         if not self.resolver.is_resolvable(ident):
-            msg = "Could not resolve identifier: %s (404)" % (ident)
+            msg = "could not resolve identifier: %s " % (ident)
             return NotFoundResponse(msg)
 
-        elif params == '':
+        elif params == '' and request_type == 'info':
             r = LorisResponse()
             r.headers['Location'] = '%s/info.json' % (base_uri,)
             r.status_code = 303
@@ -307,7 +305,9 @@ class Loris(object):
                     return BadRequestResponse('"%s" is not a supported format' % (fmt,))
                 if quality not in constants.QUALITIES:
                     return BadRequestResponse('"%s" is not a supported quality' % (quality,))
-
+                # The remaining params get their syntaxes checked further 
+                # downstream in the Parameter claseses when more involved checks
+                # are also happening.
                 rotation = slices.pop()
                 size = slices.pop()
                 region = slices.pop()
@@ -316,7 +316,7 @@ class Loris(object):
             except ValueError:
                 return BadRequestResponse('could not parse image request')
         # info
-        elif request_type == 'info':
+        elif params == 'info.json' and request_type == 'info':
             return self.get_info(request, ident, base_uri)
             
         # favicon.ico
@@ -326,30 +326,42 @@ class Loris(object):
             return BadRequestResponse()
 
     def _dissect_uri(self, r):
+        # This is ugly because wsgi unescapes uris before we get here making
+        # it really difficult to know where the identifier (which potentially
+        # contains slashes) ends and the parameters begin. So..
+        base_uri = None
         ident = None
         params = None
         request_type = 'info'
-        # info
-        if r.path.endswith('info.json'):
-            ident = '/'.join(r.path[1:].split('/')[:-1])
-            params = ('info.json')
+    
+        # First test if what we have in the path is resolvable (bare identifier)
+        maybe_ident = r.path[1:] # no leading slash
+        if self.redirect_id_slash_to_info and maybe_ident.endswith('/'): 
+            maybe_ident = maybe_ident[:-1]
 
-        # image
-        # elif r.path.split('/')[-1].split('.')[0] in ('default','color','gray','bitonal'):
-        # test against rotation and size since we need to catch a bad quality here...
-        elif Loris.ROTATION_REGEX.match(r.path.split('/')[-2]) and \
-                Loris.SIZE_REGEX.match(r.path.split('/')[-3]) and \
-                Loris.REGION_REGEX.match(r.path.split('/')[-4]):
-            ident = '/'.join(r.path[1:].split('/')[:-4])
-            params = '/'.join(r.path.split('/')[-4:])
-            request_type = 'image'
-        # bare
-        else:
-            ident = r.path[1:] # no leading slash
-            if self.redirect_id_slash_to_info and ident.endswith('/'): 
-                ident = ident[:-1]
-                 # ... you're in trouble if your identifier has a trailing slash
+        if self.resolver.is_resolvable(maybe_ident):
+            ident = maybe_ident
             params = ''
+
+        # Otherwise, does the path end with info.json?
+        elif r.path.endswith('info.json'):
+            ident = '/'.join(r.path[1:].split('/')[:-1])
+            params = 'info.json'
+
+        # Else this is probably an image request...
+        else: 
+            logger.debug(r.path)
+            ident = '/'.join(r.path[1:].split('/')[:-4])
+            # ...unless the path isn't long enough to be one, in which case 
+            # assume the path is an identifier, just a bad one. Gosh this sucks.
+            # Could still break if your identifier has 5 slashes
+            if ident == '':
+                ident = r.path[1:]
+                if self.redirect_id_slash_to_info and ident.endswith('/'): 
+                    ident = ident[:-1]
+            else:
+                params = '/'.join(r.path.split('/')[-4:])
+                request_type = 'image'
 
         ident = quote_plus(ident)
 
@@ -362,6 +374,7 @@ class Loris(object):
             base_uri = '%s%s' % (r.host_url,ident)
 
         logger.debug('base_uri_from_request: %s' % (base_uri,))
+        logger.debug('request_type: %s' % (request_type,))
         return (base_uri, ident, params, request_type)
 
     def __call__(self, environ, start_response):
@@ -393,10 +406,10 @@ class Loris(object):
         r = LorisResponse()
         try:
             info, last_mod = self._get_info(ident,request,base_uri)
-        except (ImageInfoException,resolver.ResolverException) as e:
-            r.response = e
-            r.status_code = e.http_status
-            r.mimetype = 'text/plain'
+        except ResolverException as re:
+            return NotFoundResponse(re.message)
+        except ImageInfoException as ie:
+            return ServerSideErrorResponse(ie.message)
         else:
             ims_hdr = request.headers.get('If-Modified-Since')
 
@@ -511,8 +524,6 @@ class Loris(object):
 
                 canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
                 r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
-
-
                 return r
         else:
             try:
@@ -539,14 +550,20 @@ class Loris(object):
                 # 5. Make an image
                 fp = self._make_image(image_request, src_fp, src_format)
                 
-            except (resolver.ResolverException, ImageInfoException, 
-                img.ImageException, RegionSyntaxException, 
-                RegionRequestException, SizeSyntaxException,
-                SizeRequestException, RotationSyntaxException) as e:
-                r.response = e
-                r.status_code = e.http_status
-                r.mimetype = 'text/plain'
-                return r
+            except ResolverException as re:
+                return NotFoundResponse(re.message)
+            except (RequestException, SyntaxException) as e:
+                return BadRequestResponse(e.message)
+            except (ImageException,ImageInfoException) as ie:
+                # 500s!
+                # ImageException is only raised in when ImageRequest.info 
+                # isn't set and is a developer error. It should never happen!
+                #
+                # ImageInfoException is only raised when 
+                # ImageInfo.from_image_file() can't  determine the format of the 
+                # source image. It results in a 500, but isn't necessarily a 
+                # developer error.
+                return ServerSideErrorResponse(ie.message)
 
         r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
         r.status_code = 200
