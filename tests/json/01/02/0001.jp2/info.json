@@ -18,10 +18,11 @@
         "color"
       ],
       "supports": [
-        "canonical_link_header",
+        "canonicalLinkHeader",
+        "profileLinkHeader",
         "mirroring",
-        "rotation_arbitrary",
-        "size_above_full"
+        "rotationArbitrary",
+        "sizeAboveFull"
       ]
     }
   ],
@@ -58,7 +59,7 @@
   ],
   "tiles": [
     {
-      "scale_factors": [
+      "scaleFactors": [
         1,
         2,
         4,
