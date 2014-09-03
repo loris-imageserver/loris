@@ -188,7 +188,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
     def _scales_to_reduce_arg(self, image_request):
         # Scales from from JP2 levels, so even though these are from the tiles
         # info.json, it's easier than using the sizes from info.json
-        scales = [s for t in image_request.info.tiles for s in t['scale_factors']]
+        scales = [s for t in image_request.info.tiles for s in t['scaleFactors']]
         is_full_region = image_request.region_param.uri_value == FULL_MODE
         arg = None
         if scales and is_full_region:

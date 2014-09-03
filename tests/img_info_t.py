@@ -35,10 +35,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
                     "color" 
                 ],
                 "supports": [ 
-                    "canonical_link_header",
+                    "canonicalLinkHeader",
+                    "profileLinkHeader",
                     "mirroring",
-                    "rotation_arbitrary",
-                    "size_above_full"
+                    "rotationArbitrary",
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -102,10 +103,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
                 "gray"
             ],
             "supports": [ 
-                "canonical_link_header", 
+                "canonicalLinkHeader",
+                "profileLinkHeader",
                 "mirroring",
-                "rotation_arbitrary",
-                "size_above_full" ]
+                "rotationArbitrary",
+                "sizeAboveFull" ]
             }
         ]
         formats = [ "jpg", "png", "gif", "webp" ]
@@ -132,10 +134,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [ 
-                    "canonical_link_header", 
+                    "canonicalLinkHeader",
+                    "profileLinkHeader", 
                     "mirroring",
-                    "rotation_arbitrary",
-                    "size_above_full" 
+                    "rotationArbitrary",
+                    "sizeAboveFull" 
                 ]
             }
         ]
@@ -160,10 +163,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [ 
-                    "canonical_link_header", 
+                    "canonicalLinkHeader",
+                    "profileLinkHeader", 
                     "mirroring", 
-                    "rotation_arbitrary",
-                    "size_above_full" 
+                    "rotationArbitrary",
+                    "sizeAboveFull" 
                 ]
             }
         ]
@@ -184,10 +188,11 @@ class Test_B_InfoUnit(loris_t.LorisTest):
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ 
-                    "canonical_link_header", 
+                    "canonicalLinkHeader",
+                    "profileLinkHeader",
                     "mirroring", 
-                    "rotation_arbitrary",
-                    "size_above_full" 
+                    "rotationArbitrary",
+                    "sizeAboveFull" 
                 ]
             }
         ]
@@ -216,10 +221,11 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [ 
-                    "canonical_link_header",
+                    "canonicalLinkHeader",
+                    "profileLinkHeader",
                     "mirroring",
-                    "rotation_arbitrary",
-                    "size_above_full"
+                    "rotationArbitrary",
+                    "sizeAboveFull"
                 ]
             }
         ]

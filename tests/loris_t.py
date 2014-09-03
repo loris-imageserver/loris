@@ -40,7 +40,7 @@ class LorisTest(unittest.TestCase):
         self.test_jp2_color_dims = (5906,7200) 
         self.test_jp2_color_levels = 6
         self.test_jp2_color_tiles = [ 
-            { "width": 256, "scale_factors": [1,2,4,8,16,32,64] }
+            { "width": 256, "scaleFactors": [1,2,4,8,16,32,64] }
         ]
         self.test_jp2_color_sizes =  [
             { "height": 113, "width": 93 },
@@ -67,7 +67,7 @@ class LorisTest(unittest.TestCase):
             { "height": 3200, "width": 2477 }
         ]
         self.test_jp2_gray_tiles = [ 
-            { "width": 256, "scale_factors": [1,2,4,8,16,32,64] }
+            { "width": 256, "scaleFactors": [1,2,4,8,16,32,64] }
         ]
 
         self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
@@ -104,8 +104,8 @@ class LorisTest(unittest.TestCase):
             { "height": 5944, "width": 4488 }
         ]
         self.test_jp2_with_precincts_tiles = [ 
-            { "width": 128, "scale_factors": [1,2,4,8,16] }, 
-            { "width": 256, "scale_factors": [32,64] }
+            { "width": 128, "scaleFactors": [1,2,4,8,16] }, 
+            { "width": 256, "scaleFactors": [32,64] }
         ]
 
 
