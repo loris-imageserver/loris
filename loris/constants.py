@@ -8,10 +8,11 @@ CONTEXT = 'http://iiif.io/api/image/2/context.json'
 CONFIG_FILE_NAME = 'loris2.conf'
 
 OPTIONAL_FEATURES = [
-  'canonical_link_header',
+  'canonicalLinkHeader',
+  'profileLinkHeader',
   'mirroring',
-  'rotation_arbitrary',
-  'size_above_full'
+  'rotationArbitrary',
+  'sizeAboveFull'
 ]
 
 __formats = (

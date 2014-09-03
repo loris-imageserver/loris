@@ -40,7 +40,7 @@ IIIF 2.0 Compliance
 -------------------
 Loris Implements all of the IIIF Image API level 2 features, plus nearly all of the "optional" features:
 
- * `size_above_full`
+ * `sizeAboveFull`
  * `rotation_arbitraty`
  * `mirroring`
  * `webp` and `gif` formats 

@@ -46,7 +46,7 @@ class ImageInfo(object):
         ident (str): The image identifier.
         width (int)
         height (int)
-        scale_factors [(int)]
+        scaleFactors [(int)]
         src_img_fp (str): the absolute path on the file system
         protocol (str): the protocol URI (constant)
         profile []: Features supported by the server/available for this image
@@ -54,7 +54,7 @@ class ImageInfo(object):
         sizes [(str)]: the optimal sizes of the image to request
         tiles: [{}]
     '''
-    __slots__ = ('scale_factors', 'width', 'tiles', 'height', 
+    __slots__ = ('scaleFactors', 'width', 'tiles', 'height', 
         'ident', 'profile', 'protocol', 'sizes', 
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
@@ -77,7 +77,7 @@ class ImageInfo(object):
         new_inst.src_img_fp = src_img_fp
         new_inst.tiles = []
         new_inst.sizes = None
-        new_inst.scale_factors = None
+        new_inst.scaleFactors = None
         local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES}
         new_inst.profile = [ COMPLIANCE, local_profile ]
 
@@ -136,7 +136,7 @@ class ImageInfo(object):
         logger.debug('Extracting info from JP2 file.')
         self.profile[1]['qualities'] = ['default', 'bitonal']
 
-        scale_factors = []
+        scaleFactors = []
 
         jp2 = open(fp, 'rb')
         b = jp2.read(1)
@@ -216,8 +216,8 @@ class ImageInfo(object):
             jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
             levels = int(struct.unpack(">B", jp2.read(1))[0])
             logger.debug("levels: " + str(levels))
-            scale_factors = [pow(2, l) for l in range(0,levels+1)]
-            self.tiles[0]['scale_factors'] = scale_factors
+            scaleFactors = [pow(2, l) for l in range(0,levels+1)]
+            self.tiles[0]['scaleFactors'] = scaleFactors
             jp2.read(4) # through code block stuff
 
             # We may have precincts if Scod or Scoc = xxxx xxx0
@@ -244,16 +244,16 @@ class ImageInfo(object):
                         b = jp2.read(1)
                         try:
                             entry = next((i for i in self.tiles if i['width'] == w))
-                            entry['scale_factors'].append(pow(2, level))
+                            entry['scaleFactors'].append(pow(2, level))
                         except StopIteration:
-                            self.tiles.append({'width':w, 'scale_factors':[pow(2, level)]})
+                            self.tiles.append({'width':w, 'scaleFactors':[pow(2, level)]})
 
 
         jp2.close()
 
         self.sizes = []
         [self.sizes.append( { 'width' : w, 'height' : h } )
-            for w,h in self.sizes_for_scales(scale_factors)]
+            for w,h in self.sizes_for_scales(scaleFactors)]
         self.sizes.sort(key=lambda size: max([size['width'], size['height']]))
 
 
