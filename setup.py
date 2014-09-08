@@ -80,7 +80,7 @@ data_files = [
 	(cache_dp, []),
 	(cache_links, []),
 	(info_cache_dp, []),
-	(www_dp, ['www/loris.wsgi']),
+	(www_dp, ['www/loris2.wsgi']),
 	(www_dp, ['www/index.txt']),
 	(tmp_dp, [])
 ]
@@ -131,7 +131,7 @@ for fs_node in loris_owned_dirs:
 	os.chmod(fs_node, 0755)
 	os.chown(fs_node, user_id, group_id)
 
-wsgi_script = os.path.join(www_dp, 'loris.wsgi')
+wsgi_script = os.path.join(www_dp, 'loris2.wsgi')
 executables = (LORIS_CACHE_CLEAN, JP2_EXECUTABLE, wsgi_script)
 for ex in executables:
 	os.chmod(ex, 0755)
