@@ -27,7 +27,6 @@ virtualenv --no-site-packages ~/virtualenvs/loris2
 ```
 cd ~/virtualenvs/loris1
 source bin/activate
-pip install configobj
 ```
 
 Get the source for the last 1.x.x release
