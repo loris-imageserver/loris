@@ -494,7 +494,7 @@ class Loris(object):
         # accessed, which mean we don't have to catch any exceptions here.
         image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
-        logger.debug(image_request.request_path)
+        logger.debug('Image Request Path: %s' % (image_request.request_path,))
 
         if self.enable_caching:
             in_cache = image_request in self.img_cache
@@ -539,8 +539,8 @@ class Loris(object):
                 # 1. Resolve the identifier
                 src_fp, src_format = self.resolver.resolve(ident)
 
+
                 # 2. Hand the Image object its info
-                # IT'S HERE
                 info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
                 image_request.info = info
 

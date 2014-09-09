@@ -13,6 +13,7 @@ from loris_exception import SyntaxException
 from loris_exception import ImageException
 from urllib import unquote, quote_plus
 from werkzeug.http import generate_etag
+from urllib import unquote
 
 logger = getLogger(__name__)
 
@@ -223,7 +224,7 @@ class ImageCache(dict):
 		# Does this make sense? It's a little strange because we already know
 		# the cache root in the webapp. We'll use the Image object (the key)
 		# to make any additional smlinks.
-		canonical_fp = path.join(self._links_root, image_request.c14n_cache_path)
+		canonical_fp = path.join(self._links_root, unquote(image_request.c14n_cache_path))
 		ImageCache._link(fp, canonical_fp)
 		if not image_request.is_canonical:
 			alt_fp = path.join(self._links_root, image_request.cache_path)
@@ -246,8 +247,7 @@ class ImageCache(dict):
 			return None
 
 	def _get_cache_path(self, image_request):
-		return path.realpath(path.join(self._links_root, image_request.cache_path))
-		
-
-
-
+		return path.realpath(path.join(self._links_root, unquote(image_request.cache_path)))
+		# Every request would need the info in order to determine the canonical path:
+		# return path.realpath(path.join(self._links_root, unquote(image_request.c14n_cache_path)))
+		# is it worth it?

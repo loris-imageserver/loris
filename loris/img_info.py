@@ -15,6 +15,7 @@ import fnmatch
 import json
 import os
 import struct
+from urllib import unquote
 
 try:
     from collections import OrderedDict
@@ -320,10 +321,10 @@ class InfoCache(object):
         self._lock = Lock()
 
     def _get_info_fp(self,ident):
-        return os.path.join(self.root,ident,'info.json')
+        return os.path.join(self.root, unquote(ident), 'info.json')
 
     def _get_color_profile_fp(self,ident):
-        return os.path.join(self.root,ident,'profile.icc')
+        return os.path.join(self.root, unquote(ident), 'profile.icc')
 
     def get(self, ident):
         '''
