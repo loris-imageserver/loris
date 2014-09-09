@@ -266,6 +266,7 @@ class ImageInfo(object):
         return int(ceil(dim_len * 1.0/scale))
 
     def to_dict(self):
+        logger.debug('self.ident in to_dict: %s' % (self.ident,))
         d = {}
         d['@context'] = CONTEXT
         d['@id'] = self.ident
@@ -378,6 +379,7 @@ class InfoCache(object):
 
     def __setitem__(self, ident, info):
         # to fs
+        logger.debug('ident passed to __setitem__: %s' % (ident,))
         info_fp = self._get_info_fp(ident)
         dp = os.path.dirname(info_fp)
         if not os.path.exists(dp): 

@@ -312,7 +312,7 @@ class Loris(object):
                 size = slices.pop()
                 region = slices.pop()
 
-                return self.get_img(request, ident, region, size, rotation, quality, fmt)
+                return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
             except ValueError:
                 return BadRequestResponse('could not parse image request')
         # info
@@ -457,12 +457,20 @@ class Loris(object):
             logger.debug('Format: %s' % (src_format,))
             logger.debug('File Path: %s' % (src_fp,))
             logger.debug('Identifier: %s' % (ident,))
+            logger.debug('Base URI: %s' % (base_uri,))
 
             # get the info
             info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats)
 
             # store
             if self.enable_caching:
+                # Elusive bug. For some reason, every once in a while, ident
+                # is the path on the file system rather than the URI.
+                # One thing that's confusing about it is that here 'ident' is
+                # used to mean the identifier slice of the request, and in the
+                # info cache it's used this way, but ImageInfo.ident is URI
+                # that goes in @id.
+                logger.debug('ident used to store %s: %s' % (ident,ident))
                 self.info_cache[ident] = info
                 # pick up the timestamp... :()
                 info,last_mod = self.info_cache[ident]
@@ -471,7 +479,7 @@ class Loris(object):
 
             return (info,last_mod)
     
-    def get_img(self, request, ident, region, size, rotation, quality, target_fmt):
+    def get_img(self, request, ident, region, size, rotation, quality, target_fmt, base_uri):
         '''Get an Image. 
         Args:
             request (Request): 
@@ -518,7 +526,7 @@ class Loris(object):
                 # resolve the identifier
                 src_fp, src_format = self.resolver.resolve(ident)
                 # hand the Image object its info
-                info = self._get_info(ident, request, src_fp, src_format)[0]
+                info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
                 image_request.info = info
                 # we need to do the above to set the canonical link header
 
@@ -532,7 +540,8 @@ class Loris(object):
                 src_fp, src_format = self.resolver.resolve(ident)
 
                 # 2. Hand the Image object its info
-                info = self._get_info(ident, request, src_fp, src_format)[0]
+                # IT'S HERE
+                info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
                 image_request.info = info
 
                 # 3. Check that we can make the quality requested
