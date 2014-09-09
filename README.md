@@ -1,13 +1,19 @@
 ![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
-__If you're looking for a stable version, please use the [latest release](https://github.com/pulibrary/loris/releases/tag/1.2.2). The development branch is working toward [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).__
+ * Loris 2, which is in alpha release at the moment, supports the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/). The best thing to do is either choose a the [latest alpha release](https://github.com/pulibrary/loris/releases) or build from the development branch.
+ * If you're looking for IIIF 1.1 support, please use the [last release in the 1.x series](https://github.com/pulibrary/loris/releases/tag/1.2.2).
 
 [![Build Status](https://travis-ci.org/pulibrary/loris.png)](https://travis-ci.org/pulibrary/loris.png)
 
 Demos
 -----
- * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/default.jpg) (link is broken until PUL is running IIIF 2.0 instance. See [here](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg) for 1.1 compliant demo image)
+IIIF 2.0 Compliance:
+ * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris2/pudl0001%2F5138415%2F00000011.jp2/full/full/0/default.jpg)
+
+IIIF 1.1 Compliance:
+
+ * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg)
  * [Serving Images for OpenSeadragon](http://libimages.princeton.edu/osd-demo)
 
 Installation Instructions
@@ -27,7 +33,6 @@ These instructions are known to work on Ubuntu 12.04 or greater and Python 2.6.3
 
 You're best off working through these steps in order.
 
-
 RedHat, Debian and Troubleshooting
 ---------------------------------
 [mmcclimon](https://github.com/mmcclimon) has provided some excellent [instructions for deploying Loris on RedHat 6 or the equivalent CentOS](doc/redhat-install.md). 
@@ -41,9 +46,13 @@ IIIF 2.0 Compliance
 Loris Implements all of the IIIF Image API level 2 features, plus nearly all of the "optional" features:
 
  * `sizeAboveFull`
- * `rotation_arbitraty`
+ * `rotationArbitrary`
  * `mirroring`
+ * `mirroring`
+ * `profileLinkHeader`
  * `webp` and `gif` formats 
+
+Validation: http://goo.gl/P1KBkU
  
 See http://iiif.io/api/image/2.0/compliance.html for details.
 

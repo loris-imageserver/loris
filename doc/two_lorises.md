@@ -82,9 +82,9 @@ Get the source for the latest 2.x.x release:
 
 ```
 cd ~/src
-wget https://github.com/pulibrary/loris/archive/2.0.0-alpha1.tar.gz
-tar xzvf 2.0.0-alpha1.tar.gz
-cd ~/src/loris-2.0.0-alpha1
+wget https://github.com/pulibrary/loris/archive/2.0.0-alpha2.tar.gz
+tar xzvf 2.0.0-alpha2.tar.gz
+cd ~/src/loris-2.0.0-alpha2
 pip install -r requirements.txt --use-mirrors
 ```
 
