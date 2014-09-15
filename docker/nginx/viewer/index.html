@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<style>
+			.viewport {
+				height: 1000px;
+				width: 1000px;
+				margin-left: auto ;
+	  			margin-right: auto ;
+			}
+		</style>
+		
+	</head>
+	<body>
+
+		<div id="osd-viewport" class="viewport"></div>
+		<script src="openseadragon/openseadragon.js"></script>
+		<script type="text/javascript">
+
+			var host	= window.location.host;
+			var baseURI = '/iiif';
+
+            OpenSeadragon({
+                id:            "osd-viewport",
+                prefixUrl:     "/openseadragon/images/",
+                preserveViewport:   true,
+		        visibilityRatio:    1,
+		        minZoomLevel:       1,
+		        defaultZoomLevel:   1,
+                tileSources:   [
+                "http://" + host + baseURI + "/img/67352ccc-d1b0-11e1-89ae-279075081939.jp2/info.json",
+                "http://" + host + baseURI + "/img/sul_precincts.jp2/info.json",
+                "http://" + host + baseURI + "/img/01/02/0001.jp2/info.json",
+                "http://" + host + baseURI + "/img/01/02/gray.jp2/info.json",
+                "http://" + host + baseURI + "/img/01/03/0001.jpg/info.json",
+                "http://" + host + baseURI + "/img/01/04/0001.tif/info.json"
+                ]
+            });
+
+		</script>
+	</body>
+</html>
