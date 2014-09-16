@@ -1,8 +1,9 @@
 ![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
- * Loris 2, which is in alpha release at the moment, supports the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/). The best thing to do is either choose a the [latest alpha release](https://github.com/pulibrary/loris/releases) or build from the development branch.
+ * Loris 2, which is in alpha release at the moment, supports the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/). The best thing to do is either choose the [latest alpha release](https://github.com/pulibrary/loris/releases) or build from the development branch.
  * If you're looking for IIIF 1.1 support, please use the [last release in the 1.x series](https://github.com/pulibrary/loris/releases/tag/1.2.2).
+ * If you're looking for IIIF 1.0 support, [this release](https://github.com/pulibrary/loris/releases/tag/0.0.9alpha) is the closest Loris ever was, but there are known flaws, deployment is tough, and it is certainly not supported at this point.
 
 [![Build Status](https://travis-ci.org/pulibrary/loris.png)](https://travis-ci.org/pulibrary/loris.png)
 
