@@ -20,13 +20,16 @@ try:
 except ImportError:
     from ImageCms import profileToProfile # PIL
 
-logger = getLogger(__name__)
 
+gexiv_err_msg = 'GExiv2 is not available. IPTC Metadata will not be copied even if this feature is enabled.'
+have_gexiv = True
 try:
     from gi.repository import GExiv2
 except ImportError:
-    msg = 'GExiv2 is not available. IPTC Metadata will not be copied even if this feature is enabled.'
-    logger.warn(msg)
+    have_gexiv = False
+
+logger = getLogger(__name__)
+
 
 class _AbstractTransformer(object):
     def __init__(self, config):
@@ -64,6 +67,10 @@ class _AbstractTransformer(object):
             void (puts an image at target_fp)
 
         '''
+
+        if not have_gexiv and self.copy_iptc:
+            logger.warn(gexiv_err_msg)
+
         if crop and image_request.region_param.canonical_uri_value != 'full':
             # For PIL: "The box is a 4-tuple defining the left, upper, right,
             # and lower pixel coordinate."
@@ -115,7 +122,7 @@ class _AbstractTransformer(object):
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
-            if self.copy_iptc and src_fp:
+            if self.copy_iptc and src_fp and have_gexiv:
                 src_md = GExiv2.Metadata(src_fp)
                 tags = filter(lambda t: 'iptc' in t, src_md.get_xmp_tags()) + src_md.get_iptc_tags()
                 md_to_copy = dict([(t, src_md[t]) for t in tags])
