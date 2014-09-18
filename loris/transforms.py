@@ -22,11 +22,18 @@ except ImportError:
 
 logger = getLogger(__name__)
 
+try:
+    from gi.repository import GExiv2
+except ImportError:
+    msg = 'GExiv2 is not available. IPTC Metadata will not be copied even if this feature is enabled.'
+    logger.warn(msg)
+
 class _AbstractTransformer(object):
     def __init__(self, config):
         self.config = config
         self.target_formats = config['target_formats']
         self.dither_bitonal_images = config['dither_bitonal_images']
+        self.copy_iptc = config['copy_iptc']
         logger.debug('Initialized %s.%s' % (__name__, self.__class__.__name__))
 
     def transform(self, src_fp, target_fp, image_request):
@@ -39,7 +46,7 @@ class _AbstractTransformer(object):
         e = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
 
-    def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
+    def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True, src_fp=None):
         '''
         Once you have a PIL.Image, this can be used to do the IIIF operations.
 
@@ -108,6 +115,19 @@ class _AbstractTransformer(object):
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
+            if self.copy_iptc and src_fp:
+                src_md = GExiv2.Metadata(src_fp)
+                tags = filter(lambda t: 'iptc' in t, src_md.get_xmp_tags()) + src_md.get_iptc_tags()
+                md_to_copy = dict([(t, src_md[t]) for t in tags])
+                
+                logger.debug('md_to_copy: %s' % (repr(md_to_copy),))
+
+                target_md = GExiv2.Metadata(target_fp)
+                [target_md.__setitem__(k,v) for k,v in md_to_copy.iteritems()]
+                target_md.save_file()
+
+
+
 
         elif image_request.format == 'png':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
@@ -127,7 +147,8 @@ class JPG_Transformer(_AbstractTransformer):
 
     def transform(self, src_fp, target_fp, image_request):
         im = Image.open(src_fp)
-        self._derive_with_pil(im, target_fp, image_request)
+        md_to_copy = None
+        self._derive_with_pil(im, target_fp, image_request, src_fp=src_fp)
 
 class TIF_Transformer(_AbstractTransformer):
     def __init__(self, config):
@@ -307,8 +328,8 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
             emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
-
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+        
+        self._derive_with_pil(im, target_fp, image_request, crop=False, src_fp=src_fp)
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
     def __init__(self, config):
@@ -422,4 +443,4 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(im, target_fp, image_request, crop=False, src_fp=src_fp)
