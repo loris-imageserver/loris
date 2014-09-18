@@ -34,6 +34,7 @@ from loris_exception import SyntaxException
 from loris_exception import ImageException
 from loris_exception import ResolverException
 from os import path, makedirs, unlink, removedirs, symlink
+from subprocess import CalledProcessError
 from urllib import unquote, quote_plus
 from werkzeug.http import parse_date, parse_accept_header, http_date
 from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
@@ -410,6 +411,11 @@ class Loris(object):
             return NotFoundResponse(re.message)
         except ImageInfoException as ie:
             return ServerSideErrorResponse(ie.message)
+        except IOError as e:
+            # 500
+            msg = '%s \n(This is likely a permissions problem)' % (str(e),)
+            return ServerSideErrorResponse(msg)
+
         else:
             ims_hdr = request.headers.get('If-Modified-Since')
 
@@ -572,7 +578,13 @@ class Loris(object):
                 # ImageInfo.from_image_file() can't  determine the format of the 
                 # source image. It results in a 500, but isn't necessarily a 
                 # developer error.
-                return ServerSideErrorResponse(ie.message)
+                return ServerSideErrorResponse(ie)
+            except (CalledProcessError,IOError) as e:
+                # CalledProcessError and IOError typically happen when there are 
+                # permissions problems with one of the files or directories
+                # used by the transformer.
+                msg = '%s \n(This is likely a permissions problem)' % (str(e),)
+                return ServerSideErrorResponse(msg)
 
         r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
         r.status_code = 200
@@ -617,8 +629,8 @@ class Loris(object):
         #  cache if caching (this makes symlinks for next time)
         if self.enable_caching:
             self.img_cache[image_request] = target_fp
-
         return target_fp
+
 
     @staticmethod
     def _get_uuid_path():
