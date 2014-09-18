@@ -370,6 +370,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         return arg
 
     def transform(self, src_fp, target_fp, image_request):
+
         # kdu writes to this:
         fifo_fp = self._make_tmp_fp()
 
@@ -377,9 +378,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
         logger.debug('Calling %s' % (mkfifo_call,))
         resp = subprocess.check_call(mkfifo_call, shell=True)
-        if resp != 0:
-            logger.error('Problem with mkfifo')
-        # how to handle CalledProcessError; would have to be a 500?
 
         # kdu command
         q = '-quiet'
@@ -411,7 +409,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             p.feed(s)
         im = p.close() # a PIL.Image
 
-
         # finish kdu
         kdu_exit = kdu_expand_proc.wait()
         if kdu_exit != 0:
@@ -423,3 +420,4 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
+
