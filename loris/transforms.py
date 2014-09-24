@@ -21,12 +21,18 @@ except ImportError:
     from ImageCms import profileToProfile # PIL
 
 
-gexiv_err_msg = 'GExiv2 is not available. IPTC Metadata will not be copied even if this feature is enabled.'
-have_gexiv = True
+iptc_err_msg = 'Neither pyexiv2 or GExiv2 is available. IPTC Metadata will not be copied even if this feature is enabled.'
+have_gexiv = False
+have_pyexiv2 = False
 try:
     from gi.repository import GExiv2
+    have_gexiv = True
 except ImportError:
-    have_gexiv = False
+    try:
+        import pyexiv2
+        have_pyexiv2 = True
+    except ImportError:
+        pass # we'll log it later on
 
 logger = getLogger(__name__)
 
@@ -38,6 +44,9 @@ class _AbstractTransformer(object):
         self.dither_bitonal_images = config['dither_bitonal_images']
         self.copy_iptc = config['copy_iptc']
         logger.debug('Initialized %s.%s' % (__name__, self.__class__.__name__))
+        if not any((have_gexiv, have_pyexiv2)) and self.copy_iptc:
+            logger.warn(iptc_err_msg)
+
 
     def transform(self, src_fp, target_fp, image_request):
         '''
@@ -67,9 +76,6 @@ class _AbstractTransformer(object):
             void (puts an image at target_fp)
 
         '''
-
-        if not have_gexiv and self.copy_iptc:
-            logger.warn(gexiv_err_msg)
 
         if crop and image_request.region_param.canonical_uri_value != 'full':
             # For PIL: "The box is a 4-tuple defining the left, upper, right,
@@ -132,8 +138,26 @@ class _AbstractTransformer(object):
                 target_md = GExiv2.Metadata(target_fp)
                 [target_md.__setitem__(k,v) for k,v in md_to_copy.iteritems()]
                 target_md.save_file()
+            # pyexiv2
+            elif self.copy_iptc and src_fp and have_pyexiv2:
+                try:
+                    src_md = pyexiv2.ImageMetadata(src_fp)
+                    src_md.read()
+                    target_md = pyexiv2.ImageMetadata(target_fp)
+                    target_md.read()
 
+                    # IPTC from XMP
+                    [target_md.__setitem__(iptc_xmp_tag, pyexiv2.XmpTag(iptc_xmp_tag, src_md[iptc_xmp_tag])) \
+                        for iptc_xmp_tag in filter(lambda t: 'iptc' in t, src_md.xmp_keys)]
+                    target_md.write()
 
+                    # IPTC tags
+                    copy(target_md, exif=False, iptc=True, xmp=False, comment=True)
+
+                except AttributeError:
+                    # an older version of pyexiv2...hopefully the API didn't change TOO often
+                    # E.g. http://tilloy.net/dev/pyexiv2/doc/release-0.1.3/pyexiv2.htm
+                    logger.warn('IPTC data not copied. Please update pyexiv2 to at least version 0.3.0')
 
 
         elif image_request.format == 'png':
