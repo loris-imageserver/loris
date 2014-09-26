@@ -72,5 +72,5 @@ Hints:
     $ scp -P 2222 -rp ../sample_img/* root@localhost:/usr/local/share/images  # (password: "root" by config...obviously you shouldn't do this in production)
     ```
  7. Visit:
-     * http://localhost/iiif/00000011.jp2/full/pct:10/0/default.jpg (for example)
-     * http://localhost/
+     * [http://localhost/iiif/00000011.jp2/full/pct:10/0/default.jpg](http://localhost/iiif/00000011.jp2/full/pct:10/0/default.jpg) (for example)
+     * [http://localhost/](http://localhost/)
