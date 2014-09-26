@@ -2,12 +2,12 @@ var SERVER = 'http://' + window.location.host + '/iiif/';
 var INFO = '/info.json';
 
 var SAMPLES = [
-  '%2Fimg%2F67352ccc-d1b0-11e1-89ae-279075081939.jp2',
-  '%2Fimg%2Fsul_precincts.jp2',
-  '%2Fimg%2F01%2F02%2F0001.jp2',
-  '%2Fimg%2F01%2F02%2Fgray.jp2',
-  '%2Fimg%2F01%2F03%2F0001.jpg',
-  '%2Fimg%2F01%2F04%2F0001.tif'
+  '67352ccc-d1b0-11e1-89ae-279075081939.jp2',
+  'sul_precincts.jp2',
+  '01%2F02%2F0001.jp2',
+  '01%2F02%2Fgray.jp2',
+  '01%2F03%2F0001.jpg',
+  '01%2F04%2F0001.tif'
 ];
 
 var height = jQuery(window).height();
