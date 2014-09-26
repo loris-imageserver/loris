@@ -3,11 +3,9 @@ var INFO = '/info.json';
 
 var SAMPLES = [
   '67352ccc-d1b0-11e1-89ae-279075081939.jp2',
-  'sul_precincts.jp2',
-  '01%2F02%2F0001.jp2',
-  '01%2F02%2Fgray.jp2',
-  '01%2F03%2F0001.jpg',
-  '01%2F04%2F0001.tif'
+  '00000001.jp2',
+  '00000011.jp2',
+  '00000008.jp2'
 ];
 
 var height = jQuery(window).height();
