@@ -2,7 +2,9 @@
 
 This guide assumes that you have [Docker](https://www.docker.com/) [installed](http://docs.docker.com/installation/#installation) and the [source code for Loris](https://github.com/pulibrary/loris) cloned. The result will be a Loris cluster running three nodes. 
 
-Hint: add yourself to the docker group so that you can run docker commands without `sudo`.
+Hints: 
+ * Add yourself to the docker group so that you can run docker commands without `sudo`.
+ * Make sure nothing is running on ports 80, 5001, 5002, or 5003 on your machine.
 
  1. Get the image from [Docker Hub](https://registry.hub.docker.com/u/pulibrary/loris/)
 
@@ -69,3 +71,6 @@ Hint: add yourself to the docker group so that you can run docker commands witho
     7765d6452b0b9c3e31bc6812139c3164cfc12bba08b267eb5d81c3ad37647ae0
     $ scp -P 2222 -rp ../sample_img/* root@localhost:/usr/local/share/images  # (password: "root" by config...obviously you shouldn't do this in production)
     ```
+ 7. Visit:
+     * http://localhost/iiif/00000011.jp2/full/pct:10/0/default.jpg (for example)
+     * http://localhost/
