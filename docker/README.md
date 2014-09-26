@@ -50,4 +50,4 @@ Load test images via sshd
     $ cd ../sshd/
     $ docker build -t loris/sshd .
     $ docker run --name loris_sshd --volumes-from loris_data  -d -p 8022:22 loris/sshd
-    $ scp -P 8022 -rp ../../tests/img/ root@<Host or Container IP>:/usr/local/share/images  # (password: root)
+    $ scp -P 8022 -rp ../../tests/img/* root@<Host or Container IP>:/usr/local/share/images  # (password: root)
