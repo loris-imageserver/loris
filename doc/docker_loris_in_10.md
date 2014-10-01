@@ -20,7 +20,7 @@ Hints:
 
     ```
     $ docker run --name loris_data \
-        -v /usr/local/share/images \
+        -v /path/to/loris/docker/sample_img:/usr/local/share/images \
         -v /var/cache/loris \
         -d ubuntu \
         echo Data only container for loris images and cache
@@ -30,11 +30,11 @@ Hints:
  3. Run three instances of Loris using the shared data:
 
     ```
-    $ docker run --name loris_server_1 -p 5001:3000 --volumes-from loris_data -d pulibrary/loris
+    $ docker run --name loris_server_1 --volumes-from loris_data -d pulibrary/loris
     eb25b3f631c71e0c44925e6590a56e7c2c8d8423ee3324aea149a11eaae16983
-    $ docker run --name loris_server_2 -p 5002:3000 --volumes-from loris_data -d pulibrary/loris
+    $ docker run --name loris_server_2 --volumes-from loris_data -d pulibrary/loris
     ace34e27e376d2c2073f19df087fff304fbe6ce3cb17cf8e508e402449df89f1
-    $ docker run --name loris_server_3 -p 5003:3000 --volumes-from loris_data -d pulibrary/loris
+    $ docker run --name loris_server_3 --volumes-from loris_data -d pulibrary/loris
     f63d1e23a9fa9b574380cd54a0cb7407f6427dd7b45f71f1069839d9f5d91f80
     ```
 
@@ -60,17 +60,6 @@ Hints:
 
     (You could start more lorises and add them to the nginx config [here](https://github.com/pulibrary/loris/blob/development/docker/nginx/nginx.conf#L22-L26) )
 
- 6. Use ssh to load some test images:
-
-    ```
-    $ cd ../sshd/ # docker/sshd in the loris source code
-    $ docker build -t loris/sshd .
-    [...] # this could take a while depending on your connection
-    Successfully built 550cdef1ad98
-    $ docker run --name loris_sshd --volumes-from loris_data  -d -p 2222:22 loris/sshd
-    7765d6452b0b9c3e31bc6812139c3164cfc12bba08b267eb5d81c3ad37647ae0
-    $ scp -P 2222 -rp ../sample_img/* root@localhost:/usr/local/share/images  # (password: "root" by config...obviously you shouldn't do this in production)
-    ```
- 7. Visit:
+ 6. Visit:
      * [http://localhost/iiif/00000011.jp2/full/pct:10/0/default.jpg](http://localhost/iiif/00000011.jp2/full/pct:10/0/default.jpg) (for example)
      * [http://localhost/](http://localhost/)
