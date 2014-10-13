@@ -16,6 +16,7 @@ import json
 import os
 import struct
 from urllib import unquote
+from sys import exit
 
 try:
     from collections import OrderedDict
@@ -194,61 +195,61 @@ class ImageInfo(object):
 
         logger.debug('qualities: ' + str(self.profile[1]['qualities']))
 
-        b = jp2.read(1)
-        while (ord(b) != 0xFF): b = jp2.read(1)
-        b = jp2.read(1) #skip over the SOC and 0x4F 
+        window =  deque(jp2.read(2), 2)
+        while map(ord, window) != [0xFF, 0x4F]: # (SOC - required, see pg 14)
+            window.append(jp2.read(1))
+        while map(ord, window) != [0xFF, 0x51]:  # (SIZ  - required, see pg 14)
+            window.append(jp2.read(1))
+        jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
+        tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
+        tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
+        logger.debug("tile width: " + str(tile_width))
+        logger.debug("tile height: " + str(tile_height))
+        self.tiles.append( { 'width' : tile_width } )
+        if tile_width != tile_height:
+            self.tiles[0]['height'] = tile_height
+        jp2.read(10) # XTOsiz (32), YTOsiz (32), Csiz (16)
+
+        window =  deque(jp2.read(2), 2)
+        # while (ord(b) != 0xFF): b = jp2.read(1)
+        # b = jp2.read(1) # 0x52: The COD marker segment
+        while map(ord, window) != [0xFF, 0x52]:  # (COD - required, see pg 14)
+            window.append(jp2.read(1))
         
-        while (ord(b) != 0xFF): b = jp2.read(1)
-        b = jp2.read(1) # 0x51: The SIZ marker segment
-        if (ord(b) == 0x51):
-            jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
-            tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
-            tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
-            logger.debug("tile width: " + str(tile_width))
-            logger.debug("tile height: " + str(tile_height))
-            self.tiles.append( { 'width' : tile_width } )
-            if tile_width != tile_height:
-                self.tiles[0]['height'] = tile_height
-            jp2.read(10) # XTOsiz (32), YTOsiz (32), Csiz (16)
+        jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
+        levels = int(struct.unpack(">B", jp2.read(1))[0])
+        logger.debug("levels: " + str(levels))
+        scaleFactors = [pow(2, l) for l in range(0,levels+1)]
+        self.tiles[0]['scaleFactors'] = scaleFactors
+        jp2.read(4) # through code block stuff
 
-        while (ord(b) != 0xFF): b = jp2.read(1)
-        b = jp2.read(1) # 0x52: The COD marker segment
-        if (ord(b) == 0x52):
-            jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
-            levels = int(struct.unpack(">B", jp2.read(1))[0])
-            logger.debug("levels: " + str(levels))
-            scaleFactors = [pow(2, l) for l in range(0,levels+1)]
-            self.tiles[0]['scaleFactors'] = scaleFactors
-            jp2.read(4) # through code block stuff
+        # We may have precincts if Scod or Scoc = xxxx xxx0
+        # But we don't need to examine as this is the last variable in the 
+        # COD segment. Instead check if the next byte == 0xFF. If it is, 
+        # we don't have a Precint size parameter and we've moved on to either
+        # the COC (optional, marker = 0xFF53) or the QCD (required,
+        # marker = 0xFF5C)
+        b = jp2.read(1)
+        if ord(b) != 0xFF:
+            if self.tiles[0]['width'] == self.width \
+                and self.tiles[0].get('height') in (self.height, None):
+                # Clear what we got above in SIZ and prefer this. This could 
+                # technically break as it's possible to have precincts inside tiles.
+                # Let's wait for that to come up....
+                self.tiles = []
 
-            # We may have precincts if Scod or Scoc = xxxx xxx0
-            # But we don't need to examine as this is the last variable in the 
-            # COD segment. Instead check if the next byte == 0xFF. If it is, 
-            # we don't have a Precint size parameter and we've moved on to either
-            # the COC (optional, marker = 0xFF53) or the QCD (required,
-            # marker = 0xFF5C)
-            b = jp2.read(1)
-            if ord(b) != 0xFF:
-                if self.tiles[0]['width'] == self.width \
-                    and self.tiles[0].get('height') in (self.height, None):
-                    # Clear what we got above in SIZ and prefer this. This could 
-                    # technically break as it's possible to have precincts inside tiles.
-                    # Let's wait for that to come up....
-                    self.tiles = []
-
-                    for level in range(levels+1):
-                        i = int(bin(struct.unpack(">B", b)[0])[2:].zfill(8),2)
-                        x = i&15
-                        y = i >> 4
-                        w = 2**x
-                        h = 2**y
-                        b = jp2.read(1)
-                        try:
-                            entry = next((i for i in self.tiles if i['width'] == w))
-                            entry['scaleFactors'].append(pow(2, level))
-                        except StopIteration:
-                            self.tiles.append({'width':w, 'scaleFactors':[pow(2, level)]})
-
+                for level in range(levels+1):
+                    i = int(bin(struct.unpack(">B", b)[0])[2:].zfill(8),2)
+                    x = i&15
+                    y = i >> 4
+                    w = 2**x
+                    h = 2**y
+                    b = jp2.read(1)
+                    try:
+                        entry = next((i for i in self.tiles if i['width'] == w))
+                        entry['scaleFactors'].append(pow(2, level))
+                    except StopIteration:
+                        self.tiles.append({'width':w, 'scaleFactors':[pow(2, level)]})
 
         jp2.close()
 
@@ -256,7 +257,6 @@ class ImageInfo(object):
         [self.sizes.append( { 'width' : w, 'height' : h } )
             for w,h in self.sizes_for_scales(scaleFactors)]
         self.sizes.sort(key=lambda size: max([size['width'], size['height']]))
-
 
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim

@@ -35,6 +35,7 @@ except ImportError:
     # Otherwise try from the source
     loris_proj_dp = dirname(dirname(realpath(__file__)))
     from sys import path
+
     path.append(loris_proj_dp)
     from loris.img_info import ImageInfo
 
