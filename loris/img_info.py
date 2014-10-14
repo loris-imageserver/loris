@@ -216,8 +216,6 @@ class ImageInfo(object):
 		while map(ord, window) != [0xFF, 0x51]:  # (SIZ  - required, see pg 14)
 			window.append(jp2.read(1))
 		jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
-		logger.debug('*'*80)
-		logger.debug('*'*80)
 		self.tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
 		self.tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
 		logger.debug("tile width: " + str(self.tile_width))
