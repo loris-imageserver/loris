@@ -1,0 +1,1 @@
+/home/jstroop/.pythonz/pythons/CPython-2.7.8/lib/python2.7/locale.py
