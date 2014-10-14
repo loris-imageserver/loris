@@ -32,9 +32,9 @@ source bin/activate
 Get the source for the last 1.x.x release
 ```
 cd ~/src
-wget https://github.com/pulibrary/loris/archive/1.2.2.tar.gz
-tar xzvf 1.2.2.tar.gz
-cd ~/src/loris-1.2.2
+wget https://github.com/pulibrary/loris/archive/1.2.3.tar.gz
+tar xzvf 1.2.3.tar.gz
+cd ~/src/loris-1.2.3
 pip install -r requirements.txt --use-mirrors
 ```
 
