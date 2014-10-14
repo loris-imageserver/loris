@@ -109,7 +109,7 @@ class _AbstractTransformer(object):
 				wh.reverse()
 
 			logger.debug(wh)
-			im = im.resize(wh)
+			im = im.resize(wh, resample=Image.ANTIALIAS)
 
 		if im.mode != "RGB":
 			im = im.convert("RGB")
@@ -118,7 +118,6 @@ class _AbstractTransformer(object):
 			r = 0-int(image_request.rotation_param.uri_value)
 			im = im.rotate(r, expand=1)
 
-			# im = im.resize(wh)
 
 			# Here's a recipe for setting different background colors
 			# http://stackoverflow.com/a/5253554/714478
