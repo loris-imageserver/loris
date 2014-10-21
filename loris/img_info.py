@@ -190,6 +190,9 @@ class ImageInfo(object):
             profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
             logger.debug('profile size: %d' % (profile_size))
             self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
+            # This is an assumption for now (i.e. that if you have a colour profile 
+            # embedded, you're probably working with color images.
+            self.profile[1]['qualities'] += ['gray', 'color'] 
         else:
             logger.warn('colr METH is neither "1" or "2". See jp2 spec pg. 139.')
 
