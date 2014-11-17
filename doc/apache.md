@@ -28,7 +28,7 @@ ExpiresDefault "access plus 5184000 seconds"
 AllowEncodedSlashes On
 
 WSGIDaemonProcess loris user=loris group=loris processes=10 threads=15 maximum-requests=10000
-WSGIScriptAlias /loris /var/www/loris/loris.wsgi
+WSGIScriptAlias /loris /var/www/loris/loris2.wsgi
 WSGIProcessGroup loris
 ```
 

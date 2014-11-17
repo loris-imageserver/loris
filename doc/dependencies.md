@@ -52,7 +52,7 @@ In order from least to most tedious:
 
         $ sudo apt-get install libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 \
         libfreetype6-dev zlib1g-dev liblcms2-2 liblcms2-dev liblcms-utils \
-        libtiff5-dev libwebp-dev
+        libtiff5-dev libwebp-dev python-dev python-setuptools
 
     If you're planning on using OpenJPEG, it should have been installed in step 2 above.
 
@@ -72,6 +72,13 @@ In order from least to most tedious:
         --- WEBP support available
         --- WEBPMUX support available
         [...]
+
+    The following are required python libraries that must currently exist on the system:
+
+        $ sudo pip install configobj
+        $ sudo pip install requests
+        $ sudo pip install mock
+        $ sudo pip install responses
 
     Once you done all of this, go ahead and run the tests. From the `loris` directory (not `loris/loris`) run `./test.py`
 
