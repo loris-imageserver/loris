@@ -34,6 +34,7 @@ and then run setup again.
 VERSION = loris.__version__
 
 LORIS_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-cache_clean.sh')
+LORIS_HTTP_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-http_cache_clean.sh')
 
 this_dp = os.path.abspath(os.path.dirname(__file__))
 
@@ -94,7 +95,7 @@ if config['transforms']['jp2']['impl'] == 'KakaduJP2Transformer':
 	JP2_LIBS = os.path.join(LIB_DP, KakaduJP2Transformer.libkdu_name())
 	data_files.append( (LIB_DP, [KakaduJP2Transformer.local_libkdu_path()]) )
 	kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
-	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', kdu_expand]) )
+	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/loris-http_cache_clean.sh', 'bin/iiif_img_info', kdu_expand]) )
 
 elif config['transforms']['jp2']['impl'] == 'OPJ_JP2Transformer':
 	from loris.transforms import OPJ_JP2Transformer
@@ -102,7 +103,7 @@ elif config['transforms']['jp2']['impl'] == 'OPJ_JP2Transformer':
 	JP2_LIBS = os.path.join(LIB_DP, OPJ_JP2Transformer.libopenjp2_name())
 	data_files.append( (LIB_DP, [OPJ_JP2Transformer.local_libopenjp2_path()]) )
 	opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/iiif_img_info', opj_decompress]) )		
+	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/loris-http_cache_clean.sh', 'bin/iiif_img_info', opj_decompress]) )
 
 def read(fname):
 	return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -132,7 +133,7 @@ for fs_node in loris_owned_dirs:
 	os.chown(fs_node, user_id, group_id)
 
 wsgi_script = os.path.join(www_dp, 'loris2.wsgi')
-executables = (LORIS_CACHE_CLEAN, JP2_EXECUTABLE, wsgi_script)
+executables = (LORIS_CACHE_CLEAN, LORIS_HTTP_CACHE_CLEAN, JP2_EXECUTABLE, wsgi_script)
 for ex in executables:
 	os.chmod(ex, 0755)
 	os.chown(ex, user_id, group_id)
@@ -143,6 +144,7 @@ os.chown(index, user_id, group_id)
 
 d = {
 	'cache_clean' : LORIS_CACHE_CLEAN,
+    'cache_http_clean' : LORIS_HTTP_CACHE_CLEAN,
 	'cache_dp' : cache_dp,
 	'cache_links' : cache_links,
 	'config' : ETC_DP,
@@ -160,7 +162,8 @@ todo = '''
 Installation was successful. Here's where things are:
 
  * Loris configuration: %(config)s
- * Cache cleaner cron: %(cache_clean)s
+ * Cache cleaner Simple cron: %(cache_clean)s
+ * Cache cleaner HTTP cron: %(cache_http_clean)s
  * JP2 executable: %(jptoo_exe)s (kdu_expand or opj_decompress)
  * JP2 libraries: %(jptoo_lib)s (libkdu or libopenjp2)
  * Logs: %(logs)s
@@ -179,8 +182,9 @@ In particular:
 	notes about this in doc/dependencies.md.
 
  2. Configure the cron job that manages the cache (bin/loris-cache_clean.sh, 
-	now at %(cache_clean)s). Make sure the constants match 
-	how you have Loris configured, and then set up the cron 
+	now at %(cache_clean)s, or bin/loris-http_cache_clean.sh,
+	now at %(cache_http_clean)s). Make sure the
+	constants match how you have Loris configured, and then set up the cron
 	(e.g. `crontab -e -u %(user_n)s`).
 
  3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but 
