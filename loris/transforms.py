@@ -393,31 +393,38 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
 
         logger.debug('Calling: %s' % (kdu_cmd,))
 
-        # Start the kdu shellout. Blocks until the pipe is empty
-        kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1, 
-            stderr=subprocess.PIPE, env=self.env)
+        try:
+            # Start the kdu shellout. Blocks until the pipe is empty
+            kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1, 
+                stderr=subprocess.PIPE, env=self.env)
 
-        f = open(fifo_fp, 'rb')
-        logger.debug('Opened %s' % fifo_fp)
+            f = open(fifo_fp, 'rb')
+            logger.debug('Opened %s' % fifo_fp)
 
-        # read from the named pipe
-        p = Parser()
-        while True:
-            s = f.read(1024)
-            if not s:
-                break
-            p.feed(s)
-        im = p.close() # a PIL.Image
+             # read from the named pipe
+            p = Parser()
+            while True:
+                s = f.read(1024)
+                if not s:
+                    break
+                p.feed(s)
+            im = p.close() # a PIL.Image
 
-        # finish kdu
-        kdu_exit = kdu_expand_proc.wait()
-        if kdu_exit != 0:
-            map(logger.error, kdu_expand_proc.stderr)
-        unlink(fifo_fp)
+            # finish kdu
+            kdu_exit = kdu_expand_proc.wait()
+            if kdu_exit != 0:
+                map(logger.error, kdu_expand_proc.stderr)
 
-        if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
-            im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+                im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+            self._derive_with_pil(im, target_fp, image_request, crop=False)
+        except:
+            raise
+        finally:
+            kdu_exit = kdu_expand_proc.wait()
+            if kdu_exit != 0:
+                map(logger.error, map(string.strip, kdu_expand_proc.stderr))
+            unlink(fifo_fp)
 

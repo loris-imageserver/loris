@@ -583,7 +583,9 @@ class Loris(object):
                 # CalledProcessError and IOError typically happen when there are 
                 # permissions problems with one of the files or directories
                 # used by the transformer.
-                msg = '%s \n(This is likely a permissions problem)' % (str(e),)
+                msg = '''%s \n\nThis is likely a permissions problem, though it\'s 
+possible that there was a problem with the source file 
+(%s).''' % (str(e),src_fp)
                 return ServerSideErrorResponse(msg)
 
         r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
