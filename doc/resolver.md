@@ -1,10 +1,13 @@
 Resolving Identifiers
 =====================
 
-The supplied implementation just unescapes the identifier and tacks a constant path onto the front. e.g. if `ident = 01%2F02%2F0001.jp2` and in the config file:
+### `SimpleFSResolver`
+
+This supplied implementation just unescapes the identifier and tacks a constant path onto the front. e.g. if `ident = 01%2F02%2F0001.jp2` and in the config file:
 
 ```ini
-[resolver.Resolver] 
+[resolver]
+impl = 'SimpleFSResolver'
 src_img_root=/usr/local/share/images
 ```
 
@@ -14,7 +17,68 @@ then `app.resolver.resolve(ident)` will return
 /usr/local/share/images/01/02/0001.jp2
 ```
 
-You'll probably want to do something smarter. See `resolver._AbstractResolver` for details. Note that any properties you add in the `[resolver.Resolver]` section will be in the `self.config` dictionary as long as you subclass `_AbstractResolver`.
+### `SimpleHTTPResolver`
+
+#### Main Configuration
+
+This supplied implementation allows one to resolve identifiers against a HTTP source. This resolver requires a variable of "cache_root" be specified (the location to locally cache retrieved images) and that either "source_prefix" and/or "uri_resolvable" is configured.
+
+A sample config of this resolver might be:
+
+```ini
+[resolver]
+impl = 'SimpleHTTPResolver'
+source_prefix='https://<server>/fedora/objects/'
+source_suffix='/datastreams/accessMaster/content'
+cache_root='/usr/local/share/images/loris'
+user='<if needed else remove this line>'
+pw='<if needed else remove this line>'
+```
+
+Another sample configuration assuming one wishes to use uri's:
+
+```ini
+[resolver]
+impl = 'SimpleHTTPResolver'
+uri_resolvable=True
+cache_root='/usr/local/share/images/loris'
+```
+
+A full configuration sample that shows all the options and their defaults are:
+
+```ini
+[resolver]
+impl = 'SimpleHTTPResolver'
+source_prefix=''
+source_suffix=''
+uri_resolvable=False
+head_resolvable=False #DO set this to true if using Fedora Commons 3.8 or later. Earlier versions have a bug for a head response.
+default_format=None #Set this if your HTTP server doesn't populate content-response. An example value might be "jp2".
+user=None
+pw=None
+cache_root='<must be configured>'
+```
+
+#### Required Other Configurations
+
+Additionally, please note the following must also exist if the "enable_caching" is True and be configured to be owned by the loris user. While the cache_root above with the larger derivatives can be on a NAS, these following must likely be stored on the local server file system to avoid problems (they are somewhat small however):
+
+```ini
+[img.ImageCache]
+cache_dp = '/var/cache/loris/img' # rwx
+cache_links = '/var/cache/loris/links' # rwx
+
+[img_info.InfoCache]
+cache_dp = '/var/cache/loris/info' # rwx
+```
+
+#### Examples in the Wild
+
+[https://www.digitalcommonwealth.org](https://www.digitalcommonwealth.org) - Used for all object images except thumbnails.
+
+### `Creating Your Own`
+
+See `resolver._AbstractResolver` for details. Note that any properties you add in the `[resolver.Resolver]` section will be in the `self.config` dictionary as long as you subclass `_AbstractResolver`.
 
 * * *
 

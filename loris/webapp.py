@@ -81,7 +81,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
         config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
         config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
         config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-        config['resolver']['impl'] = 'SimpleFSResolver' 
+        config['resolver']['impl'] = 'SimpleFSResolver'
         config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
         
         if debug_jp2_transformer == 'opj':
@@ -288,7 +288,6 @@ class Loris(object):
         if not self.resolver.is_resolvable(ident):
             msg = "could not resolve identifier: %s " % (ident)
             return NotFoundResponse(msg)
-
         elif params == '' and request_type == 'info':
             r = LorisResponse()
             r.headers['Location'] = '%s/info.json' % (base_uri,)
@@ -346,6 +345,7 @@ class Loris(object):
 
         # Otherwise, does the path end with info.json?
         elif r.path.endswith('info.json'):
+        #if r.path.endswith('info.json'):
             ident = '/'.join(r.path[1:].split('/')[:-1])
             params = 'info.json'
 
@@ -583,7 +583,9 @@ class Loris(object):
                 # CalledProcessError and IOError typically happen when there are 
                 # permissions problems with one of the files or directories
                 # used by the transformer.
-                msg = '%s \n(This is likely a permissions problem)' % (str(e),)
+                msg = '''%s \n\nThis is likely a permissions problem, though it\'s 
+possible that there was a problem with the source file 
+(%s).''' % (str(e),src_fp)
                 return ServerSideErrorResponse(msg)
 
         r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]

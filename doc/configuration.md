@@ -46,9 +46,9 @@ The options are fairly self-explanatory; a few pointers
  * `max_backups`. This many previous logs will be kept.
  * `format`. Format of the log entries. See [Python LogRecord attributes](http://docs.python.org/2/library/logging.html#logrecord-attributes) for options.
 
-### `[resolver.Resolver]`
+### `[resolver]`
 
-Any options you add here will be passed through to the resolver you implement. For an explanation of the default resolver, see the [Resolver page](resolver.md).
+Any options you add here will be passed through to the resolver you implement. For an explanation of some of the resolvers, see the [Resolver page](resolver.md).
 
 ### `[transforms.*]`
 

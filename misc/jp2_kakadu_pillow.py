@@ -10,7 +10,7 @@ import sys
 KDU_EXPAND='/usr/local/bin/kdu_expand'
 LIB_KDU='/usr/local/lib/libkdu_v72R.so'
 TMP='/tmp'
-INPUT_JP2='/home/jstroop/Desktop/nanteuil.jp2'
+INPUT_JP2='/home/jstroop/workspace/loris/tests/img/corrupt.jp2'
 OUT_JPG='/tmp/test.jpg'
 REDUCE=0
 
