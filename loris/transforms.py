@@ -339,7 +339,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         '''
         system = platform.system()
         if system == 'Linux':
-            return 'libkdu_v72R.so'
+            return 'libkdu_v74R.so'
         elif system == 'Darwin':
             return 'libkdu_v73R.dylib'
 
