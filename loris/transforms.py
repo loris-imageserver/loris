@@ -423,8 +423,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         except:
             raise
         finally:
-            kdu_exit = kdu_expand_proc.wait()
-            if kdu_exit != 0:
-                map(logger.error, map(string.strip, kdu_expand_proc.stderr))
+            if kdu_expand_proc.poll() is None:
+                kdu_expand_proc.kill()
             unlink(fifo_fp)
 
