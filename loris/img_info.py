@@ -386,7 +386,7 @@ class InfoCache(object):
         logger.debug('ident passed to __setitem__: %s' % (ident,))
         info_fp = self._get_info_fp(ident)
         dp = os.path.dirname(info_fp)
-        if not os.path.exists(dp): 
+        if not os.path.isdir(dp): 
             os.makedirs(dp, 0755)
             logger.debug('Created %s' % (dp,))
 
