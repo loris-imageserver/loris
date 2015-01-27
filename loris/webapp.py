@@ -5,7 +5,7 @@ webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 
- Copyright (C) 2013-14 Jon Stroop
+ Copyright (C) 2013-15 Jon Stroop
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -47,11 +47,6 @@ import resolver
 import string
 import transforms
 
-try:
-    import libuuid as uuid # faster. do pip install python-libuuid
-except ImportError:
-    import uuid
-
 # Loris's etc dir MUST either be a sibling to the loris/loris directory or at 
 # the below:
 ETC_DP = '/etc/loris'
@@ -78,7 +73,6 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
         config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
         config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
         config['loris.Loris']['enable_caching'] = True
-        config['img.ImageCache']['cache_links'] = '/tmp/loris/cache/links'
         config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
         config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
         config['resolver']['impl'] = 'SimpleFSResolver'
@@ -112,7 +106,6 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
             dirs_to_make.append(config['logging']['log_dir'])
         if config['loris.Loris']['enable_caching']:
             dirs_to_make.append(config['img.ImageCache']['cache_dp'])
-            dirs_to_make.append(config['img.ImageCache']['cache_links'])
             dirs_to_make.append(config['img_info.InfoCache']['cache_dp'])
         [makedirs(d) for d in dirs_to_make if not path.exists(d)]
     except OSError as ose: 
@@ -239,9 +232,8 @@ class Loris(object):
 
         if self.enable_caching:
             self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
-            cache_links = self.app_configs['img.ImageCache']['cache_links']
             cache_dp = self.app_configs['img.ImageCache']['cache_dp']
-            self.img_cache = img.ImageCache(cache_dp,cache_links)
+            self.img_cache = img.ImageCache(cache_dp)
 
     def _load_transformers(self):
         tforms = self.app_configs['transforms']
@@ -276,7 +268,6 @@ class Loris(object):
         request = Request(environ)
         response = self.route(request)
         return response(environ, start_response)
-
 
     def route(self, request):
         base_uri, ident, params, request_type = self._dissect_uri(request)
@@ -545,7 +536,6 @@ class Loris(object):
                 # 1. Resolve the identifier
                 src_fp, src_format = self.resolver.resolve(ident)
 
-
                 # 2. Hand the Image object its info
                 info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
                 image_request.info = info
@@ -612,9 +602,8 @@ possible that there was a problem with the source file
         '''
         # figure out paths, make dirs
         if self.enable_caching:
-            p = path.join(self.img_cache.cache_root, Loris._get_uuid_path())
-            target_dp = path.dirname(p)
-            target_fp = '%s.%s' % (p, image_request.format)
+            target_fp = self.img_cache.get_cache_path(image_request)
+            target_dp = path.dirname(target_fp)
             if not path.exists(target_dp):
                 makedirs(target_dp)
         else:
@@ -632,16 +621,6 @@ possible that there was a problem with the source file
         if self.enable_caching:
             self.img_cache[image_request] = target_fp
         return target_fp
-
-
-    @staticmethod
-    def _get_uuid_path():
-        # Make a pairtree-like path from a uuid
-        # Wonder if this should be time.time() plus some random check chars,
-        # just to make it shorter
-        _id = uuid.uuid1().hex
-        return path.sep.join([_id[i:i+2] for i in range(0, len(_id), 2)])
-
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple

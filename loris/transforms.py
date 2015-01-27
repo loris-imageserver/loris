@@ -374,11 +374,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         # kdu writes to this:
         fifo_fp = self._make_tmp_fp()
 
-        # make the named pipe
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        logger.debug('Calling %s' % (mkfifo_call,))
-        resp = subprocess.check_call(mkfifo_call, shell=True)
-
         # kdu command
         q = '-quiet'
         t = '-num_threads %s' % (self.num_threads,)
@@ -391,10 +386,14 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
 
         kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
 
-        logger.debug('Calling: %s' % (kdu_cmd,))
+        # make the named pipe
+        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
+        logger.debug('Calling %s' % (mkfifo_call,))
+        resp = subprocess.check_call(mkfifo_call, shell=True)
 
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
+            logger.debug('Calling: %s' % (kdu_cmd,))
             kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1, 
                 stderr=subprocess.PIPE, env=self.env)
 

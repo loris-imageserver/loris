@@ -265,8 +265,8 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
         '''
         self.assertTrue(''.join(lh.split()) in link_header)
 
-class Test_D_InfoCache(loris_t.LorisTest):
-    pass
+# class Test_D_InfoCache(loris_t.LorisTest):
+#     pass
 #
 #   def test_info_cache(self):
 #       pass
@@ -276,6 +276,6 @@ def suite():
     test_suites = []
     test_suites.append(unittest.makeSuite(Test_B_InfoUnit, 'test'))
     test_suites.append(unittest.makeSuite(Test_C_InfoFunctional, 'test'))
-    test_suites.append(unittest.makeSuite(Test_D_InfoCache, 'test'))
+    # test_suites.append(unittest.makeSuite(Test_D_InfoCache, 'test'))
     test_suite = unittest.TestSuite(test_suites)
     return test_suite

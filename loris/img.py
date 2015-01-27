@@ -197,12 +197,11 @@ class ImageRequest(object):
 class ImageCache(dict):
 	'''
 	'''
-	def __init__(self, cache_root, links_root):
-		self._links_root = links_root
+	def __init__(self, cache_root):
 		self.cache_root = cache_root
 
 	def __contains__(self, image_request):
-		return path.exists(self._get_cache_path(image_request))
+		return path.exists(self.get_cache_path(image_request))
 
 	def __getitem__(self, image_request):
 		fp = self.get(image_request)
@@ -211,43 +210,41 @@ class ImageCache(dict):
 		return fp
 
 	@staticmethod
-	def _link(to,fr):
-		link_dp = path.dirname(fr)
+	def _link(to,frum):
+		link_dp = path.dirname(frum)
 		if not path.exists(link_dp):
 			makedirs(link_dp)
-		if path.lexists(fr): # shouldn't be the case, but helps debugging
-			unlink(fr)
-		symlink(to,fr)
-		logger.debug('Made symlink from %s to %s' % (to,fr))
+		if path.lexists(frum): # shouldn't be the case, but helps debugging
+			unlink(frum)
+		symlink(to,frum)
+		logger.debug('Made symlink from %s to %s' % (to,frum))
 
-	def __setitem__(self, image_request, fp): 
-		# Does this make sense? It's a little strange because we already know
-		# the cache root in the webapp. We'll use the Image object (the key)
-		# to make any additional smlinks.
-		canonical_fp = path.join(self._links_root, unquote(image_request.c14n_cache_path))
-		ImageCache._link(fp, canonical_fp)
+	def __setitem__(self, image_request, fp):
+		# The Image (fp) already exists, this simply makes a symlink in the 
+		# cache to from the canonical syntax to the actual request path 
 		if not image_request.is_canonical:
-			alt_fp = path.join(self._links_root, image_request.cache_path)
-			ImageCache._link(fp, alt_fp)
+			canonical_fp = path.join(self.cache_root, unquote(image_request.c14n_cache_path))
+			ImageCache._link(fp, canonical_fp)
 
 	def __delitem__(self, image_request):
-		# if we ever decide to start cleaning our own cache...but the lack
-		# of an fast du-like function (other than shelling out), makes this
-		# unlikely.
+		# if we ever decide to start cleaning our own cache...
 		pass
 
 	def get(self, image_request):
 		'''Returns (str): 
 			The path to the file or None if the file does not exist.
 		'''
-		cache_fp = self._get_cache_path(image_request)
+		cache_fp = self.get_cache_path(image_request)
 		if path.exists(cache_fp):
 			return cache_fp
 		else:
 			return None
 
-	def _get_cache_path(self, image_request):
-		return path.realpath(path.join(self._links_root, unquote(image_request.cache_path)))
+	def get_cache_path(self, image_request):
+		return path.realpath(path.join(self.cache_root, unquote(image_request.cache_path)))
+
+	def get_c14n_cache_path(self, image_request):
+		return path.realpath(path.join(self.cache_root, unquote(image_request.c14n_cache_path)))
 		# Every request would need the info in order to determine the canonical path:
-		# return path.realpath(path.join(self._links_root, unquote(image_request.c14n_cache_path)))
+		# return path.realpath(path.join(self.cache_root, unquote(image_request.c14n_cache_path)))
 		# is it worth it?

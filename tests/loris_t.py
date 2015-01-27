@@ -114,7 +114,6 @@ class LorisTest(unittest.TestCase):
         # empty the cache
         dps = (
             self.app.app_configs['img.ImageCache']['cache_dp'],
-            self.app.app_configs['img.ImageCache']['cache_links'],
             self.app.app_configs['img_info.InfoCache']['cache_dp'],
             self.app.tmp_dp
         )
