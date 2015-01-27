@@ -126,13 +126,13 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         lmod =  resp.headers['Last-Modified']
 
         sleep(1) # just make sure.
-        headers = Headers([('if-modified-since', lmod)])
+        headers = Headers([('If-Modified-Since', lmod)])
         resp = self.client.get(to_get, headers=headers)
         self.assertEqual(resp.status_code, 304)
 
         sleep(1)
         dt = http_date(datetime.utcnow()) # ~2 seconds later
-        headers = Headers([('if-modified-since', dt)])
+        headers = Headers([('If-Modified-Since', dt)])
         resp = self.client.get(to_get, headers=headers)
         self.assertEqual(resp.status_code, 304)
 
@@ -144,7 +144,6 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
 
     def test_no_ims_header_ok(self):
         to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
-
         # get an image
         resp = self.client.get(to_get, headers=Headers())
         self.assertEqual(resp.status_code, 200)
