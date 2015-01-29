@@ -44,12 +44,12 @@ class ImageRequest(object):
 			True if this is a canonical path.
 		cache_path (str): 
 			Relative path from the cache root, based on the original request values.
-		c14n_cache_path (str):
+		canonical_cache_path (str):
 			Relative path from the cache root, based on normalized values
 		request_path
 			Path of the request for tacking on to the service host and creating 
 			a URI based on the original request.
-		c14n_request_path
+		canonical_request_path
 			Path of the request for tacking on to the service host and creating 
 			a URI based on the normalized ('canonical') values.
 			('canonical') values.
@@ -58,8 +58,8 @@ class ImageRequest(object):
 
 	'''
 	__slots__ = (
-		'_c14n_cache_path',
-		'_c14n_request_path',
+		'_canonical_cache_path',
+		'_canonical_request_path',
 		'_cache_path',
 		'_info',
 		'_is_canonical',
@@ -89,8 +89,8 @@ class ImageRequest(object):
 		logger.debug('format extension: %s' % (self.format,))
 
 		# These aren't set until we first access them
-		self._c14n_cache_path = None
-		self._c14n_request_path = None
+		self._canonical_cache_path = None
+		self._canonical_request_path = None
 		self._cache_path = None
 		self._request_path = None
 
@@ -146,40 +146,45 @@ class ImageRequest(object):
 		return self._request_path
 
 	@property
-	def c14n_request_path(self):
-		if self._c14n_request_path is None:
+	def canonical_request_path(self):
+		if self._canonical_request_path is None:
 			p = '/'.join((quote_plus(self.ident), 
 				self.region_param.canonical_uri_value, 
 				self.size_param.canonical_uri_value, 
 				self.rotation_param.canonical_uri_value, 
 				self.quality
 			))
-			self._c14n_request_path = '%s.%s' % (p,self.format)
-		return self._c14n_request_path
+			self._canonical_request_path = '%s.%s' % (p,self.format)
+		return self._canonical_request_path
 
 	@property
 	def cache_path(self):
 		if self._cache_path is None:
-			p = path.join(self.ident, self.region_value, self.size_value, self.rotation_value, self.quality)
-			self._cache_path = '%s.%s' % (p,self.format)
+			p = path.join(self.ident, 
+				self.region_value, 
+				self.size_value, 
+				self.rotation_value, 
+				self.quality
+			)
+			self._cache_path = '%s.%s' % (p, self.format)
 		return self._cache_path
 
 	@property
-	def c14n_cache_path(self):
-		if self._c14n_cache_path is None:
+	def canonical_cache_path(self):
+		if self._canonical_cache_path is None:
 			p = path.join(self.ident, 
 					self.region_param.canonical_uri_value, 
 					self.size_param.canonical_uri_value, 
 					self.rotation_param.canonical_uri_value, 
 					self.quality
 				)
-			self._c14n_cache_path = '%s.%s' % (p,self.format)
-		return self._c14n_cache_path
+			self._canonical_cache_path = '%s.%s' % (p, self.format)
+		return self._canonical_cache_path
 
 	@property
 	def is_canonical(self):
 		if self._is_canonical is None:
-			self._is_canonical = self.cache_path == self.c14n_cache_path
+			self._is_canonical = self.cache_path == self.canonical_cache_path
 		return self._is_canonical
 
 	@property
@@ -223,7 +228,7 @@ class ImageCache(dict):
 		# The Image (fp) already exists, this simply makes a symlink in the 
 		# cache to from the canonical syntax to the actual request path 
 		if not image_request.is_canonical:
-			canonical_fp = path.join(self.cache_root, unquote(image_request.c14n_cache_path))
+			canonical_fp = self.get_canonical_cache_path(image_request)
 			ImageCache._link(fp, canonical_fp)
 
 	def __delitem__(self, image_request):
@@ -243,8 +248,5 @@ class ImageCache(dict):
 	def get_cache_path(self, image_request):
 		return path.realpath(path.join(self.cache_root, unquote(image_request.cache_path)))
 
-	def get_c14n_cache_path(self, image_request):
-		return path.realpath(path.join(self.cache_root, unquote(image_request.c14n_cache_path)))
-		# Every request would need the info in order to determine the canonical path:
-		# return path.realpath(path.join(self.cache_root, unquote(image_request.c14n_cache_path)))
-		# is it worth it?
+	def get_canonical_cache_path(self, image_request):
+		return path.realpath(path.join(self.cache_root, unquote(image_request.canonical_cache_path)))

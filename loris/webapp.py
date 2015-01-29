@@ -43,7 +43,6 @@ import img
 import logging
 import random
 import re
-import resolver
 import string
 import transforms
 
@@ -75,7 +74,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
         config['loris.Loris']['enable_caching'] = True
         config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
         config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-        config['resolver']['impl'] = 'SimpleFSResolver'
+        config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
         config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
         
         if debug_jp2_transformer == 'opj':
@@ -257,12 +256,19 @@ class Loris(object):
 
     def _load_resolver(self):
         impl = self.app_configs['resolver']['impl']
-        config = self.app_configs['resolver'].copy()
-        del config['impl']
-        Klass = getattr(resolver,impl)
-        instance = Klass(config)
-        logger.debug('Loaded Resolver %s' % (impl,))
-        return instance
+        ResolverClass = self._import_class(impl)
+        resolver_config =  self.app_configs['resolver'].copy()
+        del resolver_config['impl']
+        return ResolverClass(resolver_config)
+
+    def _import_class(self, qname):
+        '''Imports a class AND returns it (the class, not an instance).
+        '''
+        module_name = '.'.join(qname.split('.')[:-1])
+        class_name = qname.split('.')[-1] 
+        module = __import__(module_name, fromlist=[class_name])
+        logger.debug('Imported %s' % (qname,))
+        return getattr(module, class_name)
 
     def wsgi_app(self, environ, start_response):
         request = Request(environ)
@@ -527,7 +533,7 @@ class Loris(object):
                 image_request.info = info
                 # we need to do the above to set the canonical link header
 
-                canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
+                canonical_uri = '%s%s' % (request.url_root, image_request.canonical_request_path)
                 r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
                 return r
         else:
@@ -547,8 +553,8 @@ class Loris(object):
                 # 4. Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical:
-                        logger.debug('Attempting redirect to %s' % (image_request.c14n_request_path,))
-                        r.headers['Location'] = image_request.c14n_request_path
+                        logger.debug('Attempting redirect to %s' % (image_request.canonical_request_path,))
+                        r.headers['Location'] = image_request.canonical_request_path
                         r.status_code = 301
                         return r
 
@@ -582,7 +588,7 @@ possible that there was a problem with the source file
         r.status_code = 200
         r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
         r.headers['Content-Length'] = path.getsize(fp)
-        canonical_uri = '%s%s' % (request.url_root, image_request.c14n_request_path)
+        canonical_uri = '%s%s' % (request.url_root, image_request.canonical_request_path)
         r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
         r.response = file(fp)
 
