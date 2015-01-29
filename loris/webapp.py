@@ -277,7 +277,6 @@ class Loris(object):
 
     def route(self, request):
         base_uri, ident, params, request_type = self._dissect_uri(request)
-
         # index.txt
         if ident == '': 
             return self.get_index(request)
@@ -630,11 +629,14 @@ possible that there was a problem with the source file
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
+    import sys
     extra_files = []
 
     project_dp = path.dirname(path.dirname(path.realpath(__file__)))
     conf_fp = path.join(project_dp, 'etc', 'loris.conf')
     extra_files.append(conf_fp)
+
+    sys.path.append(path.join(project_dp)) # to find any local resolvers
 
     app = create_app(debug=True, debug_jp2_transformer='kdu') # or 'opj'
 
