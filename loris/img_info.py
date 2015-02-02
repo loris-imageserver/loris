@@ -11,6 +11,7 @@ from logging import getLogger
 from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
+import errno
 import fnmatch
 import json
 import os
@@ -386,9 +387,13 @@ class InfoCache(object):
         logger.debug('ident passed to __setitem__: %s' % (ident,))
         info_fp = self._get_info_fp(ident)
         dp = os.path.dirname(info_fp)
-        if not os.path.isdir(dp): 
-            os.makedirs(dp, 0755)
-            logger.debug('Created %s' % (dp,))
+        if not os.path.isdir(dp):
+            try:
+                os.makedirs(dp, 0755)
+                logger.debug('Created %s' % (dp,))
+            except OSError as e: # this happens once and a while; not sure why
+                if e.errno == errno.EEXIST:
+                    pass
 
         with open(info_fp, 'w') as f:
             f.write(info.to_json())
