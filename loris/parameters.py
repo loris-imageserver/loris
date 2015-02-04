@@ -63,7 +63,7 @@ class RegionParameter(object):
         self.uri_value = uri_value
         self.img_info = img_info
         try:
-            self.mode = RegionParameter.__mode_from_region_segment(self.uri_value)
+            self.mode = RegionParameter.__mode_from_region_segment(self.uri_value, self.img_info)
             logger.debug('Region mode is "%s" (from "%s")' % (self.mode,uri_value))
         except SyntaxException:
             raise
@@ -183,7 +183,7 @@ class RegionParameter(object):
         self.decimal_h = self.pixel_h / Decimal(str(self.img_info.height))
 
     @staticmethod
-    def __mode_from_region_segment(region_segment):
+    def __mode_from_region_segment(region_segment, img_info):
         '''
         Get the mode of the request from the region segment.
 
@@ -195,12 +195,21 @@ class RegionParameter(object):
         Raises:
             SyntaxException if this can't be determined.
         '''
-        if region_segment.split(':')[0] == 'pct':
-            return PCT_MODE
-        elif region_segment == 'full':
+        comma_segments = region_segment.split(',')
+
+        if region_segment == 'full':
             return FULL_MODE
-        elif all([n.isdigit() for n in region_segment.split(',')]):
+        elif len(comma_segments) == 4 and all([
+                comma_segments[0] == '0',
+                comma_segments[1] == '0',
+                comma_segments[2] == str(img_info.width),
+                comma_segments[3] == str(img_info.height)
+            ]):
+            return FULL_MODE
+        elif all([n.isdigit() for n in comma_segments]):
             return PIXEL_MODE
+        elif region_segment.split(':')[0] == 'pct':
+            return PCT_MODE
         else:
             msg = 'Region syntax "%s" is not valid' % (region_segment,)
             raise SyntaxException(http_status=400, message=msg)
