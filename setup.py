@@ -62,7 +62,6 @@ Please create this user, e.g.:
 
 
 cache_dp = config['img.ImageCache']['cache_dp']
-cache_links = config['img.ImageCache']['cache_links']
 info_cache_dp = config['img_info.InfoCache']['cache_dp']
 www_dp = config['loris.Loris']['www_dp']
 tmp_dp = config['loris.Loris']['tmp_dp']
@@ -79,7 +78,6 @@ data_files = [
 	(ETC_DP, [os.path.join('etc', CONFIG_FILE_NAME)]),
 	(log_dp, []),
 	(cache_dp, []),
-	(cache_links, []),
 	(info_cache_dp, []),
 	(www_dp, ['www/loris2.wsgi']),
 	(www_dp, ['www/index.txt']),
@@ -146,7 +144,6 @@ d = {
 	'cache_clean' : LORIS_CACHE_CLEAN,
     'cache_http_clean' : LORIS_HTTP_CACHE_CLEAN,
 	'cache_dp' : cache_dp,
-	'cache_links' : cache_links,
 	'config' : ETC_DP,
 	'info_cache_dp' : info_cache_dp,
 	'jptoo_exe' : JP2_EXECUTABLE,
@@ -167,8 +164,7 @@ Installation was successful. Here's where things are:
  * JP2 executable: %(jptoo_exe)s (kdu_expand or opj_decompress)
  * JP2 libraries: %(jptoo_lib)s (libkdu or libopenjp2)
  * Logs: %(logs)s
- * Image cache (opaque): %(cache_dp)s
- * Image cache (symlinks that look like IIIF URIs): %(cache_links)s
+ * Image cache: %(cache_dp)s
  * Info cache: %(info_cache_dp)s
  * www/WSGI application directory: %(www_dp)s
  * Temporary directory: %(tmp_dp)s
