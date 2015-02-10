@@ -1,25 +1,10 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
-"""
+'''
 webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
-
- Copyright (C) 2013-15 Jon Stroop
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
-
-"""
+'''
 # from ConfigParser import RawConfigParser
 from configobj import ConfigObj
 from datetime import datetime
@@ -46,21 +31,16 @@ import re
 import string
 import transforms
 
-# Loris's etc dir MUST either be a sibling to the loris/loris directory or at 
-# the below:
-ETC_DP = '/etc/loris'
-# We can figure out everything else from there.
-
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
-def create_app(debug=False, debug_jp2_transformer='kdu'):
+def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
     global logger
     if debug:
         project_dp = path.dirname(path.dirname(path.realpath(__file__)))
 
         # change a few things, read the config and set up logging
-        config_fp = path.join(project_dp, 'etc', constants.CONFIG_FILE_NAME)
-        config = ConfigObj(config_fp, unrepr=True, interpolation=False)
+        config_file_path = path.join(project_dp, 'etc', 'loris2.conf')
+        config = ConfigObj(config_file_path, unrepr=True, interpolation=False)
         config['logging']['log_to'] = 'console'
         config['logging']['log_level'] = 'DEBUG'
         __configure_logging(config['logging'])
@@ -91,8 +71,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu'):
             config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
     else:
-        config_fp = path.join(ETC_DP, constants.CONFIG_FILE_NAME)
-        config = ConfigObj(config_fp, unrepr=True, interpolation=False)
+        config = ConfigObj(config_file_path, unrepr=True, interpolation=False)
         __configure_logging(config['logging'])
         logger = logging.getLogger(__name__)
         logger.debug('Running in production mode.')
@@ -638,7 +617,7 @@ if __name__ == '__main__':
 
     sys.path.append(path.join(project_dp)) # to find any local resolvers
 
-    app = create_app(debug=True, debug_jp2_transformer='kdu') # or 'opj'
+    app = create_app(debug=True) # or 'opj'
 
     run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
         extra_files=extra_files)

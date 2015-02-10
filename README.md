@@ -1,7 +1,7 @@
 ![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
- * Loris 2, which is in alpha release at the moment, supports the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/). The best thing to do is either choose the [latest alpha release](https://github.com/pulibrary/loris/releases) or build from the development branch.
+ * Loris 2, which is in beta release at the moment, supports the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/). The best thing to do is either choose the [latest alpha release](https://github.com/pulibrary/loris/releases) or build from the development branch.
  * If you're looking for IIIF 1.1 support, please use the [last release in the 1.x series](https://github.com/pulibrary/loris/releases/tag/1.2.2).
  * If you're looking for IIIF 1.0 support, [this release](https://github.com/pulibrary/loris/releases/tag/0.0.9alpha) is the closest Loris ever was, but there are known flaws, deployment is tough, and it is certainly not supported at this point.
 
@@ -59,23 +59,29 @@ See http://iiif.io/api/image/2.0/compliance.html for details.
 
 License
 -------
-Copyright 2013-14 Jon Stroop
+Copyright (c) 2013-2015, Jon Stroop
+All rights reserved.
 
-Additional copyright may be held by others, as reflected in the commit log. 
-Kakadu and OpenJPEG are included under the terms of their own respecitve 
-licenses (see LICENSE-Kakadu.txt and LICENSE-OpenJPEG.txt).
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
 
-     http://www.apache.org/licenses/LICENSE-2.0
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Kakadu
 #### Downloadable Executables Copyright and Disclaimer

@@ -1,7 +1,0 @@
-werkzeug >= 0.8.3
-pillow >= 2.4.0
-configobj >= 4.7.2,<=5.0.0
-ordereddict
-requests
-mock
-responses

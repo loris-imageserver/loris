@@ -1,200 +1,292 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # setup.py
-
-EX_NOUSER = 67
-EX_TEMPFAIL = 75
-BIN_DP = '/usr/local/bin'
-ETC_DP = '/etc/loris'
-LIB_DP = '/usr/local/lib'
-
-from sys import stderr, stdout, exit
 from grp import getgrnam
 from pwd import getpwnam
 from setuptools import setup
-from distutils.sysconfig import get_python_lib
+from setuptools.command.install import install
+from sys import stderr, stdout, exit, version_info
 import loris
 import os
-from loris.constants import CONFIG_FILE_NAME
+import shutil
+import stat
 
-try:
-	from configobj import ConfigObj
-except ImportError:
-	msg = '''
-configobj <http://www.voidspace.org.uk/python/configobj.html> is required before
-setup.py can be run. Please do (with sudo if necessary):
-
-$ pip install configobj
-
-and then run setup again.
-'''
-	stderr.write(msg)
-	exit(EX_TEMPFAIL)
-		
 VERSION = loris.__version__
 
-LORIS_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-cache_clean.sh')
-LORIS_HTTP_CACHE_CLEAN = os.path.join(BIN_DP, 'loris-http_cache_clean.sh')
+EX_NOUSER = 67
 
-this_dp = os.path.abspath(os.path.dirname(__file__))
+ETC_DIR_DEFAULT = '/etc/loris2'
+CONFIG_FILE_NAME = 'loris2.conf'
 
-# Get the config file
-config_fp = os.path.join(this_dp, 'etc', CONFIG_FILE_NAME)
-config = ConfigObj(config_fp, unrepr=True, interpolation=False)
+BIN_DIR_DEFAULT = '/usr/local/bin'
+LIB_DIR_DEFAULT = '/usr/local/lib'
+CACHE_DIR_DEFAULT = '/var/cache/loris2'
 
-# Make sure the ultimate owner of the app exists before we go any further
-try:
-	user_n = config['loris.Loris']['run_as_user']
-	group_n = config['loris.Loris']['run_as_group']
-	user = getpwnam(user_n)
-	group = getgrnam(group_n)
-	user_id = user.pw_uid
-	group_id = group.gr_gid
-except KeyError:
-	msg = '''
-User "%s" and or group "%s" do(es) not exist.
-Please create this user, e.g.:
-	`useradd -d /var/www/loris -s /sbin/false loris`
+KDU_EXPAND_DEFAULT = os.path.join(BIN_DIR_DEFAULT, 'kdu_expand')
+KDU_HELP = 'Path to the Kakadu executable [Default: %s]' % (KDU_EXPAND_DEFAULT,)
 
-'''% (user_n,group_n)
-	stderr.write(msg)
-	exit(EX_NOUSER)
+LIBKDU_DEFAULT = os.path.join(LIB_DIR_DEFAULT, 'libkdu.so')
+LIBKDU_HELP = 'Path to libkdu.so [Default: %s]' % (LIBKDU_DEFAULT,)
 
+LOG_DIR_DEFAULT = '/var/log/loris2'
+LOG_DIR_HELP = 'Path to directory for logs [Default: %s]' % (LOG_DIR_DEFAULT,)
 
-cache_dp = config['img.ImageCache']['cache_dp']
-info_cache_dp = config['img_info.InfoCache']['cache_dp']
-www_dp = config['loris.Loris']['www_dp']
-tmp_dp = config['loris.Loris']['tmp_dp']
-log_dp = config['logging']['log_dir']
+SOURCE_IMAGE_DIR_DEFAULT = '/usr/local/share/images'
+SOURCE_IMAGE_DIR_HELP = 'Path to source images directory [Default: %s]' % (SOURCE_IMAGE_DIR_DEFAULT,)
 
-# If all of that worked, determine requirements
-install_requires = []
-try:
-	import werkzeug
-except ImportError:
-	install_requires.append('werkzeug>=0.8.3')
+IMAGE_CACHE_DIR_DEFAULT = '/var/cache/loris2'
+IMAGE_CACHE_DIR_HELP = 'Path to image cache directory [Default: %s]' % (IMAGE_CACHE_DIR_DEFAULT,)
 
-data_files = [
-	(ETC_DP, [os.path.join('etc', CONFIG_FILE_NAME)]),
-	(log_dp, []),
-	(cache_dp, []),
-	(info_cache_dp, []),
-	(www_dp, ['www/loris2.wsgi']),
-	(www_dp, ['www/index.txt']),
-	(tmp_dp, [])
+INFO_CACHE_DIR_DEFAULT = '/var/cache/loris2'
+INFO_CACHE_DIR_HELP = 'Path to info cache directory [Default: %s]' % (INFO_CACHE_DIR_DEFAULT,)
+
+WWW_DIR_DEFAULT = '/var/www/loris2'
+WWW_DIR_HELP = 'Path to www directory (wsgi and index file will be here) [Default: %s]' % (WWW_DIR_DEFAULT,)
+WSGI_FILE_NAME = 'loris2.wsgi'
+
+TMP_DIR_DEFAULT = '/tmp/loris2'
+TMP_DIR_HELP = 'Path to temporary directory (loris will make its temporary files and pipes here) [Default: %s]' % (TMP_DIR_DEFAULT,)
+
+CONFIG_DIR_DEFAULT = '/etc/loris2'
+CONFIG_DIR_HELP = 'Where to put the config file. loris2.conf will be here after install. [Default: %s]' % (CONFIG_DIR_DEFAULT,)
+
+USER_DEFAULT = 'loris'
+USER_HELP = 'User that will own the application and has permission to write to caches. [Default: %s]' % (USER_DEFAULT,)
+
+GROUP_DEFAULT = 'loris'
+GROUP_HELP = 'Group that will own the application and has permission to write to caches. [Default: %s]' % (USER_DEFAULT,)
+
+DEPENDENCIES = [
+    # (package, version, module)
+    ('werkzeug', '>=0.8.3', 'werkzeug'),
+    ('pillow', '>=2.4.0', 'PIL'),
+    ('configobj', '>=4.7.2,<=5.0.0', 'configobj'),
+    ('requests', '==2.5.1', 'requests'),
+    ('mock', '==1.0.1', 'mock'),
+    ('responses', '==0.3.0', 'responses')
 ]
+if version_info[1] < 7:
+    DEPENDENCIES.append(('ordereddict','>=1.1'))
 
-JP2_EXECUTABLE = None
-JP2_LIBS = None
+class LorisInstallCommand(install):
+    description = 'Installs Loris image server'
+    user_options = install.user_options + [
+        ('kdu-expand=', None, KDU_HELP),
+        ('libkdu=', None, LIBKDU_HELP),
+        ('image-cache=', None, IMAGE_CACHE_DIR_HELP),
+        ('tmp-dir=', None, TMP_DIR_HELP),
+        ('www-dir=', None, WWW_DIR_HELP),
+        ('log-dir=', None, LOG_DIR_HELP),
+        ('source-images=', None, SOURCE_IMAGE_DIR_HELP),
+        ('config-dir=', None, CONFIG_DIR_HELP),
+        ('info-cache=', None, INFO_CACHE_DIR_HELP),
+        ('loris-owner=', None, USER_HELP),
+        ('loris-group=', None, GROUP_HELP),
+    ]
 
-if config['transforms']['jp2']['impl'] == 'KakaduJP2Transformer':
-	from loris.transforms import KakaduJP2Transformer 
-	JP2_EXECUTABLE = os.path.join(BIN_DP, 'kdu_expand')
-	JP2_LIBS = os.path.join(LIB_DP, KakaduJP2Transformer.libkdu_name())
-	data_files.append( (LIB_DP, [KakaduJP2Transformer.local_libkdu_path()]) )
-	kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
-	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/loris-http_cache_clean.sh', 'bin/iiif_img_info', kdu_expand]) )
+    def initialize_options(self):
+        self.kdu_expand = KDU_EXPAND_DEFAULT
+        self.libkdu = LIBKDU_DEFAULT
+        self.source_images = SOURCE_IMAGE_DIR_DEFAULT
+        self.image_cache = IMAGE_CACHE_DIR_DEFAULT
+        self.info_cache = INFO_CACHE_DIR_DEFAULT
+        self.tmp_dir = TMP_DIR_DEFAULT
+        self.www_dir = WWW_DIR_DEFAULT
+        self.log_dir = LOG_DIR_DEFAULT
+        self.config_dir = CONFIG_DIR_DEFAULT
+        self.loris_owner = USER_DEFAULT
+        self.loris_group = GROUP_DEFAULT
+        install.initialize_options(self)
 
-elif config['transforms']['jp2']['impl'] == 'OPJ_JP2Transformer':
-	from loris.transforms import OPJ_JP2Transformer
-	JP2_EXECUTABLE = os.path.join(BIN_DP, 'opj_decompress')
-	JP2_LIBS = os.path.join(LIB_DP, OPJ_JP2Transformer.libopenjp2_name())
-	data_files.append( (LIB_DP, [OPJ_JP2Transformer.local_libopenjp2_path()]) )
-	opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-	data_files.append( (BIN_DP, ['bin/loris-cache_clean.sh', 'bin/loris-http_cache_clean.sh', 'bin/iiif_img_info', opj_decompress]) )
+    def finalize_options(self):
+        self.__check_user()
+        self.loris_owner_id = getpwnam(self.loris_owner).pw_uid
+        self.loris_group_id = getgrnam(self.loris_group).gr_gid
+        install.finalize_options(self)
 
-def read(fname):
-	return open(os.path.join(os.path.dirname(__file__), fname)).read()
+    def run(self):
+        self.__make_directories()
+        self.__write_wsgi()
+        self.__copy_index_and_favicon()
+        if self.dry_run:
+            stdout.write('%sDEBUG INFO%s\n' % ('*'*35,'*'*35))
+            stdout.write('kdu-expand: %s\n' % (self.kdu_expand,))
+            stdout.write('libkdu: %s\n' % (self.libkdu,))
+            stdout.write('image-cache: %s\n' % (self.image_cache,))
+            stdout.write('info-cache: %s\n' % (self.info_cache,))
+            stdout.write('info-cache: %s\n' % (self.info_cache,))
+            stdout.write('tmp-dir: %s\n' % (self.tmp_dir,))
+            stdout.write('www-dir: %s\n' % (self.www_dir,))
+            stdout.write('log-dir: %s\n' % (self.log_dir,))
+            stdout.write('source-images: %s\n' % (self.source_images,))
+            stdout.write('config: %s\n' % (self.config_dir,))
+            stdout.write('loris-owner: %s\n' % (self.loris_owner,))
+            stdout.write('loris-group: %s\n' % (self.loris_group,))
+            stdout.write('*'*80+'\n')
+        self.do_egg_install()
+        self.__update_and_deploy_config()
+
+    def __check_user(self):
+        try:
+            getpwnam(self.loris_owner).pw_uid
+            getgrnam(self.loris_group).gr_gid
+        except KeyError:
+            msg = '''\nUser "%s" and or group "%s" do(es) not exist.
+Please create this user, e.g.:
+    `useradd -d /var/www/loris -s /sbin/false %s`\n
+''' % (self.loris_owner, self.loris_group, self.loris_owner)
+            stderr.write(msg)
+            exit(EX_NOUSER)
+
+    def __make_directories(self):
+        loris_directories = [ 
+            self.image_cache, 
+            self.info_cache, 
+            self.tmp_dir, 
+            self.www_dir,
+            self.log_dir,
+            self.config_dir
+        ]
+        map(self.__init_dir, loris_directories)
+
+    def __init_dir(self, d):
+        # Could do something here to warn if dir exists but permissions or 
+        # ownership aren't sufficient.
+        if not os.path.exists(d):
+            os.makedirs(d)
+            stdout.write('Created %s\n' % (d,))
+            os.chown(d, self.loris_owner_id, self.loris_group_id)
+            stdout.write('Changed ownership of %s to %s:%s\n' % 
+                (d,self.loris_owner,self.loris_group))
+
+        s = os.stat(d)
+        permissions = oct(stat.S_IMODE(s.st_mode))
+        if permissions != oct(0755):
+            os.chmod(d, 0755)
+            stdout.write('Set permissions for %s to 0755\n' % (d,))
+
+    def __write_wsgi(self):
+        config_file_path = os.path.join(self.config_dir, CONFIG_FILE_NAME)
+        wsgi_file_path = os.path.join(self.www_dir, WSGI_FILE_NAME)
+        content = '''#!/usr/bin/env python
+from loris.webapp import create_app
+# Uncomment and configure below if you are using virtualenv
+# import site
+# site.addsitedir('/path/to/my/virtualenv/lib/python2.x/site-packages')
+application = create_app(config_file_path='%s')
+''' % (config_file_path,)
+        with open(wsgi_file_path, 'w') as f:
+            f.write(content)
+        os.chmod(wsgi_file_path, 0755)
+        os.chown(wsgi_file_path, self.loris_owner_id, self.loris_group_id)
+    @property
+    def __here(self):
+        return os.path.dirname(os.path.realpath(__file__))
+
+    def __copy_index_and_favicon(self):
+        www_src = os.path.join(self.__here, 'www')
+        index_src = os.path.join(www_src, 'index.txt')
+        favicon_src = os.path.join(www_src, 'icons/favicon.ico')
+        index_target = os.path.join(self.www_dir, 'index.txt')
+        favicon_target_dir = os.path.join(self.www_dir, 'icons')
+        favicon_target = os.path.join(favicon_target_dir, 'favicon.ico')
+        self.__init_dir(favicon_target_dir)
+        shutil.copyfile(index_src, index_target)
+        shutil.copyfile(favicon_src, favicon_target)
+        for f in (index_target, favicon_target):
+            os.chmod(f, 0644)
+            os.chown(f, self.loris_owner_id, self.loris_group_id)
+
+    def __update_and_deploy_config(self):
+        from configobj import ConfigObj # can do now that we've installed it!
+        config_file_src = os.path.join(self.__here, 'etc', CONFIG_FILE_NAME)
+        config_file_target = os.path.join(self.config_dir, CONFIG_FILE_NAME)
+
+        config = ConfigObj(config_file_src, unrepr=True, interpolation=False)
+
+        config['loris.Loris']['tmp_dp'] = self.tmp_dir
+        config['loris.Loris']['www_dp'] = self.www_dir
+        config['loris.Loris']['run_as_user'] = self.loris_owner
+        config['loris.Loris']['run_as_group'] = self.loris_group
+        config['logging']['log_dir'] = self.log_dir
+        config['resolver']['src_img_root'] = self.source_images
+        config['img.ImageCache']['cache_dp'] = self.image_cache
+        config['img_info.InfoCache']['cache_dp'] = self.info_cache
+        config['transforms']['jp2']['kdu_expand'] = self.kdu_expand
+        config['transforms']['jp2']['kdu_libs'] = self.libkdu
+        config['transforms']['jp2']['tmp_dp'] = self.tmp_dir
+
+        config.filename = config_file_target
+        config.write()
+
+install_requires = []
+for d in DEPENDENCIES:
+    try:
+        __import__(d[2], fromlist=[''])
+    except ImportError:
+        install_requires.append(''.join(d))
+
+def _read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-	name='Loris',
-	author='Jon Stroop',
-	author_email='jpstroop@gmail.com',
-	url='https://github.com/pulibrary/loris',
-	description = ('IIIF Image API 2.0 Level 2 compliant Image Server'),
-	long_description=read('README.md'),
-	license='GPL',
-	version=VERSION,
-	packages=['loris'],
-	install_requires=install_requires,
-	data_files=data_files,
-	test_suite = 'tests'
+    cmdclass={ 'install' : LorisInstallCommand },
+    name='Loris',
+    author='Jon Stroop',
+    author_email='jpstroop@gmail.com',
+    url='https://github.com/pulibrary/loris',
+    description = ('IIIF Image API 2.0 Level 2 compliant Image Server'),
+    long_description=_read('README.md'),
+    license='Simplified BSD',
+    version=VERSION,
+    packages=['loris'],
+    install_requires=install_requires
 )
 
-loris_owned_dirs = list(set([n[0] for n in data_files]))
-loris_owned_dirs.remove(LIB_DP)
-loris_owned_dirs.remove(BIN_DP)
 
-# Change permissions for all the new dirs to Loris's owner.
-for fs_node in loris_owned_dirs:
-	os.chmod(fs_node, 0755)
-	os.chown(fs_node, user_id, group_id)
+## TODO: write this only if we succeeded! include info about cron, etc.
 
-wsgi_script = os.path.join(www_dp, 'loris2.wsgi')
-executables = (LORIS_CACHE_CLEAN, LORIS_HTTP_CACHE_CLEAN, JP2_EXECUTABLE, wsgi_script)
-for ex in executables:
-	os.chmod(ex, 0755)
-	os.chown(ex, user_id, group_id)
+# todo = '''
+# *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+# Installation was successful. Here's where things are:
 
-index = os.path.join(www_dp, 'index.txt')
-os.chmod(index, 0644)
-os.chown(index, user_id, group_id)
+#  * Loris configuration: %(config)s
+#  * Cache cleaner Simple cron: %(cache_clean)s
+#  * Cache cleaner HTTP cron: %(cache_http_clean)s
+#  * JP2 executable: %(jptoo_exe)s (kdu_expand or opj_decompress)
+#  * JP2 libraries: %(jptoo_lib)s (libkdu or libopenjp2)
+#  * Logs: %(logs)s
+#  * Image cache: %(cache_dp)s
+#  * Info cache: %(info_cache_dp)s
+#  * www/WSGI application directory: %(www_dp)s
+#  * Temporary directory: %(tmp_dp)s
 
-d = {
-	'cache_clean' : LORIS_CACHE_CLEAN,
-    'cache_http_clean' : LORIS_HTTP_CACHE_CLEAN,
-	'cache_dp' : cache_dp,
-	'config' : ETC_DP,
-	'info_cache_dp' : info_cache_dp,
-	'jptoo_exe' : JP2_EXECUTABLE,
-	'jptoo_lib' : JP2_LIBS,
-	'logs' : log_dp,
-	'tmp_dp' : tmp_dp,
-	'user_n' : user_n,
-	'www_dp' : www_dp
-}
+# However, you have more to do. See README.md and doc/deployment.md for details. 
+# In particular:
 
-todo = '''
-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-Installation was successful. Here's where things are:
+#  0. You should have read README.md already, and know what I'm talking about.
 
- * Loris configuration: %(config)s
- * Cache cleaner Simple cron: %(cache_clean)s
- * Cache cleaner HTTP cron: %(cache_http_clean)s
- * JP2 executable: %(jptoo_exe)s (kdu_expand or opj_decompress)
- * JP2 libraries: %(jptoo_lib)s (libkdu or libopenjp2)
- * Logs: %(logs)s
- * Image cache: %(cache_dp)s
- * Info cache: %(info_cache_dp)s
- * www/WSGI application directory: %(www_dp)s
- * Temporary directory: %(tmp_dp)s
+#  1. Make sure that the Python Imaging Library is installed and working. See 
+#   notes about this in doc/dependencies.md.
 
-However, you have more to do. See README.md and doc/deployment.md for details. 
-In particular:
+#  2. Configure the cron job that manages the cache (bin/loris-cache_clean.sh, 
+#   now at %(cache_clean)s, or bin/loris-http_cache_clean.sh,
+#   now at %(cache_http_clean)s). Make sure the
+#   constants match how you have Loris configured, and then set up the cron
+#   (e.g. `crontab -e -u %(user_n)s`).
 
- 0. You should have read README.md already, and know what I'm talking about.
+#  3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but 
+#   there's always a chance that it isn't. The first thing to try is explictly
+#   adding the package to your PYTHONPATH (see commented code).
 
- 1. Make sure that the Python Imaging Library is installed and working. See 
-	notes about this in doc/dependencies.md.
+#  4. Configure Apache (see doc/apache.md).
 
- 2. Configure the cron job that manages the cache (bin/loris-cache_clean.sh, 
-	now at %(cache_clean)s, or bin/loris-http_cache_clean.sh,
-	now at %(cache_http_clean)s). Make sure the
-	constants match how you have Loris configured, and then set up the cron
-	(e.g. `crontab -e -u %(user_n)s`).
+# You may want to save this message as the path information above is the most 
+# comprehensive information about what this script just did, what's installed 
+# where, etc.
 
- 3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but 
-	there's always a chance that it isn't. The first thing to try is explictly
-	adding the package to your PYTHONPATH (see commented code).
+# Cheers! -Js
+# *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
+# ''' % d
 
- 4. Configure Apache (see doc/apache.md).
-
-You may want to save this message as the path information above is the most 
-comprehensive information about what this script just did, what's installed 
-where, etc.
-
-Cheers! -Js
-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-''' % d
-
-stdout.write(todo)
+# stdout.write(todo)
