@@ -5,8 +5,6 @@ COMPLIANCE = 'http://iiif.io/api/image/2/level2.json'
 PROTOCOL = 'http://iiif.io/api/image'
 CONTEXT = 'http://iiif.io/api/image/2/context.json'
 
-CONFIG_FILE_NAME = 'loris2.conf'
-
 OPTIONAL_FEATURES = [
   'canonicalLinkHeader',
   'profileLinkHeader',

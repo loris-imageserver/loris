@@ -1,9 +1,9 @@
 Apache Deployment Notes
 =======================
 
-The following has been tested on Ubuntu 12.04.3. Other recipes, suggestions, clarifications, corrections welcome!
+The following has been tested on Ubuntu 12.04 and 14.04. Other recipes, suggestions, clarifications, corrections welcome!
 
-These instructions assume you have (or will) run `sudo ./setup.py install` with default configurations. 
+These instructions assume you have (or will) run `sudo ./setup.py install` with the default configurations options. 
 
 You can get all of the dependencies from apt:
 
@@ -17,7 +17,7 @@ Next enable to require modules:
 sudo a2enmod headers expires
 ``
 
-Next edit the site configuration file `/etc/apache2/sites-enabled/000-default` with your editor of choice (you'll need root privileges; the name may be different; if there is no site symlinked in the directory, enable the site with `a2ensite 000-default`).
+Next edit the site configuration file `/etc/apache2/sites-enabled/000-default.conf` with your editor of choice (you'll need root privileges; the name may be different; if there is no site symlinked in the directory, enable the site with, for example `a2ensite 000-default.conf`).
 
 Now add something to this affect:
 
@@ -34,7 +34,7 @@ WSGIProcessGroup loris
 
 Explanation:
 
- * `ExpiresActive On` and `ExpiresDefault` sets the `Cache-Control` and `Expires` headers, e.g. with the setting above responses will  include (assuming I made the request at `Sat, Nov 23 2013 19:45:20 GMT`):
+ * `ExpiresActive On` and `ExpiresDefault` sets the `Cache-Control` and `Expires` headers, e.g. with the setting above responses will include (assuming I made the request at `Sat, Nov 23 2013 19:45:20 GMT`):
 
  ```
  < Cache-Control: max-age=5184000
@@ -49,7 +49,7 @@ Explanation:
 
  * WSGI Flags. Have a look at the [mod-wsgi configuration guidelines](https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines). In general is seems like a good idea to prefer threads over processes; ([check out this answer on serverfault](http://serverfault.com/a/146382)).
 
- If you would like Loris's access logs to be kept in a separate file you can add.
+ If you would like Loris's access logs to be kept in a separate file you can add:
 
  ```
  SetEnvIf Request_URI ^/loris loris
@@ -58,7 +58,7 @@ Explanation:
 
 The first argument to `SetEnvIf Request_URI` should match the first argument to `WSGIScriptAlias` above, plus a leading `^`.
 
-On RedHat only you'll likely need to add
+On RedHat only you'll likely need to add:
 
 ```
 WSGISocketPrefix /var/run/wsgi

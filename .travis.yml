@@ -16,7 +16,7 @@ before_install:
  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebpdemux.so /usr/lib/
 
 install: 
- - pip install -r requirements.txt --use-mirrors
+ - pip install -r requirements.txt
 
 script: "python ./test.py" # setup.py test checks for a loris user, which we only need for prod
 
