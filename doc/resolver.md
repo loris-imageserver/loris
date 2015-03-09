@@ -7,7 +7,7 @@ This supplied implementation just unescapes the identifier and tacks a constant 
 
 ```ini
 [resolver]
-impl = 'SimpleFSResolver'
+impl = 'loris.resolver.SimpleFSResolver'
 src_img_root=/usr/local/share/images
 ```
 
@@ -27,7 +27,7 @@ A sample config of this resolver might be:
 
 ```ini
 [resolver]
-impl = 'SimpleHTTPResolver'
+impl = 'loris.resolver.SimpleHTTPResolver'
 source_prefix='https://<server>/fedora/objects/'
 source_suffix='/datastreams/accessMaster/content'
 cache_root='/usr/local/share/images/loris'

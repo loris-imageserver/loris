@@ -212,19 +212,19 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
     @staticmethod
     def local_opj_decompress_path():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         return 'bin/%s/%s/opj_decompress' % (platform.system(),platform.machine())
 
     @staticmethod
     def local_libopenjp2_dir():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         return 'lib/%s/%s' % (platform.system(),platform.machine())
 
     @staticmethod
     def libopenjp2_name():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         system = platform.system()
         if system == 'Linux':
@@ -234,7 +234,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
     @staticmethod
     def local_libopenjp2_path():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         dir_ = OPJ_JP2Transformer.local_libopenjp2_dir()
         name = OPJ_JP2Transformer.libopenjp2_name()
@@ -323,19 +323,19 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
 
     @staticmethod
     def local_kdu_expand_path():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         return 'bin/%s/%s/kdu_expand' % (platform.system(),platform.machine())
 
     @staticmethod
     def local_libkdu_dir():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         return 'lib/%s/%s' % (platform.system(),platform.machine())
 
     @staticmethod
     def libkdu_name():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         system = platform.system()
         if system == 'Linux':
@@ -345,7 +345,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
 
     @staticmethod
     def local_libkdu_path():
-        '''Only used in dev, tests, and by setup.py
+        '''Only used in dev and tests.
         '''
         dir_ = KakaduJP2Transformer.local_libkdu_dir()
         name = KakaduJP2Transformer.libkdu_name()
