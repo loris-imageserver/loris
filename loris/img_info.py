@@ -166,7 +166,12 @@ class ImageInfo(object):
 
         colr_meth = struct.unpack('B', jp2.read(1))[0]
         logger.debug('colr METH: %d' % (colr_meth,))
-        jp2.read(2) # over PREC and APPROX, 1 byte each
+
+        # PREC and APPROX, 1 byte each
+        colr_prec = struct.unpack('b', jp2.read(1))[0]
+        colr_approx = struct.unpack('B', jp2.read(1))[0]
+        logger.debug('colr PREC: %d' % (colr_prec))
+        logger.debug('colr APPROX: %d' % (colr_approx))
         
         if colr_meth == 1: # Enumerated Colourspace
             self.color_profile_bytes = None
@@ -187,15 +192,14 @@ class ImageInfo(object):
             # (Restricted ICC profile).
             logger.debug('Image contains a restricted, embedded colour profile')
             # see http://www.color.org/icc-1_1998-09.pdf, page 18.
-            profile_size_bytes = jp2.read(4)
-            profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
-            logger.debug('profile size: %d' % (profile_size))
-            self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
-            # This is an assumption for now (i.e. that if you have a colour profile 
-            # embedded, you're probably working with color images.
-            self.profile[1]['qualities'] += ['gray', 'color'] 
+            self.assign_color_profile(jp2)
         else:
             logger.warn('colr METH is neither "1" or "2". See jp2 spec pg. 139.')
+
+            # colr METH 3 = Any ICC method, colr METH 4 = Vendor Colour method
+            # See jp2 spec pg. 182 -  Table M.24 (Color spec box legal values)
+            if colr_meth <= 4 and -128 <= colr_prec <= 127 and 1 <= colr_approx <= 4:
+                self.assign_color_profile(jp2)
 
         logger.debug('qualities: ' + str(self.profile[1]['qualities']))
 
@@ -261,6 +265,17 @@ class ImageInfo(object):
         [self.sizes.append( { 'width' : w, 'height' : h } )
             for w,h in self.sizes_for_scales(scaleFactors)]
         self.sizes.sort(key=lambda size: max([size['width'], size['height']]))
+
+    def assign_color_profile(self, jp2):
+        profile_size_bytes = jp2.read(4)
+        profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
+
+        logger.debug('profile size: %d' % (profile_size))
+        self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
+
+        # This is an assumption for now (i.e. that if you have a colour profile
+        # embedded, you're probably working with color images.
+        self.profile[1]['qualities'] += ['gray', 'color']
 
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
