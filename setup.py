@@ -66,7 +66,7 @@ DEPENDENCIES = [
     ('responses', '==0.3.0', 'responses')
 ]
 if version_info[1] < 7:
-    DEPENDENCIES.append(('ordereddict','>=1.1'))
+    DEPENDENCIES.append(('ordereddict','>=1.1','ordereddict'))
 
 class LorisInstallCommand(install):
     description = 'Installs Loris image server'
@@ -139,10 +139,10 @@ Please create this user, e.g.:
             exit(EX_NOUSER)
 
     def __make_directories(self):
-        loris_directories = [ 
-            self.image_cache, 
-            self.info_cache, 
-            self.tmp_dir, 
+        loris_directories = [
+            self.image_cache,
+            self.info_cache,
+            self.tmp_dir,
             self.www_dir,
             self.log_dir,
             self.config_dir
@@ -150,13 +150,13 @@ Please create this user, e.g.:
         map(self.__init_dir, loris_directories)
 
     def __init_dir(self, d):
-        # Could do something here to warn if dir exists but permissions or 
+        # Could do something here to warn if dir exists but permissions or
         # ownership aren't sufficient.
         if not os.path.exists(d):
             os.makedirs(d)
             stdout.write('Created %s\n' % (d,))
             os.chown(d, self.loris_owner_id, self.loris_group_id)
-            stdout.write('Changed ownership of %s to %s:%s\n' % 
+            stdout.write('Changed ownership of %s to %s:%s\n' %
                 (d,self.loris_owner,self.loris_group))
 
         s = os.stat(d)
@@ -261,28 +261,28 @@ setup(
 #  * www/WSGI application directory: %(www_dp)s
 #  * Temporary directory: %(tmp_dp)s
 
-# However, you have more to do. See README.md and doc/deployment.md for details. 
+# However, you have more to do. See README.md and doc/deployment.md for details.
 # In particular:
 
 #  0. You should have read README.md already, and know what I'm talking about.
 
-#  1. Make sure that the Python Imaging Library is installed and working. See 
+#  1. Make sure that the Python Imaging Library is installed and working. See
 #   notes about this in doc/dependencies.md.
 
-#  2. Configure the cron job that manages the cache (bin/loris-cache_clean.sh, 
+#  2. Configure the cron job that manages the cache (bin/loris-cache_clean.sh,
 #   now at %(cache_clean)s, or bin/loris-http_cache_clean.sh,
 #   now at %(cache_http_clean)s). Make sure the
 #   constants match how you have Loris configured, and then set up the cron
 #   (e.g. `crontab -e -u %(user_n)s`).
 
-#  3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but 
+#  3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but
 #   there's always a chance that it isn't. The first thing to try is explictly
 #   adding the package to your PYTHONPATH (see commented code).
 
 #  4. Configure Apache (see doc/apache.md).
 
-# You may want to save this message as the path information above is the most 
-# comprehensive information about what this script just did, what's installed 
+# You may want to save this message as the path information above is the most
+# comprehensive information about what this script just did, what's installed
 # where, etc.
 
 # Cheers! -Js
