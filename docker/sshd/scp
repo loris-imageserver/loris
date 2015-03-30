@@ -1,1 +1,0 @@
-root -P 8022 -rp ../../tests/img/ root@192.168.59.103:/usr/local/share/images
