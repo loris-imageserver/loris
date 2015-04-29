@@ -89,6 +89,28 @@ class SimpleFSResolver(_AbstractResolver):
 
         return (fp, format)
 
+#To use this the resolver stanza of the config will have to have both the
+#src_img_root as required by the SimpleFSResolver and also an
+#[[extension_map]], which will be a hash mapping found extensions to the
+#extensions that loris wants to see, e.g.
+# [resolver]
+# impl = 'loris.resolver.ExtensionNormalizingFSResolver'
+# src_img_root = '/cnfs-ro/iiif/production/medusa-root' # r--
+#   [[extension_map]]
+#   jpeg = 'jpg'
+#   tiff = 'tif'
+#Note that case normalization happens before looking up in the extension_map.
+class ExtensionNormalizingFSResolver(SimpleFSResolver):
+    def __init__(self, config):
+        super(ExtensionNormalizingFSResolver, self).__init__(config)
+        self.extension_map = self.config['extension_map']
+
+    def resolve(self, ident):
+        fp, format = super(ExtensionNormalizingFSResolver, self).resolve(ident)
+        format = format.lower()
+        format = self.extension_map.get(format, format)
+        return (fp, format)
+
 class SimpleHTTPResolver(_AbstractResolver):
     '''
     Example resolver that one might use if image files were coming from
