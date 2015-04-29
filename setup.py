@@ -224,7 +224,7 @@ for d in DEPENDENCIES:
     try:
         __import__(d[2], fromlist=[''])
     except ImportError:
-        install_requires.append(''.join(d))
+        install_requires.append(''.join(d[0:2]))
 
 def _read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()

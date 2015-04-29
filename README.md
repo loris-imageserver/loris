@@ -1,7 +1,8 @@
 ![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
- * Loris 2, which is in beta release at the moment, supports the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/). The best thing to do is either choose the [latest alpha release](https://github.com/pulibrary/loris/releases) or build from the development branch.
+Loris 2 is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).
+
  * If you're looking for IIIF 1.1 support, please use the [last release in the 1.x series](https://github.com/pulibrary/loris/releases/tag/1.2.2).
  * If you're looking for IIIF 1.0 support, [this release](https://github.com/pulibrary/loris/releases/tag/0.0.9alpha) is the closest Loris ever was, but there are known flaws, deployment is tough, and it is certainly not supported at this point.
 
@@ -36,7 +37,7 @@ You're best off working through these steps in order.
 
 RedHat, Debian and Troubleshooting
 ---------------------------------
-[mmcclimon](https://github.com/mmcclimon) has provided some excellent [instructions for deploying Loris on RedHat 6 or the equivalent CentOS](doc/redhat-install.md). 
+@mmcclimon has provided some excellent [instructions for deploying Loris on RedHat 6 or the equivalent CentOS](doc/redhat-install.md).
 
 If you're running Debian and/or run into any pitfalls with the steps above, [Regis Robineau](https://github.com/regisrob) of the [Biblissima Project](http://www.biblissima-condorcet.fr/) has created an [excellent set of instructions](http://doc.biblissima-condorcet.fr/loris-setup-guide-ubuntu-debian) that may help.
 
@@ -51,10 +52,10 @@ Loris Implements all of the IIIF Image API level 2 features, plus nearly all of 
  * `mirroring`
  * `mirroring`
  * `profileLinkHeader`
- * `webp` and `gif` formats 
+ * `webp` and `gif` formats
 
 Validation: http://goo.gl/P1KBkU
- 
+
 See http://iiif.io/api/image/2.0/compliance.html for details.
 
 License
@@ -91,39 +92,3 @@ The executables available [here](http://www.kakadusoftware.com/index.php?option=
 Copyright is owned by NewSouth Innovations Pty Limited, commercial arm of the University of New South Wales, Sydney, Australia. **You are free to trial these executables and even to re-distribute them, so long as such use or re-distribution is accompanied with this copyright notice and is not for commercial gain. Note: Binaries can only be used for non-commercial purposes.** If in doubt please [contact Dr. Taubman](http://www.kakadusoftware.com/index.php?option=com_content&task=blogcategory&id=8&Itemid=14).
 
 For further details, please visit the [Kakadu website](http://www.kakadusoftware.com/)
-
-### OpenJPEG
-
-(Copied from http://www.openjpeg.org/BSDlicense.txt)
-
-Copyright (c) 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
-Copyright (c) 2002-2007, Professor Benoit Macq
-Copyright (c) 2001-2003, David Janssens
-Copyright (c) 2002-2003, Yannick Verschueren
-Copyright (c) 2003-2007, Francois-Olivier Devaux and Antonin Descampe
-Copyright (c) 2005, Herve Drolon, FreeImage Team
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-
-
