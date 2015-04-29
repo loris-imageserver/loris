@@ -1,32 +1,36 @@
 #!/bin/bash
 
 #
-# cache_clean.sh
+# loris-cache_clean.sh
+#
 # Cron script for maintaining the loris cache size.
 #
 # CAUTION - This script deletes files. Be careful where you point it!
 #
-LOG="/var/log/loris/cache_clean.log"
 
-# Check that the cache directories...
+LOG="/var/log/loris2/cache_clean.log"
+
+# Check that the image cache directory...
 IMG_CACHE_DIR="/var/cache/loris/img"
-IMG_LINKS_DIR="/var/cache/loris/links"
 
-# ...is below a certain size...
+# ...is below a certain size and...
 REDUCE_TO=1048576 #1 gb
 # REDUCE_TO=1073741824 # 1 TB
 # REDUCE_TO=2147483648 # 2 TB
 
-# ...and when it is larger, start deleting files accessed more than a certain 
+# ...and when it is larger, start deleting files accessed more than a certain
 # number of days ago until the cache is smaller than the configured size.
 
-# Note the name of the variable __REDUCE_TO__: this should not be the total 
-# amount of space you can afford for the cache, but instead the total space 
-# you can afford MINUS the amount you expect the cache to grow in between 
+# Note the name of the variable __REDUCE_TO__: this should not be the total
+# amount of space you can afford for the cache, but instead the total space
+# you can afford MINUS the amount you expect the cache to grow in between
 # executions of this script.
 
 current_usage () {
-	du -sk $IMG_CACHE_DIR | cut -f 1
+	du -sk $IMG_CACHE_DIR | cut -f 1                     # Fine for a few GB...
+	# quota -Q -u loris | grep sdb1 | awk '{ print $2 }' # ...much faster!!
+	# Note that you'll like need to change the name of the filesystem above if
+	# using the `quota` version.
 }
 
 delete_total=0
@@ -43,9 +47,6 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 		let delete_total+=1
 	done
 
-	# broken symlinks
-	find -L $IMG_LINKS_DIR -type l -delete
-
 	# empty directories
 	find $IMG_CACHE_DIR -mindepth 1 -type d -empty -delete
 
@@ -60,7 +61,3 @@ if [ $run == 0 ]; then
 else
 	echo "Cache at $usage kb (no deletes required)." >> $LOG
 fi
-
-
-
-
