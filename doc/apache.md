@@ -3,12 +3,12 @@ Apache Deployment Notes
 
 The following has been tested on Ubuntu 12.04 and 14.04. Other recipes, suggestions, clarifications, corrections welcome!
 
-These instructions assume you have (or will) run `sudo ./setup.py install` with the default configurations options. 
+These instructions assume you have (or will) run `sudo ./setup.py install` with the default configurations options.
 
 You can get all of the dependencies from apt:
 
 ```
-$ sudo apt-get install apache2 libapache2-mod-wsgi 
+$ sudo apt-get install apache2 libapache2-mod-wsgi
 ```
 
 Next enable to require modules:
@@ -27,9 +27,9 @@ ExpiresDefault "access plus 5184000 seconds"
 
 AllowEncodedSlashes On
 
-WSGIDaemonProcess loris user=loris group=loris processes=10 threads=15 maximum-requests=10000
+WSGIDaemonProcess loris2 user=loris group=loris processes=10 threads=15 maximum-requests=10000
 WSGIScriptAlias /loris /var/www/loris2/loris2.wsgi
-WSGIProcessGroup loris
+WSGIProcessGroup loris2
 ```
 
 Explanation:
@@ -45,7 +45,7 @@ Explanation:
 
  (Loris is setting the `Last-Modified` header based on the file system metadata.)
 
- * `AllowEncodedSlashes On` lets `%2F` though in requests (they're allowed but must be escaped in the identifier portion of the URI). 
+ * `AllowEncodedSlashes On` lets `%2F` though in requests (they're allowed but must be escaped in the identifier portion of the URI).
 
  * WSGI Flags. Have a look at the [mod-wsgi configuration guidelines](https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines). In general is seems like a good idea to prefer threads over processes; ([check out this answer on serverfault](http://serverfault.com/a/146382)).
 

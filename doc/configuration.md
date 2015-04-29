@@ -19,10 +19,10 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
 
 ### `[logging]`
 
-Each module has its own logger and is chock-full of debug statements, so setting the level to to `INFO` or higher is highly recommended. 
+Each module has its own logger and is chock-full of debug statements, so setting the level to to `INFO` or higher is highly recommended.
 
 The options are fairly self-explanatory; a few pointers
- 
+
  * `log_to`. Can be `file` or `console` If set to `console`, and you're in production behind Apache, statements will go to Apache's logs. `DEBUG` and `INFO` are mapped to stdout, the rest to stderr.
  * `log_level`. Can be `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`
 
@@ -43,7 +43,7 @@ Probably safe to leave these as-is unless you care about something very specific
 
 ### `[transforms][[jp2]]`
  * `map_embedded_profile_to_srgb`. If set to `map_embedded_profile_to_srgb = True` and you provide a path to an sRGB color profile on your system, e.g.:
-``` 
+```
 ...
 map_embedded_profile_to_srgb=True
 srgb_profile_fp=/usr/share/color/icc/colord/sRGB.icc
