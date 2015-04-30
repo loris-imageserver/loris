@@ -10,7 +10,6 @@ Loris is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/
 
 Demos
 -----
-IIIF 2.0 Compliance:
  * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris2/pudl0001%2F5138415%2F00000011.jp2/full/full/0/default.jpg)
  * [Scroll illustrating a story about the Sagami River](http://libimages1.princeton.edu/osd-demo/?feedme=pudl0123%2F8172070%2F01%2F00000001.jp2) with [OpenSeadragon](http://openseadragon.github.io/)
 
