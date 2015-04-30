@@ -46,7 +46,6 @@ Loris Implements all of the IIIF Image API level 2 features, plus nearly all of 
  * `sizeAboveFull`
  * `rotationArbitrary`
  * `mirroring`
- * `mirroring`
  * `profileLinkHeader`
  * `webp` and `gif` formats
 
