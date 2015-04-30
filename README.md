@@ -1,7 +1,7 @@
-![loris icon](www/icons/loris-icon-name.png?raw=true) Loris IIIF Image Server
+![loris icon](www/icons/loris-circle-small.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
-Loris 2 is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).
+Loris is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).
 
  * If you're looking for IIIF 1.1 support, please use the [last release in the 1.x series](https://github.com/pulibrary/loris/releases/tag/1.2.2).
  * If you're looking for IIIF 1.0 support, [this release](https://github.com/pulibrary/loris/releases/tag/0.0.9alpha) is the closest Loris ever was, but there are known flaws, deployment is tough, and it is certainly not supported at this point.
@@ -13,10 +13,6 @@ Demos
 IIIF 2.0 Compliance:
  * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris2/pudl0001%2F5138415%2F00000011.jp2/full/full/0/default.jpg)
 
-IIIF 1.1 Compliance:
-
- * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris/pudl0001%2F5138415%2F00000011.jp2/full/full/0/native.jpg)
- * [Serving Images for OpenSeadragon](http://libimages.princeton.edu/osd-demo)
 
 Installation Instructions
 -------------------------
@@ -58,20 +54,25 @@ Validation: http://goo.gl/P1KBkU
 
 See http://iiif.io/api/image/2.0/compliance.html for details.
 
-License
--------
+License (New BSD)
+-----------------
+
 Copyright (c) 2013-2015, Jon Stroop
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
+ * Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
+ * Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+ * Neither the name "Loris" nor the names of its contributors may be used to
+   endorse or promote products derived from this software without specific prior
+   written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
