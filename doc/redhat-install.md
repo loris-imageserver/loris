@@ -99,8 +99,8 @@ the 64-bit versions; if you need 32-bit change the portion of the URL from `x86-
 to `x86-32`.
 
 ```
-wget https://github.com/sul-dlss/Djatoka/raw/master/lib/Linux-x86-64/libkdu_v60R.so
-wget https://github.com/sul-dlss/Djatoka/raw/master/bin/Linux-x86-64/kdu_expand
+wget https://github.com/ksclarke/freelib-djatoka/tree/master/lib/Linux-x86-32/libkdu_v60R.so
+wget https://github.com/ksclarke/freelib-djatoka/tree/master/lib/Linux-x86-32/kdu_expand
 
 mv libkdu_v60R.so /usr/local/lib
 mv kdu_expand /usr/local/bin
