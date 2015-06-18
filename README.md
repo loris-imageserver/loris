@@ -25,7 +25,7 @@ These instructions are known to work on Ubuntu 12.04 or greater and Python 2.6.3
  * [Resolver Implementation](doc/resolver.md)
  * [Run `setup.py`](doc/setup.md)
  * [Deploy with Apache](doc/apache.md)
- * [Deploy with Docker](docker/README.md)
+ * [Deploy with Docker](https://github.com/loris-imageserver/loris-docker)
  * (Optional) [Developer Notes](doc/develop.md)
 
 You're best off working through these steps in order.
