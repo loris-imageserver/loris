@@ -28,7 +28,7 @@ if mkfifo_resp == 0:
 # write kdu_expand's output to the named pipe 
 kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, 
     bufsize=-1, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
-    env={ 'LD_LIBRARY_PATH' : KDU_EXPAND })
+    env={ 'LD_LIBRARY_PATH' : LIB_KDU })
 
 # open the named pipe and parse the stream
 with open(pipe_fp, 'rb') as f:
