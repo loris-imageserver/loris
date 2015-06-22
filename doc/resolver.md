@@ -39,7 +39,7 @@ Another sample configuration assuming one wishes to use uri's:
 
 ```ini
 [resolver]
-impl = 'SimpleHTTPResolver'
+impl = 'loris.resolver.SimpleHTTPResolver'
 uri_resolvable=True
 cache_root='/usr/local/share/images/loris'
 ```
@@ -48,7 +48,7 @@ A full configuration sample that shows all the options and their defaults are:
 
 ```ini
 [resolver]
-impl = 'SimpleHTTPResolver'
+impl = 'loris.resolver.SimpleHTTPResolver'
 source_prefix=''
 source_suffix=''
 uri_resolvable=False
