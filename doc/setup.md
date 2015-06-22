@@ -7,7 +7,7 @@ Create a user that will own the loris application, e.g.:
 $ adduser loris
 ```
 
-WSGI This user needs to have a home directory (unless you want to override it in the [`home=` directive](https://code.google.com/p/modwsgi/wiki/ConfigurationDirectives#WSGIDaemonProcess)) and the user and group name should match the `run_as_user` and `run_as_group` options of in the `[loris.Loris]` section of `loris2.conf` and the `--loris-owner` and `--loris-group` options that you pass to `setup.py` (see beloq)..
+This user needs to have a home directory (unless you want to override it in the WSGI [`home=` directive](https://code.google.com/p/modwsgi/wiki/ConfigurationDirectives#WSGIDaemonProcess)) and the user and group name should match the `run_as_user` and `run_as_group` options of in the `[loris.Loris]` section of `loris2.conf` and the `--loris-owner` and `--loris-group` options that you pass to `setup.py` (see beloq)..
 
 Finally, from the `loris` (not `loris/loris`) directory, either as root or with `sudo` run `./setup.py install` with the options of your choice.
 
