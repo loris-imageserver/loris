@@ -208,9 +208,11 @@ class SimpleHTTPResolver(_AbstractResolver):
     @staticmethod
     def _web_request_url(ident, is_uri_resolvable, prefix, suffix):
         if (ident[0:6] == 'http:/' or ident[0:7] == 'https:/') and is_uri_resolvable:
-            #ident is http request with no prefix or suffix specified
-            #For some reason, identifier is http:/<url> or https:/<url>? Hack to correct.
-            return ident[0:ident.find('/')] + '/' + ident[ident.find('/'):len(ident)]
+            # ident is http request with no prefix or suffix specified
+            # For some reason, identifier is http:/<url> or https:/<url>? 
+            # Hack to correct without breaking valid urls.
+            first_slash = ident.find('/')
+            return '%s//%s' % (ident[:first_slash], ident[first_slash:].lstrip('/'))
         else:
             return prefix + ident + suffix
 
