@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 from loris.loris_exception import ResolverException
-from loris.resolver import SimpleHTTPResolver
+from loris.resolver import SimpleHTTPResolver, TemplateHTTPResolver
 from loris.resolver import SourceImageCachingResolver
 from os.path import dirname
 from os.path import isfile
@@ -228,11 +228,56 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 		self.assertTrue(isfile(resolved_path))
 
 
+class Test_TemplateHTTPResolver(loris_t.LorisTest):
+	'Test TemplateHttpResolver'
+
+	def test_template_http_resolver(self):
+
+		# Test with no config
+		self.assertRaises(ResolverException,
+			lambda: TemplateHTTPResolver({}))
+
+		# Test with the multiple templates
+		config = {
+			'cache_root' : self.app.img_cache.cache_root,
+			'templates': 'a,b, c, d',
+			'a': 'http://mysite.com/images/%s',
+			'b': 'http://mysite.com/images/%s/access/',
+			'c': 'http://othersite.co/img/%s'
+		}
+
+		self.app.resolver = TemplateHTTPResolver(config)
+		self.assertEqual(self.app.resolver.cache_root, self.app.img_cache.cache_root)
+		self.assert_('a' in self.app.resolver.templates)
+		self.assert_('b' in self.app.resolver.templates)
+		self.assert_('c' in self.app.resolver.templates)
+		self.assert_('d' not in self.app.resolver.templates)
+		self.assertEqual(self.app.resolver.templates['a'],
+			config['a'])
+		self.assertEqual(self.app.resolver.templates['b'],
+			config['b'])
+		self.assertEqual(self.app.resolver.templates['c'],
+			config['c'])
+		# automatically set for simple http resolver
+		self.assertEqual(self.app.resolver.uri_resolvable, True)
+
+		# test web request uri logic
+		self.assertEqual('http://mysite.com/images/foo.jpg',
+			self.app.resolver._web_request_url('a:foo.jpg'))
+		self.assertEqual('http://mysite.com/images/id1/access/',
+			self.app.resolver._web_request_url('b:id1'))
+		self.assertEqual('http://othersite.co/img/foo:bar:baz',
+			self.app.resolver._web_request_url('c:foo:bar:baz'))
+		self.assertEqual(None,
+			self.app.resolver._web_request_url('unknown:id2'))
+
+
 def suite():
 	import unittest
 	test_suites = []
 	test_suites.append(unittest.makeSuite(Test_SimpleFSResolver, 'test'))
 	test_suites.append(unittest.makeSuite(Test_SourceImageCachingResolver, 'test'))
 	test_suites.append(unittest.makeSuite(Test_SimpleHTTPResolver, 'test'))
+	test_suites.append(unittest.makeSuite(Test_TemplateHTTPResolver, 'test'))
 	test_suite = unittest.TestSuite(test_suites)
 	return test_suite

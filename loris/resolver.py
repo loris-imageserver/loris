@@ -162,28 +162,29 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.error(message)
             raise ResolverException(500, message)
 
+    def request_options(self):
+        # parameters to pass to all head and get requests;
+        # currently only authorization, if configured
+        if self.user is not None and self.pw is not None:
+            return {'auth': (self.user, self.pw)}
+        return {}
+
     def is_resolvable(self, ident):
         ident = unquote(ident)
         fp = join(self.cache_root, SimpleHTTPResolver._cache_subroot(ident))
         if exists(fp):
             return True
         else:
-            fp = SimpleHTTPResolver._web_request_url(ident, self.uri_resolvable, self.source_prefix, self.source_suffix)
+            fp = self._web_request_url(ident)
 
             if self.head_resolvable:
                 try:
-                    if self.user is not None and self.pw is not None:
-                        response = requests.head(fp, auth=(self.user, self.pw))
-                    else:
-                        response = requests.head(fp)
+                    response = requests.head(fp, **self.request_options())
                 except requests.exceptions.MissingSchema:
                     return False
             else:
                 try:
-                    if self.user is not None and self.pw is not None:
-                        response = requests.get(fp, stream = True, auth=(self.user, self.pw))
-                    else:
-                        response = requests.get(fp, stream = True)
+                    response = requests.get(fp, stream = True, **self.request_options())
                 except requests.exceptions.MissingSchema:
                     return False
 
@@ -205,16 +206,15 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.warn(log_message)
             raise ResolverException(404, public_message)
 
-    @staticmethod
-    def _web_request_url(ident, is_uri_resolvable, prefix, suffix):
-        if (ident[0:6] == 'http:/' or ident[0:7] == 'https:/') and is_uri_resolvable:
+    def _web_request_url(self, ident):
+        if (ident[0:6] == 'http:/' or ident[0:7] == 'https:/') and self.uri_resolvable:
             # ident is http request with no prefix or suffix specified
             # For some reason, identifier is http:/<url> or https:/<url>? 
             # Hack to correct without breaking valid urls.
             first_slash = ident.find('/')
             return '%s//%s' % (ident[:first_slash], ident[first_slash:].lstrip('/'))
         else:
-            return prefix + ident + suffix
+            return self.source_prefix + ident + self.source_suffix
 
     #Get a subdirectory structure for the cache_subroot through hashing.
     @staticmethod
@@ -266,15 +266,12 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.debug('src image from local disk: %s' % (cached_object,))
             return (cached_object, format)
         else:
-            fp = SimpleHTTPResolver._web_request_url(ident, self.uri_resolvable, self.source_prefix, self.source_suffix)
+            fp = self._web_request_url(ident)
 
             logger.debug('src image: %s' % (fp,))
 
             try:
-                if self.user is not None and self.pw is not None:
-                    response = requests.get(fp, stream = True, auth=(self.user, self.pw))
-                else:
-                    response = requests.get(fp, stream = True)
+                response = requests.get(fp, stream = True, **self.request_options())
             except requests.exceptions.MissingSchema:
                 public_message = 'Bad URL request made for identifier: %s.' % (ident,)
                 log_message = 'Bad URL request at %s for identifier: %s.' % (fp,ident)
@@ -314,6 +311,77 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.info("Copied %s to %s" % (fp, local_fp))
 
             return (local_fp, format)
+
+
+class TemplateHTTPResolver(SimpleHTTPResolver):
+    '''HTTP resolver that suppors multiple configurable patterns for supported
+    urls.  Based on SimpleHTTPResolver.  Identifiers in URLs should be
+    specified as `template_name:id`.
+
+    The configuration MUST contain
+     * `cache_root`, which is the absolute path to the directory where source images
+        should be cached.
+
+    The configuration SHOULD contain
+     * `templates`, a comma-separated list of template names e.g.
+        templates=`site1,site2`
+     * A url pattern for each specified template, e.g.
+       site1='http://example.edu/images/%s' or site2='http://example.edu/images/%s/master'
+
+    Note that if a template is listed but has no pattern configured, the
+    resolver will warn but not fail.
+
+    The configuration may also include the following settings, as used by
+    SimpleHTTPResolver:
+     * `default_format`, the format of images (will use content-type of
+        response if not specified).
+     * `head_resolvable` with value True, whether to make HEAD requests
+        to verify object existence (don't set if using Fedora Commons
+        prior to 3.8).  [Currently must be the same for all templates]
+    '''
+    def __init__(self, config):
+        super(SimpleHTTPResolver, self).__init__(config)
+        templates = self.config.get('templates', '')
+        # technically it's not an error to have no templates configured,
+        # but nothing will resolve; is that useful? or should this
+        # cause an exception?
+        if templates:
+            logger.warn('No templates specified in configuration')
+        self.templates = {}
+        for name in templates.split(','):
+            name = name.strip()
+            cfg = self.config.get(name, None)
+            if cfg is None:
+                logger.warn('No configuration specified for resolver template %s' % name)
+            else:
+                self.templates[name] = cfg
+
+        # inherited/required configs from simple http resolver
+
+        self.head_resolvable = self.config.get('head_resolvable', False)
+        self.default_format = self.config.get('default_format', None)
+        if 'cache_root' in self.config:
+            self.cache_root = self.config['cache_root']
+        else:
+            message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
+            logger.error(message)
+            raise ResolverException(500, message)
+
+        # required for simplehttpresolver
+        # all templates are assumed to be uri resolvable
+        self.uri_resolvable = True
+
+    def _web_request_url(self, ident):
+        prefix, ident = ident.split(':', 1)
+        if prefix in self.templates:
+            return self.templates[prefix] % ident
+        # if prefix is not recognized, no identifier is returned
+        # and loris will return a 404
+
+    def request_options(self):
+        # currently no username/passsword supported
+        return {}
+
 
 class SourceImageCachingResolver(_AbstractResolver):
     '''
