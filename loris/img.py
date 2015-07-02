@@ -1,7 +1,7 @@
 # img.py
 #-*-coding:utf-8-*-
 
-
+from datetime import datetime
 from logging import getLogger
 from loris_exception import LorisException
 from os import path,sep,symlink,makedirs,unlink
@@ -30,10 +30,10 @@ class ImageRequest(object):
 		quality (str)
 			copied exactly from the URI
 		format (str)
-			3 char string from the URI, (derived from) HTTP headers, or else the 
-			default. 
+			3 char string from the URI, (derived from) HTTP headers, or else the
+			default.
 		region_param (parameters.RegionParameter):
-			See RegionParameter.__slots__. The region is represented there as 
+			See RegionParameter.__slots__. The region is represented there as
 			both pixels and decmials.
 		size_param (parameters.SizeParameter)
 			See SizeParameter.__slots__.
@@ -42,15 +42,15 @@ class ImageRequest(object):
 		info (ImageInfo):
 		is_canonical (bool):
 			True if this is a canonical path.
-		cache_path (str): 
+		cache_path (str):
 			Relative path from the cache root, based on the original request values.
 		canonical_cache_path (str):
 			Relative path from the cache root, based on normalized values
 		request_path
-			Path of the request for tacking on to the service host and creating 
+			Path of the request for tacking on to the service host and creating
 			a URI based on the original request.
 		canonical_request_path
-			Path of the request for tacking on to the service host and creating 
+			Path of the request for tacking on to the service host and creating
 			a URI based on the normalized ('canonical') values.
 			('canonical') values.
 		Raises:
@@ -100,8 +100,8 @@ class ImageRequest(object):
 		self._rotation_param = None
 		self._size_param = None
 
-		# This is a little awkward. We may need it, but not right away (only if we're 
-		# filling out the param slots), so the user (of the class) has to set 
+		# This is a little awkward. We may need it, but not right away (only if we're
+		# filling out the param slots), so the user (of the class) has to set
 		# it before accessing most of the above.
 		self._info = None
 
@@ -136,10 +136,10 @@ class ImageRequest(object):
 	def request_path(self):
 		if self._request_path is None:
 			p = '/'.join((
-				quote_plus(self.ident), 
-				self.region_value, 
+				quote_plus(self.ident),
+				self.region_value,
 				self.size_value,
-				self.rotation_value, 
+				self.rotation_value,
 				self.quality
 			))
 			self._request_path = '%s.%s' % (p,self.format)
@@ -148,10 +148,10 @@ class ImageRequest(object):
 	@property
 	def canonical_request_path(self):
 		if self._canonical_request_path is None:
-			p = '/'.join((quote_plus(self.ident), 
-				self.region_param.canonical_uri_value, 
-				self.size_param.canonical_uri_value, 
-				self.rotation_param.canonical_uri_value, 
+			p = '/'.join((quote_plus(self.ident),
+				self.region_param.canonical_uri_value,
+				self.size_param.canonical_uri_value,
+				self.rotation_param.canonical_uri_value,
 				self.quality
 			))
 			self._canonical_request_path = '%s.%s' % (p,self.format)
@@ -160,10 +160,10 @@ class ImageRequest(object):
 	@property
 	def cache_path(self):
 		if self._cache_path is None:
-			p = path.join(self.ident, 
-				self.region_value, 
-				self.size_value, 
-				self.rotation_value, 
+			p = path.join(self.ident,
+				self.region_value,
+				self.size_value,
+				self.rotation_value,
 				self.quality
 			)
 			self._cache_path = '%s.%s' % (p, self.format)
@@ -172,10 +172,10 @@ class ImageRequest(object):
 	@property
 	def canonical_cache_path(self):
 		if self._canonical_cache_path is None:
-			p = path.join(self.ident, 
-					self.region_param.canonical_uri_value, 
-					self.size_param.canonical_uri_value, 
-					self.rotation_param.canonical_uri_value, 
+			p = path.join(self.ident,
+					self.region_param.canonical_uri_value,
+					self.size_param.canonical_uri_value,
+					self.rotation_param.canonical_uri_value,
 					self.quality
 				)
 			self._canonical_cache_path = '%s.%s' % (p, self.format)
@@ -225,8 +225,8 @@ class ImageCache(dict):
 		logger.debug('Made symlink from %s to %s' % (to,frum))
 
 	def __setitem__(self, image_request, fp):
-		# The Image (fp) already exists, this simply makes a symlink in the 
-		# cache to from the canonical syntax to the actual request path 
+		# The Image (fp) already exists, this simply makes a symlink in the
+		# cache to from the canonical syntax to the actual request path
 		if not image_request.is_canonical:
 			canonical_fp = self.get_canonical_cache_path(image_request)
 			ImageCache._link(fp, canonical_fp)
@@ -236,12 +236,13 @@ class ImageCache(dict):
 		pass
 
 	def get(self, image_request):
-		'''Returns (str): 
+		'''Returns (str, ):
 			The path to the file or None if the file does not exist.
 		'''
 		cache_fp = self.get_cache_path(image_request)
+		last_mod = datetime.utcfromtimestamp(path.getmtime(cache_fp))
 		if path.exists(cache_fp):
-			return cache_fp
+			return (cache_fp, last_mod)
 		else:
 			return None
 
