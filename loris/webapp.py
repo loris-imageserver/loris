@@ -56,7 +56,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
         config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
         config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
         config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
-        
+
         if debug_jp2_transformer == 'opj':
             from transforms import OPJ_JP2Transformer
             opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
@@ -76,7 +76,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
         logger = logging.getLogger(__name__)
         logger.debug('Running in production mode.')
 
-    # Make any dirs we may need 
+    # Make any dirs we may need
     dirs_to_make = []
     try:
         dirs_to_make.append(config['loris.Loris']['tmp_dp'])
@@ -86,7 +86,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
             dirs_to_make.append(config['img.ImageCache']['cache_dp'])
             dirs_to_make.append(config['img_info.InfoCache']['cache_dp'])
         [makedirs(d) for d in dirs_to_make if not path.exists(d)]
-    except OSError as ose: 
+    except OSError as ose:
         from sys import exit
         from os import strerror
         # presumably it's permissions
@@ -114,7 +114,7 @@ def __configure_logging(config):
         if not getattr(logger, 'handler_set', None):
             fp = '%s.log' % (path.join(config['log_dir'], 'loris'),)
             handler = RotatingFileHandler(fp,
-                maxBytes=config['max_size'], 
+                maxBytes=config['max_size'],
                 backupCount=config['max_backups'],
                 delay=True)
             handler.setFormatter(formatter)
@@ -127,7 +127,7 @@ def __configure_logging(config):
             err_handler.addFilter(StdErrFilter())
             err_handler.setFormatter(formatter)
             logger.addHandler(err_handler)
-            
+
             # STDOUT
             out_handler = logging.StreamHandler(__stdout__)
             out_handler.addFilter(StdOutFilter())
@@ -149,9 +149,9 @@ class StdOutFilter(logging.Filter):
         return 1 if record.levelno <= 20 else 0
 
 class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
-    '''Similar to Response, but IIIF Compliance Link and 
+    '''Similar to Response, but IIIF Compliance Link and
     Access-Control-Allow-Origin Headers are added and none of the
-    ETagResponseMixin, ResponseStreamMixin, or WWWAuthenticateMixin 
+    ETagResponseMixin, ResponseStreamMixin, or WWWAuthenticateMixin
     capabilities are included.
     See: http://werkzeug.pocoo.org/docs/wrappers/#werkzeug.wrappers.Response
     '''
@@ -185,8 +185,8 @@ class Loris(object):
     def __init__(self, app_configs={ }, debug=False):
         '''The WSGI Application.
         Args:
-            config ({}): 
-                A dictionary of dictionaries that represents the loris.conf 
+            config ({}):
+                A dictionary of dictionaries that represents the loris.conf
                 file.
             debug (bool)
         '''
@@ -244,7 +244,7 @@ class Loris(object):
         '''Imports a class AND returns it (the class, not an instance).
         '''
         module_name = '.'.join(qname.split('.')[:-1])
-        class_name = qname.split('.')[-1] 
+        class_name = qname.split('.')[-1]
         module = __import__(module_name, fromlist=[class_name])
         logger.debug('Imported %s' % (qname,))
         return getattr(module, class_name)
@@ -257,7 +257,7 @@ class Loris(object):
     def route(self, request):
         base_uri, ident, params, request_type = self._dissect_uri(request)
         # index.txt
-        if ident == '': 
+        if ident == '':
             return self.get_index(request)
 
         if not self.resolver.is_resolvable(ident):
@@ -280,7 +280,7 @@ class Loris(object):
                     return BadRequestResponse('"%s" is not a supported format' % (fmt,))
                 if quality not in constants.QUALITIES:
                     return BadRequestResponse('"%s" is not a supported quality' % (quality,))
-                # The remaining params get their syntaxes checked further 
+                # The remaining params get their syntaxes checked further
                 # downstream in the Parameter claseses when more involved checks
                 # are also happening.
                 rotation = slices.pop()
@@ -293,7 +293,7 @@ class Loris(object):
         # info
         elif params == 'info.json' and request_type == 'info':
             return self.get_info(request, ident, base_uri)
-            
+
         # favicon.ico
         elif params == 'favicon.ico':
             return self.get_favicon(request)
@@ -308,10 +308,10 @@ class Loris(object):
         ident = None
         params = None
         request_type = 'info'
-    
+
         # First test if what we have in the path is resolvable (bare identifier)
         maybe_ident = r.path[1:] # no leading slash
-        if self.redirect_id_slash_to_info and maybe_ident.endswith('/'): 
+        if self.redirect_id_slash_to_info and maybe_ident.endswith('/'):
             maybe_ident = maybe_ident[:-1]
 
         if self.resolver.is_resolvable(maybe_ident):
@@ -325,15 +325,15 @@ class Loris(object):
             params = 'info.json'
 
         # Else this is probably an image request...
-        else: 
+        else:
             logger.debug(r.path)
             ident = '/'.join(r.path[1:].split('/')[:-4])
-            # ...unless the path isn't long enough to be one, in which case 
+            # ...unless the path isn't long enough to be one, in which case
             # assume the path is an identifier, just a bad one. Gosh this sucks.
             # Could still break if your identifier has 5 slashes
             if ident == '':
                 ident = r.path[1:]
-                if self.redirect_id_slash_to_info and ident.endswith('/'): 
+                if self.redirect_id_slash_to_info and ident.endswith('/'):
                     ident = ident[:-1]
             else:
                 params = '/'.join(r.path.split('/')[-4:])
@@ -434,7 +434,7 @@ class Loris(object):
                 src_fp, src_format = self.resolver.resolve(ident)
 
             formats = self.transformers[src_format].target_formats
-            
+
             logger.debug('Format: %s' % (src_format,))
             logger.debug('File Path: %s' % (src_fp,))
             logger.debug('Identifier: %s' % (ident,))
@@ -459,19 +459,19 @@ class Loris(object):
                 last_mod = None
 
             return (info,last_mod)
-    
+
     def get_img(self, request, ident, region, size, rotation, quality, target_fmt, base_uri):
-        '''Get an Image. 
+        '''Get an Image.
         Args:
-            request (Request): 
+            request (Request):
                 Forwarded by dispatch_request
-            ident (str): 
+            ident (str):
                 The identifier portion of the IIIF URI syntax
 
         '''
         r = LorisResponse()
-        # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are 
-        # decorated with @property and not constructed until they are first 
+        # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are
+        # decorated with @property and not constructed until they are first
         # accessed, which mean we don't have to catch any exceptions here.
         image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
@@ -483,9 +483,8 @@ class Loris(object):
             in_cache = False
 
         if in_cache:
-            fp = self.img_cache[image_request]
+            fp, img_last_mod = self.img_cache[image_request]
             ims_hdr = request.headers.get('If-Modified-Since')
-            img_last_mod = datetime.utcfromtimestamp(path.getmtime(fp))
             # The stamp from the FS needs to be rounded using the same precision
             # as when went sent it, so for an accurate comparison turn it into
             # an http date and then parse it again :-( :
@@ -538,27 +537,27 @@ class Loris(object):
 
                 # 5. Make an image
                 fp = self._make_image(image_request, src_fp, src_format)
-                
+
             except ResolverException as re:
                 return NotFoundResponse(re.message)
             except (RequestException, SyntaxException) as e:
                 return BadRequestResponse(e.message)
             except (ImageException,ImageInfoException) as ie:
                 # 500s!
-                # ImageException is only raised in when ImageRequest.info 
+                # ImageException is only raised in when ImageRequest.info
                 # isn't set and is a developer error. It should never happen!
                 #
-                # ImageInfoException is only raised when 
-                # ImageInfo.from_image_file() can't  determine the format of the 
-                # source image. It results in a 500, but isn't necessarily a 
+                # ImageInfoException is only raised when
+                # ImageInfo.from_image_file() can't  determine the format of the
+                # source image. It results in a 500, but isn't necessarily a
                 # developer error.
                 return ServerSideErrorResponse(ie)
             except (CalledProcessError,IOError) as e:
-                # CalledProcessError and IOError typically happen when there are 
+                # CalledProcessError and IOError typically happen when there are
                 # permissions problems with one of the files or directories
                 # used by the transformer.
-                msg = '''%s \n\nThis is likely a permissions problem, though it\'s 
-possible that there was a problem with the source file 
+                msg = '''%s \n\nThis is likely a permissions problem, though it\'s
+possible that there was a problem with the source file
 (%s).''' % (str(e),src_fp)
                 return ServerSideErrorResponse(msg)
 
@@ -601,7 +600,6 @@ possible that there was a problem with the source file
         transformer = self.transformers[src_format]
 
         transformer.transform(src_fp, target_fp, image_request)
-        #  cache if caching (this makes symlinks for next time)
         if self.enable_caching:
             self.img_cache[image_request] = target_fp
         return target_fp
