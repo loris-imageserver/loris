@@ -21,7 +21,7 @@ class LorisTest(unittest.TestCase):
         unittest.TestCase.setUp(self)
 
         self.URI_BASE = 'http://localhost'
-        
+
         # create an instance of the app here that we can use in tests
         # see http://werkzeug.pocoo.org/docs/test/
         self.app = create_app(debug=True)
@@ -37,9 +37,9 @@ class LorisTest(unittest.TestCase):
         self.test_jp2_color_fmt = 'jp2'
         self.test_jp2_color_id = '01%2F02%2F0001.jp2'
         self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_color_id)
-        self.test_jp2_color_dims = (5906,7200) 
+        self.test_jp2_color_dims = (5906,7200)
         self.test_jp2_color_levels = 6
-        self.test_jp2_color_tiles = [ 
+        self.test_jp2_color_tiles = [
             { "width": 256, "scaleFactors": [1,2,4,8,16,32,64] }
         ]
         self.test_jp2_color_sizes =  [
@@ -66,7 +66,7 @@ class LorisTest(unittest.TestCase):
             { "height": 1600, "width": 1239 },
             { "height": 3200, "width": 2477 }
         ]
-        self.test_jp2_gray_tiles = [ 
+        self.test_jp2_gray_tiles = [
             { "width": 256, "scaleFactors": [1,2,4,8,16,32,64] }
         ]
 
@@ -84,6 +84,13 @@ class LorisTest(unittest.TestCase):
         self.test_tiff_dims = (839,1080)
         self.test_tiff_sizes = []
 
+        self.test_png_fp = path.join(test_img_dir,'henneken.png')
+        self.test_png_fmt = 'png'
+        self.test_png_id = 'henneken.png'
+        self.test_png_uri = '%s/%s' % (self.URI_BASE,self.test_png_id)
+        self.test_png_dims = (504,360) # w,h
+        self.test_png_sizes = []
+
         self.test_jp2_with_embedded_profile_id = '47102787.jp2'
         self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,self.test_jp2_with_embedded_profile_id)
         self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
@@ -99,12 +106,12 @@ class LorisTest(unittest.TestCase):
             { "height": 186, "width": 141 },
             { "height": 372, "width": 281 },
             { "height": 743, "width": 561 },
-            { "height": 1486, "width": 1122 }, 
-            { "height": 2972, "width": 2244 }, 
+            { "height": 1486, "width": 1122 },
+            { "height": 2972, "width": 2244 },
             { "height": 5944, "width": 4488 }
         ]
-        self.test_jp2_with_precincts_tiles = [ 
-            { "width": 128, "scaleFactors": [1,2,4,8,16] }, 
+        self.test_jp2_with_precincts_tiles = [
+            { "width": 128, "scaleFactors": [1,2,4,8,16] },
             { "width": 256, "scaleFactors": [32,64] }
         ]
 
@@ -146,7 +153,7 @@ class LorisTest(unittest.TestCase):
                     break
                 else:
                     jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-                   
+
                 b = jpeg.read(1)
             width = int(w)
             height = int(h)

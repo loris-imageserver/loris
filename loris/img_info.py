@@ -32,6 +32,7 @@ PIL_MODES_TO_QUALITIES = {
     # Thanks to http://stackoverflow.com/a/1996609/714478
     '1' : ['default','bitonal'],
     'L' : ['default','gray','bitonal'],
+    'LA' : ['default','gray','bitonal'],
     'P' : ['default','gray','bitonal'],
     'RGB': ['default','color','gray','bitonal'],
     'RGBA': ['default','color','gray','bitonal'],
@@ -57,8 +58,8 @@ class ImageInfo(object):
         sizes [(str)]: the optimal sizes of the image to request
         tiles: [{}]
     '''
-    __slots__ = ('scaleFactors', 'width', 'tiles', 'height', 
-        'ident', 'profile', 'protocol', 'sizes', 
+    __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
+        'ident', 'profile', 'protocol', 'sizes',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
     def __init__(self):
@@ -73,7 +74,7 @@ class ImageInfo(object):
             src_format (str): The format of the image as a three-char str.
             formats ([str]): The derivative formats the application can produce.
         '''
-        # Assumes that the image exists and the format is supported. Exceptions 
+        # Assumes that the image exists and the format is supported. Exceptions
         # should be raised by the resolver if that's not the case.
         new_inst = ImageInfo()
         new_inst.ident = uri
@@ -115,7 +116,7 @@ class ImageInfo(object):
         new_inst.ident = j.get(u'@id')
         new_inst.width = j.get(u'width')
         new_inst.height = j.get(u'height')
-        # TODO: make sure these are resulting in error or Nones when 
+        # TODO: make sure these are resulting in error or Nones when
         # we load from the filesystem
         new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
@@ -134,7 +135,7 @@ class ImageInfo(object):
         self.sizes = []
 
     def _from_jp2(self, fp):
-        '''Get info about a JP2. 
+        '''Get info about a JP2.
         '''
         logger.debug('Extracting info from JP2 file.')
         self.profile[1]['qualities'] = ['default', 'bitonal']
@@ -155,7 +156,7 @@ class ImageInfo(object):
         logger.debug("width: " + str(self.width))
         logger.debug("height: " + str(self.height))
 
-        # Figure out color or grayscale. 
+        # Figure out color or grayscale.
         # Depending color profiles; there's probably a better way (or more than
         # one, anyway.)
         # see: JP2 I.5.3.3 Colour Specification box
@@ -172,7 +173,7 @@ class ImageInfo(object):
         colr_approx = struct.unpack('B', jp2.read(1))[0]
         logger.debug('colr PREC: %d' % (colr_prec))
         logger.debug('colr APPROX: %d' % (colr_approx))
-        
+
         if colr_meth == 1: # Enumerated Colourspace
             self.color_profile_bytes = None
             enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
@@ -223,7 +224,7 @@ class ImageInfo(object):
         # b = jp2.read(1) # 0x52: The COD marker segment
         while map(ord, window) != [0xFF, 0x52]:  # (COD - required, see pg 14)
             window.append(jp2.read(1))
-        
+
         jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
         levels = int(struct.unpack(">B", jp2.read(1))[0])
         logger.debug("levels: " + str(levels))
@@ -232,8 +233,8 @@ class ImageInfo(object):
         jp2.read(4) # through code block stuff
 
         # We may have precincts if Scod or Scoc = xxxx xxx0
-        # But we don't need to examine as this is the last variable in the 
-        # COD segment. Instead check if the next byte == 0xFF. If it is, 
+        # But we don't need to examine as this is the last variable in the
+        # COD segment. Instead check if the next byte == 0xFF. If it is,
         # we don't have a Precint size parameter and we've moved on to either
         # the COC (optional, marker = 0xFF53) or the QCD (required,
         # marker = 0xFF5C)
@@ -241,7 +242,7 @@ class ImageInfo(object):
         if ord(b) != 0xFF:
             if self.tiles[0]['width'] == self.width \
                 and self.tiles[0].get('height') in (self.height, None):
-                # Clear what we got above in SIZ and prefer this. This could 
+                # Clear what we got above in SIZ and prefer this. This could
                 # technically break as it's possible to have precincts inside tiles.
                 # Let's wait for that to come up....
                 self.tiles = []
@@ -308,15 +309,15 @@ class ImageInfo(object):
         return json.dumps(d)
 
 class InfoCache(object):
-    """A dict-like cache for ImageInfo objects. The n most recently used are 
+    """A dict-like cache for ImageInfo objects. The n most recently used are
     also kept in memory; all entries are on the file system.
 
-    One twist: you put in an ImageInfo object, but get back a two-tuple, the 
-    first member is the ImageInfo, the second member is the UTC date and time 
+    One twist: you put in an ImageInfo object, but get back a two-tuple, the
+    first member is the ImageInfo, the second member is the UTC date and time
     for when the info was last modified.
 
-    Note that not all dictionary methods are implemented; just basic getters, 
-    put (`instance[indent] = info`), membership, and length. There are no 
+    Note that not all dictionary methods are implemented; just basic getters,
+    put (`instance[indent] = info`), membership, and length. There are no
     iterators, views, default, update, comparators, etc.
 
     Slots:
@@ -329,9 +330,9 @@ class InfoCache(object):
     def __init__(self, root, size=500):
         """
         Args:
-            root (str): 
+            root (str):
                 Path directory on the file system to be used for the cache.
-            size (int): 
+            size (int):
                 Max entries before the we start popping (LRU).
         """
         self.root = root
@@ -367,7 +368,7 @@ class InfoCache(object):
                 if os.path.exists(icc_fp):
                     with open(icc_fp, "rb") as f:
                         info.color_profile_bytes = f.read()
-                else: 
+                else:
                     info.color_profile_bytes = None
 
                 lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
@@ -441,5 +442,3 @@ class InfoCache(object):
             os.unlink(icc_fp)
 
         os.removedirs(os.path.dirname(info_fp))
-
-

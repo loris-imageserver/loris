@@ -51,12 +51,13 @@ class _AbstractTransformer(object):
                 True by default; can be set to False in case the rotation was
                 done further upstream.
             crop (bool):
-                True by default; can be set to False when the region was aleady 
+                True by default; can be set to False when the region was aleady
                 extracted further upstream.
         Returns:
             void (puts an image at target_fp)
 
         '''
+
         if crop and image_request.region_param.canonical_uri_value != 'full':
             # For PIL: "The box is a 4-tuple defining the left, upper, right,
             # and lower pixel coordinate."
@@ -75,35 +76,37 @@ class _AbstractTransformer(object):
             logger.debug('Resizing to: %s' % (repr(wh),) )
             im = im.resize(wh, resample=Image.ANTIALIAS)
 
-        if im.mode != "RGB":
-            im = im.convert("RGB")
 
         if image_request.rotation_param.mirror:
             im = mirror(im)
 
         if image_request.rotation_param.rotation != '0' and rotate:
             r = 0-float(image_request.rotation_param.rotation)
-            logger.debug('*'*80)
             logger.debug('Rotating (PIL syntax): %s' % (repr(r),))
-            # We get a 1 px border at left and top with multiples of 90 with 
+
+            if float(image_request.rotation_param.rotation) % 90 != '0.0':
+                if image_request.quality in ('gray', 'bitonal'):
+                    im = im.convert('LA')
+                else:
+                    logger.debug('*'*80)
+                    im = im.convert('RGBA')
+            # We get a 1 px border at left and top with multiples of 90 with
             # expand for some reason, so:
             expand = bool(r % 90)
             logger.debug('Expand: %s' % (repr(expand),))
-            im = im.rotate(r, expand=expand) 
+            im = im.rotate(r, expand=expand)
 
-            # Here's a recipe for setting different background colors
-            # http://stackoverflow.com/a/5253554/714478
-            # Could take a hex color value (omit #) as a param:
-            # http://stackoverflow.com/a/214657/714478
-            # Problem is that we'd need to cache each...and that logic would 
-            # bleed around the app quite a bit for a not-often used feature.
+        if not im.mode.endswith('A'):
+            if im.mode != "RGB" and not image_request.quality in ('gray', 'bitonal'):
+                im = im.convert("RGB")
 
-        if image_request.quality == 'gray':
-            im = im.convert('L')
-        elif image_request.quality == 'bitonal':
-            # not 1-bit w. JPG
-            dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
-            im = im.convert('1', dither=dither)
+            elif image_request.quality == 'gray':
+                im = im.convert('L')
+
+            elif image_request.quality == 'bitonal':
+                # not 1-bit w. JPG
+                dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
+                im = im.convert('1', dither=dither)
 
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
@@ -121,21 +124,22 @@ class _AbstractTransformer(object):
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
             im.save(target_fp, quality=90)
 
-class JPG_Transformer(_AbstractTransformer):
+class _PillowTransformer(_AbstractTransformer):
     def __init__(self, config):
-        super(JPG_Transformer, self).__init__(config)
+        super(_PillowTransformer, self).__init__(config)
 
     def transform(self, src_fp, target_fp, image_request):
         im = Image.open(src_fp)
         self._derive_with_pil(im, target_fp, image_request)
 
-class TIF_Transformer(_AbstractTransformer):
-    def __init__(self, config):
-        super(TIF_Transformer, self).__init__(config)
+class JPG_Transformer(_PillowTransformer):
+    def __init__(self, config): super(JPG_Transformer, self).__init__(config)
 
-    def transform(self, src_fp, target_fp, image_request):
-        im = Image.open(src_fp)
-        self._derive_with_pil(im, target_fp, image_request)
+class TIF_Transformer(_PillowTransformer):
+    def __init__(self, config): super(TIF_Transformer, self).__init__(config)
+
+class PNG_Transformer(_PillowTransformer):
+    def __init__(self, config): super(PNG_Transformer, self).__init__(config)
 
 class _AbstractJP2Transformer(_AbstractTransformer):
     '''
@@ -159,7 +163,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
         try:
             if not path.exists(self.tmp_dp):
                 makedirs(self.tmp_dp)
-        except OSError as ose: 
+        except OSError as ose:
             # Almost certainly a permissions error on one of the required dirs
             from sys import exit
             from os import strerror
@@ -205,7 +209,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
     def __init__(self, config):
         self.opj_decompress = config['opj_decompress']
         self.env = {
-            'LD_LIBRARY_PATH' : config['opj_libs'], 
+            'LD_LIBRARY_PATH' : config['opj_libs'],
             'PATH' : config['opj_decompress']
         }
         super(OPJ_JP2Transformer, self).__init__(config)
@@ -283,7 +287,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
         # Start the shellout. Blocks until the pipe is empty
         with open(devnull, 'w') as fnull:
-            opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1, 
+            opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1,
                 stderr=fnull, stdout=fnull, env=self.env)
 
         f = open(fifo_fp, 'rb')
@@ -313,10 +317,10 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 class KakaduJP2Transformer(_AbstractJP2Transformer):
     def __init__(self, config):
         self.kdu_expand = config['kdu_expand']
-        
+
         self.num_threads = config['num_threads']
         self.env = {
-            'LD_LIBRARY_PATH' : config['kdu_libs'], 
+            'LD_LIBRARY_PATH' : config['kdu_libs'],
             'PATH' : config['kdu_expand']
         }
         super(KakaduJP2Transformer, self).__init__(config)
@@ -394,7 +398,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
             logger.debug('Calling: %s' % (kdu_cmd,))
-            kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1, 
+            kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
                 stderr=subprocess.PIPE, env=self.env)
 
             f = open(fifo_fp, 'rb')
@@ -426,4 +430,3 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             if kdu_exit != 0:
                 map(logger.error, map(string.strip, kdu_expand_proc.stderr))
             unlink(fifo_fp)
-

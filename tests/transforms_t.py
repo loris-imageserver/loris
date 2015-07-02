@@ -5,7 +5,7 @@ from PIL.ImageFile import Parser
 from cStringIO import StringIO
 
 """
-Transformer tests. These right now these work with the kakadu and PIL 
+Transformer tests. These right now these work with the kakadu and PIL
 transformers. More should be added when different libraries/scenarios are added.
 
 To run this test on its own, do:
@@ -32,7 +32,7 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
         image = p.close()
         bytes.close()
         expected_dims = tuple(int(d*1.10) for d in self.test_jp2_color_dims)
-        
+
         self.assertEqual(expected_dims, image.size)
 
 def suite():
