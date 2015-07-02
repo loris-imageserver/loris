@@ -26,15 +26,15 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         ident = self.test_jp2_color_id
         uri = self.test_jp2_color_uri
 
-        profile = ["http://iiif.io/api/image/2/level2.json", { 
+        profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
-                "qualities": [ 
-                    "default", 
-                    "bitonal", 
-                    "gray", 
-                    "color" 
+                "qualities": [
+                    "default",
+                    "bitonal",
+                    "gray",
+                    "color"
                 ],
-                "supports": [ 
+                "supports": [
                     "canonicalLinkHeader",
                     "profileLinkHeader",
                     "mirroring",
@@ -95,14 +95,14 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         ident = self.test_jp2_gray_id
         uri = self.test_jp2_gray_uri
 
-        profile = ["http://iiif.io/api/image/2/level2.json", { 
+        profile = ["http://iiif.io/api/image/2/level2.json", {
             "formats": [ "jpg", "png", "gif", "webp" ],
-            "qualities": [ 
-                "default", 
-                "bitonal", 
+            "qualities": [
+                "default",
+                "bitonal",
                 "gray"
             ],
-            "supports": [ 
+            "supports": [
                 "canonicalLinkHeader",
                 "profileLinkHeader",
                 "mirroring",
@@ -130,15 +130,15 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         formats = [ "jpg", "png", "gif", "webp" ]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
-        profile = ["http://iiif.io/api/image/2/level2.json", { 
+        profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
-                "supports": [ 
+                "supports": [
                     "canonicalLinkHeader",
-                    "profileLinkHeader", 
+                    "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull" 
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -150,6 +150,36 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
+    def test_png_info_from_image(self):
+        fp = self.test_png_fp
+        fmt = self.test_png_fmt
+        ident = self.test_png_id
+        uri = self.test_png_uri
+
+        formats = [ "jpg", "png", "gif", "webp" ]
+        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+
+        profile = ["http://iiif.io/api/image/2/level2.json", {
+                "formats": [ "jpg", "png", "gif", "webp" ],
+                "qualities": [ "default", "gray", "bitonal" ],
+                "supports": [
+                    "canonicalLinkHeader",
+                    "profileLinkHeader",
+                    "mirroring",
+                    "rotationArbitrary",
+                    "sizeAboveFull"
+                ]
+            }
+        ]
+
+        self.assertEqual(info.width, self.test_png_dims[0])
+        self.assertEqual(info.height, self.test_png_dims[1])
+        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.sizes, self.test_png_sizes)
+        self.assertEqual(info.ident, uri)
+        self.assertEqual(info.protocol, PROTOCOL)
+
+
     def test_tiff_info_from_image(self):
         fp = self.test_tiff_fp
         fmt = self.test_tiff_fmt
@@ -159,15 +189,15 @@ class Test_B_InfoUnit(loris_t.LorisTest):
         formats = [ "jpg", "png", "gif", "webp" ]
         info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
 
-        profile = ["http://iiif.io/api/image/2/level2.json", { 
+        profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
-                "supports": [ 
+                "supports": [
                     "canonicalLinkHeader",
-                    "profileLinkHeader", 
-                    "mirroring", 
+                    "profileLinkHeader",
+                    "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull" 
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -181,18 +211,18 @@ class Test_B_InfoUnit(loris_t.LorisTest):
 
     def test_info_from_json(self):
         json_fp = self.test_jp2_color_info_fp
-        
+
         info = img_info.ImageInfo.from_json(json_fp)
 
-        profile = ["http://iiif.io/api/image/2/level2.json", { 
+        profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
-                "supports": [ 
+                "supports": [
                     "canonicalLinkHeader",
                     "profileLinkHeader",
-                    "mirroring", 
+                    "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull" 
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -217,10 +247,10 @@ class Test_C_InfoFunctional(loris_t.LorisTest):
         with open(tmp_fp, 'wb') as f:
             f.write(resp.data)
 
-        profile = ["http://iiif.io/api/image/2/level2.json", { 
+        profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
-                "supports": [ 
+                "supports": [
                     "canonicalLinkHeader",
                     "profileLinkHeader",
                     "mirroring",
