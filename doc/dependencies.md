@@ -27,8 +27,8 @@ Pillow's external dependencies __MUST__ be built/installed before Pillow is inst
 
 Then, install all of the dependencies--note that exact versions may vary depending on your package manager and OS version:
 
-    $ sudo apt-get install libjpeg-turbo8-dev libfreetype6-dev zlib1g-dev
-    liblcms2-dev liblcms-utils libtiff5-dev python-dev libwebp-dev apache2
+    $ sudo apt-get install libjpeg-turbo8-dev libfreetype6-dev zlib1g-dev \
+    liblcms2-dev liblcms-utils libtiff5-dev python-dev libwebp-dev apache2 \
     libapache2-mod-wsgi
 
 Now install Pillow (setup.py would do this for you, but it's better to do separately and check):
