@@ -11,7 +11,7 @@
 LOG="/var/log/loris2/cache_clean.log"
 
 # Check that the image cache directory...
-IMG_CACHE_DIR="/var/cache/loris/img"
+IMG_CACHE_DIR="/var/cache/loris2"
 
 # ...is below a certain size and...
 REDUCE_TO=1048576 #1 gb
