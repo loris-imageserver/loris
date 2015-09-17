@@ -17,7 +17,7 @@ These are the options (they can also be viewed by executing `python setup.py ins
 
 ```
  --kdu-expand      Path to the Kakadu executable [Default: /usr/local/bin/kdu_expand]
- --libkdu          Path to libkdu.so [Default: /usr/local/lib/libkdu.so]
+ --libkdu          Path to __the directory that contains__ libkdu.so [Default: /usr/local/lib/libkdu.so]
  --image-cache     Path to image cache directory [Default: /var/cache/loris2]
  --tmp-dir         Path to temporary directory (loris will make its temporary files and pipes here) [Default: /tmp/loris2]
  --www-dir         Path to www directory (wsgi and index file will be here) [Default: /var/www/loris2]
@@ -31,7 +31,7 @@ These are the options (they can also be viewed by executing `python setup.py ins
 
 All of these will be updated in the config file during deployment.
 
-Note that again that __Kakadu is no longer copied over__ by the setup script; it didn't work for too many people. You may use the copy that is bundled with Loris, provided you comply with the [terms outlined by NewSouth Innovations](http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22) and this version works on your system. Either of these may well not be the case, in which case you will need to obtain a copy of Kakadu 7+ separately and may need to compile it for your system.
+Note that again that __Kakadu is no longer installed__ by the setup script; it didn't work for too many people. You may use the copy that is bundled with Loris, provided you comply with the [terms outlined by NewSouth Innovations](http://www.kakadusoftware.com/index.php?option=com_content&task=view&id=26&Itemid=22) and this version works on your system. Either of these may well not be the case, in which case you will need to obtain a copy of Kakadu 7+ separately and may need to compile it for your system.
 
 
 * * *
