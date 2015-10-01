@@ -274,7 +274,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         # how to handle CalledProcessError; would have to be a 500?
 
         # opj_decompress command
-        i = '-i %s' % (src_fp,)
+        i = '-i "%s"' % (src_fp,)
         o = '-o %s' % (fifo_fp,)
         region_arg = self._region_to_opj_arg(image_request.region_param)
         reg = '-d %s' % (region_arg,) if region_arg else ''
@@ -381,7 +381,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         # kdu command
         q = '-quiet'
         t = '-num_threads %s' % (self.num_threads,)
-        i = '-i %s' % (src_fp,)
+        i = '-i "%s"' % (src_fp,)
         o = '-o %s' % (fifo_fp,)
         reduce_arg = self._scales_to_reduce_arg(image_request)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
