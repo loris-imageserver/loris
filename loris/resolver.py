@@ -345,7 +345,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # technically it's not an error to have no templates configured,
         # but nothing will resolve; is that useful? or should this
         # cause an exception?
-        if templates:
+        if not templates:
             logger.warn('No templates specified in configuration')
         self.templates = {}
         for name in templates.split(','):
