@@ -23,3 +23,6 @@ xb526qv4524_05_0001.jp2
 
 /python*
 
+# local ignores
+recompile.sh
+

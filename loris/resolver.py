@@ -10,6 +10,7 @@ from os import makedirs
 from os.path import dirname
 from shutil import copy
 from urllib import unquote, quote_plus
+import ast
 
 import constants
 import hashlib
@@ -381,6 +382,29 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
     def request_options(self):
         # currently no username/passsword supported
         return {}
+
+
+class FedoraObjectDatastreamHTTPResolver(TemplateHTTPResolver):
+    '''
+    Further extends TemplateHTTPResolver, with specific support for Fedora 3.x
+    objects amd respective datastreams.
+
+    The config file will include an `obj_ds_delimiter` configuration that is 
+    used to split the ident string into constituent object PID and datastream ID components.
+    These are fed back into the fedora template (also defined in the config file), allowing
+    users to specifiy the object and datastream to retrieve.
+    '''
+    
+
+    def _web_request_url(self, ident):
+        prefix, ident = ident.split(':', 1)
+        # uses delimiter of choice from config file to split object PID and datastream ID
+        obj, ds = ident.split(self.config['obj_ds_delimiter'])
+        if prefix in self.templates:            
+            return self.templates[prefix] % (obj,ds)
+        # if prefix is not recognized, no identifier is returned
+        # and loris will return a 404
+
 
 
 class SourceImageCachingResolver(_AbstractResolver):
