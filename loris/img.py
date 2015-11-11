@@ -216,6 +216,11 @@ class ImageCache(dict):
 
 	@staticmethod
 	def _link(to,frum):
+		# under certain circumstances, files are generating circular
+		# symlinks; don't do that
+		if to == frum:
+			logger.warn('Circular symlink requested from %s to %s; not creating symlink' % (frum, to))
+			return
 		link_dp = path.dirname(frum)
 		if not path.exists(link_dp):
 			makedirs(link_dp)
