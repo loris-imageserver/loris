@@ -372,6 +372,9 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         self.uri_resolvable = True
 
     def _web_request_url(self, ident):
+        # only split identifiers that look like template ids; ignore other requests (e.g. favicon)
+        if ':' not in ident:
+            return
         prefix, ident = ident.split(':', 1)
         if prefix in self.templates:
             return self.templates[prefix] % ident
