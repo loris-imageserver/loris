@@ -376,8 +376,16 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         if ':' not in ident:
             return
         prefix, ident = ident.split(':', 1)
-        if prefix in self.templates:
-            return self.templates[prefix] % ident
+
+        if 'delimiter' in self.config:
+            # uses delimiter of choice from config file to split identifier
+            # into tuple that will be fed to template
+            ident_components = ident.split(self.config['delimiter'])
+            if prefix in self.templates:
+                return self.templates[prefix] % tuple(ident_components)
+        else:
+            if prefix in self.templates:
+                return self.templates[prefix] % ident
         # if prefix is not recognized, no identifier is returned
         # and loris will return a 404
 
