@@ -585,7 +585,7 @@ possible that there was a problem with the source file
         '''
         # figure out paths, make dirs
         if self.enable_caching:
-            target_fp = self.img_cache.get_cache_path(image_request)
+            target_fp = self.img_cache.get_canonical_cache_path(image_request)
             target_dp = path.dirname(target_fp)
             if not path.exists(target_dp):
                 makedirs(target_dp)
