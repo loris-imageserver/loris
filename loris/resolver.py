@@ -10,6 +10,7 @@ from os import makedirs
 from os.path import dirname
 from shutil import copy
 from urllib import unquote, quote_plus
+from contextlib import closing
 
 import constants
 import hashlib
@@ -179,17 +180,19 @@ class SimpleHTTPResolver(_AbstractResolver):
 
             if self.head_resolvable:
                 try:
-                    response = requests.head(fp, **self.request_options())
-                except requests.exceptions.MissingSchema:
-                    return False
-            else:
-                try:
-                    response = requests.get(fp, stream = True, **self.request_options())
+                    with closing(requests.head(fp, **self.request_options())) as response:
+                        if response.status_code is 200:
+                            return True
                 except requests.exceptions.MissingSchema:
                     return False
 
-            if response.status_code is 200:
-                return True
+            else:
+                try:
+                    with closing(requests.get(fp, stream=True, **self.request_options())) as response:
+                        if response.status_code is 200:
+                            return True
+                except requests.exceptions.MissingSchema:
+                    return False
 
         return False
 
@@ -271,7 +274,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.debug('src image: %s' % (fp,))
 
             try:
-                response = requests.get(fp, stream = True, **self.request_options())
+                response = requests.get(fp, stream = False, **self.request_options())
             except requests.exceptions.MissingSchema:
                 public_message = 'Bad URL request made for identifier: %s.' % (ident,)
                 log_message = 'Bad URL request at %s for identifier: %s.' % (fp,ident)
