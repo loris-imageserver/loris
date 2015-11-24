@@ -158,7 +158,14 @@ class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
     def __init__(self, response=None, status=None, content_type=None):
         super(LorisResponse, self).__init__(response=response, status=status, content_type=content_type)
         self.headers['Link'] = '<%s>;rel="profile"' % (constants.COMPLIANCE,)
-        self.headers['Access-Control-Allow-Origin'] = "*"
+
+    def set_acao(self, request, regex=None):
+        if regex:
+            if regex.search(request.url_root):
+                self.headers['Access-Control-Allow-Origin'] = request.url_root
+        else:
+            self.headers['Access-Control-Allow-Origin'] = "*"
+
 
 class BadRequestResponse(LorisResponse):
     def __init__(self, message=None):
@@ -204,6 +211,9 @@ class Loris(object):
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
         self.redirect_id_slash_to_info = _loris_config['redirect_id_slash_to_info']
+        self.cors_regex = _loris_config.get('cors_regex', None)
+        if self.cors_regex:
+            self.cors_regex = re.compile(self.cors_regex)
 
         self.transformers = self._load_transformers()
         self.resolver = self._load_resolver()
@@ -380,6 +390,7 @@ class Loris(object):
 
     def get_info(self, request, ident, base_uri):
         r = LorisResponse()
+        r.set_acao(request, self.cors_regex)
         try:
             info, last_mod = self._get_info(ident,request,base_uri)
         except ResolverException as re:
@@ -470,6 +481,7 @@ class Loris(object):
 
         '''
         r = LorisResponse()
+        r.set_acao(request, self.cors_regex)
         # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are
         # decorated with @property and not constructed until they are first
         # accessed, which mean we don't have to catch any exceptions here.

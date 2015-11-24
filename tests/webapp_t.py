@@ -12,6 +12,7 @@ from werkzeug.http import parse_date, http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 import json
+import re
 import loris_t
 
 
@@ -23,7 +24,7 @@ $ python -m unittest -v tests.webapp_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class Test_E_WebappUnit(loris_t.LorisTest):
+class WebappUnit(loris_t.LorisTest):
     def test_uri_from_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
 
@@ -48,7 +49,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         self.assertEqual(base_uri, expected)
     
 
-class Test_F_WebappFunctional(loris_t.LorisTest):
+class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
 
     def test_bare_identifier_request_303(self):
@@ -70,9 +71,21 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         self.assertEqual(resp.headers['access-control-allow-origin'], '*')
 
     def test_access_control_allow_origin_on_img_request(self):
-        uri = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        uri = '/%s/full/100,/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(uri)
         self.assertEqual(resp.headers['access-control-allow-origin'], '*')
+
+    def test_cors_regex_match(self):
+        self.app.cors_regex = re.compile('calhos')
+        to_get = '/%s/full/110,/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEquals(resp.headers['Access-Control-Allow-Origin'], 'http://localhost/')
+
+    def test_cors_regex_no_match(self):
+        self.app.cors_regex = re.compile('fooxyz')
+        to_get = '/%s/full/120,/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertFalse(resp.headers.has_key('Access-Control-Allow-Origin'))
 
     def test_bare_broken_identifier_request_404(self):
         resp = self.client.get('/foo%2Fbar')
@@ -210,10 +223,12 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         self.assertTrue(not any_files)
 
 
+
+
 def suite():
     import unittest
     test_suites = []
-    test_suites.append(unittest.makeSuite(Test_E_WebappUnit, 'test'))
-    test_suites.append(unittest.makeSuite(Test_F_WebappFunctional, 'test'))
+    test_suites.append(unittest.makeSuite(WebappUnit, 'test'))
+    test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suite = unittest.TestSuite(test_suites)
     return test_suite
