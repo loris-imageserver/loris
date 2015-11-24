@@ -46,6 +46,7 @@ class Test_E_WebappUnit(loris_t.LorisTest):
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
+    
 
 class Test_F_WebappFunctional(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
@@ -79,7 +80,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         self.assertEqual(resp.headers['content-type'], 'text/plain')
 
     def test_bare_identifier_request_303_gets_info(self):
-        # Follow the redirect. After that this is nearly a copy of 
+        # Follow the redirect. After that this is nearly a copy of
         # img_info_t.C_InfoFunctionalTests#test_jp2_info_dot_json_request
         to_get = '/%s' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get, follow_redirects=True)
@@ -147,7 +148,7 @@ class Test_F_WebappFunctional(loris_t.LorisTest):
         # get an image
         resp = self.client.get(to_get, headers=Headers())
         self.assertEqual(resp.status_code, 200)
-        
+
 
     def test_info_sends_304(self):
         to_get = '/%s/info.json' % (self.test_jp2_color_id,)

@@ -42,10 +42,12 @@ class ImageRequest(object):
 		info (ImageInfo):
 		is_canonical (bool):
 			True if this is a canonical path.
-		cache_path (str):
-			Relative path from the cache root, based on the original request values.
-		canonical_cache_path (str):
-			Relative path from the cache root, based on normalized values
+		as_path (str):
+			Useful as a relative path from a cache root. Based on the original
+			request values.
+		canonical_as_path (str):
+			Useful as a relative path from a cache root. Based on values
+			normalized to the canonical request syntax.
 		request_path
 			Path of the request for tacking on to the service host and creating
 			a URI based on the original request.
@@ -148,7 +150,8 @@ class ImageRequest(object):
 	@property
 	def canonical_request_path(self):
 		if self._canonical_request_path is None:
-			p = '/'.join((quote_plus(self.ident),
+			p = '/'.join((
+			    quote_plus(self.ident),
 				self.region_param.canonical_uri_value,
 				self.size_param.canonical_uri_value,
 				self.rotation_param.canonical_uri_value,
@@ -158,7 +161,7 @@ class ImageRequest(object):
 		return self._canonical_request_path
 
 	@property
-	def cache_path(self):
+	def as_path(self):
 		if self._cache_path is None:
 			p = path.join(self.ident,
 				self.region_value,
@@ -170,21 +173,21 @@ class ImageRequest(object):
 		return self._cache_path
 
 	@property
-	def canonical_cache_path(self):
+	def canonical_as_path(self):
 		if self._canonical_cache_path is None:
 			p = path.join(self.ident,
-					self.region_param.canonical_uri_value,
-					self.size_param.canonical_uri_value,
-					self.rotation_param.canonical_uri_value,
-					self.quality
-				)
+				self.region_param.canonical_uri_value,
+				self.size_param.canonical_uri_value,
+				self.rotation_param.canonical_uri_value,
+				self.quality
+			)
 			self._canonical_cache_path = '%s.%s' % (p, self.format)
 		return self._canonical_cache_path
 
 	@property
 	def is_canonical(self):
 		if self._is_canonical is None:
-			self._is_canonical = self.cache_path == self.canonical_cache_path
+			self._is_canonical = self.as_path == self.canonical_as_path
 		return self._is_canonical
 
 	@property
@@ -206,7 +209,7 @@ class ImageCache(dict):
 		self.cache_root = cache_root
 
 	def __contains__(self, image_request):
-		return path.exists(self.get_cache_path(image_request))
+		return path.exists(self.get_request_cache_path(image_request))
 
 	def __getitem__(self, image_request):
 		fp = self.get(image_request)
@@ -215,21 +218,33 @@ class ImageCache(dict):
 		return fp
 
 	@staticmethod
-	def _link(to,frum):
-		link_dp = path.dirname(frum)
+	def _link(source, link_name):
+		link_dp = path.dirname(link_name)
 		if not path.exists(link_dp):
 			makedirs(link_dp)
-		if path.lexists(frum): # shouldn't be the case, but helps debugging
-			unlink(frum)
-		symlink(to,frum)
-		logger.debug('Made symlink from %s to %s' % (to,frum))
+		if path.lexists(link_name): # shouldn't be the case, but helps debugging
+			unlink(link_name)
+		symlink(source, link_name)
+		logger.debug('Made symlink from %s to %s' % (link_name, source))
 
-	def __setitem__(self, image_request, fp):
-		# The Image (fp) already exists, this simply makes a symlink in the
-		# cache to from the canonical syntax to the actual request path
+	def __setitem__(self, image_request, canonical_fp):
+		# Because we're working with files, it's more practical to put derived
+		# images where the cache expects them when they are created (i.e. by
+		# Loris#_make_image()), so __setitem__, as defined by the dict API
+		# doesn't really work. Instead, the logic related to where an image
+		# should be put is encapulated in the ImageCache#get_request_cache_path
+		# and ImageCache#get_canonical_cache_path methods.
+		#
+		# Instead, __setitem__ simply makes a symlink in the cache from the
+		# requested syntax to the canonical syntax to enable faster lookups of
+		# the same non-canonical request the next time.
+		#
+		# So: when Loris#_make_image is called, it gets a path from
+		# ImageCache#get_canonical_cache_path and passes that to the
+		# transformer.
 		if not image_request.is_canonical:
-			canonical_fp = self.get_canonical_cache_path(image_request)
-			ImageCache._link(fp, canonical_fp)
+			requested_fp = self.get_request_cache_path(image_request)
+			ImageCache._link(canonical_fp, requested_fp)
 
 	def __delitem__(self, image_request):
 		# if we ever decide to start cleaning our own cache...
@@ -239,15 +254,17 @@ class ImageCache(dict):
 		'''Returns (str, ):
 			The path to the file or None if the file does not exist.
 		'''
-		cache_fp = self.get_cache_path(image_request)
+		cache_fp = self.get_request_cache_path(image_request)
 		last_mod = datetime.utcfromtimestamp(path.getmtime(cache_fp))
 		if path.exists(cache_fp):
 			return (cache_fp, last_mod)
 		else:
 			return None
 
-	def get_cache_path(self, image_request):
-		return path.realpath(path.join(self.cache_root, unquote(image_request.cache_path)))
+	def get_request_cache_path(self, image_request):
+		request_fp = image_request.as_path
+		return path.realpath(path.join(self.cache_root, unquote(request_fp)))
 
 	def get_canonical_cache_path(self, image_request):
-		return path.realpath(path.join(self.cache_root, unquote(image_request.canonical_cache_path)))
+		canonical_fp = image_request.canonical_as_path
+		return path.realpath(path.join(self.cache_root, unquote(canonical_fp)))
