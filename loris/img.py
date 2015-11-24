@@ -218,7 +218,11 @@ class ImageCache(dict):
 		return fp
 
 	@staticmethod
+<<<<<<< HEAD
 	def _link(source, link_name):
+		if source == link_name:
+			logger.warn('Circular symlink requested from %s to %s; not creating symlink' % (link_name, source))
+			return
 		link_dp = path.dirname(link_name)
 		if not path.exists(link_dp):
 			makedirs(link_dp)
