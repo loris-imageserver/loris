@@ -11,7 +11,7 @@ class LorisException(Exception):
 	def __init__(self, http_status=400, message=''):
 		"""
 		Kwargs:
-			http_status (int): the HTTP status the should be sent with the 
+			http_status (int): the HTTP status the should be sent with the
 				response.
 			msg (str): any additional info about what went wrong.
 			supplied_value (str): the parameter that caused the problem.
@@ -19,7 +19,7 @@ class LorisException(Exception):
 		# message = '%s: %s (%d)' % (self.__class__.__name__, message, http_status)
 		super(LorisException, self).__init__(message)
 		self.http_status = http_status
-		
+
 class SyntaxException(LorisException): pass
 class RequestException(LorisException): pass
 class ImageException(LorisException): pass

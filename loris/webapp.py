@@ -432,12 +432,12 @@ class Loris(object):
 
     def _get_info(self,ident,request,base_uri,src_fp=None,src_format=None):
         if self.enable_caching:
-            in_cache = ident in self.info_cache
+            in_cache = request in self.info_cache
         else:
             in_cache = False
 
         if in_cache:
-            return self.info_cache[ident]
+            return self.info_cache[request]
         else:
             if not all((src_fp, src_format)):
                 # get_img can pass in src_fp, src_format because it needs them
@@ -456,16 +456,10 @@ class Loris(object):
 
             # store
             if self.enable_caching:
-                # Elusive bug. For some reason, every once in a while, ident
-                # is the path on the file system rather than the URI.
-                # One thing that's confusing about it is that here 'ident' is
-                # used to mean the identifier slice of the request, and in the
-                # info cache it's used this way, but ImageInfo.ident is URI
-                # that goes in @id.
                 logger.debug('ident used to store %s: %s' % (ident,ident))
-                self.info_cache[ident] = info
+                self.info_cache[request] = info
                 # pick up the timestamp... :()
-                info,last_mod = self.info_cache[ident]
+                info,last_mod = self.info_cache[request]
             else:
                 last_mod = None
 
@@ -631,3 +625,6 @@ if __name__ == '__main__':
 
     run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
         extra_files=extra_files)
+    # To debug ssl:
+    # run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
+    #     extra_files=extra_files, ssl_context='adhoc')

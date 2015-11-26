@@ -36,7 +36,7 @@ class LorisTest(unittest.TestCase):
         self.test_jp2_color_info_fp = path.join(test_json_dir,'01','02','0001.jp2','info.json')
         self.test_jp2_color_fmt = 'jp2'
         self.test_jp2_color_id = '01%2F02%2F0001.jp2'
-        self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_color_id)
+        self.test_jp2_color_uri = '%s/%s' % (self.URI_BASE, self.test_jp2_color_id)
         self.test_jp2_color_dims = (5906,7200)
         self.test_jp2_color_levels = 6
         self.test_jp2_color_tiles = [
