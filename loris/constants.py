@@ -10,7 +10,8 @@ OPTIONAL_FEATURES = [
   'profileLinkHeader',
   'mirroring',
   'rotationArbitrary',
-  'sizeAboveFull'
+  'sizeAboveFull',
+  'regionSquare'
 ]
 
 __formats = (
