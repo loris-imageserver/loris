@@ -22,9 +22,8 @@ $ python -m unittest -v tests.parameters_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-# TODO: bring over old tile-generator test for precision checking.
-class _ParameterUnitTest(loris_t.LorisTest):
-	def _get_info(self):
+class _ParameterTest(loris_t.LorisTest):
+	def _get_info_long_y(self):
 		# jp2, y is long dimension
 		fp = self.test_jp2_color_fp
 		fmt = self.test_jp2_color_fmt
@@ -32,7 +31,7 @@ class _ParameterUnitTest(loris_t.LorisTest):
 		uri = self.test_jp2_color_uri
 		return img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
-	def _get_info2(self):
+	def _get_info_long_x(self):
 		# jpeg, x is long dimension
 		fp = self.test_jpeg_fp
 		fmt = self.test_jpeg_fmt
@@ -41,9 +40,9 @@ class _ParameterUnitTest(loris_t.LorisTest):
 		return img_info.ImageInfo.from_image_file(uri, fp, fmt)
 
 
-class Test_G_RegionParameterUnit(_ParameterUnitTest):
-	def test_a_populate_slots_from_pct(self):
-		info = self._get_info()
+class TestRegionParameter(_ParameterTest):
+	def test_populate_slots_from_pct(self):
+		info = self._get_info_long_y()
 		rp = RegionParameter('pct:25,25,50,50', info)
 		self.assertEquals(rp.pixel_x, int(info.width*0.25))
 		self.assertEquals(rp.pixel_y, int(info.height*0.25))
@@ -54,11 +53,11 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		self.assertEquals(rp.decimal_w, Decimal('0.50'))
 		self.assertEquals(rp.decimal_h, Decimal('0.50'))
 
-	def test_b_populate_slots_from_pixel(self):
-		info = self._get_info2()
+	def test_populate_slots_from_pixel(self):
+		info = self._get_info_long_x()
 		rp = RegionParameter('797,900,1594,1600', info)
-		self.assertEquals(rp.pixel_x, 797) 
-		self.assertEquals(rp.pixel_y, 900) 
+		self.assertEquals(rp.pixel_x, 797)
+		self.assertEquals(rp.pixel_y, 900)
 		self.assertEquals(rp.pixel_w, 1594)
 		self.assertEquals(rp.pixel_h, 1600)
 		self.assertEquals(rp.decimal_x, rp.pixel_x / Decimal(str(info.width)))
@@ -66,8 +65,26 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		self.assertEquals(rp.decimal_w, rp.pixel_w / Decimal(str(info.width)))
 		self.assertEquals(rp.decimal_h, rp.pixel_h / Decimal(str(info.height)))
 
-	def test_c_canonical_uri_value_oob_w_pixel(self):
-		info = self._get_info2() # x is long dimension
+	def test_square_mode_long_y(self):
+		# 5906 x 7200
+		info = self._get_info_long_y()
+		rp = RegionParameter('square', info)
+		self.assertEquals(rp.pixel_x, 0)
+		self.assertEquals(rp.pixel_y, 647)
+		self.assertEquals(rp.pixel_w, 5906)
+		self.assertEquals(rp.pixel_h, 5906)
+
+	def test_square_mode_long_x(self):
+		# 3600 x 2987
+		info = self._get_info_long_x()
+		rp = RegionParameter('square', info)
+		self.assertEquals(rp.pixel_x, 306)
+		self.assertEquals(rp.pixel_y, 0)
+		self.assertEquals(rp.pixel_w, 2987)
+		self.assertEquals(rp.pixel_h, 2987)
+
+	def test_canonical_uri_value_oob_w_pixel(self):
+		info = self._get_info_long_x() # x is long dimension
 		x = 200
 		offset = 1
 		oob_w = info.width - x + offset
@@ -78,8 +95,8 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		self.assertEquals(rp.decimal_w, Decimal('0.9444444444444444444444444'))
 		self.assertEquals(rp.canonical_uri_value, expected_canonical)
 
-	def test_d_canonical_uri_value_oob_w_pct(self):
-		info = self._get_info() # y is long dimension
+	def test_canonical_uri_value_oob_w_pct(self):
+		info = self._get_info_long_y() # y is long dimension
 		x = 20
 		w = 81
 		rp = RegionParameter('pct:%d,13,%d,27' % (x,w), info)
@@ -87,8 +104,8 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		expected_canonical = '1181,936,4725,1944'
 		self.assertEquals(rp.canonical_uri_value, expected_canonical)
 
-	def test_e_canonical_uri_value_oob_y_pixel(self):
-		info = self._get_info() # y is long dimension
+	def test_canonical_uri_value_oob_y_pixel(self):
+		info = self._get_info_long_y() # y is long dimension
 		y = 300
 		offset = 1 # request would be this many pixels OOB
 		oob_h = info.height - y + offset
@@ -96,16 +113,16 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 		expected_canonical = '29,%d,31,%d' % (y, info.height - y)
 		self.assertEquals(rp.canonical_uri_value, expected_canonical)
 
-	def test_f_canonical_uri_value_oob_y_pct(self):
-		info = self._get_info2() # x is long dimension
+	def test_canonical_uri_value_oob_y_pct(self):
+		info = self._get_info_long_x() # x is long dimension
 		y = 28.3
 		h = 72.2
 		rp = RegionParameter('pct:13,%f,17,%f' % (y,h), info)
 		expected_canonical = '468,845,612,2142'
-		self.assertEquals(rp.canonical_uri_value, expected_canonical)		
+		self.assertEquals(rp.canonical_uri_value, expected_canonical)
 
-	def test_g_syntax_exceptions(self):
-		info = self._get_info()
+	def test_syntax_exceptions(self):
+		info = self._get_info_long_y()
 		try:
 			with self.assertRaises(SyntaxException):
 				RegionParameter('n:1,2,3,4', info)
@@ -121,8 +138,8 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 			self.assertRaises(SyntaxException, RegionParameter, '1,2,3', info)
 			self.assertRaises(SyntaxException, RegionParameter, 'something', info)
 
-	def test_h_request_exceptions(self):
-		info = self._get_info()
+	def test_request_exceptions(self):
+		info = self._get_info_long_y()
 		try:
 			with self.assertRaises(RequestException):
 				RegionParameter('1,2,0,3', info)
@@ -134,14 +151,11 @@ class Test_G_RegionParameterUnit(_ParameterUnitTest):
 			self.assertRaises(RequestException, RegionParameter, '1,2,0,3', info)
 			self.assertRaises(RequestException, RegionParameter, '1,2,3,0', info)
 			self.assertRaises(RequestException, RegionParameter, 'pct:100,2,3,0', info)
-			
-class Test_H_RegionParameterFunctional(_ParameterUnitTest):
-	# TODO: with client once other parameters are impl.
-	pass
 
-class Test_I_SizeParameterUnit(_ParameterUnitTest):
-	def test_a_exceptions(self):
-		info = self._get_info()
+
+class TestSizeParameter(_ParameterTest):
+	def test_exceptions(self):
+		info = self._get_info_long_y()
 		rp = RegionParameter('pct:25,25,75,75', info)
 		try:
 			with self.assertRaises(SyntaxException):
@@ -155,9 +169,9 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 			self.assertRaises(SyntaxException, SizeParameter, '!25', rp)
 			self.assertRaises(SyntaxException, SizeParameter, '25', rp)
 
-	def test_b_populate_slots_from_full(self):
+	def test_populate_slots_from_full(self):
 		# full
-		info = self._get_info()
+		info = self._get_info_long_y()
 
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('full',rp)
@@ -171,9 +185,9 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		self.assertEquals(sp.mode, FULL_MODE)
 		self.assertEquals(sp.canonical_uri_value, FULL_MODE)
 
-	def test_c_populate_slots_from_pct(self):
+	def test_populate_slots_from_pct(self):
 		# pct:n
-		info = self._get_info()
+		info = self._get_info_long_y()
 
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('pct:25',rp)
@@ -193,9 +207,9 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		self.assertEquals(sp.mode, PCT_MODE)
 		self.assertEquals(sp.canonical_uri_value, '738,')
 
-	def test_c_populate_slots_from_w_only(self):
+	def test_populate_slots_from_w_only(self):
 		# w,
-		info = self._get_info()
+		info = self._get_info_long_y()
 
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('180,',rp)
@@ -209,9 +223,9 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '125,')
 
-	def test_d_populate_slots_from_h_only(self):
+	def test_populate_slots_from_h_only(self):
 		# ,h
-		info = self._get_info()
+		info = self._get_info_long_y()
 
 		rp = RegionParameter('full', info)
 		sp = SizeParameter(',90',rp)
@@ -225,9 +239,9 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '108,')
 
-	def test_e_populate_slots_from_wh(self):
+	def test_populate_slots_from_wh(self):
 		# w,h
-		info = self._get_info()
+		info = self._get_info_long_y()
 
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('48,48',rp)
@@ -241,16 +255,16 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '60,60')
 
-	def test_f_populate_slots_from_bang_wh(self):
+	def test_populate_slots_from_bang_wh(self):
 		# !w,h
-		info = self._get_info()
+		info = self._get_info_long_y()
 
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('!120,140',rp)
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '114,')
-		
+
 		rp = RegionParameter('0,0,125,160', info)
 		sp = SizeParameter('!120,140',rp,)
 		self.assertEquals(sp.force_aspect, False)
@@ -281,10 +295,7 @@ class Test_I_SizeParameterUnit(_ParameterUnitTest):
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '143,')
 
-class Test_J_SizeParameterFunctional(_ParameterUnitTest):
-	pass
-
-class Test_K_RotationParameterUnit(_ParameterUnitTest):
+class TestRotationParameter(_ParameterTest):
 	def test_exceptions(self):
 		try:
 			with self.assertRaises(SyntaxException):
@@ -341,10 +352,8 @@ class Test_K_RotationParameterUnit(_ParameterUnitTest):
 def suite():
 	import unittest
 	test_suites = []
-	test_suites.append(unittest.makeSuite(Test_G_RegionParameterUnit, 'test'))
-	test_suites.append(unittest.makeSuite(Test_H_RegionParameterFunctional, 'test'))
-	test_suites.append(unittest.makeSuite(Test_I_SizeParameterUnit, 'test'))
-	test_suites.append(unittest.makeSuite(Test_J_SizeParameterFunctional, 'test'))
-	test_suites.append(unittest.makeSuite(Test_K_RotationParameterUnit, 'test'))
+	test_suites.append(unittest.makeSuite(TestRegionParameter, 'test'))
+	test_suites.append(unittest.makeSuite(TestSizeParameter, 'test'))
+	test_suites.append(unittest.makeSuite(TestRotationParameter, 'test'))
 	test_suite = unittest.TestSuite(test_suites)
 	return test_suite
