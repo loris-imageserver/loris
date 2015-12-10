@@ -150,6 +150,8 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         self.pw = self.config.get('pw', None)
 
+        self.ssl_check = self.config.get('ssl_check', True)
+
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']
         else:
@@ -180,7 +182,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
             if self.head_resolvable:
                 try:
-                    with closing(requests.head(fp, **self.request_options())) as response:
+                    with closing(requests.head(fp, verify=self.ssl_check, **self.request_options())) as response:
                         if response.status_code is 200:
                             return True
                 except requests.exceptions.MissingSchema:
@@ -188,7 +190,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
             else:
                 try:
-                    with closing(requests.get(fp, stream=True, **self.request_options())) as response:
+                    with closing(requests.get(fp, stream=True, verify=self.ssl_check, **self.request_options())) as response:
                         if response.status_code is 200:
                             return True
                 except requests.exceptions.MissingSchema:
@@ -274,7 +276,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.debug('src image: %s' % (fp,))
 
             try:
-                response = requests.get(fp, stream = False, **self.request_options())
+                response = requests.get(fp, stream = False, verify=self.ssl_check, **self.request_options())
             except requests.exceptions.MissingSchema:
                 public_message = 'Bad URL request made for identifier: %s.' % (ident,)
                 log_message = 'Bad URL request at %s for identifier: %s.' % (fp,ident)
