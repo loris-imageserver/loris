@@ -40,7 +40,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull"
+                    "sizeAboveFull",
+                    "regionSquare"
                 ]
             }
         ]
@@ -104,11 +105,13 @@ class InfoUnit(loris_t.LorisTest):
                 "gray"
             ],
             "supports": [
-                "canonicalLinkHeader",
-                "profileLinkHeader",
-                "mirroring",
-                "rotationArbitrary",
-                "sizeAboveFull" ]
+                    "canonicalLinkHeader",
+                    "profileLinkHeader",
+                    "mirroring",
+                    "rotationArbitrary",
+                    "sizeAboveFull",
+                    "regionSquare"
+                ]
             }
         ]
         formats = [ "jpg", "png", "gif", "webp" ]
@@ -139,7 +142,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull"
+                    "sizeAboveFull",
+                    "regionSquare"
                 ]
             }
         ]
@@ -168,7 +172,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull"
+                    "sizeAboveFull",
+                    "regionSquare"
                 ]
             }
         ]
@@ -198,7 +203,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull"
+                    "sizeAboveFull",
+                    "regionSquare"
                 ]
             }
         ]
@@ -223,7 +229,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull"
+                    "sizeAboveFull",
+                    "regionSquare"
                 ]
             }
         ]
@@ -256,7 +263,8 @@ class InfoFunctional(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull"
+                    "sizeAboveFull",
+                    "regionSquare"
                 ]
             }
         ]

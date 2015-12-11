@@ -1,24 +1,37 @@
+sudo: false
+
+addons:
+  apt:
+    packages:
+    - libjpeg-turbo8
+    - libjpeg-turbo8-dev
+    - libfreetype6
+    - libfreetype6-dev
+    - zlib1g-dev
+    - liblcms2-2
+    - liblcms2-dev
+    - liblcms-utils
+    - libtiff5-dev
+    - libwebp-dev
+
 language: python
+
 python:
  - "2.7"
- - "2.6"
 
-before_install:
- - sudo apt-get install -qq libjpeg-turbo8 libjpeg-turbo8-dev libfreetype6 
- - sudo apt-get install -qq libfreetype6-dev zlib1g-dev liblcms2-2 liblcms2-dev 
- - sudo apt-get install -qq liblcms-utils libtiff-dev libwebp-dev
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libtiff.so /usr/lib/
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebp.so /usr/lib/
- - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebpdemux.so /usr/lib/
+# before_install:
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libfreetype.so /usr/lib/
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libjpeg.so /usr/lib/
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libz.so /usr/lib/
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/liblcms.so /usr/lib/
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libtiff.so /usr/lib/
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebp.so /usr/lib/
+#  - sudo ln -s /usr/lib/`uname -i`-linux-gnu/libwebpdemux.so /usr/lib/
 
-install: 
+install:
  - pip install -r requirements.txt
 
-script: "python ./test.py" # setup.py test checks for a loris user, which we only need for prod
+script: "./test.sh"
 
 notifications:
   email:

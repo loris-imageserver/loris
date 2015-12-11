@@ -22,7 +22,8 @@
         "profileLinkHeader",
         "mirroring",
         "rotationArbitrary",
-        "sizeAboveFull"
+        "sizeAboveFull",
+        "regionSquare"
       ]
     }
   ],
