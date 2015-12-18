@@ -304,6 +304,7 @@ class InfoFunctional(loris_t.LorisTest):
         '''
         self.assertTrue(''.join(lh.split()) in link_header)
 
+
 class InfoCache(loris_t.LorisTest):
 
     def test_info_goes_to_http_fs_cache(self):

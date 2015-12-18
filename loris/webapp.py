@@ -217,6 +217,10 @@ class Loris(object):
 
         self.transformers = self._load_transformers()
         self.resolver = self._load_resolver()
+        self.size_above_full = _loris_config.get('size_above_full', True)
+        self.max_size_above_full = _loris_config.get('max_size_above_full', 200)
+        if self.size_above_full is False:
+            constants.OPTIONAL_FEATURES.remove('sizeAboveFull')
 
         if self.enable_caching:
             self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
@@ -393,6 +397,8 @@ class Loris(object):
         r.set_acao(request, self.cors_regex)
         try:
             info, last_mod = self._get_info(ident,request,base_uri)
+            if self.size_above_full is False:
+                del info.supports['sizeAboveFull']
         except ResolverException as re:
             return NotFoundResponse(re.message)
         except ImageInfoException as ie:
@@ -465,6 +471,40 @@ class Loris(object):
 
             return (info,last_mod)
 
+    @staticmethod
+    def _size_exeeds_original(requested_size, width, height, max_scale):
+        '''Return True if reqested_size exceeds size of original image.
+        Args:
+            request_size (str):
+                size as requested by image api
+            width (int):
+                width of original image
+            height (int):
+                height of original image
+            max_scale (int):
+                percentage of original image size which is allowed for
+                interpolation
+        '''
+        width = int(width * max_scale / 100)
+        height = int(height * max_scale / 100)
+        if requested_size.startswith(','):
+            h = int(requested_size.split(',')[1])
+            return h > height
+        elif requested_size.endswith(','):
+            w = int(requested_size.split(',')[0])
+            return w > width
+        elif requested_size.startswith('!'):
+            w, h = map(int, requested_size[1:].split(','))
+            return h > height and w > width
+        elif requested_size.startswith('pct:'):
+            percentage = float(requested_size.split(':')[1])
+            return percentage > max_scale
+        elif ',' in requested_size:
+            w, h = map(int, requested_size.split(','))
+            return w > width or h > height
+        return False
+
+
     def get_img(self, request, ident, region, size, rotation, quality, target_fmt, base_uri):
         '''Get an Image.
         Args:
@@ -474,12 +514,22 @@ class Loris(object):
                 The identifier portion of the IIIF URI syntax
 
         '''
+        image_request = img.ImageRequest(ident, region, size, rotation,
+                                         quality, target_fmt)
+        info, last_mod = self._get_info(ident, request, base_uri)
+        if self.size_above_full is False:
+            if Loris._size_exeeds_original(size, info.width, info.height, 100):
+                return NotFoundResponse('Resolution not available')
+        else:
+            if Loris._size_exeeds_original(size, info.width, info.height,
+                                           self.max_size_above_full):
+                return NotFoundResponse('Resolution not available')
+
         r = LorisResponse()
         r.set_acao(request, self.cors_regex)
         # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are
         # decorated with @property and not constructed until they are first
         # accessed, which mean we don't have to catch any exceptions here.
-        image_request = img.ImageRequest(ident, region, size, rotation, quality, target_fmt)
 
         logger.debug('Image Request Path: %s' % (image_request.request_path,))
 
