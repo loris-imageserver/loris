@@ -397,8 +397,6 @@ class Loris(object):
         r.set_acao(request, self.cors_regex)
         try:
             info, last_mod = self._get_info(ident,request,base_uri)
-            if self.size_above_full is False:
-                del info.supports['sizeAboveFull']
         except ResolverException as re:
             return NotFoundResponse(re.message)
         except ImageInfoException as ie:
