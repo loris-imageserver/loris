@@ -217,9 +217,8 @@ class Loris(object):
 
         self.transformers = self._load_transformers()
         self.resolver = self._load_resolver()
-        self.size_above_full = _loris_config.get('size_above_full', True)
         self.max_size_above_full = _loris_config.get('max_size_above_full', 200)
-        if self.size_above_full is False:
+        if self.max_size_above_full <= 100:
             constants.OPTIONAL_FEATURES.remove('sizeAboveFull')
 
         if self.enable_caching:
@@ -515,14 +514,9 @@ class Loris(object):
         image_request = img.ImageRequest(ident, region, size, rotation,
                                          quality, target_fmt)
         info, last_mod = self._get_info(ident, request, base_uri)
-        if self.size_above_full is False:
-            if Loris._size_exeeds_original(size, info.width, info.height, 100):
+        if Loris._size_exeeds_original(size, info.width, info.height, 
+                self.max_size_above_full):
                 return NotFoundResponse('Resolution not available')
-        else:
-            if Loris._size_exeeds_original(size, info.width, info.height,
-                                           self.max_size_above_full):
-                return NotFoundResponse('Resolution not available')
-
         r = LorisResponse()
         r.set_acao(request, self.cors_regex)
         # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are
