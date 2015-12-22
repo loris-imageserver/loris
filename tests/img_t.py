@@ -5,7 +5,6 @@ from os.path import islink
 from os.path import isfile
 from os.path import join
 from urllib import unquote
-from loris.webapp import Loris
 import loris_t
 
 
@@ -55,51 +54,6 @@ class Test_ImageCache(loris_t.LorisTest):
 
         self.assertTrue(exists(expect_cache_path))
         self.assertFalse(islink(expect_cache_path))
-
-
-class Test_NoInterpolation(loris_t.LorisTest):
-
-    def setUp(self):
-        super(Test_NoInterpolation, self).setUp()
-        self.app.size_above_full = False
-        self.app.max_size_above_full = 200
-
-
-    def test_width(self):
-        self.assertFalse(Loris._size_exeeds_original('200,', 200, 100, 100))
-        self.assertTrue(Loris._size_exeeds_original('300,', 200, 100, 100))
-
-    def test_height(self):
-        self.assertFalse(Loris._size_exeeds_original(',100', 200, 100, 100))
-        self.assertTrue(Loris._size_exeeds_original(',200', 200, 100, 100))
-
-    def test_percentage(self):
-        self.assertFalse(Loris._size_exeeds_original('pct:50', 200, 100, 100))
-        self.assertFalse(Loris._size_exeeds_original('pct:100', 200, 100, 100))
-        self.assertTrue(Loris._size_exeeds_original('pct:101', 200, 100, 100))
-
-    def test_force_aspect(self):
-        self.assertFalse(Loris._size_exeeds_original('!50,150', 200, 100, 100))
-        self.assertFalse(Loris._size_exeeds_original('!20,50', 200, 100, 100))
-        self.assertFalse(Loris._size_exeeds_original('!200,100', 200, 100, 100))
-        self.assertTrue(Loris._size_exeeds_original('!250,150', 200, 100, 100))
-
-
-class Test_RestrictedInterpolation(loris_t.LorisTest):
-
-    def setUp(self):
-        super(Test_RestrictedInterpolation, self).setUp()
-        self.app.size_above_full = True
-        self.app.max_size_above_full = 200
-
-    def test_interpolation_limit(self):
-        self.assertFalse(Loris._size_exeeds_original('300,', 200, 100, 200))
-        self.assertTrue(Loris._size_exeeds_original('500,', 200, 100, 200))
-
-    def test_percentage(self):
-        self.assertFalse(Loris._size_exeeds_original('pct:50', 200, 100, 200))
-        self.assertFalse(Loris._size_exeeds_original('pct:200', 200, 100, 200))
-        self.assertTrue(Loris._size_exeeds_original('pct:201', 200, 100, 200))
 
 
 def suite():

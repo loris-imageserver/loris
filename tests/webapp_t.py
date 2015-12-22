@@ -223,6 +223,85 @@ class WebappIntegration(loris_t.LorisTest):
         self.assertTrue(not any_files)
 
 
+class SizeRestriction(loris_t.LorisTest):
+
+    def setUp(self):
+        super(SizeRestriction, self).setUp()
+        self.app.max_size_above_full = 100
+
+    def test_json_no_size_above_full(self):
+        '''Is 'sizeAboveFull' removed from json?'''
+        request_path = '/%s/info.json' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse('sizeAboveFull' in resp.data)
+
+    def _test_json_has_size_above_full(self):
+        self.app.max_size_above_full = 200
+        request_path = '/%s/info.json' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue('sizeAboveFull' in resp.data)
+
+
+    def test_full_full(self):
+        request_path = '/%s/full/full/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_percent_ok(self):
+        request_path = '/%s/full/pct:100/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_percent_ok_200(self):
+        self.app.max_size_above_full = 200
+        request_path = '/%s/full/pct:200/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_percent_exceeds_100(self): 
+        request_path = '/%s/full/pct:101/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_percent_exceeds_200(self): 
+        self.app.max_size_above_full = 200
+        request_path = '/%s/full/pct:201/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_size_width_ok(self):
+        request_path = '/%s/full/3600,/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_size_width_too_big(self):
+        request_path = '/%s/full/3601,/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_size_height_ok(self):
+        request_path = '/%s/full/,2987/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_size_height_to_big(self):
+        request_path = '/%s/full/,2988/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 404)
+
+    def test_region_too_big(self):
+        request_path = '/%s/100,100,100,100/120,/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 404)
+
+
+    def test_no_restriction(self):
+        self.app.max_size_above_full = 0 
+        request_path = '/%s/full/pct:120/0/default.jpg' % (self.test_jpeg_id,)
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
 
 
 def suite():
