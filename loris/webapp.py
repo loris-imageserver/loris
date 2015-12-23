@@ -427,7 +427,8 @@ class Loris(object):
                         r.content_type = 'application/json'
                         l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                         r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                    # If no size above full is allowed, we have to remove this value from info.json
+                    # If interpolation is not allowed, we have to remove this 
+                    # value from info.json
                     if self.max_size_above_full <= 100:
                         info.profile[1]['supports'].remove('sizeAboveFull')
                     r.data = info.to_json()

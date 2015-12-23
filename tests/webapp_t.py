@@ -224,8 +224,10 @@ class WebappIntegration(loris_t.LorisTest):
 
 
 class SizeRestriction(loris_t.LorisTest):
+    '''Tests for restriction of size parameter.'''
 
     def setUp(self):
+        '''Set max_size_above_full to 100 for tests.'''
         super(SizeRestriction, self).setUp()
         self.app.max_size_above_full = 100
 
@@ -237,6 +239,7 @@ class SizeRestriction(loris_t.LorisTest):
         self.assertFalse('sizeAboveFull' in resp.data)
 
     def _test_json_has_size_above_full(self):
+        '''Does sizeAboveFull remain in info.json if size > 100?'''
         self.app.max_size_above_full = 200
         request_path = '/%s/info.json' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
@@ -245,59 +248,72 @@ class SizeRestriction(loris_t.LorisTest):
 
 
     def test_full_full(self):
+        '''full/full has no size restrictions.'''
         request_path = '/%s/full/full/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
     def test_percent_ok(self):
+        '''pct:100 is allowed.'''
         request_path = '/%s/full/pct:100/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
     def test_percent_ok_200(self):
+        '''pct:200 is allowed is max_size_above_full is 200.'''
         self.app.max_size_above_full = 200
         request_path = '/%s/full/pct:200/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
-    def test_percent_exceeds_100(self): 
+    def test_percent_exceeds_100(self):
+        '''Restrict interpolation. So pct:101 must be rejected.'''
         request_path = '/%s/full/pct:101/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
     def test_percent_exceeds_200(self): 
+        '''Restrict interpolation to 200. So pct:201 must be rejected.'''
         self.app.max_size_above_full = 200
         request_path = '/%s/full/pct:201/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
     def test_size_width_ok(self):
+        '''Explicit width in size parameter is not larger than image size.'''
         request_path = '/%s/full/3600,/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
     def test_size_width_too_big(self):
+        '''Explicit width in size parameter is larger than image size.'''
         request_path = '/%s/full/3601,/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
-    def test_size_height_ok(self):
+    def test_size_height_ok(self): 
+        '''Explicit height in size parameter is not larger than image height.'''
         request_path = '/%s/full/,2987/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
     def test_size_height_to_big(self):
+        '''Explicit height in size parameter is larger than image height.'''
         request_path = '/%s/full/,2988/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
     def test_region_too_big(self):
+        '''It's not allowed to make a region larger than 100% of original
+        region size.'''
         request_path = '/%s/100,100,100,100/120,/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
 
     def test_no_restriction(self):
+        '''If max_size_above_full ist set to 0, users can request
+        any image size.'''
         self.app.max_size_above_full = 0 
         request_path = '/%s/full/pct:120/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
