@@ -5,7 +5,6 @@ from os.path import islink
 from os.path import isfile
 from os.path import join
 from urllib import unquote
-
 import loris_t
 
 

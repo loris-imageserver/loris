@@ -16,6 +16,8 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
  * `enable_caching`. If `enable_caching=False` no Memory or filesystem caching will happen and `Last-Modified` headers not be sent. This should really only be used for testing/development/debugging.
  * `redirect_canonical_image_request`. If `redirect_canonical_image_request=True` and the request for an image is not the canonical path (e.g. only a width is supplied and the height is calculated by the server), the client will be redirected a `301`.
  * `redirect_id_slash_to_info` If True, `{id}/` and `{id}` will both redirect to the `{id}/info.json`. This is generally OK unless you have ids that end in slashes.
+ * `max_size_above_full` A numerical value which restricts the maximum image size to `max_size_above_full` percent of
+    the original image size. Setting this value to 100 disables server side interpolation of images. Default value is 200 (maximum double width or height allowed). To allow any size, set this value to 0.
 
 ### `[logging]`
 
