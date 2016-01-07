@@ -375,6 +375,8 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # required for simplehttpresolver
         # all templates are assumed to be uri resolvable
         self.uri_resolvable = True
+                
+        self.ssl_check = self.config.get('ssl_check', True)
 
     def _web_request_url(self, ident):
         # only split identifiers that look like template ids; ignore other requests (e.g. favicon)
@@ -449,7 +451,6 @@ class SourceImageCachingResolver(_AbstractResolver):
             logger.debug('src format %s' % (format,))
 
             return (local_fp, format)
-
 
 
 
