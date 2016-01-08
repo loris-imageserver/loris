@@ -428,9 +428,12 @@ class Loris(object):
                         l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                         r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
                     # If interpolation is not allowed, we have to remove this 
-                    # value from info.json
+                    # value from info.json - but only if exists (cached ImageInfo might miss this)
                     if self.max_size_above_full <= 100:
-                        info.profile[1]['supports'].remove('sizeAboveFull')
+                        try:
+                            info.profile[1]['supports'].remove('sizeAboveFull')
+                        except ValueError:
+                            pass
                     r.data = info.to_json()
         finally:
             return r
