@@ -31,7 +31,7 @@ python:
 install:
  - pip install -r requirements.txt
 
-script: "./test.sh"
+script: "python test.py"
 
 notifications:
   email:

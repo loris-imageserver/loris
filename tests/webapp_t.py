@@ -47,7 +47,7 @@ class WebappUnit(loris_t.LorisTest):
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
-    
+
 
 class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
@@ -272,7 +272,7 @@ class SizeRestriction(loris_t.LorisTest):
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
-    def test_percent_exceeds_200(self): 
+    def test_percent_exceeds_200(self):
         '''Restrict interpolation to 200. So pct:201 must be rejected.'''
         self.app.max_size_above_full = 200
         request_path = '/%s/full/pct:201/0/default.jpg' % (self.test_jpeg_id,)
@@ -291,7 +291,7 @@ class SizeRestriction(loris_t.LorisTest):
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
 
-    def test_size_height_ok(self): 
+    def test_size_height_ok(self):
         '''Explicit height in size parameter is not larger than image height.'''
         request_path = '/%s/full/,2987/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
@@ -314,7 +314,7 @@ class SizeRestriction(loris_t.LorisTest):
     def test_no_restriction(self):
         '''If max_size_above_full ist set to 0, users can request
         any image size.'''
-        self.app.max_size_above_full = 0 
+        self.app.max_size_above_full = 0
         request_path = '/%s/full/pct:120/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
@@ -325,5 +325,6 @@ def suite():
     test_suites = []
     test_suites.append(unittest.makeSuite(WebappUnit, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
+    test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
     test_suite = unittest.TestSuite(test_suites)
     return test_suite
