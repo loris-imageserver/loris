@@ -11,7 +11,7 @@ addons:
     - liblcms2-2
     - liblcms2-dev
     - liblcms-utils
-    - libtiff5-dev
+    - libtiff4-dev
     - libwebp-dev
 
 language: python
