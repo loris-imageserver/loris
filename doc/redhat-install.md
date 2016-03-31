@@ -4,7 +4,7 @@ Install on Red Hat (CentOS)
 Installing Loris on Red Hat Enterprise Linux 6 (or the equivalent CentOS
 system) is tricky, since the bundled Python is not the right version and none
 of the `yum` packages are the latest versions. This guide is an attempt to
-guide you through the install process.
+guide you through the install process. If you're running RHEL 7, [see those instructions here](redhat-7-install.md).
 
 Everything here needs to be done as root, so either open a root shell now or
 precede all instructions here with `sudo`. It also assumes you have `yum`,
@@ -92,10 +92,10 @@ yum install libjpeg-turbo libjpeg-turbo-devel \
     libtiff-devel
 ```
 
-Loris ships with Kakadu version Version 7.2 which is compiled with glibc 2.14, 
-and Red Hat only has version 2.12. This means that the bundled `kdu_expand` program 
-won't work at all. Fortunately we can get an older version from Github. These are 
-the 64-bit versions; if you need 32-bit change the portion of the URL from `x86-64` 
+Loris ships with Kakadu version Version 7.2 which is compiled with glibc 2.14,
+and Red Hat only has version 2.12. This means that the bundled `kdu_expand` program
+won't work at all. Fortunately we can get an older version from Github. These are
+the 64-bit versions; if you need 32-bit change the portion of the URL from `x86-64`
 to `x86-32`.
 
 ```
@@ -107,7 +107,7 @@ mv kdu_expand /usr/local/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 ```
 
-This earlier version of Kakadu does not support JPEG2000 images in colorspaces other 
+This earlier version of Kakadu does not support JPEG2000 images in colorspaces other
 that those allowed by an earlier version of the JPEG2000 specification. Chances are very good
 that this won't be a problem for you, but you should disable the [`map_profile_to_srgb`](https://github.com/pulibrary/loris/blob/development/etc/loris.conf#L66) feature just in case.
 
@@ -128,7 +128,7 @@ should have no problems.
 Install Loris
 -------------
 
-Now you're ready to install Loris proper. This is usually a matter of `git clone`ing 
+Now you're ready to install Loris proper. This is usually a matter of `git clone`ing
 this repo, adding the loris user, and running `setup.py`. The only
 caveat here is that you must be sure to install using Python 2.7.
 
