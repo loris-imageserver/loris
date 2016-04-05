@@ -60,12 +60,20 @@ class SimpleFSResolver(_AbstractResolver):
 
     def __init__(self, config):
         super(SimpleFSResolver, self).__init__(config)
-        self.cache_root = self.config['src_img_root']
+        if 'src_img_roots' in self.config:
+            self.cache_roots = self.config['src_img_roots']
+        else:
+            self.cache_roots = [self.config['src_img_root']]
+
+    def get_fp(self, ident):
+        ident = unquote(ident)
+        for directory in self.cache_roots:
+            fp = join(directory, ident)
+            if exists(fp):
+                return fp
 
     def is_resolvable(self, ident):
-        ident = unquote(ident)
-        fp = join(self.cache_root, ident)
-        return exists(fp)
+        return not self.get_fp(ident) is None
 
     @staticmethod
     def _format_from_ident(ident):
@@ -75,11 +83,10 @@ class SimpleFSResolver(_AbstractResolver):
         # For this dumb version a constant path is prepended to the identfier 
         # supplied to get the path It assumes this 'identifier' ends with a file 
         # extension from which the format is then derived.
-        ident = unquote(ident)
-        fp = join(self.cache_root, ident)
+        fp = self.get_fp(ident)
         logger.debug('src image: %s' % (fp,))
 
-        if not exists(fp):
+        if fp is None:
             public_message = 'Source image not found for identifier: %s.' % (ident,)
             log_message = 'Source image not found at %s for identifier: %s.' % (fp,ident)
             logger.warn(log_message)
