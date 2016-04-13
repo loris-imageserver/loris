@@ -119,11 +119,11 @@ class RegionParameter(object):
             raise RequestException(http_status=400, message=msg)
         if self.decimal_x >= DECIMAL_ONE:
             msg = 'Region x parameter is greater than the width of the image.\n'
-            msg +='Image width is %d' % (img_info.width,)
+            msg +='Image width is %d' % (self.img_info.width,)
             raise RequestException(http_status=400, message=msg)
         if self.decimal_y >= DECIMAL_ONE:
             msg = 'Region y parameter is greater than the height of the image.\n'
-            msg +='Image height is %d' % (img_info.height,)
+            msg +='Image height is %d' % (self.img_info.height,)
             raise RequestException(http_status=400, message=msg)
 
     def _populate_slots_for_full(self):
