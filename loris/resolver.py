@@ -422,7 +422,7 @@ class TriplestoreHTTPResolver(SimpleHTTPResolver):
        client-provided identifier, and the datatype.
     '''
     def __init__(self, config):
-        super(SmpleHTTPResolver, self).__init__(config)
+        super(SimpleHTTPResolver, self).__init__(config)
 
         datatype = self.config.get('datatype',
                 'http://www.w3.org/2001/XMLSchema#string')
@@ -451,7 +451,8 @@ class TriplestoreHTTPResolver(SimpleHTTPResolver):
         # Required for SimpleHTTPResolver
         # All URIs coming from the SPARQL query are resolvable
         self.uri_resolvable = True
-
+        self.user = self.config.get('user', None)
+        self.pw = self.config.get('pw', None)
         self.ssl_check = self.config.get('ssl_check', True)
 
     def _web_request_url(self, ident):
