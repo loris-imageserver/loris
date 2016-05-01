@@ -65,6 +65,10 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get('/%s/' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 404)
 
+    def test_access_control_allow_origin_on_bare_identifier(self):
+        resp = self.client.get('/%s' % (self.test_jp2_color_id,), follow_redirects=False)
+        self.assertEqual(resp.headers['access-control-allow-origin'], '*')
+
     def test_access_control_allow_origin_on_info_requests(self):
         uri = '/%s/info.json' % (self.test_jp2_color_id,)
         resp = self.client.get(uri)
