@@ -56,7 +56,7 @@ done
 
 echo -ne "$(date +[%c]) " >> $LOG
 if [ $run == 0 ]; then
-	echo -ne "Deleted $delete_count files to " >> $LOG
+	echo -ne "Deleted $delete_total files to " >> $LOG
 	echo "get cache from $start_size kb to $usage kb." >> $LOG
 else
 	echo "Cache at $usage kb (no deletes required)." >> $LOG
