@@ -28,11 +28,12 @@ class LorisTest(unittest.TestCase):
         self.client = Client(self.app, BaseResponse)
 
         # constant info about test images.
-        test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
+        self.test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
+        self.test_img_dir2 = path.join(path.abspath(path.dirname(__file__)), 'img2')
         test_json_dir = path.join(path.abspath(path.dirname(__file__)), 'json')
         test_icc_dir = path.join(path.abspath(path.dirname(__file__)), 'icc')
 
-        self.test_jp2_color_fp = path.join(test_img_dir,'01','02','0001.jp2')
+        self.test_jp2_color_fp = path.join(self.test_img_dir,'01','02','0001.jp2')
         self.test_jp2_color_info_fp = path.join(test_json_dir,'01','02','0001.jp2','info.json')
         self.test_jp2_color_fmt = 'jp2'
         self.test_jp2_color_id = '01%2F02%2F0001.jp2'
@@ -52,7 +53,7 @@ class LorisTest(unittest.TestCase):
             { "height": 7200, "width": 5906 }
         ]
 
-        self.test_jp2_gray_fp = path.join(test_img_dir,'01','02','gray.jp2')
+        self.test_jp2_gray_fp = path.join(self.test_img_dir,'01','02','gray.jp2')
         self.test_jp2_gray_fmt = 'jp2'
         self.test_jp2_gray_id = '01%2F02%2Fgray.jp2'
         self.test_jp2_gray_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_gray_id)
@@ -70,35 +71,39 @@ class LorisTest(unittest.TestCase):
             { "width": 256, "scaleFactors": [1,2,4,8,16,32,64] }
         ]
 
-        self.test_jpeg_fp = path.join(test_img_dir,'01','03','0001.jpg')
+        self.test_jpeg_fp = path.join(self.test_img_dir,'01','03','0001.jpg')
         self.test_jpeg_fmt = 'jpg'
         self.test_jpeg_id = '01%2F03%2F0001.jpg'
         self.test_jpeg_uri = '%s/%s' % (self.URI_BASE,self.test_jpeg_id)
         self.test_jpeg_dims = (3600,2987) # w,h
         self.test_jpeg_sizes = []
 
-        self.test_tiff_fp = path.join(test_img_dir,'01','04','0001.tif')
+        self.test_tiff_fp = path.join(self.test_img_dir,'01','04','0001.tif')
         self.test_tiff_fmt = 'tif'
         self.test_tiff_id = '01%2F04%2F0001.tif'
         self.test_tiff_uri = '%s/%s' % (self.URI_BASE,self.test_tiff_id)
         self.test_tiff_dims = (839,1080)
         self.test_tiff_sizes = []
 
-        self.test_png_fp = path.join(test_img_dir,'henneken.png')
+        self.test_png_fp = path.join(self.test_img_dir,'henneken.png')
+        self.test_png_fp2 = path.join(self.test_img_dir2,'henneken.png')
         self.test_png_fmt = 'png'
         self.test_png_id = 'henneken.png'
         self.test_png_uri = '%s/%s' % (self.URI_BASE,self.test_png_id)
         self.test_png_dims = (504,360) # w,h
         self.test_png_sizes = []
+        
+        self.test_altpng_id = 'foo.png'
+        self.test_altpng_fp = path.join(self.test_img_dir2,'foo.png')
 
         self.test_jp2_with_embedded_profile_id = '47102787.jp2'
-        self.test_jp2_with_embedded_profile_fp = path.join(test_img_dir,self.test_jp2_with_embedded_profile_id)
+        self.test_jp2_with_embedded_profile_fp = path.join(self.test_img_dir,self.test_jp2_with_embedded_profile_id)
         self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
         self.test_jp2_with_embedded_profile_fmt = 'jp2'
         self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_embedded_profile_id)
 
         self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
-        self.test_jp2_with_precincts_fp = path.join(test_img_dir,self.test_jp2_with_precincts_id)
+        self.test_jp2_with_precincts_fp = path.join(self.test_img_dir,self.test_jp2_with_precincts_id)
         self.test_jp2_with_precincts_fmt = 'jp2'
         self.test_jp2_with_precincts_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_precincts_id)
         self.test_jp2_with_precincts_sizes =  [
