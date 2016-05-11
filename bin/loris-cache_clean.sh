@@ -27,10 +27,19 @@ REDUCE_TO=1048576 #1 gb
 # executions of this script.
 
 current_usage () {
+	# Standard implementation (slow):
 	du -sk $IMG_CACHE_DIR | cut -f 1                     # Fine for a few GB...
+
+	# Alternative implementation #1 (faster, requires quota setup):
 	# quota -Q -u loris | grep sdb1 | awk '{ print $2 }' # ...much faster!!
 	# Note that you'll like need to change the name of the filesystem above if
 	# using the `quota` version.
+
+	# Alternative implementation #2 (faster, requires dedicated cache mount):
+	# df -P | grep /data | awk '{print $3}'
+	# Note that using df is fast, but it assumes that your cache has its own
+	# dedicated mounted partition. Replace "/data" with the appropriate mount
+	# point in the code above to use this option.
 }
 
 delete_total=0
