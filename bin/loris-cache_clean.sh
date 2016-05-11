@@ -56,6 +56,18 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 		let delete_total+=1
 	done
 
+	# If the for loop above is not working well for you, you can try uncommenting
+	# the alternate implementation below; this version requires write access to
+	# /tmp and uses awk, but it allows progress to be monitored by examining temp
+	# files, and its use of xargs may make it more tolerant of very large lists.
+	#### begin alternate code ####
+	#tmpfile=/tmp/loris-cache-clean-$max_age.tmp
+	#find $IMG_CACHE_DIR -type f -atime +$max_age > $tmpfile
+	#line_count=`wc $tmpfile | awk '{print $1}'`
+	#let delete_total+=$line_count
+	#cat $tmpfile | xargs rm
+	#### end alternate code ####
+
 	# empty directories
 	find $IMG_CACHE_DIR -mindepth 1 -type d -empty -delete
 
