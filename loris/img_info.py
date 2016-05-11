@@ -421,7 +421,7 @@ class InfoCache(object):
         dp = os.path.dirname(info_fp)
         if not os.path.isdir(dp):
             try:
-                os.makedirs(dp, 0755)
+                os.makedirs(dp)
                 logger.debug('Created %s' % (dp,))
             except OSError as e: # this happens once and a while; not sure why
                 if e.errno == errno.EEXIST:
