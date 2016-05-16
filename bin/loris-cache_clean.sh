@@ -10,6 +10,9 @@
 
 LOG="/var/log/loris2/cache_clean.log"
 
+echo -ne "$(date +[%c]) " >> $LOG
+echo "starting" >> $LOG
+
 # Check that the image cache directory...
 IMG_CACHE_DIR="/var/cache/loris/img"
 
@@ -67,6 +70,9 @@ while [ $usage -gt $REDUCE_TO ] && [ $max_age -ge -1 ]; do
 	#let delete_total+=$line_count
 	#cat $tmpfile | xargs rm
 	#### end alternate code ####
+
+	echo -ne "$(date +[%c]) " >> $LOG
+	echo "in progress - max age = $max_age, Delete total = $delete_total" >> $LOG
 
 	# empty directories
 	find $IMG_CACHE_DIR -mindepth 1 -type d -empty -delete
