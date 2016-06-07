@@ -54,6 +54,7 @@ source_suffix=''
 uri_resolvable=False
 head_resolvable=False #DO set this to true if using Fedora Commons 3.8 or later. Earlier versions have a bug for a head response.
 default_format=None #Set this if your HTTP server doesn't populate content-response. An example value might be "jp2".
+ident_regex=False #Set this to a regular expression matching your identifier pattern to reduce unnecessary network traffic on source server
 user=None
 pw=None
 cache_root='<must be configured>'
