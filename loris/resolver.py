@@ -16,6 +16,7 @@ import constants
 import hashlib
 import glob
 import requests
+import re
 
 logger = getLogger(__name__)
 
@@ -159,6 +160,8 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         self.ssl_check = self.config.get('ssl_check', True)
 
+        self.ident_regex = self.config.get('ident_regex', False)
+
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']
         else:
@@ -181,6 +184,12 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     def is_resolvable(self, ident):
         ident = unquote(ident)
+
+        if self.ident_regex:
+            regex = re.compile(self.ident_regex)
+            if not regex.match(ident):
+                return False
+
         fp = join(self.cache_root, SimpleHTTPResolver._cache_subroot(ident))
         if exists(fp):
             return True
