@@ -18,7 +18,7 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
  * `redirect_id_slash_to_info` If True, `{id}/` and `{id}` will both redirect to the `{id}/info.json`. This is generally OK unless you have ids that end in slashes.
  * `max_size_above_full` A numerical value which restricts the maximum image size to `max_size_above_full` percent of
     the original image size. Setting this value to 100 disables server side interpolation of images. Default value is 200 (maximum double width or height allowed). To allow any size, set this value to 0.
-
+ * `proxy_path` The path you would like loris to proxy to. This will override the default path to your info.json file. proxy_path defaults to None if not explicitly set.
 ### `[logging]`
 
 Each module has its own logger and is chock-full of debug statements, so setting the level to to `INFO` or higher is highly recommended.

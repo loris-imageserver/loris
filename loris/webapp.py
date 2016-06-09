@@ -211,6 +211,7 @@ class Loris(object):
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
         self.redirect_id_slash_to_info = _loris_config['redirect_id_slash_to_info']
+        self.proxy_path = _loris_config.get('proxy_path', None)
         self.cors_regex = _loris_config.get('cors_regex', None)
         if self.cors_regex:
             self.cors_regex = re.compile(self.cors_regex)
@@ -356,7 +357,9 @@ class Loris(object):
         logger.debug('_dissect_uri ident: %s' % (ident,))
         logger.debug('_dissect_uri params: %s' % (params,))
 
-        if r.script_root != u'':
+        if self.proxy_path is not None:
+            base_uri = '%s%s' % (self.proxy_path,ident)
+        elif r.script_root != u'':
             base_uri = '%s%s' % (r.url_root,ident)
         else:
             base_uri = '%s%s' % (r.host_url,ident)
