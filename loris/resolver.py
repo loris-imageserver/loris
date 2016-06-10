@@ -378,7 +378,6 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
                 self.templates[name] = cfg
 
         # inherited/required configs from simple http resolver
-
         self.head_resolvable = self.config.get('head_resolvable', False)
         self.default_format = self.config.get('default_format', None)
         if 'cache_root' in self.config:
@@ -387,6 +386,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
             logger.error(message)
             raise ResolverException(500, message)
+        self.ident_regex = self.config.get('ident_regex', False)
 
         # required for simplehttpresolver
         # all templates are assumed to be uri resolvable
