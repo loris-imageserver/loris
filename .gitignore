@@ -1,6 +1,9 @@
 
 *.egg-info/
 
+env/
+.cache/
+
 build/
 
 dist/
