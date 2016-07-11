@@ -1,3 +1,6 @@
+from loris import loris_exception
+
+
 class AbstractResolverTest(object):
     def test_is_resolvable(self):
         self.assertTrue(
@@ -11,7 +14,7 @@ class AbstractResolverTest(object):
 
     def test_format(self):
         self.assertEqual(
-                self.resolver._format_from_ident(self.identifier),
+                self.resolver.format_from_ident(self.identifier),
                 self.expected_format
         )
 
@@ -19,3 +22,7 @@ class AbstractResolverTest(object):
         expected_resolved = (self.expected_filepath, self.expected_format)
         resolved = self.resolver.resolve(self.identifier)
         self.assertSequenceEqual(resolved, expected_resolved)
+
+    def test_resolve_exception(self):
+        with self.assertRaises(loris_exception.ResolverException):
+            self.resolver.resolve(self.not_identifier)
