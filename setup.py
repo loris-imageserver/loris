@@ -15,7 +15,6 @@ VERSION = loris.__version__
 
 EX_NOUSER = 67
 
-ETC_DIR_DEFAULT = '/etc/loris2'
 CONFIG_FILE_NAME = 'loris2.conf'
 
 BIN_DIR_DEFAULT = '/usr/local/bin'
