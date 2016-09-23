@@ -35,11 +35,10 @@ class TestDissectUri(loris_t.LorisTest):
         req = Request(env)
 
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '%s/' % self.URI_BASE
-        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(base_uri, None)
         self.assertEqual(ident, '')
         self.assertEqual(params, '')
-        self.assertEqual(request_type, 'info')
+        self.assertEqual(request_type, 'index')
 
     def test_favicon(self):
         path = '/favicon.ico'
@@ -50,10 +49,9 @@ class TestDissectUri(loris_t.LorisTest):
         req = Request(env)
 
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '%s/favicon.ico' % self.URI_BASE
-        self.assertEqual(base_uri, expected_uri)
-        self.assertEqual(ident, 'favicon.ico')
-        self.assertEqual(params, None)
+        self.assertEqual(base_uri, None)
+        self.assertEqual(ident, '')
+        self.assertEqual(params, '')
         self.assertEqual(request_type, 'favicon')
 
     def test_unescaped_ident_request(self):
@@ -69,7 +67,7 @@ class TestDissectUri(loris_t.LorisTest):
         self.assertEqual(base_uri, expected_uri)
         self.assertEqual(ident, '01%2F02%2F0001.jp2')
         self.assertEqual(params, '')
-        self.assertEqual(request_type, 'info')
+        self.assertEqual(request_type, 'redirect_info')
 
     def test_ident_request(self):
         path = '/%s/' % self.test_jp2_color_id
@@ -84,7 +82,7 @@ class TestDissectUri(loris_t.LorisTest):
         self.assertEqual(base_uri, expected_uri)
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, '')
-        self.assertEqual(request_type, 'info')
+        self.assertEqual(request_type, 'redirect_info')
 
     def test_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
@@ -117,6 +115,11 @@ class TestDissectUri(loris_t.LorisTest):
 
 class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
+
+    def test_index(self):
+        resp = self.client.get('/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data.startswith('This is Loris, '))
 
     def test_favicon(self):
         resp = self.client.get('/favicon.ico')
