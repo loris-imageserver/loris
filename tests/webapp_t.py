@@ -24,11 +24,71 @@ $ python -m unittest -v tests.webapp_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class WebappUnit(loris_t.LorisTest):
-    def test_uri_from_info_request(self):
-        info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+class TestDissectUri(loris_t.LorisTest):
+
+    def test_root_path(self):
+        path = '/'
 
         # See http://werkzeug.pocoo.org/docs/test/#environment-building
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        expected_uri = '%s/' % self.URI_BASE
+        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(ident, '')
+        self.assertEqual(params, '')
+        self.assertEqual(request_type, 'info')
+
+    def test_favicon(self):
+        path = '/favicon.ico'
+
+        # See http://werkzeug.pocoo.org/docs/test/#environment-building
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        expected_uri = '%s/favicon.ico' % self.URI_BASE
+        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(ident, 'favicon.ico')
+        self.assertEqual(params, None)
+        self.assertEqual(request_type, 'favicon')
+
+    def test_unescaped_ident_request(self):
+        path = '/01/02/0001.jp2/'
+
+        # See http://werkzeug.pocoo.org/docs/test/#environment-building
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        expected_uri = '/'.join((self.URI_BASE, self.test_jp2_color_id))
+        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(ident, '01%2F02%2F0001.jp2')
+        self.assertEqual(params, '')
+        self.assertEqual(request_type, 'info')
+
+    def test_ident_request(self):
+        path = '/%s/' % self.test_jp2_color_id
+
+        # See http://werkzeug.pocoo.org/docs/test/#environment-building
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        expected_uri = '/'.join((self.URI_BASE, self.test_jp2_color_id))
+        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(ident, self.test_jp2_color_id)
+        self.assertEqual(params, '')
+        self.assertEqual(request_type, 'info')
+
+    def test_info_request(self):
+        info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+
         builder = EnvironBuilder(path=info_path)
         env = builder.get_environ()
         req = Request(env)
@@ -36,8 +96,11 @@ class WebappUnit(loris_t.LorisTest):
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
+        self.assertEqual(ident, self.test_jp2_color_id)
+        self.assertEqual(params, 'info.json')
+        self.assertEqual(request_type, 'info')
 
-    def test_uri_from_img_request(self):
+    def test_img_request(self):
         img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 
         builder = EnvironBuilder(path=img_path)
@@ -47,10 +110,17 @@ class WebappUnit(loris_t.LorisTest):
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
+        self.assertEqual(ident, self.test_jp2_color_id)
+        self.assertEqual(params, u'full/full/0/default.jpg')
+        self.assertEqual(request_type, u'image')
 
 
 class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
+
+    def test_favicon(self):
+        resp = self.client.get('/favicon.ico')
+        self.assertEqual(resp.status_code, 200)
 
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
@@ -327,7 +397,7 @@ class SizeRestriction(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
-    test_suites.append(unittest.makeSuite(WebappUnit, 'test'))
+    test_suites.append(unittest.makeSuite(TestDissectUri, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
     test_suite = unittest.TestSuite(test_suites)
