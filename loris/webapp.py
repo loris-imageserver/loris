@@ -268,23 +268,26 @@ class Loris(object):
 
     def route(self, request):
         base_uri, ident, params, request_type = self._dissect_uri(request)
-        # index.txt
+
         if request_type == 'index':
             return self.get_index(request)
 
-        # favicon.ico
         if request_type == 'favicon':
             return self.get_favicon(request)
 
         if not self.resolver.is_resolvable(ident):
             msg = "could not resolve identifier: %s " % (ident)
             return NotFoundResponse(msg)
-        elif params == '' and request_type == 'info':
+
+        elif request_type == 'redirect_info':
             r = LorisResponse()
             r.headers['Location'] = '%s/info.json' % (base_uri,)
             r.set_acao(request)
             r.status_code = 303
             return r
+
+        elif request_type == 'info':
+            return self.get_info(request, ident, base_uri)
 
         # pixels
         elif request_type == 'image':
@@ -307,9 +310,6 @@ class Loris(object):
                 return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
             except ValueError:
                 return BadRequestResponse('could not parse image request')
-        # info
-        elif params == 'info.json' and request_type == 'info':
-            return self.get_info(request, ident, base_uri)
 
         else:
             return BadRequestResponse()
@@ -338,6 +338,7 @@ class Loris(object):
         elif self.resolver.is_resolvable(maybe_ident):
             ident = maybe_ident
             params = ''
+            request_type = 'redirect_info'
 
         # Otherwise, does the path end with info.json?
         elif r.path.endswith('info.json'):

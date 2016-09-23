@@ -69,7 +69,7 @@ class TestDissectUri(loris_t.LorisTest):
         self.assertEqual(base_uri, expected_uri)
         self.assertEqual(ident, '01%2F02%2F0001.jp2')
         self.assertEqual(params, '')
-        self.assertEqual(request_type, 'info')
+        self.assertEqual(request_type, 'redirect_info')
 
     def test_ident_request(self):
         path = '/%s/' % self.test_jp2_color_id
@@ -84,7 +84,7 @@ class TestDissectUri(loris_t.LorisTest):
         self.assertEqual(base_uri, expected_uri)
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, '')
-        self.assertEqual(request_type, 'info')
+        self.assertEqual(request_type, 'redirect_info')
 
     def test_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
