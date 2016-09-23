@@ -272,6 +272,10 @@ class Loris(object):
         if ident == '':
             return self.get_index(request)
 
+        # favicon.ico
+        if request_type == 'favicon':
+            return self.get_favicon(request)
+
         if not self.resolver.is_resolvable(ident):
             msg = "could not resolve identifier: %s " % (ident)
             return NotFoundResponse(msg)
@@ -307,9 +311,6 @@ class Loris(object):
         elif params == 'info.json' and request_type == 'info':
             return self.get_info(request, ident, base_uri)
 
-        # favicon.ico
-        elif params == 'favicon.ico':
-            return self.get_favicon(request)
         else:
             return BadRequestResponse()
 
@@ -330,6 +331,10 @@ class Loris(object):
         if self.resolver.is_resolvable(maybe_ident):
             ident = maybe_ident
             params = ''
+
+        elif maybe_ident == 'favicon.ico':
+            ident = maybe_ident
+            request_type = 'favicon'
 
         # Otherwise, does the path end with info.json?
         elif r.path.endswith('info.json'):

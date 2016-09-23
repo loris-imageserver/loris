@@ -41,6 +41,21 @@ class WebappUnit(loris_t.LorisTest):
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'info')
 
+    def test_favicon(self):
+        path = '/favicon.ico'
+
+        # See http://werkzeug.pocoo.org/docs/test/#environment-building
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        expected_uri = '%s/favicon.ico' % self.URI_BASE
+        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(ident, 'favicon.ico')
+        self.assertEqual(params, None)
+        self.assertEqual(request_type, 'favicon')
+
     def test_dissect_uri_from_unescaped_ident_request(self):
         path = '/01/02/0001.jp2/'
 
@@ -102,6 +117,10 @@ class WebappUnit(loris_t.LorisTest):
 
 class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
+
+    def test_favicon(self):
+        resp = self.client.get('/favicon.ico')
+        self.assertEqual(resp.status_code, 200)
 
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
