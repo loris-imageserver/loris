@@ -307,9 +307,6 @@ class Loris(object):
         elif params == 'info.json' and request_type == 'info':
             return self.get_info(request, ident, base_uri)
 
-        # favicon.ico
-        elif params == 'favicon.ico':
-            return self.get_favicon(request)
         else:
             return BadRequestResponse()
 
@@ -380,14 +377,6 @@ class Loris(object):
         '''
         f = file(path.join(self.www_dp, 'index.txt'))
         r = Response(f, content_type='text/plain')
-        if self.enable_caching:
-            r.add_etag()
-            r.make_conditional(request)
-        return r
-
-    def get_favicon(self, request):
-        f = path.join(self.www_dp, 'icons', 'loris-icon.png')
-        r = Response(file(f), content_type='image/x-icon')
         if self.enable_caching:
             r.add_etag()
             r.make_conditional(request)
