@@ -321,30 +321,32 @@ class Loris(object):
         base_uri = None
         ident = ''
         params = ''
-        request_type = 'info'
+        request_type = ''
 
-        # First test if what we have in the path is resolvable (bare identifier)
+        #handle some initial static views first (where we don't need to do anymore processing)
+        if r.path == '/':
+            request_type = 'index'
+            return base_uri, ident, params, request_type
+
+        elif r.path[1:] == 'favicon.ico':
+            request_type = 'favicon'
+            return base_uri, ident, params, request_type
+
+        # Now test if what we have in the path is resolvable (bare identifier)
         maybe_ident = r.path[1:] # no leading slash
         if self.redirect_id_slash_to_info and maybe_ident.endswith('/'):
             maybe_ident = maybe_ident[:-1]
 
-        if r.path == '/':
-            request_type = 'index'
-
-        elif maybe_ident == 'favicon.ico':
-            ident = maybe_ident
-            request_type = 'favicon'
-
-        elif self.resolver.is_resolvable(maybe_ident):
+        if self.resolver.is_resolvable(maybe_ident):
             ident = maybe_ident
             params = ''
             request_type = 'redirect_info'
 
         # Otherwise, does the path end with info.json?
         elif r.path.endswith('info.json'):
-        #if r.path.endswith('info.json'):
             ident = '/'.join(r.path[1:].split('/')[:-1])
             params = 'info.json'
+            request_type = 'info'
 
         # Else this is probably an image request...
         else:
@@ -357,6 +359,7 @@ class Loris(object):
                 ident = r.path[1:]
                 if self.redirect_id_slash_to_info and ident.endswith('/'):
                     ident = ident[:-1]
+                request_type = 'info'
             else:
                 params = '/'.join(r.path.split('/')[-4:])
                 request_type = 'image'

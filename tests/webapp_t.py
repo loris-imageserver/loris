@@ -35,8 +35,7 @@ class TestDissectUri(loris_t.LorisTest):
         req = Request(env)
 
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '%s/' % self.URI_BASE
-        self.assertEqual(base_uri, expected_uri)
+        self.assertEqual(base_uri, None)
         self.assertEqual(ident, '')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'index')
@@ -50,9 +49,8 @@ class TestDissectUri(loris_t.LorisTest):
         req = Request(env)
 
         base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '%s/favicon.ico' % self.URI_BASE
-        self.assertEqual(base_uri, expected_uri)
-        self.assertEqual(ident, 'favicon.ico')
+        self.assertEqual(base_uri, None)
+        self.assertEqual(ident, '')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'favicon')
 
