@@ -319,8 +319,8 @@ class Loris(object):
         # it really difficult to know where the identifier (which potentially
         # contains slashes) ends and the parameters begin. So..
         base_uri = None
-        ident = None
-        params = None
+        ident = ''
+        params = ''
         request_type = 'info'
 
         # First test if what we have in the path is resolvable (bare identifier)
@@ -328,13 +328,16 @@ class Loris(object):
         if self.redirect_id_slash_to_info and maybe_ident.endswith('/'):
             maybe_ident = maybe_ident[:-1]
 
-        if self.resolver.is_resolvable(maybe_ident):
-            ident = maybe_ident
-            params = ''
+        if r.path == '/':
+            request_type = 'index'
 
         elif maybe_ident == 'favicon.ico':
             ident = maybe_ident
             request_type = 'favicon'
+
+        elif self.resolver.is_resolvable(maybe_ident):
+            ident = maybe_ident
+            params = ''
 
         # Otherwise, does the path end with info.json?
         elif r.path.endswith('info.json'):
