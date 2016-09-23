@@ -269,7 +269,7 @@ class Loris(object):
     def route(self, request):
         base_uri, ident, params, request_type = self._dissect_uri(request)
         # index.txt
-        if ident == '':
+        if request_type == 'index':
             return self.get_index(request)
 
         # favicon.ico
