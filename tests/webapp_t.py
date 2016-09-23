@@ -24,7 +24,7 @@ $ python -m unittest -v tests.webapp_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class WebappUnit(loris_t.LorisTest):
+class TestDissectUri(loris_t.LorisTest):
 
     def test_root_path(self):
         path = '/'
@@ -56,7 +56,7 @@ class WebappUnit(loris_t.LorisTest):
         self.assertEqual(params, None)
         self.assertEqual(request_type, 'favicon')
 
-    def test_dissect_uri_from_unescaped_ident_request(self):
+    def test_unescaped_ident_request(self):
         path = '/01/02/0001.jp2/'
 
         # See http://werkzeug.pocoo.org/docs/test/#environment-building
@@ -71,7 +71,7 @@ class WebappUnit(loris_t.LorisTest):
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'info')
 
-    def test_dissect_uri_from_ident_request(self):
+    def test_ident_request(self):
         path = '/%s/' % self.test_jp2_color_id
 
         # See http://werkzeug.pocoo.org/docs/test/#environment-building
@@ -86,7 +86,7 @@ class WebappUnit(loris_t.LorisTest):
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'info')
 
-    def test_dissect_uri_from_info_request(self):
+    def test_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
 
         builder = EnvironBuilder(path=info_path)
@@ -100,7 +100,7 @@ class WebappUnit(loris_t.LorisTest):
         self.assertEqual(params, 'info.json')
         self.assertEqual(request_type, 'info')
 
-    def test_dissect_uri_from_img_request(self):
+    def test_img_request(self):
         img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 
         builder = EnvironBuilder(path=img_path)
@@ -397,7 +397,7 @@ class SizeRestriction(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
-    test_suites.append(unittest.makeSuite(WebappUnit, 'test'))
+    test_suites.append(unittest.makeSuite(TestDissectUri, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
     test_suite = unittest.TestSuite(test_suites)
