@@ -406,7 +406,10 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         prior to 3.8).  [Currently must be the same for all templates]
     '''
     def __init__(self, config):
-        super(SimpleHTTPResolver, self).__init__(config)
+        # required for simplehttpresolver
+        # all templates are assumed to be uri resolvable
+        config['uri_resolvable'] = True
+        super(TemplateHTTPResolver, self).__init__(config)
         templates = self.config.get('templates', '')
         # technically it's not an error to have no templates configured,
         # but nothing will resolve; is that useful? or should this
@@ -421,23 +424,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
                 logger.warn('No configuration specified for resolver template %s' % name)
             else:
                 self.templates[name] = cfg
-
-        # inherited/required configs from simple http resolver
-        self.head_resolvable = self.config.get('head_resolvable', False)
-        self.default_format = self.config.get('default_format', None)
-        if 'cache_root' in self.config:
-            self.cache_root = self.config['cache_root']
-        else:
-            message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
-            logger.error(message)
-            raise ResolverException(500, message)
-        self.ident_regex = self.config.get('ident_regex', False)
-
-        # required for simplehttpresolver
-        # all templates are assumed to be uri resolvable
-        self.uri_resolvable = True
-
-        self.ssl_check = self.config.get('ssl_check', True)
+        logger.debug('TemplateHTTPResolver templates: %s' % str(self.templates))
 
     def _web_request_url(self, ident):
         # only split identifiers that look like template ids;
