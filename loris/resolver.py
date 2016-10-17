@@ -166,6 +166,10 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         self.pw = self.config.get('pw', None)
 
+        self.cert = self.config.get('cert', None)
+
+        self.key = self.config.get('key', None)
+
         self.ssl_check = self.config.get('ssl_check', True)
 
         self.ident_regex = self.config.get('ident_regex', False)
@@ -186,6 +190,8 @@ class SimpleHTTPResolver(_AbstractResolver):
     def request_options(self):
         # parameters to pass to all head and get requests;
         options = {}
+        if self.cert is not None and self.key is not None:
+            options['cert'] = (self.cert, self.key)
         if self.user is not None and self.pw is not None:
             options['auth'] = (self.user, self.pw)
         options['verify'] = self.ssl_check
@@ -443,15 +449,17 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         else:
             if prefix in self.templates:
                 url = self.templates[prefix]['url'] % ident
-        # if prefix is not recognized, no identifier is returned
-        # and loris will return a 404
         if url is None:
+            # if prefix is not recognized, no identifier is returned
+            # and loris will return a 404
             return
         else:
             # first get the generic options
             options = self.request_options()
             # then add any template-specific ones
             conf = self.templates[prefix]
+            if 'cert' in conf and 'key' in conf:
+                options['cert'] = (conf['cert'], conf['key'])
             if 'user' in conf and 'pw' in conf:
                 options['auth'] = (conf['user'], conf['pw'])
             if 'ssl_check' in conf:
