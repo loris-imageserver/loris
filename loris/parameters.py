@@ -293,8 +293,8 @@ class SizeParameter(object):
                 self.canonical_uri_value = '%d,' % (self.w,)
 
             logger.debug('canonical uri_value for size: %s' % (self.canonical_uri_value,))
-            logger.debug('w %d', self.w)
-            logger.debug('h %d', self.h)
+            logger.debug('w %s', self.w)
+            logger.debug('h %s', self.h)
             if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
                 msg = 'Width and height must both be positive numbers'
                 raise RequestException(http_status=400, message=msg)
@@ -351,6 +351,15 @@ class SizeParameter(object):
         else:
             self.force_aspect = True
             self.w, self.h = map(int, self.uri_value.split(','))
+
+        if self.h < 1:
+            self.h = 1
+        else:
+            self.h = int(self.h)
+        if self.w < 1:
+            self.w = 1
+        else:
+            self.w = int(self.w)
 
     @staticmethod
     def __mode_from_size_segment(size_segment):
