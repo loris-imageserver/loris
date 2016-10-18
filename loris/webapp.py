@@ -282,6 +282,9 @@ class Loris(object):
         if request_type == 'favicon':
             return self.get_favicon(request)
 
+        if request_type == 'bad_image_request':
+            return BadRequestResponse()
+
         if not self.resolver.is_resolvable(ident):
             msg = "could not resolve identifier: %s " % (ident)
             return NotFoundResponse(msg)
@@ -330,7 +333,7 @@ class Loris(object):
         params = ''
         request_type = ''
 
-        #handle some initial static views first (where we don't need to do anymore processing)
+        #handle some initial static views first
         if r.path == '/':
             request_type = 'index'
             return base_uri, ident, params, request_type
@@ -339,42 +342,33 @@ class Loris(object):
             request_type = 'favicon'
             return base_uri, ident, params, request_type
 
-        # Now test if what we have in the path is resolvable (bare identifier)
-        maybe_ident = r.path[1:] # no leading slash
-        if self.redirect_id_slash_to_info and maybe_ident.endswith('/'):
-            maybe_ident = maybe_ident[:-1]
+        #check for valid image request
+        image_match = constants.VALID_IMAGE_RE.match(r.path)
+        if image_match:
+            groups = image_match.groupdict()
+            ident = groups['ident']
+            params = '%s/%s/%s/%s.%s' % (groups['region'], groups['size'], groups['rotation'], groups['quality'], groups['format'])
+            request_type = 'image'
 
-        if self.resolver.is_resolvable(maybe_ident):
-            ident = maybe_ident
-            params = ''
-            request_type = 'redirect_info'
+        #check for invalid image request (didn't match the stricter regex above, but still looks like an image request)
+        #This lets us return a 400 BadRequest to the user, instead of a 404.
+        elif constants.IMAGE_TYPE_RE.match(r.path):
+            request_type = 'bad_image_request'
+            return base_uri, ident, params, request_type
 
-        # Otherwise, does the path end with info.json?
+        #is this an info request?
         elif r.path.endswith('info.json'):
             ident = '/'.join(r.path[1:].split('/')[:-1])
             params = 'info.json'
             request_type = 'info'
 
-        # Else this is probably an image request...
         else:
-            self.logger.debug(r.path)
-            ident = '/'.join(r.path[1:].split('/')[:-4])
-            # ...unless the path isn't long enough to be one, in which case
-            # assume the path is an identifier, just a bad one. Gosh this sucks.
-            # Could still break if your identifier has 5 slashes
-            if ident == '':
-                ident = r.path[1:]
-                if self.redirect_id_slash_to_info and ident.endswith('/'):
-                    ident = ident[:-1]
-                request_type = 'info'
-            else:
-                params = '/'.join(r.path.split('/')[-4:])
-                request_type = 'image'
+            ident = r.path[1:]
+            if ident.endswith('/') and self.redirect_id_slash_to_info:
+                ident = ident[:-1]
+            request_type = 'redirect_info'
 
         ident = quote_plus(ident)
-
-        self.logger.debug('_dissect_uri ident: %s' % (ident,))
-        self.logger.debug('_dissect_uri params: %s' % (params,))
 
         if self.proxy_path is not None:
             base_uri = '%s%s' % (self.proxy_path,ident)
@@ -383,8 +377,6 @@ class Loris(object):
         else:
             base_uri = '%s%s' % (r.host_url,ident)
 
-        self.logger.debug('base_uri_from_request: %s' % (base_uri,))
-        self.logger.debug('request_type: %s' % (request_type,))
         return (base_uri, ident, params, request_type)
 
     def __call__(self, environ, start_response):

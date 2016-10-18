@@ -84,6 +84,19 @@ class TestDissectUri(loris_t.LorisTest):
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'redirect_info')
 
+    def test_ident_request_no_redirect(self):
+        path = '/%s/' % self.test_jp2_color_id
+
+        # See http://werkzeug.pocoo.org/docs/test/#environment-building
+        self.app.redirect_id_slash_to_info = False
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        self.assertEqual(ident, self.test_jp2_color_id + '%2F')
+        self.assertEqual(request_type, 'redirect_info')
+
     def test_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
 
@@ -111,6 +124,32 @@ class TestDissectUri(loris_t.LorisTest):
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, u'full/full/0/default.jpg')
         self.assertEqual(request_type, u'image')
+
+    def test_many_slash_img_request(self):
+        identifier = '1/2/3/4/5/6/7/8/9/xyz'
+        encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
+        img_path = '/%s/full/full/0/default.jpg' % identifier
+
+        builder = EnvironBuilder(path=img_path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        expected = '/'.join((self.URI_BASE, encoded_identifier))
+        self.assertEqual(base_uri, expected)
+        self.assertEqual(ident, encoded_identifier)
+        self.assertEqual(params, u'full/full/0/default.jpg')
+        self.assertEqual(request_type, u'image')
+
+    def test_bad_image_request(self):
+        img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+
+        builder = EnvironBuilder(path=img_path)
+        env = builder.get_environ()
+        req = Request(env)
+
+        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        self.assertEqual(request_type, u'bad_image_request')
 
 
 class WebappIntegration(loris_t.LorisTest):
