@@ -185,10 +185,11 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     def request_options(self):
         # parameters to pass to all head and get requests;
-        # currently only authorization, if configured
+        options = {}
         if self.user is not None and self.pw is not None:
-            return {'auth': (self.user, self.pw)}
-        return {}
+            options['auth'] = (self.user, self.pw)
+        options['verify'] = self.ssl_check
+        return options
 
     def is_resolvable(self, ident):
         ident = unquote(ident)
@@ -202,11 +203,11 @@ class SimpleHTTPResolver(_AbstractResolver):
         if exists(fp):
             return True
         else:
-            fp = self._web_request_url(ident)
+            (url, options) = self._web_request_url(ident)
 
             if self.head_resolvable:
                 try:
-                    with closing(requests.head(fp, verify=self.ssl_check, **self.request_options())) as response:
+                    with closing(requests.head(url, **options)) as response:
                         if response.status_code is 200:
                             return True
                 except requests.exceptions.MissingSchema:
@@ -214,7 +215,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
             else:
                 try:
-                    with closing(requests.get(fp, stream=True, verify=self.ssl_check, **self.request_options())) as response:
+                    with closing(requests.get(url, stream=True, **options)) as response:
                         if response.status_code is 200:
                             return True
                 except requests.exceptions.MissingSchema:
@@ -240,9 +241,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             # For some reason, identifier is http:/<url> or https:/<url>?
             # Hack to correct without breaking valid urls.
             first_slash = ident.find('/')
-            return '%s//%s' % (ident[:first_slash], ident[first_slash:].lstrip('/'))
+            url = '%s//%s' % (ident[:first_slash], ident[first_slash:].lstrip('/'))
         else:
-            return self.source_prefix + ident + self.source_suffix
+            url = self.source_prefix + ident + self.source_suffix
+        return (url, self.request_options())
 
     # Get a subdirectory structure for the cache_subroot through hashing.
     @staticmethod
@@ -328,7 +330,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     def copy_to_cache(self, ident):
         ident = unquote(ident)
-        source_url = self._web_request_url(ident)
+        (source_url, options) = self._web_request_url(ident)
 
         logger.debug('src image: %s' % (source_url,))
 
@@ -336,8 +338,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             response = requests.get(
                     source_url,
                     stream=False,
-                    verify=self.ssl_check,
-                    **self.request_options()
+                    **options
             )
         except requests.exceptions.MissingSchema:
             logger.warn(
@@ -438,17 +439,24 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             # into tuple that will be fed to template
             ident_components = ident.split(self.config['delimiter'])
             if prefix in self.templates:
-                return self.templates[prefix] % tuple(ident_components)
+                url = self.templates[prefix]['url'] % tuple(ident_components)
         else:
             if prefix in self.templates:
-                return self.templates[prefix] % ident
+                url = self.templates[prefix]['url'] % ident
         # if prefix is not recognized, no identifier is returned
         # and loris will return a 404
-
-    def request_options(self):
-        # currently no username/passsword supported
-        return {}
-
+        if url is None:
+            return
+        else:
+            # first get the generic options
+            options = self.request_options()
+            # then add any template-specific ones
+            conf = self.templates[prefix]
+            if 'user' in conf and 'pw' in conf:
+                options['auth'] = (conf['user'], conf['pw'])
+            if 'ssl_check' in conf:
+                options['verify'] = conf['ssl_check']
+            return (url, options)
 
 class SourceImageCachingResolver(_AbstractResolver):
     '''
