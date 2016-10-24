@@ -222,6 +222,20 @@ class TestSizeParameter(_ParameterTest):
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '125,')
+                self.assertEquals(type(sp.w), int)
+                self.assertEquals(sp.w, 125)
+                self.assertEquals(type(sp.h), int)
+                self.assertEquals(sp.h, 150)
+
+        def test_tiny_image(self):
+		info = self._get_info_long_x()
+		rp = RegionParameter('full', info)
+		sp = SizeParameter('1,', rp)
+		self.assertEquals(sp.force_aspect, False)
+		self.assertEquals(sp.mode, PIXEL_MODE)
+		self.assertEquals(sp.canonical_uri_value, '1,')
+                self.assertEquals(sp.w, 1)
+                self.assertEquals(sp.h, 1)
 
 	def test_populate_slots_from_h_only(self):
 		# ,h
