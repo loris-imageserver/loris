@@ -148,6 +148,11 @@ class SimpleHTTPResolver(_AbstractResolver):
      * `uri_resolvable` with value True, allows one to use full uri's to resolve to an image.
      * `user`, the username to make the HTTP request as.
      * `pw`, the password to make the HTTP request as.
+     * `ssl_check`, whether to check the validity of the origin server's HTTPS
+     certificate. Set to False if you are using an origin server with a
+     self-signed certificate.
+     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
+     * `key`, path to an SSL client key to use for authentication.
     '''
     def __init__(self, config):
         super(SimpleHTTPResolver, self).__init__(config)
@@ -165,6 +170,10 @@ class SimpleHTTPResolver(_AbstractResolver):
         self.user = self.config.get('user', None)
 
         self.pw = self.config.get('pw', None)
+
+        self.cert = self.config.get('cert', None)
+
+        self.key = self.config.get('key', None)
 
         self.ssl_check = self.config.get('ssl_check', True)
 
@@ -186,6 +195,8 @@ class SimpleHTTPResolver(_AbstractResolver):
     def request_options(self):
         # parameters to pass to all head and get requests;
         options = {}
+        if self.cert is not None and self.key is not None:
+            options['cert'] = (self.cert, self.key)
         if self.user is not None and self.pw is not None:
             options['auth'] = (self.user, self.pw)
         options['verify'] = self.ssl_check
@@ -392,8 +403,13 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
     The configuration SHOULD contain
      * `templates`, a comma-separated list of template names e.g.
         templates=`site1,site2`
-     * A url pattern for each specified template, e.g.
-       site1='http://example.edu/images/%s' or site2='http://example.edu/images/%s/master'
+     * A subsection named for each template, e.g. `[[site1]]`. This subsection
+       MUST contain a `url`, which is a url pattern for each specified template, e.g.
+       url='http://example.edu/images/%s' or
+       url='http://example.edu/images/%s/master'. It MAY also contain other keys
+       from the SimpleHTTPResolver configuration to provide a per-template
+       override of these options. Overridable keys are `user`, `pw`,
+       `ssl_check`, `cert`, and `key`.
 
     Note that if a template is listed but has no pattern configured, the
     resolver will warn but not fail.
@@ -443,15 +459,17 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         else:
             if prefix in self.templates:
                 url = self.templates[prefix]['url'] % ident
-        # if prefix is not recognized, no identifier is returned
-        # and loris will return a 404
         if url is None:
+            # if prefix is not recognized, no identifier is returned
+            # and loris will return a 404
             return
         else:
             # first get the generic options
             options = self.request_options()
             # then add any template-specific ones
             conf = self.templates[prefix]
+            if 'cert' in conf and 'key' in conf:
+                options['cert'] = (conf['cert'], conf['key'])
             if 'user' in conf and 'pw' in conf:
                 options['auth'] = (conf['user'], conf['pw'])
             if 'ssl_check' in conf:
