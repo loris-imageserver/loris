@@ -30,17 +30,19 @@ import random
 import re
 import string
 import transforms
+import os
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
 def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
     global logger
     if debug:
-        project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-
         # change a few things, read the config and set up logging
+        project_dp = path.dirname(path.dirname(path.realpath(__file__)))
         config_file_path = path.join(project_dp, 'etc', 'loris2.conf')
-        config = ConfigObj(config_file_path, unrepr=True, interpolation=False)
+
+        config = read_config(config_file_path)
+
         config['logging']['log_to'] = 'console'
         config['logging']['log_level'] = 'DEBUG'
         __configure_logging(config['logging'])
@@ -71,7 +73,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
             config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
     else:
-        config = ConfigObj(config_file_path, unrepr=True, interpolation=False)
+        config = read_config(config_file_path)
         __configure_logging(config['logging'])
         logger = logging.getLogger(__name__)
         logger.debug('Running in production mode.')
@@ -96,6 +98,15 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
         exit(77)
     else:
         return Loris(config, debug)
+
+def read_config(config_file_path):
+    config = ConfigObj(config_file_path, unrepr=True, interpolation='template')
+    # add the OS environment variables as the DEFAULT section to support
+    # interpolating their values into other keys
+    # make a copy of the os.environ dictionary so that the config object can't
+    # inadvertently modify the environment
+    config['DEFAULT'] = dict(os.environ)
+    return config
 
 def __configure_logging(config):
     logger = logging.getLogger()

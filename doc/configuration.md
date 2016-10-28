@@ -7,6 +7,16 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
 
 **Quick Start:** Nearly everything should fine with the default settings. As long as you're pointing to `kdu_expand` and the Kakadu libs (as discussed in the [previous](dependencies.md) section) you can proceed to [Cache Maintenance](cache_maintenance.md) and come back later.
 
+Environment variables are loaded into the `[DEFAULT]` section of the config file in memory, and `Template`-style [string interpolation] is on. This means you can pull in config information from the environment instead of hardcoding it in the config file. For example:
+
+```
+...
+# get user and group from the environment
+run_as_user='$USER'
+run_as_group='$GROUP'
+...
+```
+
 
 ### `[loris.Loris]`
 
@@ -19,6 +29,7 @@ In addition to a bunch of directory paths (items that end with `_dp`) which shou
  * `max_size_above_full` A numerical value which restricts the maximum image size to `max_size_above_full` percent of
     the original image size. Setting this value to 100 disables server side interpolation of images. Default value is 200 (maximum double width or height allowed). To allow any size, set this value to 0.
  * `proxy_path` The path you would like loris to proxy to. This will override the default path to your info.json file. proxy_path defaults to None if not explicitly set.
+
 ### `[logging]`
 
 Each module has its own logger and is chock-full of debug statements, so setting the level to to `INFO` or higher is highly recommended.
@@ -56,3 +67,5 @@ Then Loris will, as the name of the option suggests, map the color profile that 
 * * *
 
 Proceed to [Cache Maintenance](cache_maintenance.md) or go [Back to README](../README.md)
+
+[string interpolation]: http://www.voidspace.org.uk/python/configobj.html#string-interpolation
