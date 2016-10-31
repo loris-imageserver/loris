@@ -447,9 +447,10 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # only split identifiers that look like template ids;
         # ignore other requests (e.g. favicon)
         if ':' not in ident:
-            return
+            return (None, {})
         prefix, ident = ident.split(':', 1)
 
+        url = None
         if 'delimiter' in self.config:
             # uses delimiter of choice from config file to split identifier
             # into tuple that will be fed to template
@@ -462,7 +463,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         if url is None:
             # if prefix is not recognized, no identifier is returned
             # and loris will return a 404
-            return
+            return (None, {})
         else:
             # first get the generic options
             options = self.request_options()

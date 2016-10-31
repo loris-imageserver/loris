@@ -253,9 +253,15 @@ class Test_TemplateHTTPResolver(loris_t.LorisTest):
         config = {
             'cache_root' : self.app.img_cache.cache_root,
             'templates': 'a,b, c, d',
-            'a': 'http://mysite.com/images/%s',
-            'b': 'http://mysite.com/images/%s/access/',
-            'c': 'http://othersite.co/img/%s'
+            'a': {
+                'url': 'http://mysite.com/images/%s'
+            },
+            'b': {
+                'url': 'http://mysite.com/images/%s/access/'
+            },
+            'c': {
+                'url': 'http://othersite.co/img/%s'
+            }
         }
 
         self.app.resolver = TemplateHTTPResolver(config)
@@ -275,13 +281,13 @@ class Test_TemplateHTTPResolver(loris_t.LorisTest):
 
         # test web request uri logic
         self.assertEqual('http://mysite.com/images/foo.jpg',
-            self.app.resolver._web_request_url('a:foo.jpg'))
+            self.app.resolver._web_request_url('a:foo.jpg')[0])
         self.assertEqual('http://mysite.com/images/id1/access/',
-            self.app.resolver._web_request_url('b:id1'))
+            self.app.resolver._web_request_url('b:id1')[0])
         self.assertEqual('http://othersite.co/img/foo:bar:baz',
-            self.app.resolver._web_request_url('c:foo:bar:baz'))
+            self.app.resolver._web_request_url('c:foo:bar:baz')[0])
         self.assertEqual(None,
-            self.app.resolver._web_request_url('unknown:id2'))
+            self.app.resolver._web_request_url('unknown:id2')[0])
 
 
 def suite():
