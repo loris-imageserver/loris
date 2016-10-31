@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # test.py
+from sys import exit
 from tests import img_info_t
 from tests import parameters_t
 from tests import resolver_t
@@ -22,4 +23,6 @@ test_suite.addTest(simple_fs_resolver_ut.suite())
 test_suite.addTest(simple_http_resolver_ut.suite())
 test_suite.addTest(source_image_caching_resolver_ut.suite())
 
-TextTestRunner(verbosity=3).run(test_suite)
+runner = TextTestRunner(verbosity=3)
+ret = not runner.run(test_suite).wasSuccessful()
+exit(ret)
