@@ -8,7 +8,7 @@ Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 # from ConfigParser import RawConfigParser
 from configobj import ConfigObj
 from datetime import datetime
-from decimal import Decimal, getcontext
+from decimal import getcontext
 from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
@@ -97,7 +97,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
         logger.fatal('Exiting')
         exit(77)
     else:
-        return Loris(config, debug)
+        return Loris(config)
 
 def read_config(config_file_path):
     config = ConfigObj(config_file_path, unrepr=True, interpolation='template')
@@ -200,7 +200,7 @@ class ServerSideErrorResponse(LorisResponse):
 
 class Loris(object):
 
-    def __init__(self, app_configs={ }, debug=False):
+    def __init__(self, app_configs={}):
         '''The WSGI Application.
         Args:
             config ({}):
@@ -212,8 +212,6 @@ class Loris(object):
         logger.debug('Loris initialized with these settings:')
         [logger.debug('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
             for key in self.app_configs for sub_key in self.app_configs[key]]
-
-        self.debug = debug
 
         # make the loris.Loris configs attrs for easier access
         _loris_config = self.app_configs['loris.Loris']
