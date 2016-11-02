@@ -301,8 +301,7 @@ class Loris(object):
         elif request_type == 'info':
             return self.get_info(request, ident, base_uri)
 
-        # pixels
-        elif request_type == 'image':
+        else: #request_type == 'image':
             fmt = params['format']
             if fmt not in self.app_configs['transforms']['target_formats']:
                 return BadRequestResponse('"%s" is not a supported format' % (fmt,))
@@ -312,9 +311,6 @@ class Loris(object):
             region = params['region']
 
             return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
-
-        else:
-            return BadRequestResponse()
 
     def _get_base_uri(self, request, ident):
         if self.proxy_path is not None:
