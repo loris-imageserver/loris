@@ -301,25 +301,15 @@ class Loris(object):
 
         # pixels
         elif request_type == 'image':
-            try:
-                slices = params.split('/')
-                info_or_quality_dot_format = slices.pop()
-                quality,fmt = info_or_quality_dot_format.split('.')
+            fmt = params['format']
+            if fmt not in self.app_configs['transforms']['target_formats']:
+                return BadRequestResponse('"%s" is not a supported format' % (fmt,))
+            quality = params['quality']
+            rotation = params['rotation']
+            size = params['size']
+            region = params['region']
 
-                if fmt not in self.app_configs['transforms']['target_formats']:
-                    return BadRequestResponse('"%s" is not a supported format' % (fmt,))
-                if quality not in constants.QUALITIES:
-                    return BadRequestResponse('"%s" is not a supported quality' % (quality,))
-                # The remaining params get their syntaxes checked further
-                # downstream in the Parameter claseses when more involved checks
-                # are also happening.
-                rotation = slices.pop()
-                size = slices.pop()
-                region = slices.pop()
-
-                return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
-            except ValueError:
-                return BadRequestResponse('could not parse image request')
+            return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
 
         else:
             return BadRequestResponse()
@@ -347,7 +337,11 @@ class Loris(object):
         if image_match:
             groups = image_match.groupdict()
             ident = groups['ident']
-            params = '%s/%s/%s/%s.%s' % (groups['region'], groups['size'], groups['rotation'], groups['quality'], groups['format'])
+            params = {'region': groups['region'],
+                      'size': groups['size'],
+                      'rotation': groups['rotation'],
+                      'quality': groups['quality'],
+                      'format': groups['format']}
             request_type = 'image'
 
         #check for invalid image request (didn't match the stricter regex above, but still looks like an image request)

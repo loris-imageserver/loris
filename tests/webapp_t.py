@@ -122,7 +122,8 @@ class TestDissectUri(loris_t.LorisTest):
         expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
         self.assertEqual(base_uri, expected)
         self.assertEqual(ident, self.test_jp2_color_id)
-        self.assertEqual(params, u'full/full/0/default.jpg')
+        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(params, expected_params)
         self.assertEqual(request_type, u'image')
 
     def test_many_slash_img_request(self):
@@ -138,7 +139,8 @@ class TestDissectUri(loris_t.LorisTest):
         expected = '/'.join((self.URI_BASE, encoded_identifier))
         self.assertEqual(base_uri, expected)
         self.assertEqual(ident, encoded_identifier)
-        self.assertEqual(params, u'full/full/0/default.jpg')
+        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(params, expected_params)
         self.assertEqual(request_type, u'image')
 
     def test_bad_image_request(self):

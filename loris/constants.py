@@ -29,12 +29,6 @@ FORMATS_BY_EXTENSION = dict(__formats)
 
 FORMATS_BY_MEDIA_TYPE = dict([(f[1],f[0]) for f in __formats])
 
-BITONAL = 'bitonal'
-COLOR = 'color'
-GREY = 'gray'
-DEFAULT = 'default'
-QUALITIES = (BITONAL, COLOR, GREY, DEFAULT)
-
 _IDENT = r'(?P<ident>[\w:\-\.\%\/]+)'
 _REGION = r'(?P<region>[\w:\.\,]+)'
 _SIZE = r'(?P<size>\!?[\w:\.\,]+)'
