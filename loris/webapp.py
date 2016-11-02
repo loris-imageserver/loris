@@ -35,7 +35,6 @@ import os
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
 def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
-    global logger
     if debug:
         # change a few things, read the config and set up logging
         project_dp = path.dirname(path.dirname(path.realpath(__file__)))
@@ -45,9 +44,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
 
         config['logging']['log_to'] = 'console'
         config['logging']['log_level'] = 'DEBUG'
-        __configure_logging(config['logging'])
-
-        logger = logging.getLogger('webapp')
+        logger = __configure_logging(config['logging'])
         logger.debug('Running in debug mode.')
 
         # override some stuff to look at relative or tmp directories.
@@ -74,9 +71,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
 
     else:
         config = read_config(config_file_path)
-        __configure_logging(config['logging'])
-        logger = logging.getLogger(__name__)
-        logger.debug('Running in production mode.')
+        logger = __configure_logging(config['logging'])
 
     # Make any dirs we may need
     dirs_to_make = []
@@ -97,7 +92,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
         logger.fatal('Exiting')
         exit(77)
     else:
-        return Loris(config)
+        return Loris(logger, config)
 
 def read_config(config_file_path):
     config = ConfigObj(config_file_path, unrepr=True, interpolation='template')
@@ -113,11 +108,11 @@ def __configure_logging(config):
 
     conf_level = config['log_level']
 
-    if conf_level == 'CRITICAL': LOG_LEVEL = logger.setLevel(logging.CRITICAL)
-    elif conf_level == 'ERROR': LOG_LEVEL = logger.setLevel(logging.ERROR)
-    elif conf_level == 'WARNING': LOG_LEVEL = logger.setLevel(logging.WARNING)
-    elif conf_level == 'INFO': LOG_LEVEL = logger.setLevel(logging.INFO)
-    else: LOG_LEVEL = logger.setLevel(logging.DEBUG)
+    if conf_level == 'CRITICAL': logger.setLevel(logging.CRITICAL)
+    elif conf_level == 'ERROR': logger.setLevel(logging.ERROR)
+    elif conf_level == 'WARNING': logger.setLevel(logging.WARNING)
+    elif conf_level == 'INFO': logger.setLevel(logging.INFO)
+    else: logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(fmt=config['format'])
 
@@ -146,6 +141,8 @@ def __configure_logging(config):
             logger.addHandler(out_handler)
 
             logger.handler_set = True
+    return logger
+
 
 class StdErrFilter(logging.Filter):
     '''Logging filter for stderr
@@ -200,7 +197,7 @@ class ServerSideErrorResponse(LorisResponse):
 
 class Loris(object):
 
-    def __init__(self, app_configs={}):
+    def __init__(self, logger, app_configs={}):
         '''The WSGI Application.
         Args:
             config ({}):
@@ -209,8 +206,9 @@ class Loris(object):
             debug (bool)
         '''
         self.app_configs = app_configs
-        logger.debug('Loris initialized with these settings:')
-        [logger.debug('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
+        self.logger = logger
+        self.logger.debug('Loris initialized with these settings:')
+        [self.logger.debug('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
             for key in self.app_configs for sub_key in self.app_configs[key]]
 
         # make the loris.Loris configs attrs for easier access
@@ -237,9 +235,9 @@ class Loris(object):
     def _load_transformers(self):
         tforms = self.app_configs['transforms']
         source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
-        logger.debug('Source formats: %s' % (repr(source_formats),))
+        self.logger.debug('Source formats: %s' % (repr(source_formats),))
         global_tranform_options = dict((k, v) for k, v in tforms.iteritems() if not isinstance(v, dict))
-        logger.debug('Global transform options: %s' % (repr(global_tranform_options),))
+        self.logger.debug('Global transform options: %s' % (repr(global_tranform_options),))
 
         transformers = {}
         for sf in source_formats:
@@ -251,7 +249,7 @@ class Loris(object):
     def _load_transformer(self, config):
         Klass = getattr(transforms, config['impl'])
         instance = Klass(config)
-        logger.debug('Loaded Transformer %s' % (config['impl'],))
+        self.logger.debug('Loaded Transformer %s' % (config['impl'],))
         return instance
 
     def _load_resolver(self):
@@ -267,7 +265,7 @@ class Loris(object):
         module_name = '.'.join(qname.split('.')[:-1])
         class_name = qname.split('.')[-1]
         module = __import__(module_name, fromlist=[class_name])
-        logger.debug('Imported %s' % (qname,))
+        self.logger.debug('Imported %s' % (qname,))
         return getattr(module, class_name)
 
     def wsgi_app(self, environ, start_response):
@@ -359,7 +357,7 @@ class Loris(object):
 
         # Else this is probably an image request...
         else:
-            logger.debug(r.path)
+            self.logger.debug(r.path)
             ident = '/'.join(r.path[1:].split('/')[:-4])
             # ...unless the path isn't long enough to be one, in which case
             # assume the path is an identifier, just a bad one. Gosh this sucks.
@@ -375,8 +373,8 @@ class Loris(object):
 
         ident = quote_plus(ident)
 
-        logger.debug('_dissect_uri ident: %s' % (ident,))
-        logger.debug('_dissect_uri params: %s' % (params,))
+        self.logger.debug('_dissect_uri ident: %s' % (ident,))
+        self.logger.debug('_dissect_uri params: %s' % (params,))
 
         if self.proxy_path is not None:
             base_uri = '%s%s' % (self.proxy_path,ident)
@@ -385,8 +383,8 @@ class Loris(object):
         else:
             base_uri = '%s%s' % (r.host_url,ident)
 
-        logger.debug('base_uri_from_request: %s' % (base_uri,))
-        logger.debug('request_type: %s' % (request_type,))
+        self.logger.debug('base_uri_from_request: %s' % (base_uri,))
+        self.logger.debug('request_type: %s' % (request_type,))
         return (base_uri, ident, params, request_type)
 
     def __call__(self, environ, start_response):
@@ -435,7 +433,7 @@ class Loris(object):
             last_mod = parse_date(http_date(last_mod)) # see note under get_img
 
             if ims and ims >= last_mod:
-                logger.debug('Sent 304 for %s ' % (ident,))
+                self.logger.debug('Sent 304 for %s ' % (ident,))
                 r.status_code = 304
             else:
                 if last_mod:
@@ -479,17 +477,17 @@ class Loris(object):
 
             formats = self.transformers[src_format].target_formats
 
-            logger.debug('Format: %s' % (src_format,))
-            logger.debug('File Path: %s' % (src_fp,))
-            logger.debug('Identifier: %s' % (ident,))
-            logger.debug('Base URI: %s' % (base_uri,))
+            self.logger.debug('Format: %s' % (src_format,))
+            self.logger.debug('File Path: %s' % (src_fp,))
+            self.logger.debug('Identifier: %s' % (ident,))
+            self.logger.debug('Base URI: %s' % (base_uri,))
 
             # get the info
             info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats)
 
             # store
             if self.enable_caching:
-                logger.debug('ident used to store %s: %s' % (ident,ident))
+                self.logger.debug('ident used to store %s: %s' % (ident,ident))
                 self.info_cache[request] = info
                 # pick up the timestamp... :()
                 info,last_mod = self.info_cache[request]
@@ -516,7 +514,7 @@ class Loris(object):
         image_request = img.ImageRequest(ident, region, size, rotation,
                                          quality, target_fmt)
 
-        logger.debug('Image Request Path: %s' % (image_request.request_path,))
+        self.logger.debug('Image Request Path: %s' % (image_request.request_path,))
 
         if self.enable_caching:
             in_cache = image_request in self.img_cache
@@ -530,11 +528,11 @@ class Loris(object):
             # as when went sent it, so for an accurate comparison turn it into
             # an http date and then parse it again :-( :
             img_last_mod = parse_date(http_date(img_last_mod))
-            logger.debug("Time from FS (default, rounded): " + str(img_last_mod))
-            logger.debug("Time from IMS Header (parsed): " + str(parse_date(ims_hdr)))
+            self.logger.debug("Time from FS (default, rounded): " + str(img_last_mod))
+            self.logger.debug("Time from IMS Header (parsed): " + str(parse_date(ims_hdr)))
             # ims_hdr = parse_date(ims_hdr) # catch parsing errors?
             if ims_hdr and parse_date(ims_hdr) >= img_last_mod:
-                logger.debug('Sent 304 for %s ' % (fp,))
+                self.logger.debug('Sent 304 for %s ' % (fp,))
                 r.status_code = 304
                 return r
             else:
@@ -574,8 +572,8 @@ class Loris(object):
                     max_height = image_request.region_param.pixel_h * self.max_size_above_full / 100
                     if image_request.size_param.w > max_width or \
                             image_request.size_param.h > max_height:
-                        logger.debug('Requested image size exceeded allowed size:')
-                        logger.debug('width: %0.2f > %0.2f, height: %0.2f > %0.2f' %
+                        self.logger.debug('Requested image size exceeded allowed size:')
+                        self.logger.debug('width: %0.2f > %0.2f, height: %0.2f > %0.2f' %
                             (image_request.size_param.w, max_width,
                                 image_request.size_param.h, max_height))
                         return NotFoundResponse('Resolution not available')
@@ -583,7 +581,7 @@ class Loris(object):
                 # 5. Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical:
-                        logger.debug('Attempting redirect to %s' % (image_request.canonical_request_path,))
+                        self.logger.debug('Attempting redirect to %s' % (image_request.canonical_request_path,))
                         r.headers['Location'] = image_request.canonical_request_path
                         r.status_code = 301
                         return r
@@ -646,7 +644,7 @@ possible that there was a problem with the source file
             n = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
             target_fp = '%s.%s' % (path.join(self.tmp_dp, n), image_request.format)
 
-        logger.debug('Target fp: %s' % (target_fp,))
+        self.logger.debug('Target fp: %s' % (target_fp,))
 
         # Get the transformer
         transformer = self.transformers[src_format]
