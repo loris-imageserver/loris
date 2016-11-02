@@ -2,7 +2,6 @@
 #-*- coding: utf-8 -*-
 
 from datetime import datetime
-from loris import img_info
 from os import path, listdir
 from time import sleep
 from werkzeug.datastructures import Headers
@@ -11,6 +10,7 @@ from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 import re
 import loris_t
+from loris import img_info
 
 
 """
@@ -20,6 +20,25 @@ $ python -m unittest -v tests.webapp_t
 
 from the `/loris` (not `/loris/loris`) directory.
 """
+class TestBaseUri(loris_t.LorisTest):
+
+    def test_get_base_uri(self):
+        path = '/%s/' % self.test_jp2_color_id
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+        base_uri = self.app._get_base_uri(req, self.test_jp2_color_id)
+        self.assertEqual(base_uri, 'http://localhost/01%2F02%2F0001.jp2')
+
+    def test_get_base_uri_proxy_path(self):
+        path = '/%s/' % self.test_jp2_color_id
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+        self.app.proxy_path = 'http://example.org/'
+        base_uri = self.app._get_base_uri(req, self.test_jp2_color_id)
+        self.assertEqual(base_uri, 'http://example.org/01%2F02%2F0001.jp2')
+
 
 class TestDissectUri(loris_t.LorisTest):
 
@@ -31,8 +50,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        self.assertEqual(base_uri, None)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, '')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'index')
@@ -45,8 +63,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        self.assertEqual(base_uri, None)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, '')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'favicon')
@@ -59,9 +76,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected_uri)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, '01%2F02%2F0001.jp2')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'redirect_info')
@@ -74,9 +89,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected_uri)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'redirect_info')
@@ -90,7 +103,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, self.test_jp2_color_id + '%2F')
         self.assertEqual(request_type, 'redirect_info')
 
@@ -101,9 +114,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, 'info.json')
         self.assertEqual(request_type, 'info')
@@ -115,9 +126,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, self.test_jp2_color_id)
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
         self.assertEqual(params, expected_params)
@@ -132,9 +141,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected = '/'.join((self.URI_BASE, encoded_identifier))
-        self.assertEqual(base_uri, expected)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(ident, encoded_identifier)
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
         self.assertEqual(params, expected_params)
@@ -147,7 +154,7 @@ class TestDissectUri(loris_t.LorisTest):
         env = builder.get_environ()
         req = Request(env)
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(req)
         self.assertEqual(request_type, u'bad_image_request')
 
 
@@ -440,6 +447,7 @@ class SizeRestriction(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
+    test_suites.append(unittest.makeSuite(TestBaseUri, 'test'))
     test_suites.append(unittest.makeSuite(TestDissectUri, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
