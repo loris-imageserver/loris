@@ -44,89 +44,48 @@ class TestDissectUri(loris_t.LorisTest):
 
     def test_root_path(self):
         path = '/'
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(path, True)
         self.assertEqual(ident, '')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'index')
 
     def test_favicon(self):
         path = '/favicon.ico'
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(path, True)
         self.assertEqual(ident, '')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'favicon')
 
     def test_unescaped_ident_request(self):
         path = '/01/02/0001.jp2/'
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(path, True)
         self.assertEqual(ident, '01%2F02%2F0001.jp2')
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'redirect_info')
 
     def test_ident_request(self):
         path = '/%s/' % self.test_jp2_color_id
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(path, True)
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, '')
         self.assertEqual(request_type, 'redirect_info')
 
     def test_ident_request_no_redirect(self):
         path = '/%s/' % self.test_jp2_color_id
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        self.app.redirect_id_slash_to_info = False
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(path, False)
         self.assertEqual(ident, self.test_jp2_color_id + '%2F')
         self.assertEqual(request_type, 'redirect_info')
 
     def test_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
-
-        builder = EnvironBuilder(path=info_path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(info_path, True)
         self.assertEqual(ident, self.test_jp2_color_id)
         self.assertEqual(params, 'info.json')
         self.assertEqual(request_type, 'info')
 
     def test_img_request(self):
         img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
-
-        builder = EnvironBuilder(path=img_path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(img_path, True)
         self.assertEqual(ident, self.test_jp2_color_id)
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
         self.assertEqual(params, expected_params)
@@ -136,12 +95,7 @@ class TestDissectUri(loris_t.LorisTest):
         identifier = '1/2/3/4/5/6/7/8/9/xyz'
         encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
         img_path = '/%s/full/full/0/default.jpg' % identifier
-
-        builder = EnvironBuilder(path=img_path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(img_path, True)
         self.assertEqual(ident, encoded_identifier)
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
         self.assertEqual(params, expected_params)
@@ -149,12 +103,7 @@ class TestDissectUri(loris_t.LorisTest):
 
     def test_bad_image_request(self):
         img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
-
-        builder = EnvironBuilder(path=img_path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        ident, params, request_type = self.app._dissect_uri(req)
+        ident, params, request_type = self.app._dissect_uri(img_path, True)
         self.assertEqual(request_type, u'bad_image_request')
 
 

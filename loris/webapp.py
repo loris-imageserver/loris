@@ -274,7 +274,7 @@ class Loris(object):
         return response(environ, start_response)
 
     def route(self, request):
-        ident, params, request_type = self._dissect_uri(request)
+        ident, params, request_type = self._dissect_uri(request.path, self.redirect_id_slash_to_info)
 
         if request_type == 'index':
             return self.get_index(request)
@@ -321,25 +321,24 @@ class Loris(object):
             base_uri = '%s%s' % (request.host_url, ident)
         return base_uri
 
-    def _dissect_uri(self, r):
-        # This is ugly because wsgi unescapes uris before we get here making
-        # it really difficult to know where the identifier (which potentially
-        # contains slashes) ends and the parameters begin. So..
+    def _dissect_uri(self, path, redirect_id_slash_to_info):
+        #make sure path is unquoted, so we know what we're working with
+        path = unquote(path)
         ident = ''
         params = ''
         request_type = ''
 
         #handle some initial static views first
-        if r.path == '/':
+        if path == '/':
             request_type = 'index'
             return ident, params, request_type
 
-        elif r.path[1:] == 'favicon.ico':
+        elif path[1:] == 'favicon.ico':
             request_type = 'favicon'
             return ident, params, request_type
 
         #check for valid image request
-        image_match = constants.VALID_IMAGE_RE.match(r.path)
+        image_match = constants.VALID_IMAGE_RE.match(path)
         if image_match:
             groups = image_match.groupdict()
             ident = groups['ident']
@@ -352,21 +351,22 @@ class Loris(object):
 
         #check for invalid image request (didn't match the stricter regex above, but still looks like an image request)
         #This lets us return a 400 BadRequest to the user, instead of a 404.
-        elif constants.IMAGE_TYPE_RE.match(r.path):
+        elif constants.IMAGE_TYPE_RE.match(path):
             request_type = 'bad_image_request'
             return ident, params, request_type
 
         #is this an info request?
-        elif r.path.endswith('info.json'):
-            ident = '/'.join(r.path[1:].split('/')[:-1])
+        elif path.endswith('info.json'):
+            ident = '/'.join(path[1:].split('/')[:-1])
             params = 'info.json'
             request_type = 'info'
 
         else:
-            ident = r.path[1:]
-            if ident.endswith('/') and self.redirect_id_slash_to_info:
+            ident = path[1:]
+            if ident.endswith('/') and redirect_id_slash_to_info:
                 ident = ident[:-1]
             request_type = 'redirect_info'
+
 
         ident = quote_plus(ident)
 
