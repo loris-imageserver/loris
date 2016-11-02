@@ -216,8 +216,9 @@ class URIDissector(object):
             self.request_type = 'favicon'
             return
 
-        #check for valid image request
-        image_match = constants.VALID_IMAGE_RE.match(self.path)
+        #check for image request
+        #Note: this doesn't guarantee that all the parameters have valid values - see regexes in constants.py.
+        image_match = constants.IMAGE_RE.match(self.path)
         if image_match:
             groups = image_match.groupdict()
             self.ident = quote_plus(groups['ident'])
@@ -228,9 +229,9 @@ class URIDissector(object):
                       'format': groups['format']}
             self.request_type = 'image'
 
-        #check for invalid image request (didn't match the stricter regex above, but still looks like an image request)
-        #This lets us return a 400 BadRequest to the user, instead of a 404.
-        elif constants.IMAGE_TYPE_RE.match(self.path):
+        #if the request didn't match the stricter regex above, but it does match this one, we know we have an
+        # invalid image request, so we can return a 400 BadRequest to the user.
+        elif constants.LOOSER_IMAGE_RE.match(self.path):
             self.request_type = 'bad_image_request'
 
         #check for info request

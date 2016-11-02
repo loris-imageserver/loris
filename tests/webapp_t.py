@@ -96,6 +96,71 @@ class TestDissectUri(TestCase):
         self.assertEqual(uri_dissector.params, expected_params)
         self.assertEqual(uri_dissector.request_type, u'image')
 
+    def test_img_region(self):
+        img_path = '/%s/square/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['region'], 'square')
+        img_path = '/%s/0,0,500,500/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['region'], '0,0,500,500')
+        img_path = '/%s/pct:41.6,7.5,40,70/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['region'], 'pct:41.6,7.5,40,70')
+
+    def test_img_size(self):
+        img_path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], 'full')
+        img_path = '/%s/full/max/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], 'max')
+        img_path = '/%s/full/150,/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], '150,')
+        img_path = '/%s/full/pct:50/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], 'pct:50')
+        img_path = '/%s/full/!225,100/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], '!225,100')
+
+    def test_img_rotation(self):
+        img_path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['rotation'], '0')
+        img_path = '/%s/full/full/22.5/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['rotation'], '22.5')
+        img_path = '/%s/full/full/!0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['rotation'], '!0')
+
+    def test_img_quality(self):
+        img_path = '/%s/full/full/0/gray.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, 'image')
+        self.assertEqual(uri_dissector.params['quality'], 'gray')
+        img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'bad_image_request')
+
+    def test_img_format(self):
+        img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, 'image')
+        self.assertEqual(uri_dissector.params['format'], 'jpg')
+
     def test_many_slash_img_request(self):
         identifier = '1/2/3/4/5/6/7/8/9/xyz'
         encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
@@ -105,11 +170,6 @@ class TestDissectUri(TestCase):
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
         self.assertEqual(uri_dissector.params, expected_params)
         self.assertEqual(uri_dissector.request_type, u'image')
-
-    def test_bad_image_request(self):
-        img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'bad_image_request')
 
 
 class WebappIntegration(loris_t.LorisTest):
