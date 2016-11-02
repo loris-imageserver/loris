@@ -195,6 +195,59 @@ class ServerSideErrorResponse(LorisResponse):
         message = 'Server Side Error: %s (%d)' % (message, status)
         super(ServerSideErrorResponse, self).__init__(message, status, 'text/plain')
 
+
+class URIDissector(object):
+
+    def __init__(self, path, redirect_id_slash_to_info):
+        #make sure path is unquoted, so we know what we're working with
+        self.path = unquote(path)
+        self.redirect_id_slash_to_info = redirect_id_slash_to_info
+        self._dissect_uri()
+
+    def _dissect_uri(self):
+        self.ident = ''
+        self.params = ''
+        #handle some initial static views first
+        if self.path == '/':
+            self.request_type = 'index'
+            return
+
+        elif self.path[1:] == 'favicon.ico':
+            self.request_type = 'favicon'
+            return
+
+        #check for valid image request
+        image_match = constants.VALID_IMAGE_RE.match(self.path)
+        if image_match:
+            groups = image_match.groupdict()
+            self.ident = quote_plus(groups['ident'])
+            self.params = {'region': groups['region'],
+                      'size': groups['size'],
+                      'rotation': groups['rotation'],
+                      'quality': groups['quality'],
+                      'format': groups['format']}
+            self.request_type = 'image'
+
+        #check for invalid image request (didn't match the stricter regex above, but still looks like an image request)
+        #This lets us return a 400 BadRequest to the user, instead of a 404.
+        elif constants.IMAGE_TYPE_RE.match(self.path):
+            self.request_type = 'bad_image_request'
+
+        #check for info request
+        elif self.path.endswith('info.json'):
+            ident = '/'.join(self.path[1:].split('/')[:-1])
+            self.ident = quote_plus(ident)
+            self.params = 'info.json'
+            self.request_type = 'info'
+
+        else: #treat it as a redirect_info
+            ident = self.path[1:]
+            if ident.endswith('/') and self.redirect_id_slash_to_info:
+                ident = ident[:-1]
+            self.ident = quote_plus(ident)
+            self.request_type = 'redirect_info'
+
+
 class Loris(object):
 
     def __init__(self, logger, app_configs={}):
@@ -274,7 +327,8 @@ class Loris(object):
         return response(environ, start_response)
 
     def route(self, request):
-        ident, params, request_type = self._dissect_uri(request.path, self.redirect_id_slash_to_info)
+        uri_dissector = URIDissector(request.path, self.redirect_id_slash_to_info)
+        request_type = uri_dissector.request_type
 
         if request_type == 'index':
             return self.get_index(request)
@@ -284,6 +338,8 @@ class Loris(object):
 
         if request_type == 'bad_image_request':
             return BadRequestResponse()
+
+        ident = uri_dissector.ident
 
         if not self.resolver.is_resolvable(ident):
             msg = "could not resolve identifier: %s " % (ident)
@@ -302,6 +358,7 @@ class Loris(object):
             return self.get_info(request, ident, base_uri)
 
         else: #request_type == 'image':
+            params = uri_dissector.params
             fmt = params['format']
             if fmt not in self.app_configs['transforms']['target_formats']:
                 return BadRequestResponse('"%s" is not a supported format' % (fmt,))
@@ -320,57 +377,6 @@ class Loris(object):
         else:
             base_uri = '%s%s' % (request.host_url, ident)
         return base_uri
-
-    def _dissect_uri(self, path, redirect_id_slash_to_info):
-        #make sure path is unquoted, so we know what we're working with
-        path = unquote(path)
-        ident = ''
-        params = ''
-        request_type = ''
-
-        #handle some initial static views first
-        if path == '/':
-            request_type = 'index'
-            return ident, params, request_type
-
-        elif path[1:] == 'favicon.ico':
-            request_type = 'favicon'
-            return ident, params, request_type
-
-        #check for valid image request
-        image_match = constants.VALID_IMAGE_RE.match(path)
-        if image_match:
-            groups = image_match.groupdict()
-            ident = groups['ident']
-            params = {'region': groups['region'],
-                      'size': groups['size'],
-                      'rotation': groups['rotation'],
-                      'quality': groups['quality'],
-                      'format': groups['format']}
-            request_type = 'image'
-
-        #check for invalid image request (didn't match the stricter regex above, but still looks like an image request)
-        #This lets us return a 400 BadRequest to the user, instead of a 404.
-        elif constants.IMAGE_TYPE_RE.match(path):
-            request_type = 'bad_image_request'
-            return ident, params, request_type
-
-        #is this an info request?
-        elif path.endswith('info.json'):
-            ident = '/'.join(path[1:].split('/')[:-1])
-            params = 'info.json'
-            request_type = 'info'
-
-        else:
-            ident = path[1:]
-            if ident.endswith('/') and redirect_id_slash_to_info:
-                ident = ident[:-1]
-            request_type = 'redirect_info'
-
-
-        ident = quote_plus(ident)
-
-        return (ident, params, request_type)
 
     def __call__(self, environ, start_response):
         '''
