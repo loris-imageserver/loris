@@ -3,15 +3,12 @@
 
 from datetime import datetime
 from loris import img_info
-from loris import constants
-from loris import webapp
 from os import path, listdir
 from time import sleep
 from werkzeug.datastructures import Headers
-from werkzeug.http import parse_date, http_date
+from werkzeug.http import http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
-import json
 import re
 import loris_t
 
@@ -169,10 +166,12 @@ class WebappIntegration(loris_t.LorisTest):
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
+        self.assertEqual(resp.headers['Location'], 'http://localhost/01%2F02%2F0001.jp2/info.json')
 
     def test_bare_identifier_request_with_trailing_slash_303(self):
         resp = self.client.get('/%s/' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
+        self.assertEqual(resp.headers['Location'], 'http://localhost/01%2F02%2F0001.jp2/info.json')
 
     def test_bare_identifier_with_trailing_slash_404s_with_redir_off(self):
         self.app.redirect_id_slash_to_info = False
