@@ -255,8 +255,7 @@ class Loris(object):
     def _load_resolver(self):
         impl = self.app_configs['resolver']['impl']
         ResolverClass = self._import_class(impl)
-        resolver_config =  self.app_configs['resolver'].copy()
-        del resolver_config['impl']
+        resolver_config =  self.app_configs['resolver']
         return ResolverClass(resolver_config)
 
     def _import_class(self, qname):
