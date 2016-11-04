@@ -229,17 +229,17 @@ class URIDissector(object):
                       'format': groups['format']}
             self.request_type = 'image'
 
-        #if the request didn't match the stricter regex above, but it does match this one, we know we have an
-        # invalid image request, so we can return a 400 BadRequest to the user.
-        elif constants.LOOSER_IMAGE_RE.match(self.path):
-            self.request_type = 'bad_image_request'
-
         #check for info request
         elif self.path.endswith('info.json'):
             ident = '/'.join(self.path[1:].split('/')[:-1])
             self.ident = quote_plus(ident)
             self.params = 'info.json'
             self.request_type = 'info'
+
+        #if the request didn't match the stricter regex above, but it does match this one, we know we have an
+        # invalid image request, so we can return a 400 BadRequest to the user.
+        elif constants.LOOSER_IMAGE_RE.match(self.path):
+            self.request_type = 'bad_image_request'
 
         else: #treat it as a redirect_info
             ident = self.path[1:]

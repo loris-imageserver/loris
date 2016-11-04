@@ -171,6 +171,14 @@ class TestDissectUri(TestCase):
         self.assertEqual(uri_dissector.params, expected_params)
         self.assertEqual(uri_dissector.request_type, u'image')
 
+    def test_many_slash_info_request(self):
+        identifier = '1/2/3/4/5/6/7/8/9/xyz'
+        encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
+        info_path = '/%s/info.json' % identifier
+        uri_dissector = webapp.URIDissector(info_path, True)
+        self.assertEqual(uri_dissector.request_type, u'info')
+        self.assertEqual(uri_dissector.ident, encoded_identifier)
+
 
 class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
