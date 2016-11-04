@@ -195,6 +195,60 @@ class ServerSideErrorResponse(LorisResponse):
         message = 'Server Side Error: %s (%d)' % (message, status)
         super(ServerSideErrorResponse, self).__init__(message, status, 'text/plain')
 
+
+class URIDissector(object):
+
+    def __init__(self, path, redirect_id_slash_to_info):
+        #make sure path is unquoted, so we know what we're working with
+        self.path = unquote(path)
+        self.redirect_id_slash_to_info = redirect_id_slash_to_info
+        self._dissect_uri()
+
+    def _dissect_uri(self):
+        self.ident = ''
+        self.params = ''
+        #handle some initial static views first
+        if self.path == '/':
+            self.request_type = 'index'
+            return
+
+        elif self.path[1:] == 'favicon.ico':
+            self.request_type = 'favicon'
+            return
+
+        #check for image request
+        #Note: this doesn't guarantee that all the parameters have valid values - see regexes in constants.py.
+        image_match = constants.IMAGE_RE.match(self.path)
+        if image_match:
+            groups = image_match.groupdict()
+            self.ident = quote_plus(groups['ident'])
+            self.params = {'region': groups['region'],
+                      'size': groups['size'],
+                      'rotation': groups['rotation'],
+                      'quality': groups['quality'],
+                      'format': groups['format']}
+            self.request_type = 'image'
+
+        #check for info request
+        elif self.path.endswith('info.json'):
+            ident = '/'.join(self.path[1:].split('/')[:-1])
+            self.ident = quote_plus(ident)
+            self.params = 'info.json'
+            self.request_type = 'info'
+
+        #if the request didn't match the stricter regex above, but it does match this one, we know we have an
+        # invalid image request, so we can return a 400 BadRequest to the user.
+        elif constants.LOOSER_IMAGE_RE.match(self.path):
+            self.request_type = 'bad_image_request'
+
+        else: #treat it as a redirect_info
+            ident = self.path[1:]
+            if ident.endswith('/') and self.redirect_id_slash_to_info:
+                ident = ident[:-1]
+            self.ident = quote_plus(ident)
+            self.request_type = 'redirect_info'
+
+
 class Loris(object):
 
     def __init__(self, logger, app_configs={}):
@@ -274,7 +328,8 @@ class Loris(object):
         return response(environ, start_response)
 
     def route(self, request):
-        base_uri, ident, params, request_type = self._dissect_uri(request)
+        uri_dissector = URIDissector(request.path, self.redirect_id_slash_to_info)
+        request_type = uri_dissector.request_type
 
         if request_type == 'index':
             return self.get_index(request)
@@ -282,11 +337,18 @@ class Loris(object):
         if request_type == 'favicon':
             return self.get_favicon(request)
 
+        if request_type == 'bad_image_request':
+            return BadRequestResponse()
+
+        ident = uri_dissector.ident
+
         if not self.resolver.is_resolvable(ident):
             msg = "could not resolve identifier: %s " % (ident)
             return NotFoundResponse(msg)
 
-        elif request_type == 'redirect_info':
+        base_uri = self._get_base_uri(request, ident)
+
+        if request_type == 'redirect_info':
             r = LorisResponse()
             r.headers['Location'] = '%s/info.json' % (base_uri,)
             r.set_acao(request)
@@ -296,96 +358,26 @@ class Loris(object):
         elif request_type == 'info':
             return self.get_info(request, ident, base_uri)
 
-        # pixels
-        elif request_type == 'image':
-            try:
-                slices = params.split('/')
-                info_or_quality_dot_format = slices.pop()
-                quality,fmt = info_or_quality_dot_format.split('.')
+        else: #request_type == 'image':
+            params = uri_dissector.params
+            fmt = params['format']
+            if fmt not in self.app_configs['transforms']['target_formats']:
+                return BadRequestResponse('"%s" is not a supported format' % (fmt,))
+            quality = params['quality']
+            rotation = params['rotation']
+            size = params['size']
+            region = params['region']
 
-                if fmt not in self.app_configs['transforms']['target_formats']:
-                    return BadRequestResponse('"%s" is not a supported format' % (fmt,))
-                if quality not in constants.QUALITIES:
-                    return BadRequestResponse('"%s" is not a supported quality' % (quality,))
-                # The remaining params get their syntaxes checked further
-                # downstream in the Parameter claseses when more involved checks
-                # are also happening.
-                rotation = slices.pop()
-                size = slices.pop()
-                region = slices.pop()
+            return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
 
-                return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
-            except ValueError:
-                return BadRequestResponse('could not parse image request')
-
-        else:
-            return BadRequestResponse()
-
-    def _dissect_uri(self, r):
-        # This is ugly because wsgi unescapes uris before we get here making
-        # it really difficult to know where the identifier (which potentially
-        # contains slashes) ends and the parameters begin. So..
-        base_uri = None
-        ident = ''
-        params = ''
-        request_type = ''
-
-        #handle some initial static views first (where we don't need to do anymore processing)
-        if r.path == '/':
-            request_type = 'index'
-            return base_uri, ident, params, request_type
-
-        elif r.path[1:] == 'favicon.ico':
-            request_type = 'favicon'
-            return base_uri, ident, params, request_type
-
-        # Now test if what we have in the path is resolvable (bare identifier)
-        maybe_ident = r.path[1:] # no leading slash
-        if self.redirect_id_slash_to_info and maybe_ident.endswith('/'):
-            maybe_ident = maybe_ident[:-1]
-
-        if self.resolver.is_resolvable(maybe_ident):
-            ident = maybe_ident
-            params = ''
-            request_type = 'redirect_info'
-
-        # Otherwise, does the path end with info.json?
-        elif r.path.endswith('info.json'):
-            ident = '/'.join(r.path[1:].split('/')[:-1])
-            params = 'info.json'
-            request_type = 'info'
-
-        # Else this is probably an image request...
-        else:
-            self.logger.debug(r.path)
-            ident = '/'.join(r.path[1:].split('/')[:-4])
-            # ...unless the path isn't long enough to be one, in which case
-            # assume the path is an identifier, just a bad one. Gosh this sucks.
-            # Could still break if your identifier has 5 slashes
-            if ident == '':
-                ident = r.path[1:]
-                if self.redirect_id_slash_to_info and ident.endswith('/'):
-                    ident = ident[:-1]
-                request_type = 'info'
-            else:
-                params = '/'.join(r.path.split('/')[-4:])
-                request_type = 'image'
-
-        ident = quote_plus(ident)
-
-        self.logger.debug('_dissect_uri ident: %s' % (ident,))
-        self.logger.debug('_dissect_uri params: %s' % (params,))
-
+    def _get_base_uri(self, request, ident):
         if self.proxy_path is not None:
-            base_uri = '%s%s' % (self.proxy_path,ident)
-        elif r.script_root != u'':
-            base_uri = '%s%s' % (r.url_root,ident)
+            base_uri = '%s%s' % (self.proxy_path, ident)
+        elif request.script_root != '':
+            base_uri = '%s%s' % (request.url_root, ident)
         else:
-            base_uri = '%s%s' % (r.host_url,ident)
-
-        self.logger.debug('base_uri_from_request: %s' % (base_uri,))
-        self.logger.debug('request_type: %s' % (request_type,))
-        return (base_uri, ident, params, request_type)
+            base_uri = '%s%s' % (request.host_url, ident)
+        return base_uri
 
     def __call__(self, environ, start_response):
         '''

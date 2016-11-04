@@ -1,5 +1,6 @@
 # constants.py
 # -*- coding: utf-8 -*-
+import re
 
 COMPLIANCE = 'http://iiif.io/api/image/2/level2.json'
 PROTOCOL = 'http://iiif.io/api/image'
@@ -28,8 +29,12 @@ FORMATS_BY_EXTENSION = dict(__formats)
 
 FORMATS_BY_MEDIA_TYPE = dict([(f[1],f[0]) for f in __formats])
 
-BITONAL = 'bitonal'
-COLOR = 'color'
-GREY = 'gray'
-DEFAULT = 'default'
-QUALITIES = (BITONAL, COLOR, GREY, DEFAULT)
+_IDENT = r'(?P<ident>[\w:\-\.\%\/]+)'
+_REGION = r'(?P<region>[\w:\.\,]+)'
+_SIZE = r'(?P<size>\!?[\w:\.\,]+)'
+_ROTATION = r'(?P<rotation>\!?\d+\.?\d*)'
+_QUALITY = r'(?P<quality>(color|gray|bitonal|default))'
+_FORMAT = r'(?P<format>\w+)'
+_IMAGE_REQUEST = r'/%s/%s/%s/%s/%s.%s' % (_IDENT, _REGION, _SIZE, _ROTATION, _QUALITY, _FORMAT)
+IMAGE_RE = re.compile(_IMAGE_REQUEST)
+LOOSER_IMAGE_RE = re.compile(r'/%s/\w+/\w+/\w+/\w.\w' % _IDENT)

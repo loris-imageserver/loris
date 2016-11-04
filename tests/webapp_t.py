@@ -2,18 +2,17 @@
 #-*- coding: utf-8 -*-
 
 from datetime import datetime
-from loris import img_info
-from loris import constants
-from loris import webapp
 from os import path, listdir
 from time import sleep
+from unittest import TestCase
 from werkzeug.datastructures import Headers
-from werkzeug.http import parse_date, http_date
+from werkzeug.http import http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
-import json
 import re
 import loris_t
+from loris import img_info
+from loris import webapp
 
 
 """
@@ -23,94 +22,162 @@ $ python -m unittest -v tests.webapp_t
 
 from the `/loris` (not `/loris/loris`) directory.
 """
+class TestBaseUri(loris_t.LorisTest):
 
-class TestDissectUri(loris_t.LorisTest):
+    def test_get_base_uri(self):
+        path = '/%s/' % self.test_jp2_color_id
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+        base_uri = self.app._get_base_uri(req, self.test_jp2_color_id)
+        self.assertEqual(base_uri, 'http://localhost/01%2F02%2F0001.jp2')
+
+    def test_get_base_uri_proxy_path(self):
+        path = '/%s/' % self.test_jp2_color_id
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+        self.app.proxy_path = 'http://example.org/'
+        base_uri = self.app._get_base_uri(req, self.test_jp2_color_id)
+        self.assertEqual(base_uri, 'http://example.org/01%2F02%2F0001.jp2')
+
+
+class TestDissectUri(TestCase):
+
+    def setUp(self):
+        self.test_jp2_color_id = '01%2F02%2F0001.jp2'
 
     def test_root_path(self):
         path = '/'
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        self.assertEqual(base_uri, None)
-        self.assertEqual(ident, '')
-        self.assertEqual(params, '')
-        self.assertEqual(request_type, 'index')
+        uri_dissector = webapp.URIDissector(path, True)
+        self.assertEqual(uri_dissector.ident, '')
+        self.assertEqual(uri_dissector.params, '')
+        self.assertEqual(uri_dissector.request_type, 'index')
 
     def test_favicon(self):
         path = '/favicon.ico'
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        self.assertEqual(base_uri, None)
-        self.assertEqual(ident, '')
-        self.assertEqual(params, '')
-        self.assertEqual(request_type, 'favicon')
+        uri_dissector = webapp.URIDissector(path, True)
+        self.assertEqual(uri_dissector.ident, '')
+        self.assertEqual(uri_dissector.params, '')
+        self.assertEqual(uri_dissector.request_type, 'favicon')
 
     def test_unescaped_ident_request(self):
         path = '/01/02/0001.jp2/'
-
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected_uri)
-        self.assertEqual(ident, '01%2F02%2F0001.jp2')
-        self.assertEqual(params, '')
-        self.assertEqual(request_type, 'redirect_info')
+        uri_dissector = webapp.URIDissector(path, True)
+        self.assertEqual(uri_dissector.ident, '01%2F02%2F0001.jp2')
+        self.assertEqual(uri_dissector.params, '')
+        self.assertEqual(uri_dissector.request_type, 'redirect_info')
 
     def test_ident_request(self):
         path = '/%s/' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(path, True)
+        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id)
+        self.assertEqual(uri_dissector.params, '')
+        self.assertEqual(uri_dissector.request_type, 'redirect_info')
 
-        # See http://werkzeug.pocoo.org/docs/test/#environment-building
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected_uri = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected_uri)
-        self.assertEqual(ident, self.test_jp2_color_id)
-        self.assertEqual(params, '')
-        self.assertEqual(request_type, 'redirect_info')
+    def test_ident_request_no_redirect(self):
+        path = '/%s/' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(path, False)
+        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id + '%2F')
+        self.assertEqual(uri_dissector.request_type, 'redirect_info')
 
     def test_info_request(self):
         info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
-
-        builder = EnvironBuilder(path=info_path)
-        env = builder.get_environ()
-        req = Request(env)
-
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected)
-        self.assertEqual(ident, self.test_jp2_color_id)
-        self.assertEqual(params, 'info.json')
-        self.assertEqual(request_type, 'info')
+        uri_dissector = webapp.URIDissector(info_path, True)
+        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id)
+        self.assertEqual(uri_dissector.params, 'info.json')
+        self.assertEqual(uri_dissector.request_type, 'info')
 
     def test_img_request(self):
         img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id)
+        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(uri_dissector.params, expected_params)
+        self.assertEqual(uri_dissector.request_type, u'image')
 
-        builder = EnvironBuilder(path=img_path)
-        env = builder.get_environ()
-        req = Request(env)
+    def test_img_region(self):
+        img_path = '/%s/square/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['region'], 'square')
+        img_path = '/%s/0,0,500,500/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['region'], '0,0,500,500')
+        img_path = '/%s/pct:41.6,7.5,40,70/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['region'], 'pct:41.6,7.5,40,70')
 
-        base_uri, ident, params, request_type = self.app._dissect_uri(req)
-        expected = '/'.join((self.URI_BASE, self.test_jp2_color_id))
-        self.assertEqual(base_uri, expected)
-        self.assertEqual(ident, self.test_jp2_color_id)
-        self.assertEqual(params, u'full/full/0/default.jpg')
-        self.assertEqual(request_type, u'image')
+    def test_img_size(self):
+        img_path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], 'full')
+        img_path = '/%s/full/max/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], 'max')
+        img_path = '/%s/full/150,/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], '150,')
+        img_path = '/%s/full/pct:50/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], 'pct:50')
+        img_path = '/%s/full/!225,100/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['size'], '!225,100')
+
+    def test_img_rotation(self):
+        img_path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['rotation'], '0')
+        img_path = '/%s/full/full/22.5/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['rotation'], '22.5')
+        img_path = '/%s/full/full/!0/default.jpg' % self.test_jp2_color_id
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(uri_dissector.params['rotation'], '!0')
+
+    def test_img_quality(self):
+        img_path = '/%s/full/full/0/gray.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, 'image')
+        self.assertEqual(uri_dissector.params['quality'], 'gray')
+        img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, u'bad_image_request')
+
+    def test_img_format(self):
+        img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.request_type, 'image')
+        self.assertEqual(uri_dissector.params['format'], 'jpg')
+
+    def test_many_slash_img_request(self):
+        identifier = '1/2/3/4/5/6/7/8/9/xyz'
+        encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
+        img_path = '/%s/full/full/0/default.jpg' % identifier
+        uri_dissector = webapp.URIDissector(img_path, True)
+        self.assertEqual(uri_dissector.ident, encoded_identifier)
+        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(uri_dissector.params, expected_params)
+        self.assertEqual(uri_dissector.request_type, u'image')
+
+    def test_many_slash_info_request(self):
+        identifier = '1/2/3/4/5/6/7/8/9/xyz'
+        encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
+        info_path = '/%s/info.json' % identifier
+        uri_dissector = webapp.URIDissector(info_path, True)
+        self.assertEqual(uri_dissector.request_type, u'info')
+        self.assertEqual(uri_dissector.ident, encoded_identifier)
 
 
 class WebappIntegration(loris_t.LorisTest):
@@ -128,10 +195,12 @@ class WebappIntegration(loris_t.LorisTest):
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
+        self.assertEqual(resp.headers['Location'], 'http://localhost/01%2F02%2F0001.jp2/info.json')
 
     def test_bare_identifier_request_with_trailing_slash_303(self):
         resp = self.client.get('/%s/' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
+        self.assertEqual(resp.headers['Location'], 'http://localhost/01%2F02%2F0001.jp2/info.json')
 
     def test_bare_identifier_with_trailing_slash_404s_with_redir_off(self):
         self.app.redirect_id_slash_to_info = False
@@ -400,6 +469,7 @@ class SizeRestriction(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
+    test_suites.append(unittest.makeSuite(TestBaseUri, 'test'))
     test_suites.append(unittest.makeSuite(TestDissectUri, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
