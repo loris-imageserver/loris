@@ -238,6 +238,16 @@ class WebappIntegration(loris_t.LorisTest):
         self.assertEqual(resp.status_code, 404)
         self.assertEqual(resp.headers['content-type'], 'text/plain')
 
+    def test_info_not_found_request(self):
+        resp = self.client.get('/foobar/info.json')
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.headers['content-type'], 'text/plain')
+
+    def test_image_not_found_request(self):
+        resp = self.client.get('/foobar/full/full/0/default.jpg')
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.headers['content-type'], 'text/plain')
+
     def test_bare_identifier_request_303_gets_info(self):
         # Follow the redirect. After that this is nearly a copy of
         # img_info_t.C_InfoFunctionalTests#test_jp2_info_dot_json_request
