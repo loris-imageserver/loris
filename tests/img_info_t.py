@@ -137,6 +137,18 @@ class InfoUnit(loris_t.LorisTest):
         args = [uri, fp, fmt, formats]
         self.assertRaisesRegexp(exception, '^Invalid JP2 file$', function, *args)
 
+    def test_info_from_invalid_src_format(self):
+        fp = path.join(self.test_img_dir, '01', '03', '0001.jpg')
+        fmt = 'invalid_format'
+        ident = '01%2f03%2f0001.jpg'
+        uri = '%s/%s' % (self.URI_BASE, ident)
+        formats = [ "jpg", "png", "gif", "webp" ]
+        exception = loris_exception.ImageInfoException
+        error_message = 'Didn\'t get a source format, or at least one we recognize \("invalid_format"\)'
+        function = img_info.ImageInfo.from_image_file
+        args = [uri, fp, fmt, formats]
+        self.assertRaisesRegexp(exception, error_message, function, *args)
+
     def test_jpeg_info_from_image(self):
         fp = self.test_jpeg_fp
         fmt = self.test_jpeg_fmt

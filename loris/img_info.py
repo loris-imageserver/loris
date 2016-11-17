@@ -94,7 +94,7 @@ class ImageInfo(object):
         elif src_format  in ('jpg','tif','png'):
             new_inst._extract_with_pillow(src_img_fp)
         else:
-            m = 'Didn\'t get a source format, or at least one we recognize ()' % (src_format,)
+            m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
             raise ImageInfoException(http_status=500, message=m)
 
         return new_inst
