@@ -340,14 +340,13 @@ class Loris(object):
             return BadRequestResponse()
 
         ident = uri_dissector.ident
-
-        if not self.resolver.is_resolvable(ident):
-            msg = "could not resolve identifier: %s " % (ident)
-            return NotFoundResponse(msg)
-
         base_uri = self._get_base_uri(request, ident)
 
         if request_type == 'redirect_info':
+            if not self.resolver.is_resolvable(ident):
+                msg = "could not resolve identifier: %s " % (ident)
+                return NotFoundResponse(msg)
+
             r = LorisResponse()
             r.headers['Location'] = '%s/info.json' % (base_uri,)
             r.set_acao(request)
@@ -404,8 +403,6 @@ class Loris(object):
         return r
 
     def get_info(self, request, ident, base_uri):
-        r = LorisResponse()
-        r.set_acao(request, self.cors_regex)
         try:
             info, last_mod = self._get_info(ident,request,base_uri)
         except ResolverException as re:
@@ -413,44 +410,42 @@ class Loris(object):
         except ImageInfoException as ie:
             return ServerSideErrorResponse(ie.message)
         except IOError as e:
-            # 500
-            msg = '%s \n(This is likely a permissions problem)' % (str(e),)
+            msg = '%s \n(This is likely a permissions problem)' % e
             return ServerSideErrorResponse(msg)
 
+        r = LorisResponse()
+        r.set_acao(request, self.cors_regex)
+        ims_hdr = request.headers.get('If-Modified-Since')
+
+        ims = parse_date(ims_hdr)
+        last_mod = parse_date(http_date(last_mod)) # see note under get_img
+
+        if ims and ims >= last_mod:
+            self.logger.debug('Sent 304 for %s ' % (ident,))
+            r.status_code = 304
         else:
-            ims_hdr = request.headers.get('If-Modified-Since')
-
-            ims = parse_date(ims_hdr)
-            last_mod = parse_date(http_date(last_mod)) # see note under get_img
-
-            if ims and ims >= last_mod:
-                self.logger.debug('Sent 304 for %s ' % (ident,))
-                r.status_code = 304
+            if last_mod:
+                r.last_modified = last_mod
+            callback = request.args.get('callback', None)
+            if callback:
+                r.mimetype = 'application/javascript'
+                r.data = '%s(%s);' % (callback, info.to_json())
             else:
-                if last_mod:
-                    r.last_modified = last_mod
-                # r.automatically_set_content_length
-                callback = request.args.get('callback', None)
-                if callback:
-                    r.mimetype = 'application/javascript'
-                    r.data = '%s(%s);' % (callback, info.to_json())
+                if request.headers.get('accept') == 'application/ld+json':
+                    r.content_type = 'application/ld+json'
                 else:
-                    if request.headers.get('accept') == 'application/ld+json':
-                        r.content_type = 'application/ld+json'
-                    else:
-                        r.content_type = 'application/json'
-                        l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
-                        r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                    # If interpolation is not allowed, we have to remove this
-                    # value from info.json - but only if exists (cached ImageInfo might miss this)
-                    if self.max_size_above_full <= 100:
-                        try:
-                            info.profile[1]['supports'].remove('sizeAboveFull')
-                        except ValueError:
-                            pass
-                    r.data = info.to_json()
-        finally:
-            return r
+                    r.content_type = 'application/json'
+                    l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
+                    r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
+                # If interpolation is not allowed, we have to remove this
+                # value from info.json - but only if exists (cached ImageInfo might miss this)
+                if self.max_size_above_full <= 100:
+                    try:
+                        info.profile[1]['supports'].remove('sizeAboveFull')
+                    except ValueError:
+                        pass
+                r.data = info.to_json()
+        return r
 
     def _get_info(self,ident,request,base_uri,src_fp=None,src_format=None):
         if self.enable_caching:
