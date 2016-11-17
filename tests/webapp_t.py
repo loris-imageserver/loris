@@ -318,6 +318,11 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get, headers=Headers())
         self.assertEqual(resp.status_code, 200)
 
+    def test_info_fake_jp2(self):
+        to_get = '/01%2F03%2Ffake.jp2/info.json'
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 500)
+        self.assertEqual(resp.data, 'Server Side Error: Invalid JP2 file (500)')
 
     def test_info_sends_304(self):
         to_get = '/%s/info.json' % (self.test_jp2_color_id,)

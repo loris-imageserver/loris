@@ -2,6 +2,7 @@
 #-*- coding: utf-8 -*-
 
 from loris import img_info
+from loris import loris_exception
 from loris.constants import PROTOCOL
 from os import path
 from urllib import unquote
@@ -124,6 +125,17 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_jp2_gray_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
+
+    def test_info_from_jpg_marked_as_jp2(self):
+        fp = path.join(self.test_img_dir, '01', '03', '0001.jpg')
+        fmt = 'jp2'
+        ident = '01%2f03%2f0001.jpg'
+        uri = '%s/%s' % (self.URI_BASE, ident)
+        formats = [ "jpg", "png", "gif", "webp" ]
+        exception = loris_exception.ImageInfoException
+        function = img_info.ImageInfo.from_image_file
+        args = [uri, fp, fmt, formats]
+        self.assertRaisesRegexp(exception, '^Invalid JP2 file$', function, *args)
 
     def test_jpeg_info_from_image(self):
         fp = self.test_jpeg_fp

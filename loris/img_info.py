@@ -142,11 +142,19 @@ class ImageInfo(object):
 
         scaleFactors = []
 
+        #TODO use context manager so it's automatically closed
         jp2 = open(fp, 'rb')
+
+        #check that this is a jp2 file
+        initial_bytes = jp2.read(24)
+        if (not initial_bytes[:12] == '\x00\x00\x00\x0cjP  \r\n\x87\n') or \
+            (not initial_bytes[16:] == 'ftypjp2 '):
+            jp2.close()
+            raise ImageInfoException(http_status=500, message='Invalid JP2 file')
+
+        #grab width and height
+        window = deque([], 4)
         b = jp2.read(1)
-
-        window =  deque([], 4)
-
         while ''.join(window) != 'ihdr':
             b = jp2.read(1)
             c = struct.unpack('c', b)[0]
