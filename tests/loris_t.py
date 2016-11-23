@@ -10,7 +10,7 @@ from loris.webapp import create_app
 from os import path, listdir, unlink
 from shutil import rmtree
 from werkzeug.test import Client
-from werkzeug.wrappers import BaseResponse, Request
+from werkzeug.wrappers import BaseResponse
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -141,29 +141,3 @@ class LorisTest(unittest.TestCase):
                         logger.debug('Removed %s' % (p,))
                 rmtree(dp)
                 logger.debug('Removed %s' % (dp,))
-
-    def get_jpeg_dimensions(self, path):
-        """Get the dimensions of a JPEG
-        """
-        jpeg = open(path, 'r')
-        jpeg.read(2)
-        b = jpeg.read(1)
-        try:
-            while (b and ord(b) != 0xDA):
-                while (ord(b) != 0xFF): b = jpeg.read(1)
-                while (ord(b) == 0xFF): b = jpeg.read(1)
-                if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-                    jpeg.read(3)
-                    h, w = struct.unpack(">HH", jpeg.read(4))
-                    break
-                else:
-                    jpeg.read(int(struct.unpack(">H", jpeg.read(2))[0]) - 2)
-
-                b = jpeg.read(1)
-            width = int(w)
-            height = int(h)
-        except Exception, e:
-            raise
-        finally:
-            jpeg.close()
-        return (width, height)
