@@ -88,7 +88,7 @@ class SimpleFSResolver(_AbstractResolver):
         return not self.source_file_path(ident) is None
 
     def format_from_ident(self, ident):
-        return ident.split('.')[-1]
+        return ident.split('.')[-1].lower()
 
     def resolve(self, ident):
 
