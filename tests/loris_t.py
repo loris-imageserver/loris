@@ -18,8 +18,6 @@ logger = getLogger(__name__)
 class LorisTest(unittest.TestCase):
 
     def setUp(self):
-        unittest.TestCase.setUp(self)
-
         self.URI_BASE = 'http://localhost'
 
         # create an instance of the app here that we can use in tests
@@ -122,7 +120,6 @@ class LorisTest(unittest.TestCase):
 
 
     def tearDown(self):
-        unittest.TestCase.tearDown(self)
         # empty the cache
         dps = (
             self.app.app_configs['img.ImageCache']['cache_dp'],

@@ -22,162 +22,180 @@ $ python -m unittest -v tests.webapp_t
 
 from the `/loris` (not `/loris/loris`) directory.
 """
-class TestBaseUri(loris_t.LorisTest):
+class TestLorisRequest(TestCase):
+
+    def _get_werkzeug_request(self, path):
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        return Request(env)
 
     def test_get_base_uri(self):
         path = '/%s/' % self.test_jp2_color_id
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-        base_uri = self.app._get_base_uri(req, self.test_jp2_color_id)
-        self.assertEqual(base_uri, 'http://localhost/01%2F02%2F0001.jp2')
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, True, None)
+        self.assertEqual(loris_request.base_uri, 'http://localhost/01%2F02%2F0001.jp2')
 
     def test_get_base_uri_proxy_path(self):
         path = '/%s/' % self.test_jp2_color_id
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
-        self.app.proxy_path = 'http://example.org/'
-        base_uri = self.app._get_base_uri(req, self.test_jp2_color_id)
-        self.assertEqual(base_uri, 'http://example.org/01%2F02%2F0001.jp2')
-
-
-class TestDissectUri(TestCase):
-
-    def setUp(self):
-        self.test_jp2_color_id = '01%2F02%2F0001.jp2'
+        req = self._get_werkzeug_request(path)
+        proxy_path = 'http://example.org/'
+        loris_request = webapp.LorisRequest(req, True, proxy_path)
+        self.assertEqual(loris_request.base_uri, 'http://example.org/01%2F02%2F0001.jp2')
 
     def test_root_path(self):
         path = '/'
-        uri_dissector = webapp.URIDissector(path, True)
-        self.assertEqual(uri_dissector.ident, '')
-        self.assertEqual(uri_dissector.params, '')
-        self.assertEqual(uri_dissector.request_type, 'index')
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, '')
+        self.assertEqual(loris_request.params, '')
+        self.assertEqual(loris_request.request_type, 'index')
 
     def test_favicon(self):
         path = '/favicon.ico'
-        uri_dissector = webapp.URIDissector(path, True)
-        self.assertEqual(uri_dissector.ident, '')
-        self.assertEqual(uri_dissector.params, '')
-        self.assertEqual(uri_dissector.request_type, 'favicon')
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, '')
+        self.assertEqual(loris_request.params, '')
+        self.assertEqual(loris_request.request_type, 'favicon')
 
     def test_unescaped_ident_request(self):
         path = '/01/02/0001.jp2/'
-        uri_dissector = webapp.URIDissector(path, True)
-        self.assertEqual(uri_dissector.ident, '01%2F02%2F0001.jp2')
-        self.assertEqual(uri_dissector.params, '')
-        self.assertEqual(uri_dissector.request_type, 'redirect_info')
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, True, None)
+        self.assertEqual(loris_request.ident, '01%2F02%2F0001.jp2')
+        self.assertEqual(loris_request.params, '')
+        self.assertEqual(loris_request.request_type, 'redirect_info')
 
     def test_ident_request(self):
         path = '/%s/' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(path, True)
-        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id)
-        self.assertEqual(uri_dissector.params, '')
-        self.assertEqual(uri_dissector.request_type, 'redirect_info')
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, True, None)
+        self.assertEqual(loris_request.ident, self.test_jp2_color_id)
+        self.assertEqual(loris_request.params, '')
+        self.assertEqual(loris_request.request_type, 'redirect_info')
 
     def test_ident_request_no_redirect(self):
         path = '/%s/' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(path, False)
-        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id + '%2F')
-        self.assertEqual(uri_dissector.request_type, 'redirect_info')
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, self.test_jp2_color_id + '%2F')
+        self.assertEqual(loris_request.request_type, 'redirect_info')
 
     def test_info_request(self):
-        info_path = '/%s/%s' % (self.test_jp2_color_id,'info.json')
-        uri_dissector = webapp.URIDissector(info_path, True)
-        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id)
-        self.assertEqual(uri_dissector.params, 'info.json')
-        self.assertEqual(uri_dissector.request_type, 'info')
+        info_path = '/%s/info.json' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(info_path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, self.test_jp2_color_id)
+        self.assertEqual(loris_request.params, 'info.json')
+        self.assertEqual(loris_request.request_type, 'info')
 
     def test_img_request(self):
-        img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.ident, self.test_jp2_color_id)
+        path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, self.test_jp2_color_id)
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
-        self.assertEqual(uri_dissector.params, expected_params)
-        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(loris_request.params, expected_params)
+        self.assertEqual(loris_request.request_type, u'image')
 
     def test_img_region(self):
-        img_path = '/%s/square/full/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['region'], 'square')
-        img_path = '/%s/0,0,500,500/full/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['region'], '0,0,500,500')
-        img_path = '/%s/pct:41.6,7.5,40,70/full/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['region'], 'pct:41.6,7.5,40,70')
+        path = '/%s/square/full/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['region'], 'square')
+        path = '/%s/0,0,500,500/full/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['region'], '0,0,500,500')
+        path = '/%s/pct:41.6,7.5,40,70/full/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['region'], 'pct:41.6,7.5,40,70')
 
     def test_img_size(self):
-        img_path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['size'], 'full')
-        img_path = '/%s/full/max/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['size'], 'max')
-        img_path = '/%s/full/150,/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['size'], '150,')
-        img_path = '/%s/full/pct:50/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['size'], 'pct:50')
-        img_path = '/%s/full/!225,100/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['size'], '!225,100')
+        path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['size'], 'full')
+        path = '/%s/full/max/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['size'], 'max')
+        path = '/%s/full/150,/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['size'], '150,')
+        path = '/%s/full/pct:50/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['size'], 'pct:50')
+        path = '/%s/full/!225,100/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['size'], '!225,100')
 
     def test_img_rotation(self):
-        img_path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['rotation'], '0')
-        img_path = '/%s/full/full/22.5/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['rotation'], '22.5')
-        img_path = '/%s/full/full/!0/default.jpg' % self.test_jp2_color_id
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'image')
-        self.assertEqual(uri_dissector.params['rotation'], '!0')
+        path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['rotation'], '0')
+        path = '/%s/full/full/22.5/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['rotation'], '22.5')
+        path = '/%s/full/full/!0/default.jpg' % self.test_jp2_color_id
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.params['rotation'], '!0')
 
     def test_img_quality(self):
-        img_path = '/%s/full/full/0/gray.jpg' % (self.test_jp2_color_id,)
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, 'image')
-        self.assertEqual(uri_dissector.params['quality'], 'gray')
-        img_path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, u'bad_image_request')
+        path = '/%s/full/full/0/gray.jpg' % (self.test_jp2_color_id,)
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, 'image')
+        self.assertEqual(loris_request.params['quality'], 'gray')
+        path = '/%s/full/full/0/native.jpg' % (self.test_jp2_color_id,)
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'bad_image_request')
 
     def test_img_format(self):
-        img_path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.request_type, 'image')
-        self.assertEqual(uri_dissector.params['format'], 'jpg')
+        path = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, 'image')
+        self.assertEqual(loris_request.params['format'], 'jpg')
 
     def test_many_slash_img_request(self):
         identifier = '1/2/3/4/5/6/7/8/9/xyz'
         encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
-        img_path = '/%s/full/full/0/default.jpg' % identifier
-        uri_dissector = webapp.URIDissector(img_path, True)
-        self.assertEqual(uri_dissector.ident, encoded_identifier)
+        path = '/%s/full/full/0/default.jpg' % identifier
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, encoded_identifier)
         expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
-        self.assertEqual(uri_dissector.params, expected_params)
-        self.assertEqual(uri_dissector.request_type, u'image')
+        self.assertEqual(loris_request.params, expected_params)
+        self.assertEqual(loris_request.request_type, u'image')
 
     def test_many_slash_info_request(self):
         identifier = '1/2/3/4/5/6/7/8/9/xyz'
         encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
-        info_path = '/%s/info.json' % identifier
-        uri_dissector = webapp.URIDissector(info_path, True)
-        self.assertEqual(uri_dissector.request_type, u'info')
-        self.assertEqual(uri_dissector.ident, encoded_identifier)
+        path = '/%s/info.json' % identifier
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, u'info')
+        self.assertEqual(loris_request.ident, encoded_identifier)
 
 
 class WebappIntegration(loris_t.LorisTest):
@@ -484,8 +502,7 @@ class SizeRestriction(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
-    test_suites.append(unittest.makeSuite(TestBaseUri, 'test'))
-    test_suites.append(unittest.makeSuite(TestDissectUri, 'test'))
+    test_suites.append(unittest.makeSuite(TestLorisRequest, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
     test_suite = unittest.TestSuite(test_suites)
