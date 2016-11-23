@@ -13,6 +13,7 @@ import re
 import loris_t
 from loris import img_info
 from loris import webapp
+from loris import loris_exception
 
 
 """
@@ -199,6 +200,31 @@ class TestLorisRequest(TestCase):
         loris_request = webapp.LorisRequest(req, False, None)
         self.assertEqual(loris_request.request_type, u'info')
         self.assertEqual(loris_request.ident, encoded_identifier)
+
+
+class TestGetInfo(loris_t.LorisTest):
+
+    def test_get_info(self):
+        path = '/%s/' % self.test_jp2_color_id
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+        base_uri = 'http://example.org/01%2F02%2F0001.jp2'
+        info, last_mod = self.app._get_info(self.test_jp2_color_id, req, base_uri)
+        self.assertEqual(info.ident, base_uri)
+
+    def test_get_info_invalid_src_format(self):
+        path = '/%s/' % self.test_jp2_color_id
+        builder = EnvironBuilder(path=path)
+        env = builder.get_environ()
+        req = Request(env)
+        base_uri = 'http://example.org/01%2F02%2F0001.jp2'
+        src_fp = 'invalid'
+        src_format = 'invalid'
+        exception = loris_exception.ImageInfoException
+        function = self.app._get_info
+        args = [self.test_jp2_color_id, req, base_uri, src_fp, src_format]
+        self.assertRaises(exception, function, *args)
 
 
 class WebappIntegration(loris_t.LorisTest):
