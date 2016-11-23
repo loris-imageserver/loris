@@ -24,7 +24,7 @@ CACHE_DIR_DEFAULT = '/var/cache/loris2'
 KDU_EXPAND_DEFAULT = os.path.join(BIN_DIR_DEFAULT, 'kdu_expand')
 KDU_HELP = 'Path to the Kakadu executable [Default: %s]' % (KDU_EXPAND_DEFAULT,)
 
-LIBKDU_DEFAULT = os.path.join(LIB_DIR_DEFAULT, 'libkdu.so')
+LIBKDU_DEFAULT = LIB_DIR_DEFAULT
 LIBKDU_HELP = 'Path to THE DIRECTORY THAT CONTAINS libkdu.so [Default: %s]' % (LIBKDU_DEFAULT,)
 
 LOG_DIR_DEFAULT = '/var/log/loris2'
