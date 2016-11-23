@@ -440,13 +440,6 @@ class Loris(object):
                     r.content_type = 'application/json'
                     l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                     r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                # If interpolation is not allowed, we have to remove this
-                # value from info.json - but only if exists (cached ImageInfo might miss this)
-                if self.max_size_above_full <= 100:
-                    try:
-                        info.profile[1]['supports'].remove('sizeAboveFull')
-                    except ValueError:
-                        pass
                 r.data = info.to_json()
         return r
 
@@ -472,7 +465,7 @@ class Loris(object):
             self.logger.debug('Base URI: %s' % (base_uri,))
 
             # get the info
-            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats)
+            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
 
             # store
             if self.enable_caching:
@@ -556,16 +549,8 @@ class Loris(object):
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
                 # 4. Check if requested size is allowed
-                if self.max_size_above_full > 0:
-                    max_width = image_request.region_param.pixel_w * self.max_size_above_full / 100
-                    max_height = image_request.region_param.pixel_h * self.max_size_above_full / 100
-                    if image_request.size_param.w > max_width or \
-                            image_request.size_param.h > max_height:
-                        self.logger.debug('Requested image size exceeded allowed size:')
-                        self.logger.debug('width: %0.2f > %0.2f, height: %0.2f > %0.2f' %
-                            (image_request.size_param.w, max_width,
-                                image_request.size_param.h, max_height))
-                        return NotFoundResponse('Resolution not available')
+                if image_request.request_resolution_too_large(self.max_size_above_full):
+                    return NotFoundResponse('Resolution not available')
 
                 # 5. Redirect if appropriate
                 if self.redirect_canonical_image_request:

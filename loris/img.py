@@ -202,6 +202,17 @@ class ImageRequest(object):
     def info(self, i):
         self._info = i
 
+    def request_resolution_too_large(self, max_size_above_full):
+        if max_size_above_full == 0:
+            return False
+        max_width = self.region_param.pixel_w * max_size_above_full / 100
+        max_height = self.region_param.pixel_h * max_size_above_full / 100
+        if self.size_param.w > max_width or \
+                self.size_param.h > max_height:
+            return True
+        return False
+
+
 class ImageCache(dict):
     '''
     '''
