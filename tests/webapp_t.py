@@ -24,6 +24,9 @@ from the `/loris` (not `/loris/loris`) directory.
 """
 class TestLorisRequest(TestCase):
 
+    def setUp(self):
+        self.test_jp2_color_id = '01%2F02%2F0001.jp2'
+
     def _get_werkzeug_request(self, path):
         builder = EnvironBuilder(path=path)
         env = builder.get_environ()
