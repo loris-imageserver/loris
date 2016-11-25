@@ -41,14 +41,14 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull",
                     "regionSquare"
                 ]
             }
         ]
 
         formats = ["jpg", "png", "gif", "webp"]
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+        #test that sizeAboveFull isn't in profile if max_size_above_full is > 0 and <= 100
+        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats, max_size_above_full=80)
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
@@ -57,6 +57,9 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
+
+        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats, max_size_above_full=0)
+        self.assertTrue('sizeAboveFull' in info.profile[1]['supports'])
 
     def test_precinct_jp2_tiles_from_image(self):
         formats = [ "jpg", "png", "gif", "webp"]
@@ -110,8 +113,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull",
-                    "regionSquare"
+                    "regionSquare",
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -166,8 +169,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull",
-                    "regionSquare"
+                    "regionSquare",
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -196,8 +199,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull",
-                    "regionSquare"
+                    "regionSquare",
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -227,8 +230,8 @@ class InfoUnit(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull",
-                    "regionSquare"
+                    "regionSquare",
+                    "sizeAboveFull"
                 ]
             }
         ]
@@ -287,8 +290,8 @@ class InfoFunctional(loris_t.LorisTest):
                     "profileLinkHeader",
                     "mirroring",
                     "rotationArbitrary",
-                    "sizeAboveFull",
-                    "regionSquare"
+                    "regionSquare",
+                    "sizeAboveFull"
                 ]
             }
         ]

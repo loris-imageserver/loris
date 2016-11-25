@@ -11,7 +11,6 @@ OPTIONAL_FEATURES = [
   'profileLinkHeader',
   'mirroring',
   'rotationArbitrary',
-  'sizeAboveFull',
   'regionSquare'
 ]
 

@@ -196,29 +196,41 @@ class ServerSideErrorResponse(LorisResponse):
         super(ServerSideErrorResponse, self).__init__(message, status, 'text/plain')
 
 
-class URIDissector(object):
+class LorisRequest(object):
 
-    def __init__(self, path, redirect_id_slash_to_info):
+    def __init__(self, request, redirect_id_slash_to_info, proxy_path):
         #make sure path is unquoted, so we know what we're working with
-        self.path = unquote(path)
-        self.redirect_id_slash_to_info = redirect_id_slash_to_info
+        self._path = unquote(request.path)
+        self._request = request
+        self._redirect_id_slash_to_info = redirect_id_slash_to_info
+        self._proxy_path = proxy_path
         self._dissect_uri()
+
+    @property
+    def base_uri(self):
+        if self._proxy_path is not None:
+            uri = '%s%s' % (self._proxy_path, self.ident)
+        elif self._request.script_root != '':
+            uri = '%s%s' % (self._request.url_root, self.ident)
+        else:
+            uri = '%s%s' % (self._request.host_url, self.ident)
+        return uri
 
     def _dissect_uri(self):
         self.ident = ''
         self.params = ''
         #handle some initial static views first
-        if self.path == '/':
+        if self._path == '/':
             self.request_type = 'index'
             return
 
-        elif self.path[1:] == 'favicon.ico':
+        elif self._path[1:] == 'favicon.ico':
             self.request_type = 'favicon'
             return
 
         #check for image request
         #Note: this doesn't guarantee that all the parameters have valid values - see regexes in constants.py.
-        image_match = constants.IMAGE_RE.match(self.path)
+        image_match = constants.IMAGE_RE.match(self._path)
         if image_match:
             groups = image_match.groupdict()
             self.ident = quote_plus(groups['ident'])
@@ -230,20 +242,20 @@ class URIDissector(object):
             self.request_type = 'image'
 
         #check for info request
-        elif self.path.endswith('info.json'):
-            ident = '/'.join(self.path[1:].split('/')[:-1])
+        elif self._path.endswith('info.json'):
+            ident = '/'.join(self._path[1:].split('/')[:-1])
             self.ident = quote_plus(ident)
             self.params = 'info.json'
             self.request_type = 'info'
 
         #if the request didn't match the stricter regex above, but it does match this one, we know we have an
         # invalid image request, so we can return a 400 BadRequest to the user.
-        elif constants.LOOSER_IMAGE_RE.match(self.path):
+        elif constants.LOOSER_IMAGE_RE.match(self._path):
             self.request_type = 'bad_image_request'
 
         else: #treat it as a redirect_info
-            ident = self.path[1:]
-            if ident.endswith('/') and self.redirect_id_slash_to_info:
+            ident = self._path[1:]
+            if ident.endswith('/') and self._redirect_id_slash_to_info:
                 ident = ident[:-1]
             self.ident = quote_plus(ident)
             self.request_type = 'redirect_info'
@@ -327,8 +339,8 @@ class Loris(object):
         return response(environ, start_response)
 
     def route(self, request):
-        uri_dissector = URIDissector(request.path, self.redirect_id_slash_to_info)
-        request_type = uri_dissector.request_type
+        loris_request = LorisRequest(request, self.redirect_id_slash_to_info, self.proxy_path)
+        request_type = loris_request.request_type
 
         if request_type == 'index':
             return self.get_index(request)
@@ -339,8 +351,8 @@ class Loris(object):
         if request_type == 'bad_image_request':
             return BadRequestResponse()
 
-        ident = uri_dissector.ident
-        base_uri = self._get_base_uri(request, ident)
+        ident = loris_request.ident
+        base_uri = loris_request.base_uri
 
         if request_type == 'redirect_info':
             if not self.resolver.is_resolvable(ident):
@@ -357,7 +369,7 @@ class Loris(object):
             return self.get_info(request, ident, base_uri)
 
         else: #request_type == 'image':
-            params = uri_dissector.params
+            params = loris_request.params
             fmt = params['format']
             if fmt not in self.app_configs['transforms']['target_formats']:
                 return BadRequestResponse('"%s" is not a supported format' % (fmt,))
@@ -367,15 +379,6 @@ class Loris(object):
             region = params['region']
 
             return self.get_img(request, ident, region, size, rotation, quality, fmt, base_uri)
-
-    def _get_base_uri(self, request, ident):
-        if self.proxy_path is not None:
-            base_uri = '%s%s' % (self.proxy_path, ident)
-        elif request.script_root != '':
-            base_uri = '%s%s' % (request.url_root, ident)
-        else:
-            base_uri = '%s%s' % (request.host_url, ident)
-        return base_uri
 
     def __call__(self, environ, start_response):
         '''
@@ -437,13 +440,6 @@ class Loris(object):
                     r.content_type = 'application/json'
                     l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                     r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                # If interpolation is not allowed, we have to remove this
-                # value from info.json - but only if exists (cached ImageInfo might miss this)
-                if self.max_size_above_full <= 100:
-                    try:
-                        info.profile[1]['supports'].remove('sizeAboveFull')
-                    except ValueError:
-                        pass
                 r.data = info.to_json()
         return r
 
@@ -469,7 +465,7 @@ class Loris(object):
             self.logger.debug('Base URI: %s' % (base_uri,))
 
             # get the info
-            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats)
+            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
 
             # store
             if self.enable_caching:
@@ -553,16 +549,8 @@ class Loris(object):
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
                 # 4. Check if requested size is allowed
-                if self.max_size_above_full > 0:
-                    max_width = image_request.region_param.pixel_w * self.max_size_above_full / 100
-                    max_height = image_request.region_param.pixel_h * self.max_size_above_full / 100
-                    if image_request.size_param.w > max_width or \
-                            image_request.size_param.h > max_height:
-                        self.logger.debug('Requested image size exceeded allowed size:')
-                        self.logger.debug('width: %0.2f > %0.2f, height: %0.2f > %0.2f' %
-                            (image_request.size_param.w, max_width,
-                                image_request.size_param.h, max_height))
-                        return NotFoundResponse('Resolution not available')
+                if image_request.request_resolution_too_large(self.max_size_above_full):
+                    return NotFoundResponse('Resolution not available')
 
                 # 5. Redirect if appropriate
                 if self.redirect_canonical_image_request:

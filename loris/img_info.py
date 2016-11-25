@@ -66,7 +66,7 @@ class ImageInfo(object):
         self.protocol = PROTOCOL
 
     @staticmethod
-    def from_image_file(uri, src_img_fp, src_format, formats=[]):
+    def from_image_file(uri, src_img_fp, src_format, formats=[], max_size_above_full=200):
         '''
         Args:
             ident (str): The URI for the image.
@@ -82,7 +82,9 @@ class ImageInfo(object):
         new_inst.tiles = []
         new_inst.sizes = None
         new_inst.scaleFactors = None
-        local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES}
+        local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES[:]}
+        if max_size_above_full == 0 or max_size_above_full > 100:
+            local_profile['supports'].append('sizeAboveFull')
         new_inst.profile = [ COMPLIANCE, local_profile ]
 
         logger.debug('Source Format: %s' % (src_format,))
