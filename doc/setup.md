@@ -17,7 +17,7 @@ These are the options (they can also be viewed by executing `python setup.py ins
 
 ```
  --kdu-expand      Path to the Kakadu executable [Default: /usr/local/bin/kdu_expand]
- --libkdu          Path to __the directory that contains__ libkdu.so [Default: /usr/local/lib/libkdu.so]
+ --libkdu          Path to __the directory that contains__ libkdu.so [Default: /usr/local/lib]
  --image-cache     Path to image cache directory [Default: /var/cache/loris2]
  --tmp-dir         Path to temporary directory (loris will make its temporary files and pipes here) [Default: /tmp/loris2]
  --www-dir         Path to www directory (wsgi and index file will be here) [Default: /var/www/loris2]
