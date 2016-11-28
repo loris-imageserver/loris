@@ -457,7 +457,10 @@ class Loris(object):
                 # elsewhere; get_info does not.
                 src_fp, src_format = self.resolver.resolve(ident)
 
-            formats = self.transformers[src_format].target_formats
+            try:
+                formats = self.transformers[src_format].target_formats
+            except KeyError:
+                raise ImageInfoException(500, 'unknown source format')
 
             self.logger.debug('Format: %s' % (src_format,))
             self.logger.debug('File Path: %s' % (src_fp,))

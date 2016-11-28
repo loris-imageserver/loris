@@ -31,6 +31,10 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         self.assertEqual(fmt, 'jp2')
         self.assertTrue(isfile(resolved_path))
 
+    def test_format_is_lowercase(self):
+        resolved_path, fmt = self.app.resolver.resolve('01%2F03%2F0002.JPG')
+        self.assertEqual(fmt, 'jpg')
+
     def test_multiple_cache_roots(self):
         config = {
             'src_img_roots' : [self.test_img_dir2, self.test_img_dir]
