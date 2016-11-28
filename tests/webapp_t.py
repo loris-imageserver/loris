@@ -532,6 +532,7 @@ def suite():
     import unittest
     test_suites = []
     test_suites.append(unittest.makeSuite(TestLorisRequest, 'test'))
+    test_suites.append(unittest.makeSuite(TestGetInfo, 'test'))
     test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
     test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
     test_suite = unittest.TestSuite(test_suites)
