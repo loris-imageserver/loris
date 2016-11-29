@@ -2,9 +2,10 @@
 #-*-coding:utf-8-*-
 
 from datetime import datetime
+from errno import EEXIST
 from logging import getLogger
 from loris_exception import LorisException
-from os import path,sep,symlink,makedirs,unlink
+from os import path, sep, symlink, makedirs, unlink, error as os_error
 from parameters import RegionParameter
 from parameters import RotationParameter
 from parameters import SizeParameter
@@ -282,3 +283,15 @@ class ImageCache(dict):
     def get_canonical_cache_path(self, image_request):
         canonical_fp = image_request.canonical_as_path
         return path.realpath(path.join(self.cache_root, unquote(canonical_fp)))
+
+    def create_dir_and_return_file_path(self, image_request):
+        target_fp = self.get_canonical_cache_path(image_request)
+        target_dp = path.dirname(target_fp)
+        try:
+            makedirs(target_dp)
+        except os_error as ose:
+            if ose.errno == EEXIST:
+                pass
+            else:
+                raise
+        return target_fp

@@ -612,24 +612,19 @@ possible that there was a problem with the source file
         '''
         # figure out paths, make dirs
         if self.enable_caching:
-            target_fp = self.img_cache.get_canonical_cache_path(image_request)
-            target_dp = path.dirname(target_fp)
-            if not path.exists(target_dp):
-                makedirs(target_dp)
+            target_fp = self.img_cache.create_dir_and_return_file_path(image_request)
         else:
             # random str
             n = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
             target_fp = '%s.%s' % (path.join(self.tmp_dp, n), image_request.format)
 
-        self.logger.debug('Target fp: %s' % (target_fp,))
-
-        # Get the transformer
         transformer = self.transformers[src_format]
 
         transformer.transform(src_fp, target_fp, image_request)
         if self.enable_caching:
             self.img_cache[image_request] = target_fp
         return target_fp
+
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
