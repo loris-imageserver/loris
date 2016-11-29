@@ -5,6 +5,7 @@ from os.path import islink
 from os.path import isfile
 from os.path import join
 from urllib import unquote
+from loris import img, img_info
 import loris_t
 
 
@@ -18,6 +19,7 @@ from the `/loris` (not `/loris/loris`) directory.
 """
 
 class Test_ImageCache(loris_t.LorisTest):
+
     def test_cache_entry_added(self):
 
         ident = self.test_jp2_color_id
@@ -54,6 +56,18 @@ class Test_ImageCache(loris_t.LorisTest):
 
         self.assertTrue(exists(expect_cache_path))
         self.assertFalse(islink(expect_cache_path))
+
+    def test_cache_dir_already_exists(self):
+        ident = 'id1'
+        image_info = img_info.ImageInfo()
+        image_info.width = 100
+        image_info.height = 100
+        image_request = img.ImageRequest(ident, 'full', 'full', '0', 'default', 'jpg')
+        image_request.info = image_info
+        self.app.img_cache.create_dir_and_return_file_path(image_request)
+        #call request again, so cache directory should already be there
+        # throws an exception if we don't handle that existence properly
+        self.app.img_cache.create_dir_and_return_file_path(image_request)
 
 
 def suite():
