@@ -165,7 +165,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         #Test with identifier only
         ident = '0001'
-        resolved_path, fmt = self.app.resolver.resolve(ident)
         expected_path = join(self.app.img_cache.cache_root, '25')
         expected_path = join(expected_path, 'bbd')
         expected_path = join(expected_path, 'cd0')
@@ -179,6 +178,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, '032')
         expected_path = join(expected_path, 'loris_cache.tif')
 
+        resolved_path, fmt = self.app.resolver.resolve(ident)
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
@@ -186,7 +186,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         #Test with a full uri
         #Note: This seems weird but idents resolve wrong and removes a slash from //
         ident = quote_plus('http:/sample.sample/0001')
-        resolved_path, fmt = self.app.resolver.resolve(ident)
         expected_path = join(self.app.img_cache.cache_root, 'http')
         expected_path = join(expected_path, '9d')
         expected_path = join(expected_path, '423')
@@ -201,9 +200,13 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'b78')
         expected_path = join(expected_path, 'loris_cache.tif')
 
+        self.assertFalse(exists(expected_path))
+        self.assertFalse(self.app.resolver.in_cache(ident))
+        resolved_path, fmt = self.app.resolver.resolve(ident)
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
+        self.assertTrue(self.app.resolver.in_cache(ident))
 
         #now test deleting the source image from the resolver cache
         self.app.resolver.delete_from_cache(ident)

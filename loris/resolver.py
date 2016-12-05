@@ -309,14 +309,9 @@ class SimpleHTTPResolver(_AbstractResolver):
     def in_cache(self, ident):
         cache_dir = self.cache_dir_path(ident)
         if exists(cache_dir):
-            cached_files = self.cached_files_for_ident(ident)
-            if cached_files:
-                return True
-            else:
-                log_message = 'Cached image not found for identifier: %s. Empty directory where image expected?' % (ident)
-                logger.warn(log_message)
-                self.raise_404_for_ident(ident)
-        return False
+            return True
+        else:
+            return False
 
     def cached_object(self, ident):
         cached_files = self.cached_files_for_ident(ident)
@@ -387,8 +382,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             rmtree(cache_dir)
 
     def resolve(self, ident):
-        cache_dir = self.cache_dir_path(ident)
-        if not exists(cache_dir):
+        if not self.in_cache(ident):
             self.copy_to_cache(ident)
         cached_file_path = self.cached_object(ident)
         format = self.format_from_ident(cached_file_path, None)
