@@ -8,7 +8,7 @@ from loris_exception import ResolverException
 from os.path import join, exists
 from os import makedirs
 from os.path import dirname
-from shutil import copy
+from shutil import copy, rmtree
 from urllib import unquote, quote_plus
 from contextlib import closing
 
@@ -380,6 +380,11 @@ class SimpleHTTPResolver(_AbstractResolver):
                 fd.write(chunk)
 
         logger.info("Copied %s to %s" % (source_url, local_fp))
+
+    def delete_from_cache(self, ident):
+        cache_dir = self.cache_dir_path(ident)
+        if exists(cache_dir):
+            rmtree(cache_dir)
 
     def resolve(self, ident):
         cache_dir = self.cache_dir_path(ident)

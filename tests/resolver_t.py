@@ -6,6 +6,7 @@ from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
+from os.path import exists
 from urllib import unquote, quote_plus
 
 import loris_t
@@ -203,6 +204,10 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
+
+        #now test deleting the source image from the resolver cache
+        self.app.resolver.delete_from_cache(ident)
+        self.assertFalse(exists(expected_path))
 
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
