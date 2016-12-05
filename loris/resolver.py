@@ -476,6 +476,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
                 options['verify'] = conf['ssl_check']
             return (url, options)
 
+
 class SourceImageCachingResolver(_AbstractResolver):
     '''
     Example resolver that one might use if image files were coming from
@@ -537,6 +538,3 @@ class SourceImageCachingResolver(_AbstractResolver):
         format = self.format_from_ident(ident)
         logger.debug('Source format %s' % (format,))
         return (cache_fp, format)
-
-
-
