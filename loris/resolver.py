@@ -219,7 +219,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             if self.head_resolvable:
                 try:
                     with closing(requests.head(url, **options)) as response:
-                        if response.status_code is 200:
+                        if response.ok:
                             return True
                 except requests.exceptions.MissingSchema:
                     return False
@@ -227,7 +227,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             else:
                 try:
                     with closing(requests.get(url, stream=True, **options)) as response:
-                        if response.status_code is 200:
+                        if response.ok:
                             return True
                 except requests.exceptions.MissingSchema:
                     return False
@@ -353,7 +353,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             public_message = 'Bad URL request made for identifier: %s.' % (ident,)
             raise ResolverException(404, public_message)
 
-        if response.status_code != 200:
+        if not response.ok:
             public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
             log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
             logger.warn(log_message)
