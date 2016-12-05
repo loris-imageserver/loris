@@ -185,19 +185,19 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         #Test with a full uri
         #Note: This seems weird but idents resolve wrong and removes a slash from //
-        ident = quote_plus('http:/sample.sample/0001')
+        ident = quote_plus('http://sample.sample/0001')
         expected_path = join(self.app.img_cache.cache_root, 'http')
-        expected_path = join(expected_path, '9d')
-        expected_path = join(expected_path, '423')
-        expected_path = join(expected_path, 'a05')
-        expected_path = join(expected_path, '863')
-        expected_path = join(expected_path, 'f9f')
-        expected_path = join(expected_path, '89d')
-        expected_path = join(expected_path, '06e')
-        expected_path = join(expected_path, '282')
-        expected_path = join(expected_path, 'e84')
-        expected_path = join(expected_path, '26c')
-        expected_path = join(expected_path, 'b78')
+        expected_path = join(expected_path, '32')
+        expected_path = join(expected_path, '3a5')
+        expected_path = join(expected_path, '353')
+        expected_path = join(expected_path, '8f5')
+        expected_path = join(expected_path, '0de')
+        expected_path = join(expected_path, '1d3')
+        expected_path = join(expected_path, '011')
+        expected_path = join(expected_path, '675')
+        expected_path = join(expected_path, 'ebc')
+        expected_path = join(expected_path, 'c75')
+        expected_path = join(expected_path, '083')
         expected_path = join(expected_path, 'loris_cache.tif')
 
         self.assertFalse(exists(expected_path))
@@ -217,7 +217,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
 
         #Test with a bad url
-        ident = quote_plus('http:/sample.sample/DOESNOTEXIST')
+        ident = quote_plus('http://sample.sample/DOESNOTEXIST')
         self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
 
         #Test with no content-type or extension or default format

@@ -192,6 +192,17 @@ class TestLorisRequest(TestCase):
         self.assertEqual(loris_request.params, expected_params)
         self.assertEqual(loris_request.request_type, u'image')
 
+    def test_https_uri_identifier(self):
+        identifier = 'https://sample.sample/0001'
+        encoded_identifier = 'https%3A%2F%2Fsample.sample%2F0001'
+        path = '/%s/full/full/0/default.jpg' % identifier
+        req = self._get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.ident, encoded_identifier)
+        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(loris_request.params, expected_params)
+        self.assertEqual(loris_request.request_type, u'image')
+
     def test_many_slash_info_request(self):
         identifier = '1/2/3/4/5/6/7/8/9/xyz'
         encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'

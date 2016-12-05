@@ -247,12 +247,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             raise ResolverException(404, message)
 
     def _web_request_url(self, ident):
-        if (ident[0:6] == 'http:/' or ident[0:7] == 'https:/') and self.uri_resolvable:
-            # ident is http request with no prefix or suffix specified
-            # For some reason, identifier is http:/<url> or https:/<url>?
-            # Hack to correct without breaking valid urls.
-            first_slash = ident.find('/')
-            url = '%s//%s' % (ident[:first_slash], ident[first_slash:].lstrip('/'))
+        if (ident[:7] == 'http://' or ident[:8] == 'https://') and self.uri_resolvable:
+            url = ident
         else:
             url = self.source_prefix + ident + self.source_suffix
         return (url, self.request_options())
