@@ -368,11 +368,6 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         logger.info("Copied %s to %s" % (source_url, local_fp))
 
-    def delete_from_cache(self, ident):
-        cache_dir = self.cache_dir_path(ident)
-        if exists(cache_dir):
-            rmtree(cache_dir)
-
     def resolve(self, ident):
         if not self.in_cache(ident):
             self.copy_to_cache(ident)

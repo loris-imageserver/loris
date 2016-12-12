@@ -208,10 +208,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertTrue(isfile(resolved_path))
         self.assertTrue(self.app.resolver.in_cache(ident))
 
-        #now test deleting the source image from the resolver cache
-        self.app.resolver.delete_from_cache(ident)
-        self.assertFalse(exists(expected_path))
-
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
         self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
