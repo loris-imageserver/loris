@@ -8,7 +8,7 @@ from loris_exception import ResolverException
 from os.path import join, exists
 from os import makedirs
 from os.path import dirname
-from shutil import copy, rmtree
+from shutil import copy
 from urllib import unquote, quote_plus
 from contextlib import closing
 
