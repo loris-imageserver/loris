@@ -303,11 +303,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         return []
 
     def in_cache(self, ident):
-        cache_dir = self.cache_dir_path(ident)
-        if exists(cache_dir):
-            return True
-        else:
-            return False
+        return exists(self.cache_dir_path(ident))
 
     def cached_object(self, ident):
         cached_files = self.cached_files_for_ident(ident)
