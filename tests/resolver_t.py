@@ -6,6 +6,7 @@ from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
+from os.path import exists
 from urllib import unquote, quote_plus
 
 import loris_t
@@ -164,7 +165,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         #Test with identifier only
         ident = '0001'
-        resolved_path, fmt = self.app.resolver.resolve(ident)
         expected_path = join(self.app.img_cache.cache_root, '25')
         expected_path = join(expected_path, 'bbd')
         expected_path = join(expected_path, 'cd0')
@@ -178,38 +178,42 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, '032')
         expected_path = join(expected_path, 'loris_cache.tif')
 
+        resolved_path, fmt = self.app.resolver.resolve(ident)
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
 
         #Test with a full uri
         #Note: This seems weird but idents resolve wrong and removes a slash from //
-        ident = quote_plus('http:/sample.sample/0001')
-        resolved_path, fmt = self.app.resolver.resolve(ident)
+        ident = quote_plus('http://sample.sample/0001')
         expected_path = join(self.app.img_cache.cache_root, 'http')
-        expected_path = join(expected_path, '9d')
-        expected_path = join(expected_path, '423')
-        expected_path = join(expected_path, 'a05')
-        expected_path = join(expected_path, '863')
-        expected_path = join(expected_path, 'f9f')
-        expected_path = join(expected_path, '89d')
-        expected_path = join(expected_path, '06e')
-        expected_path = join(expected_path, '282')
-        expected_path = join(expected_path, 'e84')
-        expected_path = join(expected_path, '26c')
-        expected_path = join(expected_path, 'b78')
+        expected_path = join(expected_path, '32')
+        expected_path = join(expected_path, '3a5')
+        expected_path = join(expected_path, '353')
+        expected_path = join(expected_path, '8f5')
+        expected_path = join(expected_path, '0de')
+        expected_path = join(expected_path, '1d3')
+        expected_path = join(expected_path, '011')
+        expected_path = join(expected_path, '675')
+        expected_path = join(expected_path, 'ebc')
+        expected_path = join(expected_path, 'c75')
+        expected_path = join(expected_path, '083')
         expected_path = join(expected_path, 'loris_cache.tif')
 
+        self.assertFalse(exists(expected_path))
+        self.assertFalse(self.app.resolver.in_cache(ident))
+        resolved_path, fmt = self.app.resolver.resolve(ident)
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
+        self.assertTrue(self.app.resolver.in_cache(ident))
 
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
         self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
 
         #Test with a bad url
-        ident = quote_plus('http:/sample.sample/DOESNOTEXIST')
+        ident = quote_plus('http://sample.sample/DOESNOTEXIST')
         self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
 
         #Test with no content-type or extension or default format

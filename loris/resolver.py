@@ -219,7 +219,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             if self.head_resolvable:
                 try:
                     with closing(requests.head(url, **options)) as response:
-                        if response.status_code is 200:
+                        if response.ok:
                             return True
                 except requests.exceptions.MissingSchema:
                     return False
@@ -227,7 +227,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             else:
                 try:
                     with closing(requests.get(url, stream=True, **options)) as response:
-                        if response.status_code is 200:
+                        if response.ok:
                             return True
                 except requests.exceptions.MissingSchema:
                     return False
@@ -247,12 +247,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             raise ResolverException(404, message)
 
     def _web_request_url(self, ident):
-        if (ident[0:6] == 'http:/' or ident[0:7] == 'https:/') and self.uri_resolvable:
-            # ident is http request with no prefix or suffix specified
-            # For some reason, identifier is http:/<url> or https:/<url>?
-            # Hack to correct without breaking valid urls.
-            first_slash = ident.find('/')
-            url = '%s//%s' % (ident[:first_slash], ident[first_slash:].lstrip('/'))
+        if (ident[:7] == 'http://' or ident[:8] == 'https://') and self.uri_resolvable:
+            url = ident
         else:
             url = self.source_prefix + ident + self.source_suffix
         return (url, self.request_options())
@@ -307,16 +303,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         return []
 
     def in_cache(self, ident):
-        cache_dir = self.cache_dir_path(ident)
-        if exists(cache_dir):
-            cached_files = self.cached_files_for_ident(ident)
-            if cached_files:
-                return True
-            else:
-                log_message = 'Cached image not found for identifier: %s. Empty directory where image expected?' % (ident)
-                logger.warn(log_message)
-                self.raise_404_for_ident(ident)
-        return False
+        return exists(self.cache_dir_path(ident))
 
     def cached_object(self, ident):
         cached_files = self.cached_files_for_ident(ident)
@@ -358,7 +345,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             public_message = 'Bad URL request made for identifier: %s.' % (ident,)
             raise ResolverException(404, public_message)
 
-        if response.status_code != 200:
+        if not response.ok:
             public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
             log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
             logger.warn(log_message)
@@ -382,8 +369,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         logger.info("Copied %s to %s" % (source_url, local_fp))
 
     def resolve(self, ident):
-        cache_dir = self.cache_dir_path(ident)
-        if not exists(cache_dir):
+        if not self.in_cache(ident):
             self.copy_to_cache(ident)
         cached_file_path = self.cached_object(ident)
         format = self.format_from_ident(cached_file_path, None)
@@ -477,6 +463,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
                 options['verify'] = conf['ssl_check']
             return (url, options)
 
+
 class SourceImageCachingResolver(_AbstractResolver):
     '''
     Example resolver that one might use if image files were coming from
@@ -538,6 +525,3 @@ class SourceImageCachingResolver(_AbstractResolver):
         format = self.format_from_ident(ident)
         logger.debug('Source format %s' % (format,))
         return (cache_fp, format)
-
-
-
