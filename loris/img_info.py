@@ -93,7 +93,7 @@ class ImageInfo(object):
 
         if src_format == 'jp2':
             new_inst._from_jp2(src_img_fp)
-        elif src_format  in ('jpg','tif','tiff','png'):
+        elif src_format  in ('jpg','tif','png'):
             new_inst._extract_with_pillow(src_img_fp)
         else:
             m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
