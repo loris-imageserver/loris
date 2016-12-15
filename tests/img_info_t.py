@@ -135,10 +135,12 @@ class InfoUnit(loris_t.LorisTest):
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
         formats = [ "jpg", "png", "gif", "webp" ]
-        exception = loris_exception.ImageInfoException
-        function = img_info.ImageInfo.from_image_file
-        args = [uri, fp, fmt, formats]
-        self.assertRaisesRegexp(exception, '^Invalid JP2 file$', function, *args)
+        #see http://stackoverflow.com/a/8673096
+        try:
+            img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+            self.fail('should have thrown an ImageInfoException')
+        except loris_exception.ImageInfoException as iie:
+            self.assertEqual(iie.message, 'Invalid JP2 file')
 
     def test_info_from_invalid_src_format(self):
         fp = path.join(self.test_img_dir, '01', '03', '0001.jpg')
@@ -146,11 +148,12 @@ class InfoUnit(loris_t.LorisTest):
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
         formats = [ "jpg", "png", "gif", "webp" ]
-        exception = loris_exception.ImageInfoException
-        error_message = 'Didn\'t get a source format, or at least one we recognize \("invalid_format"\)'
-        function = img_info.ImageInfo.from_image_file
-        args = [uri, fp, fmt, formats]
-        self.assertRaisesRegexp(exception, error_message, function, *args)
+        error_message = 'Didn\'t get a source format, or at least one we recognize ("invalid_format")'
+        try:
+            img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+            self.fail('should have thrown an ImageInfoException')
+        except loris_exception.ImageInfoException as iie:
+            self.assertEqual(iie.message, error_message)
 
     def test_jpeg_info_from_image(self):
         fp = self.test_jpeg_fp
