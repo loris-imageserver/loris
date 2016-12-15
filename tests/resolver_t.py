@@ -237,13 +237,13 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         ident = '0002'
         resolved_path, fmt = self.app.resolver.resolve(ident)
-        self.assertIsNotNone(resolved_path)
+        self.assertTrue(resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
 
         ident = '0003'
         resolved_path, fmt = self.app.resolver.resolve(ident)
-        self.assertIsNotNone(resolved_path)
+        self.assertTrue(resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
 
