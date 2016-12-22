@@ -135,12 +135,9 @@ class InfoUnit(loris_t.LorisTest):
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
         formats = [ "jpg", "png", "gif", "webp" ]
-        #see http://stackoverflow.com/a/8673096
-        try:
+        with self.assertRaises(loris_exception.ImageInfoException) as cm:
             img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
-            self.fail('should have thrown an ImageInfoException')
-        except loris_exception.ImageInfoException as iie:
-            self.assertEqual(iie.message, 'Invalid JP2 file')
+        self.assertEqual(cm.exception.message, 'Invalid JP2 file')
 
     def test_info_from_invalid_src_format(self):
         fp = path.join(self.test_img_dir, '01', '03', '0001.jpg')
@@ -149,11 +146,9 @@ class InfoUnit(loris_t.LorisTest):
         uri = '%s/%s' % (self.URI_BASE, ident)
         formats = [ "jpg", "png", "gif", "webp" ]
         error_message = 'Didn\'t get a source format, or at least one we recognize ("invalid_format")'
-        try:
+        with self.assertRaises(loris_exception.ImageInfoException) as cm:
             img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
-            self.fail('should have thrown an ImageInfoException')
-        except loris_exception.ImageInfoException as iie:
-            self.assertEqual(iie.message, error_message)
+        self.assertEqual(cm.exception.message, error_message)
 
     def test_jpeg_info_from_image(self):
         fp = self.test_jpeg_fp
