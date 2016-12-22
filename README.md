@@ -15,7 +15,9 @@ Demos
 
 Installation Instructions
 -------------------------
-These instructions are known to work on Ubuntu 12.04 or greater and Python 2.6.3 or greater (but less than 3.0.0). See below for some help with RedHat/CentOS and Debian.
+Loris is only supported on Python 2.7.x. If you need to use Python 2.6, Loris v2.1.0 is the last version to support it.
+
+These instructions are known to work on Ubuntu 12.04 or greater and Python 2.7.x (but not 3.x). See below for some help with RedHat/CentOS and Debian.
 
 **Do Not!** Run `setup.py` until you've read the following:
 
