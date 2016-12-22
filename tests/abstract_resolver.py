@@ -21,8 +21,8 @@ class AbstractResolverTest(object):
     def test_resolve(self):
         expected_resolved = (self.expected_filepath, self.expected_format)
         resolved = self.resolver.resolve(self.identifier)
-        self.assertEqual(resolved[0], expected_resolved[0])
-        self.assertEqual(resolved[1], expected_resolved[1])
+        self.assertSequenceEqual(resolved, expected_resolved)
 
     def test_resolve_exception(self):
-        self.assertRaises(loris_exception.ResolverException, lambda: self.resolver.resolve(self.not_identifier))
+        with self.assertRaises(loris_exception.ResolverException):
+            self.resolver.resolve(self.not_identifier)
