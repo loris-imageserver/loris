@@ -135,7 +135,6 @@ class InfoUnit(loris_t.LorisTest):
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
         formats = [ "jpg", "png", "gif", "webp" ]
-        #see http://stackoverflow.com/a/8673096
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
             img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
         self.assertEqual(cm.exception.message, 'Invalid JP2 file')
