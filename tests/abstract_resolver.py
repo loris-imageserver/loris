@@ -2,6 +2,7 @@ from loris import loris_exception
 
 
 class AbstractResolverTest(object):
+
     def test_is_resolvable(self):
         self.assertTrue(
          self.resolver.is_resolvable(self.identifier)
