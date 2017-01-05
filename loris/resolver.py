@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 
 
 class _AbstractResolver(object):
+
     def __init__(self, config):
         self.config = config
 

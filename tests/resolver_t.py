@@ -23,7 +23,6 @@ from the `/loris` (not `/loris/loris`) directory.
 """
 
 class Test_SimpleFSResolver(loris_t.LorisTest):
-    'Test that the default resolver works'
 
     def test_configured_resolver(self):
         expected_path = self.test_jp2_color_fp
@@ -48,8 +47,8 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         resolved_path, fmt = self.app.resolver.resolve(self.test_altpng_id)
         self.assertEqual(self.test_altpng_fp, resolved_path)
 
+
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
-    'Test that the SourceImageCachingResolver resolver works'
 
     def test_source_image_caching_resolver(self):
         # First we need to change the resolver on the test instance of the 
@@ -70,7 +69,6 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
         self.assertTrue(isfile(resolved_path))
 
 class Test_SimpleHTTPResolver(loris_t.LorisTest):
-    'Test that the SourceImageCachingResolver resolver works'
 
     @responses.activate
     def test_simple_http_resolver(self):
@@ -249,7 +247,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
 
 class Test_TemplateHTTPResolver(loris_t.LorisTest):
-    'Test TemplateHttpResolver'
 
     def test_template_http_resolver(self):
 

@@ -27,6 +27,7 @@ class SimpleFSResolverTest(AbstractResolverTest, unittest.TestCase):
 
 
 class MultiSourceSimpleFSResolverTest(SimpleFSResolverTest):
+
     def setUp(self):
         super(MultiSourceSimpleFSResolverTest, self).setUp()
         img_dir = os.path.join(self.TEST_DIR, 'img')
@@ -47,6 +48,7 @@ def suite():
             unittest.makeSuite(MultiSourceSimpleFSResolverTest, 'test')
     )
     return unittest.TestSuite(test_suites)
+
 
 if __name__ == '__main__':
         unittest.main()
