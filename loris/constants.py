@@ -28,6 +28,12 @@ FORMATS_BY_EXTENSION = dict(__formats)
 
 FORMATS_BY_MEDIA_TYPE = dict([(f[1],f[0]) for f in __formats])
 
+#map 4-letter extensions to the 3-letter image format
+EXTENSION_MAP = {
+        'jpeg': 'jpg',
+        'tiff': 'tif',
+    }
+
 _IDENT = r'(?P<ident>[\w:\-\.\%\/]+)'
 _REGION = r'(?P<region>[\w:\.\,]+)'
 _SIZE = r'(?P<size>\!?[\w:\.\,]+)'

@@ -1,12 +1,18 @@
 #-*- coding: utf-8 -*-
 from loris.loris_exception import ResolverException
-from loris.resolver import SimpleHTTPResolver, TemplateHTTPResolver
-from loris.resolver import SourceImageCachingResolver, SimpleFSResolver
+from loris.resolver import (
+        _AbstractResolver,
+        SimpleHTTPResolver,
+        TemplateHTTPResolver,
+        SourceImageCachingResolver,
+        SimpleFSResolver
+    )
 from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import exists
+import unittest
 from urllib import unquote, quote_plus
 
 import loris_t
@@ -22,6 +28,19 @@ $ python -m unittest tests.resolver_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+class Test_AbstractResolver(unittest.TestCase):
+
+    def test_format_from_ident(self):
+        self.assertEqual(_AbstractResolver.format_from_ident('001.JPG'), 'jpg')
+        self.assertEqual(_AbstractResolver.format_from_ident('001.jpeg'), 'jpg')
+        self.assertEqual(_AbstractResolver.format_from_ident('001.tiff'), 'tif')
+        self.assertEqual(_AbstractResolver.format_from_ident('datastreams/master.tiff'), 'tif')
+        with self.assertRaises(ResolverException):
+            _AbstractResolver.format_from_ident('datastream/content')
+        with self.assertRaises(ResolverException):
+            _AbstractResolver.format_from_ident('datastream/content.master')
+
+
 class Test_SimpleFSResolver(loris_t.LorisTest):
 
     def test_configured_resolver(self):
@@ -30,10 +49,6 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'jp2')
         self.assertTrue(isfile(resolved_path))
-
-    def test_format_is_lowercase(self):
-        resolved_path, fmt = self.app.resolver.resolve('01%2F03%2F0002.JPG')
-        self.assertEqual(fmt, 'jpg')
 
     def test_multiple_cache_roots(self):
         config = {
@@ -298,6 +313,7 @@ class Test_TemplateHTTPResolver(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
+    test_suites.append(unittest.makeSuite(Test_AbstractResolver, 'test'))
     test_suites.append(unittest.makeSuite(Test_SimpleFSResolver, 'test'))
     test_suites.append(unittest.makeSuite(Test_SourceImageCachingResolver, 'test'))
     test_suites.append(unittest.makeSuite(Test_SimpleHTTPResolver, 'test'))

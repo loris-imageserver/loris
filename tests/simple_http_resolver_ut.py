@@ -83,6 +83,13 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                 content_type='application/html'
         )
 
+    def test_get_format(self):
+        self.resolver.default_format = 'tif'
+        self.assertEqual(self.resolver.get_format('0001.jp2', None), 'tif')
+        self.resolver.default_format = None
+        self.assertEqual(self.resolver.get_format('0001.jp2', 'tif'), 'tif')
+        self.assertEqual(self.resolver.get_format('0001.jp2', None), 'jp2')
+
     @responses.activate
     def test_bad_url(self):
 
