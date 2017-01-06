@@ -58,8 +58,7 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
 
-    @staticmethod
-    def format_from_ident(ident):
+    def format_from_ident(self, ident):
         if ident.rfind('.') != -1:
             extension = ident.split('.')[-1]
             if len(extension) < 5:
@@ -106,7 +105,7 @@ class SimpleFSResolver(_AbstractResolver):
         source_fp = self.source_file_path(ident)
         logger.debug('src image: %s' % (source_fp,))
 
-        format_ = _AbstractResolver.format_from_ident(ident)
+        format_ = self.format_from_ident(ident)
 
         return (source_fp, format_)
 
@@ -223,7 +222,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         elif potential_format is not None:
             return potential_format
         else:
-            return _AbstractResolver.format_from_ident(ident)
+            return self.format_from_ident(ident)
 
     def _web_request_url(self, ident):
         if (ident[:7] == 'http://' or ident[:8] == 'https://') and self.uri_resolvable:
@@ -498,5 +497,5 @@ class SourceImageCachingResolver(_AbstractResolver):
         cache_fp = self.cache_file_path(ident)
         logger.debug('Image Served from local cache: %s' % (cache_fp,))
 
-        format_ = _AbstractResolver.format_from_ident(ident)
+        format_ = self.format_from_ident(ident)
         return (cache_fp, format_)

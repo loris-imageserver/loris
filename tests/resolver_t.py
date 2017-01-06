@@ -31,14 +31,14 @@ from the `/loris` (not `/loris/loris`) directory.
 class Test_AbstractResolver(unittest.TestCase):
 
     def test_format_from_ident(self):
-        self.assertEqual(_AbstractResolver.format_from_ident('001.JPG'), 'jpg')
-        self.assertEqual(_AbstractResolver.format_from_ident('001.jpeg'), 'jpg')
-        self.assertEqual(_AbstractResolver.format_from_ident('001.tiff'), 'tif')
-        self.assertEqual(_AbstractResolver.format_from_ident('datastreams/master.tiff'), 'tif')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('001.JPG'), 'jpg')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('001.jpeg'), 'jpg')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('001.tiff'), 'tif')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('datastreams/master.tiff'), 'tif')
         with self.assertRaises(ResolverException):
-            _AbstractResolver.format_from_ident('datastream/content')
+            _AbstractResolver(None).format_from_ident('datastream/content')
         with self.assertRaises(ResolverException):
-            _AbstractResolver.format_from_ident('datastream/content.master')
+            _AbstractResolver(None).format_from_ident('datastream/content.master')
 
 
 class Test_SimpleFSResolver(loris_t.LorisTest):
