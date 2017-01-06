@@ -9,21 +9,32 @@ class SimpleFSResolverTest(AbstractResolverTest, unittest.TestCase):
 
     def setUp(self):
         super(SimpleFSResolverTest, self).setUp()
-        img_dir = os.path.join(self.TEST_DIR, 'img')
+        self.img_dir = os.path.join(self.TEST_DIR, 'img')
 
         single_config = {
-            'src_img_root': img_dir,
+            'src_img_root': self.img_dir,
         }
 
         self.identifier = '01/02/0001.jp2'
         self.not_identifier = 'DOES_NOT_EXIST.jp2'
         self.expected_filepath = os.path.join(
-                img_dir,
+                self.img_dir,
                 self.identifier
                 )
         self.expected_format = 'jp2'
 
         self.resolver = resolver.SimpleFSResolver(single_config)
+
+
+class ExtensionNormalizingFSResolverTest(SimpleFSResolverTest):
+    '''The ExtensionNormalizingFSResolver is deprecated - see note in loris/resolvers.py.'''
+
+    def setUp(self):
+        super(ExtensionNormalizingFSResolverTest, self).setUp()
+        single_config = {
+            'src_img_root': self.img_dir,
+        }
+        self.resolver = resolver.ExtensionNormalizingFSResolver(single_config)
 
 
 class MultiSourceSimpleFSResolverTest(SimpleFSResolverTest):
@@ -43,6 +54,9 @@ def suite():
     test_suites = []
     test_suites.append(
             unittest.makeSuite(SimpleFSResolverTest, 'test')
+    )
+    test_suites.append(
+            unittest.makeSuite(ExtensionNormalizingFSResolverTest, 'test')
     )
     test_suites.append(
             unittest.makeSuite(MultiSourceSimpleFSResolverTest, 'test')

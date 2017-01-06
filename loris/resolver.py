@@ -110,6 +110,15 @@ class SimpleFSResolver(_AbstractResolver):
         return (source_fp, format_)
 
 
+class ExtensionNormalizingFSResolver(SimpleFSResolver):
+    '''This Resolver is deprecated - when resolving the identifier to an image
+    format, all resolvers now automatically normalize (lower-case) file
+    extensions and map 4-letter .tiff & .jpeg extensions to the 3-letter tiff
+    & jpg image formats Loris uses.
+    '''
+    pass
+
+
 class SimpleHTTPResolver(_AbstractResolver):
     '''
     Example resolver that one might use if image files were coming from
