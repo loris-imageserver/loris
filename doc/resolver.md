@@ -17,19 +17,6 @@ then `app.resolver.resolve(ident)` will return
 /usr/local/share/images/01/02/0001.jp2
 ```
 
-### `ExtensionNormalizingFSResolver`
-
-This supplied implementation extends the SimpleFSResolver, adding an additional "extension map" feature. It allows multiple extensions to be associated with a single file format. If you only need to support "jpg", "tif", and "png" you won't need to use this resolver. If for example you need to support "tiff" and "jpeg" files, you could implement this config::
-
-```ini
-[resolver]
-impl = 'loris.resolver.ExtensionNormalizingFSResolver'
-src_img_root = '/usr/local/share/images'
-  [[extension_map]]
-  jpeg = 'jpg'
-  tiff = 'tif'
-```
-
 ### `SimpleHTTPResolver`
 
 #### Main Configuration

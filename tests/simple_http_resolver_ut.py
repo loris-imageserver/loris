@@ -1,4 +1,3 @@
-# from .abstract_resolver import AbstractResolverTest
 from loris.resolver import SimpleHTTPResolver
 from loris.loris_exception import ResolverException
 import os
@@ -8,6 +7,7 @@ import responses
 
 
 class SimpleHTTPResolverTest(unittest.TestCase):
+
     def setUp(self):
         super(SimpleHTTPResolverTest, self).setUp()
         tests_dir = os.path.dirname(os.path.realpath(__file__))
@@ -82,6 +82,13 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                 status=404,
                 content_type='application/html'
         )
+
+    def test_get_format(self):
+        self.resolver.default_format = 'tif'
+        self.assertEqual(self.resolver.get_format('0001.jp2', None), 'tif')
+        self.resolver.default_format = None
+        self.assertEqual(self.resolver.get_format('0001.jp2', 'tif'), 'tif')
+        self.assertEqual(self.resolver.get_format('0001.jp2', None), 'jp2')
 
     @responses.activate
     def test_bad_url(self):
@@ -197,6 +204,7 @@ def suite():
             unittest.makeSuite(SimpleHTTPResolverTest, 'test')
     )
     return unittest.TestSuite(test_suites)
+
 
 if __name__ == '__main__':
         unittest.main()

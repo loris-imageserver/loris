@@ -1,12 +1,18 @@
 #-*- coding: utf-8 -*-
 from loris.loris_exception import ResolverException
-from loris.resolver import SimpleHTTPResolver, TemplateHTTPResolver
-from loris.resolver import SourceImageCachingResolver, SimpleFSResolver
+from loris.resolver import (
+        _AbstractResolver,
+        SimpleHTTPResolver,
+        TemplateHTTPResolver,
+        SourceImageCachingResolver,
+        SimpleFSResolver
+    )
 from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import exists
+import unittest
 from urllib import unquote, quote_plus
 
 import loris_t
@@ -22,8 +28,20 @@ $ python -m unittest tests.resolver_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+class Test_AbstractResolver(unittest.TestCase):
+
+    def test_format_from_ident(self):
+        self.assertEqual(_AbstractResolver(None).format_from_ident('001.JPG'), 'jpg')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('001.jpeg'), 'jpg')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('001.tiff'), 'tif')
+        self.assertEqual(_AbstractResolver(None).format_from_ident('datastreams/master.tiff'), 'tif')
+        with self.assertRaises(ResolverException):
+            _AbstractResolver(None).format_from_ident('datastream/content')
+        with self.assertRaises(ResolverException):
+            _AbstractResolver(None).format_from_ident('datastream/content.master')
+
+
 class Test_SimpleFSResolver(loris_t.LorisTest):
-    'Test that the default resolver works'
 
     def test_configured_resolver(self):
         expected_path = self.test_jp2_color_fp
@@ -31,10 +49,6 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'jp2')
         self.assertTrue(isfile(resolved_path))
-
-    def test_format_is_lowercase(self):
-        resolved_path, fmt = self.app.resolver.resolve('01%2F03%2F0002.JPG')
-        self.assertEqual(fmt, 'jpg')
 
     def test_multiple_cache_roots(self):
         config = {
@@ -48,8 +62,8 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         resolved_path, fmt = self.app.resolver.resolve(self.test_altpng_id)
         self.assertEqual(self.test_altpng_fp, resolved_path)
 
+
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
-    'Test that the SourceImageCachingResolver resolver works'
 
     def test_source_image_caching_resolver(self):
         # First we need to change the resolver on the test instance of the 
@@ -70,7 +84,6 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
         self.assertTrue(isfile(resolved_path))
 
 class Test_SimpleHTTPResolver(loris_t.LorisTest):
-    'Test that the SourceImageCachingResolver resolver works'
 
     @responses.activate
     def test_simple_http_resolver(self):
@@ -249,7 +262,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
 
 class Test_TemplateHTTPResolver(loris_t.LorisTest):
-    'Test TemplateHttpResolver'
 
     def test_template_http_resolver(self):
 
@@ -301,6 +313,7 @@ class Test_TemplateHTTPResolver(loris_t.LorisTest):
 def suite():
     import unittest
     test_suites = []
+    test_suites.append(unittest.makeSuite(Test_AbstractResolver, 'test'))
     test_suites.append(unittest.makeSuite(Test_SimpleFSResolver, 'test'))
     test_suites.append(unittest.makeSuite(Test_SourceImageCachingResolver, 'test'))
     test_suites.append(unittest.makeSuite(Test_SimpleHTTPResolver, 'test'))

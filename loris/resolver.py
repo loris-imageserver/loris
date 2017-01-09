@@ -22,6 +22,7 @@ logger = getLogger(__name__)
 
 
 class _AbstractResolver(object):
+
     def __init__(self, config):
         self.config = config
 
@@ -57,6 +58,15 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
 
+    def format_from_ident(self, ident):
+        if ident.rfind('.') != -1:
+            extension = ident.split('.')[-1]
+            if len(extension) < 5:
+                extension = extension.lower()
+                return constants.EXTENSION_MAP.get(extension, extension)
+        message = 'Format could not be determined for: %s.' % (ident)
+        raise ResolverException(404, message)
+
 
 class SimpleFSResolver(_AbstractResolver):
     """
@@ -87,9 +97,6 @@ class SimpleFSResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
 
-    def format_from_ident(self, ident):
-        return ident.split('.')[-1].lower()
-
     def resolve(self, ident):
 
         if not self.is_resolvable(ident):
@@ -98,34 +105,18 @@ class SimpleFSResolver(_AbstractResolver):
         source_fp = self.source_file_path(ident)
         logger.debug('src image: %s' % (source_fp,))
 
-        format = self.format_from_ident(ident)
-        logger.debug('src format %s' % (format,))
+        format_ = self.format_from_ident(ident)
 
-        return (source_fp, format)
+        return (source_fp, format_)
 
 
-# To use this the resolver stanza of the config will have to have both the
-# src_img_root as required by the SimpleFSResolver and also an
-# [[extension_map]], which will be a hash mapping found extensions to the
-# extensions that loris wants to see, e.g.
-#
-# [resolver]
-# impl = 'loris.resolver.ExtensionNormalizingFSResolver'
-# src_img_root = '/cnfs-ro/iiif/production/medusa-root' # r--
-#   [[extension_map]]
-#   jpeg = 'jpg'
-#   tiff = 'tif'
-# Note that case normalization happens before looking up in the extension_map.
 class ExtensionNormalizingFSResolver(SimpleFSResolver):
-    def __init__(self, config):
-        super(ExtensionNormalizingFSResolver, self).__init__(config)
-        self.extension_map = self.config['extension_map']
-
-    def format_from_ident(self, ident):
-        format = super(ExtensionNormalizingFSResolver, self).format_from_ident(ident)
-        format = format.lower()
-        format = self.extension_map.get(format, format)
-        return format
+    '''This Resolver is deprecated - when resolving the identifier to an image
+    format, all resolvers now automatically normalize (lower-case) file
+    extensions and map 4-letter .tiff & .jpeg extensions to the 3-letter tif
+    & jpg image formats Loris uses.
+    '''
+    pass
 
 
 class SimpleHTTPResolver(_AbstractResolver):
@@ -234,17 +225,13 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         return False
 
-    def format_from_ident(self, ident, potential_format):
+    def get_format(self, ident, potential_format):
         if self.default_format is not None:
             return self.default_format
         elif potential_format is not None:
             return potential_format
-        elif ident.rfind('.') != -1 and (len(ident) - ident.rfind('.') <= 5):
-            return ident.split('.')[-1]
         else:
-            message = 'Format could not be determined for: %s.' % (ident)
-            logger.warn(message)
-            raise ResolverException(404, message)
+            return self.format_from_ident(ident)
 
     def _web_request_url(self, ident):
         if (ident[:7] == 'http://' or ident[:8] == 'https://') and self.uri_resolvable:
@@ -316,14 +303,14 @@ class SimpleHTTPResolver(_AbstractResolver):
     def cache_file_extension(self, ident, response):
         if 'content-type' in response.headers:
             try:
-                extension = self.format_from_ident(ident, constants.FORMATS_BY_MEDIA_TYPE[response.headers['content-type']])
+                extension = self.get_format(ident, constants.FORMATS_BY_MEDIA_TYPE[response.headers['content-type']])
             except KeyError:
                 logger.warn('Your server may be responding with incorrect content-types. Reported %s for ident %s.'
                             % (response.headers['content-type'], ident))
                 # Attempt without the content-type
-                extension = self.format_from_ident(ident, None)
+                extension = self.get_format(ident, None)
         else:
-            extension = self.format_from_ident(ident, None)
+            extension = self.get_format(ident, None)
         return extension
 
     def copy_to_cache(self, ident):
@@ -372,9 +359,9 @@ class SimpleHTTPResolver(_AbstractResolver):
         if not self.in_cache(ident):
             self.copy_to_cache(ident)
         cached_file_path = self.cached_object(ident)
-        format = self.format_from_ident(cached_file_path, None)
+        format_ = self.get_format(cached_file_path, None)
         logger.debug('src image from local disk: %s' % (cached_file_path,))
-        return (cached_file_path, format)
+        return (cached_file_path, format_)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -484,9 +471,6 @@ class SourceImageCachingResolver(_AbstractResolver):
         source_fp = self.source_file_path(ident)
         return exists(source_fp)
 
-    def format_from_ident(self, ident):
-        return ident.split('.')[-1]
-
     def source_file_path(self, ident):
         ident = unquote(ident)
         return join(self.source_root, ident)
@@ -522,6 +506,5 @@ class SourceImageCachingResolver(_AbstractResolver):
         cache_fp = self.cache_file_path(ident)
         logger.debug('Image Served from local cache: %s' % (cache_fp,))
 
-        format = self.format_from_ident(ident)
-        logger.debug('Source format %s' % (format,))
-        return (cache_fp, format)
+        format_ = self.format_from_ident(ident)
+        return (cache_fp, format_)

@@ -6,6 +6,7 @@ import unittest
 
 
 class SourceImageCachingResolverTest(AbstractResolverTest, unittest.TestCase):
+
     def setUp(self):
         super(SourceImageCachingResolverTest, self).setUp()
         tests_dir = os.path.dirname(os.path.realpath(__file__))
@@ -43,6 +44,7 @@ def suite():
             unittest.makeSuite(SourceImageCachingResolverTest, 'test')
     )
     return unittest.TestSuite(test_suites)
+
 
 if __name__ == '__main__':
         unittest.main()
