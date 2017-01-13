@@ -208,20 +208,14 @@ class SimpleHTTPResolver(_AbstractResolver):
             (url, options) = self._web_request_url(ident)
 
             if self.head_resolvable:
-                try:
-                    with closing(requests.head(url, **options)) as response:
-                        if response.ok:
-                            return True
-                except requests.exceptions.MissingSchema:
-                    return False
+                response = requests.head(url, **options)
+                if response.ok:
+                    return True
 
             else:
-                try:
-                    with closing(requests.get(url, stream=True, **options)) as response:
-                        if response.ok:
-                            return True
-                except requests.exceptions.MissingSchema:
-                    return False
+                with closing(requests.get(url, stream=True, **options)) as response:
+                    if response.ok:
+                        return True
 
         return False
 
@@ -234,10 +228,16 @@ class SimpleHTTPResolver(_AbstractResolver):
             return self.format_from_ident(ident)
 
     def _web_request_url(self, ident):
-        if (ident[:7] == 'http://' or ident[:8] == 'https://') and self.uri_resolvable:
+        if (ident.startswith('http://') or ident.startswith('https://')) and self.uri_resolvable:
             url = ident
         else:
             url = self.source_prefix + ident + self.source_suffix
+        if not (url.startswith('http://') or url.startswith('https://')):
+            logger.warn(
+                'Bad URL request at %s for identifier: %s.' % (source_url, ident)
+            )
+            public_message = 'Bad URL request made for identifier: %s.' % (ident,)
+            raise ResolverException(404, public_message)
         return (url, self.request_options())
 
     # Get a subdirectory structure for the cache_subroot through hashing.
@@ -315,43 +315,26 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     def copy_to_cache(self, ident):
         ident = unquote(ident)
-        (source_url, options) = self._web_request_url(ident)
-
-        logger.debug('src image: %s' % (source_url,))
-
-        try:
-            response = requests.get(
-                    source_url,
-                    stream=True,
-                    **options
-            )
-        except requests.exceptions.MissingSchema:
-            logger.warn(
-                'Bad URL request at %s for identifier: %s.' % (source_url, ident)
-            )
-            public_message = 'Bad URL request made for identifier: %s.' % (ident,)
-            raise ResolverException(404, public_message)
-
-        if not response.ok:
-            public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
-            log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
-            logger.warn(log_message)
-            raise ResolverException(404, public_message)
-
-        extension = self.cache_file_extension(ident, response)
-        logger.debug('src extension %s' % (extension,))
-
         cache_dir = self.cache_dir_path(ident)
-        local_fp = join(cache_dir, "loris_cache." + extension)
-
         try:
-            makedirs(dirname(local_fp))
-        except:
-            logger.debug("Directory already existed... possible problem if not a different format")
+            makedirs(cache_dir)
+        except Exception:
+            logger.info("Source image cache directory already existed for %s... possible problem if not a different format" % ident)
 
-        with open(local_fp, 'wb') as fd:
-            for chunk in response.iter_content(2048):
-                fd.write(chunk)
+        (source_url, options) = self._web_request_url(ident)
+        with closing(requests.get(source_url, stream=True, **options)) as response:
+            if not response.ok:
+                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
+                log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
+                logger.warn(log_message)
+                raise ResolverException(404, public_message)
+
+            extension = self.cache_file_extension(ident, response)
+            local_fp = join(cache_dir, "loris_cache." + extension)
+
+            with open(local_fp, 'wb') as fd:
+                for chunk in response.iter_content(2048):
+                    fd.write(chunk)
 
         logger.info("Copied %s to %s" % (source_url, local_fp))
 
