@@ -20,6 +20,9 @@ class LorisTest(unittest.TestCase):
     def setUp(self):
         self.URI_BASE = 'http://localhost'
 
+        #for SimpleHTTPResolver
+        self.SRC_IMAGE_CACHE = '/tmp/loris/cache/src_images'
+
         # create an instance of the app here that we can use in tests
         # see http://werkzeug.pocoo.org/docs/test/
         self.app = create_app(debug=True)
@@ -122,9 +125,10 @@ class LorisTest(unittest.TestCase):
     def tearDown(self):
         # empty the cache
         dps = (
+            self.SRC_IMAGE_CACHE,
             self.app.app_configs['img.ImageCache']['cache_dp'],
             self.app.app_configs['img_info.InfoCache']['cache_dp'],
-            self.app.tmp_dp
+            self.app.tmp_dp,
         )
         for dp in dps:
             if path.exists(dp):

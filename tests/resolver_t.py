@@ -108,8 +108,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
                       status=404,
                       content_type='application/html')
 
-        SRC_IMAGE_CACHE = '/tmp/loris/cache/src_images'
-
         # First we test with no config...
         config = {
         }
@@ -117,14 +115,14 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         # Then we test missing source_prefix and uri_resolvable
         config = {
-            'cache_root' : SRC_IMAGE_CACHE
+            'cache_root' : self.SRC_IMAGE_CACHE
         }
         self.assertRaises(ResolverException, lambda: SimpleHTTPResolver(config))
 
         # Then we test with the full config...
         #TODO: More granular testing of these settings...
         config = {
-            'cache_root' : SRC_IMAGE_CACHE,
+            'cache_root' : self.SRC_IMAGE_CACHE,
             'source_prefix' : 'http://www.mysite/',
             'source_suffix' : '/accessMaster',
             'default_format' : 'jp2',
@@ -145,7 +143,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         # Then we test with a barebones default config...
         config = {
-            'cache_root' : SRC_IMAGE_CACHE,
+            'cache_root' : self.SRC_IMAGE_CACHE,
             'uri_resolvable' : True
         }
 
@@ -160,7 +158,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         # Finally with the test config for now....
         config = {
-            'cache_root' : SRC_IMAGE_CACHE,
+            'cache_root' : self.SRC_IMAGE_CACHE,
             'source_prefix' : 'http://sample.sample/',
             'source_suffix' : '',
             'head_resolvable' : True,
@@ -237,7 +235,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         #Tests with a default format...
         config = {
-            'cache_root' : SRC_IMAGE_CACHE,
+            'cache_root' : self.SRC_IMAGE_CACHE,
             'source_prefix' : 'http://sample.sample/',
             'source_suffix' : '',
             'default_format' : 'tif',
