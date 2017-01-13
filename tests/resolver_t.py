@@ -85,10 +85,7 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
 class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
-    @responses.activate
-    def test_simple_http_resolver(self):
-
-        # Mock out some urls for testing....
+    def _mock_urls(self):
         responses.add(responses.GET, 'http://sample.sample/0001',
                       body='II*\x00\x0c\x00\x00\x00\x80\x00  \x0e\x00\x00\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x02\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x03\x01\x03\x00\x01\x00\x00\x00\x05\x00\x00\x00\x06\x01\x03\x00\x01\x00\x00\x00\x03\x00\x00\x00\x11\x01\x04\x00\x01\x00\x00\x00\x08\x00\x00\x00\x15\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x17\x01\x04\x00\x01\x00\x00\x00\x04\x00\x00\x00\x1a\x01\x05\x00\x01\x00\x00\x00\xba\x00\x00\x00\x1b\x01\x05\x00\x01\x00\x00\x00\xc2\x00\x00\x00\x1c\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00(\x01\x03\x00\x01\x00\x00\x00\x02\x00\x00\x00@\x01\x03\x00\x00\x03\x00\x00\xca\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00\xff`\xe6q\x19\x08\x00\x00\x80\t\x00\x00\x80\n\x00\x00\x80\x0b\x00\x00\x80\x0c\x00\x00\x80\r',
                       status=200,
@@ -107,6 +104,11 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
                       body='Does Not Exist',
                       status=404,
                       content_type='application/html')
+
+    @responses.activate
+    def test_simple_http_resolver(self):
+
+        self._mock_urls()
 
         # First we test with no config...
         config = {
@@ -233,7 +235,9 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         ident = '0003'
         self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
 
-        #Tests with a default format...
+    @responses.activate
+    def test_with_default_format(self):
+        self._mock_urls()
         config = {
             'cache_root' : self.SRC_IMAGE_CACHE,
             'source_prefix' : 'http://sample.sample/',
@@ -245,12 +249,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.app.resolver = SimpleHTTPResolver(config)
 
         ident = '0002'
-        resolved_path, fmt = self.app.resolver.resolve(ident)
-        self.assertIsNotNone(resolved_path)
-        self.assertEqual(fmt, 'tif')
-        self.assertTrue(isfile(resolved_path))
-
-        ident = '0003'
         resolved_path, fmt = self.app.resolver.resolve(ident)
         self.assertIsNotNone(resolved_path)
         self.assertEqual(fmt, 'tif')
