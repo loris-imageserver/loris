@@ -84,19 +84,16 @@ class _AbstractTransformer(object):
             r = 0-float(image_request.rotation_param.rotation)
             logger.debug('Rotating (PIL syntax): %s' % (repr(r),))
 
-            # NOT WORKING
             # We need to convert pngs here and not below if we want a
             # transparent background (A == Alpha layer)
-            # if float(image_request.rotation_param.rotation) % 90 != 0.0 and \
-            #     image_request.format == 'png':
-            #
-            #     logger.debug('*'*80)
-            #     logger.debug('here')
-            #     logger.debug('*'*80)
-                # if image_request.quality in ('gray', 'bitonal'):
-                #     im = im.convert('LA')
-                # else:
-                #     im = im.convert('RGBA')
+            if float(image_request.rotation_param.rotation) % 90 != 0.0 and \
+                image_request.format == 'png':
+                
+                if image_request.quality in ('gray', 'bitonal'):
+                    im = im.convert('LA')
+                else:
+                    im = im.convert('RGBA')
+
             # We get a 1 px border at left and top with multiples of 90 with
             # expand for some reason, so:
             # expand = bool(r % 90)
@@ -130,6 +127,23 @@ class _AbstractTransformer(object):
             elif image_request.format == 'webp':
                 # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
                 im.save(target_fp, quality=90)
+        else:
+            if image_request.format == 'jpg':
+                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
+                im.save(target_fp, quality=90)
+
+            elif image_request.format == 'png':
+                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
+                im.save(target_fp, optimize=True, bits=256)
+
+            elif image_request.format == 'gif':
+                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
+                im.save(target_fp)
+
+            elif image_request.format == 'webp':
+                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
+                im.save(target_fp, quality=90)
+         
 
 class _PillowTransformer(_AbstractTransformer):
     def __init__(self, config):

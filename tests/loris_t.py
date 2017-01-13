@@ -94,6 +94,10 @@ class LorisTest(unittest.TestCase):
         self.test_altpng_id = 'foo.png'
         self.test_altpng_fp = path.join(self.test_img_dir2,'foo.png')
 
+        self.test_altpng2_id = 'test.png'
+        self.test_altpng2_fp = path.join(self.test_img_dir,self.test_altpng2_id)
+        self.test_altpng2_rotate = '45'
+
         self.test_jp2_with_embedded_profile_id = '47102787.jp2'
         self.test_jp2_with_embedded_profile_fp = path.join(self.test_img_dir,self.test_jp2_with_embedded_profile_id)
         self.test_jp2_embedded_profile_copy_fp = path.join(test_icc_dir,'profile.icc')
