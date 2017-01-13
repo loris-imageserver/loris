@@ -108,6 +108,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
                       status=404,
                       content_type='application/html')
 
+        SRC_IMAGE_CACHE = '/tmp/loris/cache/src_images'
 
         # First we test with no config...
         config = {
@@ -116,14 +117,14 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         # Then we test missing source_prefix and uri_resolvable
         config = {
-            'cache_root' : self.app.img_cache.cache_root
+            'cache_root' : SRC_IMAGE_CACHE
         }
         self.assertRaises(ResolverException, lambda: SimpleHTTPResolver(config))
 
         # Then we test with the full config...
         #TODO: More granular testing of these settings...
         config = {
-            'cache_root' : self.app.img_cache.cache_root,
+            'cache_root' : SRC_IMAGE_CACHE,
             'source_prefix' : 'http://www.mysite/',
             'source_suffix' : '/accessMaster',
             'default_format' : 'jp2',
@@ -134,7 +135,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         }
 
         self.app.resolver = SimpleHTTPResolver(config)
-        self.assertEqual(self.app.resolver.cache_root, self.app.img_cache.cache_root)
         self.assertEqual(self.app.resolver.source_prefix, 'http://www.mysite/')
         self.assertEqual(self.app.resolver.source_suffix, '/accessMaster')
         self.assertEqual(self.app.resolver.default_format, 'jp2')
@@ -145,12 +145,11 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         # Then we test with a barebones default config...
         config = {
-            'cache_root' : self.app.img_cache.cache_root,
+            'cache_root' : SRC_IMAGE_CACHE,
             'uri_resolvable' : True
         }
 
         self.app.resolver = SimpleHTTPResolver(config)
-        self.assertEqual(self.app.resolver.cache_root, self.app.img_cache.cache_root)
         self.assertEqual(self.app.resolver.source_prefix, '')
         self.assertEqual(self.app.resolver.source_suffix, '')
         self.assertEqual(self.app.resolver.default_format, None)
@@ -161,7 +160,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         # Finally with the test config for now....
         config = {
-            'cache_root' : self.app.img_cache.cache_root,
+            'cache_root' : SRC_IMAGE_CACHE,
             'source_prefix' : 'http://sample.sample/',
             'source_suffix' : '',
             'head_resolvable' : True,
@@ -169,7 +168,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         }
 
         self.app.resolver = SimpleHTTPResolver(config)
-        self.assertEqual(self.app.resolver.cache_root, self.app.img_cache.cache_root)
         self.assertEqual(self.app.resolver.source_prefix, 'http://sample.sample/')
         self.assertEqual(self.app.resolver.source_suffix, '')
         self.assertEqual(self.app.resolver.default_format, None)
@@ -178,7 +176,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         #Test with identifier only
         ident = '0001'
-        expected_path = join(self.app.img_cache.cache_root, '25')
+        expected_path = join(self.app.resolver.cache_root, '25')
         expected_path = join(expected_path, 'bbd')
         expected_path = join(expected_path, 'cd0')
         expected_path = join(expected_path, '6c3')
@@ -199,7 +197,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         #Test with a full uri
         #Note: This seems weird but idents resolve wrong and removes a slash from //
         ident = quote_plus('http://sample.sample/0001')
-        expected_path = join(self.app.img_cache.cache_root, 'http')
+        expected_path = join(self.app.resolver.cache_root, 'http')
         expected_path = join(expected_path, '32')
         expected_path = join(expected_path, '3a5')
         expected_path = join(expected_path, '353')
@@ -239,7 +237,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
         #Tests with a default format...
         config = {
-            'cache_root' : self.app.img_cache.cache_root,
+            'cache_root' : SRC_IMAGE_CACHE,
             'source_prefix' : 'http://sample.sample/',
             'source_suffix' : '',
             'default_format' : 'tif',
