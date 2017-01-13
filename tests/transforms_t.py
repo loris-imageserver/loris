@@ -38,9 +38,9 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
 class Test_PILTransformer(loris_t.LorisTest):
 
     def test_png_rotate_has_alpha_transparency(self):
-        ident = self.test_altpng2_id
-        rotate = self.test_altpng2_rotate
-        request_path = '/%s/full/full/%s/default.png' % (ident,rotate,)
+        ident = 'test.png'
+        rotate = '45'
+        request_path = '/%s/full/full/%s/default.png' % (ident,rotate)
         resp = self.client.get(request_path)
 
         self.assertEqual(resp.status_code, 200)

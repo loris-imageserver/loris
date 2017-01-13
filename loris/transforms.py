@@ -82,7 +82,6 @@ class _AbstractTransformer(object):
 
         if image_request.rotation_param.rotation != '0' and rotate:
             r = 0-float(image_request.rotation_param.rotation)
-            logger.debug('Rotating (PIL syntax): %s' % (repr(r),))
 
             # We need to convert pngs here and not below if we want a
             # transparent background (A == Alpha layer)
@@ -94,10 +93,6 @@ class _AbstractTransformer(object):
                 else:
                     im = im.convert('RGBA')
 
-            # We get a 1 px border at left and top with multiples of 90 with
-            # expand for some reason, so:
-            # expand = bool(r % 90)
-            # logger.debug('Expand: %s' % (repr(expand),))
             im = im.rotate(r, expand=True)
 
         if not im.mode.endswith('A'):
@@ -112,37 +107,21 @@ class _AbstractTransformer(object):
                 dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
                 im = im.convert('1', dither=dither)
 
-            if image_request.format == 'jpg':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
-                im.save(target_fp, quality=90)
+        if image_request.format == 'jpg':
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
+            im.save(target_fp, quality=90)
 
-            elif image_request.format == 'png':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
-                im.save(target_fp, optimize=True, bits=256)
+        elif image_request.format == 'png':
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
+            im.save(target_fp, optimize=True, bits=256)
 
-            elif image_request.format == 'gif':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
-                im.save(target_fp)
+        elif image_request.format == 'gif':
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
+            im.save(target_fp)
 
-            elif image_request.format == 'webp':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
-                im.save(target_fp, quality=90)
-        else:
-            if image_request.format == 'jpg':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
-                im.save(target_fp, quality=90)
-
-            elif image_request.format == 'png':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
-                im.save(target_fp, optimize=True, bits=256)
-
-            elif image_request.format == 'gif':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
-                im.save(target_fp)
-
-            elif image_request.format == 'webp':
-                # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
-                im.save(target_fp, quality=90)
+        elif image_request.format == 'webp':
+            # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
+            im.save(target_fp, quality=90)
          
 
 class _PillowTransformer(_AbstractTransformer):
