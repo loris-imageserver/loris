@@ -322,7 +322,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         try:
             response = requests.get(
                     source_url,
-                    stream=False,
+                    stream=True,
                     **options
             )
         except requests.exceptions.MissingSchema:
