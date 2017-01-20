@@ -276,9 +276,6 @@ class SimpleHTTPResolver(_AbstractResolver):
                 SimpleHTTPResolver._cache_subroot(ident)
         )
 
-    def cache_file_path(self, ident):
-        pass
-
     def raise_404_for_ident(self, ident):
         message = 'Image not found for identifier: %s.' % (ident)
         raise ResolverException(404, message)
