@@ -283,22 +283,13 @@ class SimpleHTTPResolver(_AbstractResolver):
         message = 'Image not found for identifier: %s.' % (ident)
         raise ResolverException(404, message)
 
-    def cached_files_for_ident(self, ident):
+    def cached_file_for_ident(self, ident):
         cache_dir = self.cache_dir_path(ident)
         if exists(cache_dir):
-            return glob.glob(join(cache_dir, 'loris_cache.*'))
-        return []
-
-    def in_cache(self, ident):
-        return exists(self.cache_dir_path(ident))
-
-    def cached_object(self, ident):
-        cached_files = self.cached_files_for_ident(ident)
-        if cached_files:
-            cached_object = cached_files[0]
-        else:
-            self.raise_404_for_ident(ident)
-        return cached_object
+            files = glob.glob(join(cache_dir, 'loris_cache.*'))
+            if files:
+                return files[1]
+        return None
 
     def cache_file_extension(self, ident, response):
         if 'content-type' in response.headers:
@@ -337,13 +328,13 @@ class SimpleHTTPResolver(_AbstractResolver):
                     fd.write(chunk)
 
         logger.info("Copied %s to %s" % (source_url, local_fp))
+        return local_fp
 
     def resolve(self, ident):
-        if not self.in_cache(ident):
-            self.copy_to_cache(ident)
-        cached_file_path = self.cached_object(ident)
+        cached_file_path = self.cached_file_for_ident(ident)
+        if not cached_file_path:
+            cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
-        logger.debug('src image from local disk: %s' % (cached_file_path,))
         return (cached_file_path, format_)
 
 

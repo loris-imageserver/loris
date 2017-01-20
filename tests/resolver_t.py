@@ -212,12 +212,10 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'loris_cache.tif')
 
         self.assertFalse(exists(expected_path))
-        self.assertFalse(self.app.resolver.in_cache(ident))
         resolved_path, fmt = self.app.resolver.resolve(ident)
         self.assertEqual(expected_path, resolved_path)
         self.assertEqual(fmt, 'tif')
         self.assertTrue(isfile(resolved_path))
-        self.assertTrue(self.app.resolver.in_cache(ident))
 
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
