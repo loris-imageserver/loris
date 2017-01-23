@@ -106,6 +106,12 @@ class SimpleHTTPResolverTest(unittest.TestCase):
         )
 
     @responses.activate
+    def test_cached_file_for_ident(self):
+        self.resolver.copy_to_cache(self.identifier)
+        self.assertTrue(os.path.isfile(self.expected_filepath))
+        self.assertEqual(self.resolver.cached_file_for_ident(self.identifier), self.expected_filepath)
+
+    @responses.activate
     def test_resolve_001(self):
         expected_resolved = (self.expected_filepath, self.expected_format)
         resolved = self.resolver.resolve(self.identifier)

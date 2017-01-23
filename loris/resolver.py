@@ -285,7 +285,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         if exists(cache_dir):
             files = glob.glob(join(cache_dir, 'loris_cache.*'))
             if files:
-                return files[1]
+                return files[0]
         return None
 
     def cache_file_extension(self, ident, response):
