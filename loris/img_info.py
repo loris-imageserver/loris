@@ -436,6 +436,7 @@ class InfoCache(object):
             except OSError as e: # this happens once and a while; not sure why
                 if e.errno == errno.EEXIST:
                     pass
+                raise
 
         with open(info_fp, 'w') as f:
             f.write(info.to_json())

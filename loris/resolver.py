@@ -3,6 +3,7 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
+import errno
 from logging import getLogger
 from loris_exception import ResolverException
 from os.path import join, exists
@@ -306,8 +307,10 @@ class SimpleHTTPResolver(_AbstractResolver):
         cache_dir = self.cache_dir_path(ident)
         try:
             makedirs(cache_dir)
-        except Exception:
-            logger.info("Source image cache directory already existed for %s... possible problem if not a different format" % ident)
+        except OSError as ose:
+            if ose.errno == errno.EEXIST:
+                pass
+            raise
 
         (source_url, options) = self._web_request_url(ident)
         with closing(requests.get(source_url, stream=True, **options)) as response:
