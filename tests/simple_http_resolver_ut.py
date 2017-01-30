@@ -50,9 +50,9 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                     'e4a',
                     '91b',
                     '032',
-                    'loris_cache.tif',
                 ]
-        self.expected_filepath = os.path.join(*expected_filepath_list)
+        self.expected_filedir = os.path.join(*expected_filepath_list)
+        self.expected_filepath = os.path.join(self.expected_filedir, 'loris_cache.tif')
         self.set_responses()
 
     def set_responses(self):
@@ -92,7 +92,6 @@ class SimpleHTTPResolverTest(unittest.TestCase):
 
     @responses.activate
     def test_bad_url(self):
-
         self.assertRaises(
                 ResolverException,
                 lambda: self.resolver.resolve(self.not_identifier_url)
@@ -104,6 +103,12 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                 ResolverException,
                 lambda: self.resolver.resolve(self.not_identifier)
         )
+
+    def test_create_cache_dir(self):
+        self.assertFalse(os.path.exists(self.expected_filedir))
+        self.resolver._create_cache_dir(self.expected_filedir)
+        self.assertTrue(os.path.exists(self.expected_filedir))
+        self.resolver._create_cache_dir(self.expected_filedir)
 
     @responses.activate
     def test_cached_file_for_ident(self):

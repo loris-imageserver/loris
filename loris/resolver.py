@@ -3,12 +3,13 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
+import errno
 from logging import getLogger
 from loris_exception import ResolverException
-from os.path import join, exists
-from os import makedirs
-from os.path import dirname
+from os.path import join, exists, dirname
+from os import makedirs, rename, remove
 from shutil import copy
+import tempfile
 from urllib import unquote, quote_plus
 from contextlib import closing
 
@@ -301,14 +302,21 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.get_format(ident, None)
         return extension
 
+    def _create_cache_dir(self, cache_dir):
+        try:
+            makedirs(cache_dir)
+        except OSError as ose:
+            if ose.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+
     def copy_to_cache(self, ident):
         ident = unquote(ident)
         cache_dir = self.cache_dir_path(ident)
-        try:
-            makedirs(cache_dir)
-        except Exception:
-            logger.info("Source image cache directory already existed for %s... possible problem if not a different format" % ident)
+        self._create_cache_dir(cache_dir)
 
+        #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
@@ -320,11 +328,20 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.cache_file_extension(ident, response)
             local_fp = join(cache_dir, "loris_cache." + extension)
 
-            with open(local_fp, 'wb') as fd:
+            with tempfile.NamedTemporaryFile(dir=cache_dir, delete=False) as tmp_file:
                 for chunk in response.iter_content(2048):
-                    fd.write(chunk)
+                    tmp_file.write(chunk)
+                tmp_file.flush()
 
-        logger.info("Copied %s to %s" % (source_url, local_fp))
+            #now rename the tmp file to the desired file name if it still doesn't exist
+            #   (another process could have created it)
+            if exists(local_fp):
+                logger.info('another process downloaded src image %s' % local_fp)
+                remove(tmp_file.name)
+            else:
+                rename(tmp_file.name, local_fp)
+                logger.info("Copied %s to %s" % (source_url, local_fp))
+
         return local_fp
 
     def resolve(self, ident):
