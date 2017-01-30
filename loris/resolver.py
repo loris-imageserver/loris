@@ -302,15 +302,19 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.get_format(ident, None)
         return extension
 
-    def copy_to_cache(self, ident):
-        ident = unquote(ident)
-        cache_dir = self.cache_dir_path(ident)
+    def _create_cache_dir(self, cache_dir):
         try:
             makedirs(cache_dir)
         except OSError as ose:
             if ose.errno == errno.EEXIST:
                 pass
-            raise
+            else:
+                raise
+
+    def copy_to_cache(self, ident):
+        ident = unquote(ident)
+        cache_dir = self.cache_dir_path(ident)
+        self._create_cache_dir(cache_dir)
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
