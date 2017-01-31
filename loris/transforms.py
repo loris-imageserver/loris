@@ -412,21 +412,16 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                     break
                 p.feed(s)
             im = p.close() # a PIL.Image
-
-            # finish kdu
-            kdu_exit = kdu_expand_proc.wait()
-            if kdu_exit != 0:
-                map(logger.error, kdu_expand_proc.stderr)
-
-            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
-                im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
-
-            self._derive_with_pil(im, target_fp, image_request, crop=False)
-        except:
-            raise
         finally:
-            kdu_exit = kdu_expand_proc.wait()
+            # finish kdu
+            stdoutdata, stderrdata = kdu_expand_proc.communicate()
+            kdu_exit = kdu_expand_proc.returncode
             if kdu_exit != 0:
-                map(logger.error, map(string.strip, kdu_expand_proc.stderr))
+                map(logger.error, stderrdata)
             unlink(fifo_fp)
+
+        if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
+            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+            im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+
+        self._derive_with_pil(im, target_fp, image_request, crop=False)
