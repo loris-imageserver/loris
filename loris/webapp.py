@@ -5,33 +5,36 @@ webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 '''
-# from ConfigParser import RawConfigParser
-from configobj import ConfigObj
 from datetime import datetime
 from decimal import getcontext
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+from os import path, makedirs, unlink
+import random
+import re
+import string
+from subprocess import CalledProcessError
+from urllib import unquote, quote_plus
+
+#3rd party imports
+from configobj import ConfigObj
+from werkzeug.http import parse_date, http_date
+from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
+
+#Loris imports
+import constants
+import img
 from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
-from logging.handlers import RotatingFileHandler
 from loris_exception import LorisException
 from loris_exception import RequestException
 from loris_exception import SyntaxException
 from loris_exception import ImageException
 from loris_exception import ResolverException
 from loris_exception import TransformException
-from os import path, makedirs, unlink, removedirs, symlink
-from subprocess import CalledProcessError
-from urllib import unquote, quote_plus
-from werkzeug.http import parse_date, parse_accept_header, http_date
-from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
-import constants
-import img
-import logging
-import random
-import re
-import string
 import transforms
-import os
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
