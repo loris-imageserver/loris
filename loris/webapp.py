@@ -635,18 +635,14 @@ possible that there was a problem with the source file
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
     import sys
-    extra_files = []
 
     project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-    conf_fp = path.join(project_dp, 'etc', 'loris2.conf')
-    extra_files.append(conf_fp)
 
     sys.path.append(path.join(project_dp)) # to find any local resolvers
 
     app = create_app(debug=True) # or 'opj'
 
-    run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
-        extra_files=extra_files)
+    run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True)
     # To debug ssl:
     # run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
-    #     extra_files=extra_files, ssl_context='adhoc')
+    #     ssl_context='adhoc')
