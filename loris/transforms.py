@@ -6,7 +6,7 @@ from PIL import Image
 from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
 from logging import getLogger
-from loris_exception import LorisException
+from loris_exception import TransformException
 from math import ceil, log
 from os import makedirs, path, unlink, devnull
 from parameters import FULL_MODE
@@ -426,3 +426,4 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             process.terminate()
             if path.exists(fifo_fp):
                 unlink(fifo_fp)
+            raise TransformException('transform process timed out')

@@ -18,6 +18,7 @@ from loris_exception import RequestException
 from loris_exception import SyntaxException
 from loris_exception import ImageException
 from loris_exception import ResolverException
+from loris_exception import TransformException
 from os import path, makedirs, unlink, removedirs, symlink
 from subprocess import CalledProcessError
 from urllib import unquote, quote_plus
@@ -568,6 +569,8 @@ class Loris(object):
 
             except ResolverException as re:
                 return NotFoundResponse(re.message)
+            except TransformException as te:
+                return ServerSideErrorResponse(te)
             except (RequestException, SyntaxException) as e:
                 return BadRequestResponse(e.message)
             except (ImageException,ImageInfoException) as ie:
