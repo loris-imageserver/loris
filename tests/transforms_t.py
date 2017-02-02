@@ -1,8 +1,9 @@
 #-*- coding: utf-8 -*-
-
+from cStringIO import StringIO
+import unittest
 import loris_t, operator, itertools
 from PIL.ImageFile import Parser
-from cStringIO import StringIO
+from loris import transforms
 
 """
 Transformer tests. These right now these work with the kakadu and PIL
@@ -14,6 +15,20 @@ $ python -m unittest tests.transforms_t
 
 from the `/loris` (not `/loris/loris`) directory.
 """
+
+
+class UnitTest_KakaduJP2Transformer(unittest.TestCase):
+
+    def test_init(self):
+        config = {'kdu_expand': '', 'num_threads': 4, 'kdu_libs': '',
+                  'map_profile_to_srgb': True, 'mkfifo': '', 'tmp_dp': '/tmp/loris/tmp',
+                  'srgb_profile_fp': '', 'target_formats': [], 'dither_bitonal_images': ''}
+        kdu_transformer = transforms.KakaduJP2Transformer(config)
+        self.assertEqual(kdu_transformer.transform_timeout, 120)
+        config['timeout'] = 100
+        kdu_transformer = transforms.KakaduJP2Transformer(config)
+        self.assertEqual(kdu_transformer.transform_timeout, 100)
+
 
 class Test_KakaduJP2Transformer(loris_t.LorisTest):
 
@@ -34,6 +49,7 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
         expected_dims = tuple(int(d*1.10) for d in self.test_jp2_color_dims)
 
         self.assertEqual(expected_dims, image.size)
+
 
 class Test_PILTransformer(loris_t.LorisTest):
 
@@ -86,8 +102,8 @@ class Test_PILTransformer(loris_t.LorisTest):
 
 
 def suite():
-    import unittest
     test_suites = []
+    test_suites.append(unittest.makeSuite(UnitTest_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_PILTransformer, 'test'))
     test_suite = unittest.TestSuite(test_suites)

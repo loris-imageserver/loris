@@ -316,14 +316,15 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
+
     def __init__(self, config):
         self.kdu_expand = config['kdu_expand']
-
         self.num_threads = config['num_threads']
         self.env = {
             'LD_LIBRARY_PATH' : config['kdu_libs'],
             'PATH' : config['kdu_expand']
         }
+        self.transform_timeout = config.get('timeout', 120)
         super(KakaduJP2Transformer, self).__init__(config)
 
     @staticmethod
@@ -418,9 +419,10 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         reg = '-region %s' % (region_arg,) if region_arg else ''
         kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
 
-        process = multiprocessing.Process(target=self._run_transform, args=(target_fp, image_request, kdu_cmd, fifo_fp))
+        process = multiprocessing.Process(target=self._run_transform,
+                                          args=(target_fp, image_request, kdu_cmd, fifo_fp))
         process.start()
-        process.join(120)
+        process.join(self.transform_timeout)
         if process.is_alive():
             logger.info('terminating process for %s, %s' % (src_fp, target_fp))
             process.terminate()
