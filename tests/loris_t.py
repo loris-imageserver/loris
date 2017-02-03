@@ -2,11 +2,10 @@
 #-*- coding: utf-8 -*-
 
 '''
-Superclass for all other unit tests
+Superclass for integration tests.
 '''
-
 import unittest
-from loris.webapp import create_app
+from loris.webapp import get_debug_config, Loris
 from os import path, listdir, unlink
 from shutil import rmtree
 from werkzeug.test import Client
@@ -25,7 +24,9 @@ class LorisTest(unittest.TestCase):
 
         # create an instance of the app here that we can use in tests
         # see http://werkzeug.pocoo.org/docs/test/
-        self.app = create_app(debug=True)
+        config = get_debug_config('kdu')
+        config['logging']['log_level'] = 'INFO'
+        self.app = Loris(config)
         self.client = Client(self.app, BaseResponse)
 
         # constant info about test images.
