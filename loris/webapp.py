@@ -99,8 +99,7 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
     else:
         config = read_config(config_file_path)
 
-    logger = __configure_logging(config['logging'])
-    return Loris(logger, config)
+    return Loris(config)
 
 
 def read_config(config_file_path):
@@ -113,7 +112,7 @@ def read_config(config_file_path):
     return config
 
 
-def __configure_logging(config):
+def _configure_logging(config):
     logger = logging.getLogger()
 
     conf_level = config['log_level']
@@ -273,16 +272,15 @@ class LorisRequest(object):
 
 class Loris(object):
 
-    def __init__(self, logger, app_configs={}):
+    def __init__(self, app_configs={}):
         '''The WSGI Application.
         Args:
-            config ({}):
+            app_configs ({}):
                 A dictionary of dictionaries that represents the loris.conf
                 file.
-            debug (bool)
         '''
         self.app_configs = app_configs
-        self.logger = logger
+        self.logger = _configure_logging(app_configs['logging'])
         self.logger.debug('Loris initialized with these settings:')
         [self.logger.debug('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
             for key in self.app_configs for sub_key in self.app_configs[key]]
