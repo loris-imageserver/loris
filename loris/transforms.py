@@ -1,11 +1,12 @@
 # transformers.py
 # -*- coding: utf-8 -*-
 
+import multiprocessing
 from PIL import Image
 from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
 from logging import getLogger
-from loris_exception import LorisException
+from loris_exception import TransformException
 from math import ceil, log
 from os import makedirs, path, unlink, devnull
 from parameters import FULL_MODE
@@ -315,14 +316,15 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
+
     def __init__(self, config):
         self.kdu_expand = config['kdu_expand']
-
         self.num_threads = config['num_threads']
         self.env = {
             'LD_LIBRARY_PATH' : config['kdu_libs'],
             'PATH' : config['kdu_expand']
         }
+        self.transform_timeout = config.get('timeout', 120)
         super(KakaduJP2Transformer, self).__init__(config)
 
     @staticmethod
@@ -373,38 +375,14 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         logger.debug('kdu region parameter: %s' % (arg,))
         return arg
 
-    def transform(self, src_fp, target_fp, image_request):
-
-        # kdu writes to this:
-        fifo_fp = self._make_tmp_fp()
-
-        # kdu command
-        q = '-quiet'
-        t = '-num_threads %s' % (self.num_threads,)
-        i = '-i "%s"' % (src_fp,)
-        o = '-o %s' % (fifo_fp,)
-        reduce_arg = self._scales_to_reduce_arg(image_request)
-        red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
-        region_arg = self._region_to_kdu_arg(image_request.region_param)
-        reg = '-region %s' % (region_arg,) if region_arg else ''
-
-        kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
-
-        # make the named pipe
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        logger.debug('Calling %s' % (mkfifo_call,))
-        resp = subprocess.check_call(mkfifo_call, shell=True)
-
+    def _run_transform(self, target_fp, image_request, kdu_cmd, fifo_fp):
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
-            logger.debug('Calling: %s' % (kdu_cmd,))
             kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
                 stderr=subprocess.PIPE, env=self.env)
-
             f = open(fifo_fp, 'rb')
-            logger.debug('Opened %s' % fifo_fp)
 
-             # read from the named pipe
+            # read from the named pipe
             p = Parser()
             while True:
                 s = f.read(1024)
@@ -413,7 +391,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                 p.feed(s)
             im = p.close() # a PIL.Image
         finally:
-            # finish kdu
             stdoutdata, stderrdata = kdu_expand_proc.communicate()
             kdu_exit = kdu_expand_proc.returncode
             if kdu_exit != 0:
@@ -425,3 +402,30 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
+
+    def transform(self, src_fp, target_fp, image_request):
+        fifo_fp = self._make_tmp_fp()
+        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
+        subprocess.check_call(mkfifo_call, shell=True)
+
+        # kdu command
+        q = '-quiet'
+        t = '-num_threads %s' % self.num_threads
+        i = '-i "%s"' % src_fp
+        o = '-o %s' % fifo_fp
+        reduce_arg = self._scales_to_reduce_arg(image_request)
+        red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
+        region_arg = self._region_to_kdu_arg(image_request.region_param)
+        reg = '-region %s' % (region_arg,) if region_arg else ''
+        kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
+
+        process = multiprocessing.Process(target=self._run_transform,
+                                          args=(target_fp, image_request, kdu_cmd, fifo_fp))
+        process.start()
+        process.join(self.transform_timeout)
+        if process.is_alive():
+            logger.info('terminating process for %s, %s' % (src_fp, target_fp))
+            process.terminate()
+            if path.exists(fifo_fp):
+                unlink(fifo_fp)
+            raise TransformException('transform process timed out')
