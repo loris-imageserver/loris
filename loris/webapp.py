@@ -38,46 +38,42 @@ import transforms
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
-def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
-    if debug:
-        # change a few things, read the config and set up logging
-        project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-        config_file_path = path.join(project_dp, 'etc', 'loris2.conf')
 
-        config = read_config(config_file_path)
+def get_debug_config(debug_jp2_transformer):
+    # change a few things, read the config and set up logging
+    project_dp = path.dirname(path.dirname(path.realpath(__file__)))
+    config_file_path = path.join(project_dp, 'etc', 'loris2.conf')
 
-        config['logging']['log_to'] = 'console'
-        config['logging']['log_level'] = 'DEBUG'
-        logger = __configure_logging(config['logging'])
-        logger.debug('Running in debug mode.')
+    config = read_config(config_file_path)
 
-        # override some stuff to look at relative or tmp directories.
-        config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
-        config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
-        config['loris.Loris']['enable_caching'] = True
-        config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
-        config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-        config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
-        config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+    config['logging']['log_to'] = 'console'
+    config['logging']['log_level'] = 'DEBUG'
 
-        if debug_jp2_transformer == 'opj':
-            from transforms import OPJ_JP2Transformer
-            opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-            config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
-            libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
-            config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
-        else: # kdu
-            from transforms import KakaduJP2Transformer
-            kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
-            config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
-            libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
-            config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
+    # override some stuff to look at relative or tmp directories.
+    config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
+    config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
+    config['loris.Loris']['enable_caching'] = True
+    config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
+    config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
+    config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
+    config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+    if debug_jp2_transformer == 'opj':
+        from transforms import OPJ_JP2Transformer
+        opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
+        config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
+        libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
+        config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
+    else: # kdu
+        from transforms import KakaduJP2Transformer
+        kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
+        config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
+        libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
+        config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    else:
-        config = read_config(config_file_path)
-        logger = __configure_logging(config['logging'])
+    return config
 
-    # Make any dirs we may need
+
+def make_directories(config):
     dirs_to_make = []
     try:
         dirs_to_make.append(config['loris.Loris']['tmp_dp'])
@@ -95,8 +91,17 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
         logger.fatal(msg)
         logger.fatal('Exiting')
         exit(77)
+
+
+def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
+    if debug:
+        config = get_debug_config(debug_jp2_transformer)
     else:
-        return Loris(logger, config)
+        config = read_config(config_file_path)
+
+    logger = __configure_logging(config['logging'])
+    return Loris(logger, config)
+
 
 def read_config(config_file_path):
     config = ConfigObj(config_file_path, unrepr=True, interpolation='template')
@@ -106,6 +111,7 @@ def read_config(config_file_path):
     # inadvertently modify the environment
     config['DEFAULT'] = dict(os.environ)
     return config
+
 
 def __configure_logging(config):
     logger = logging.getLogger()
