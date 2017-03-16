@@ -68,7 +68,6 @@ class _AbstractResolver(object):
         message = 'Format could not be determined for: %s.' % (ident)
         raise ResolverException(404, message)
 
-
 class SimpleFSResolver(_AbstractResolver):
     """
     For this dumb version a constant path is prepended to the identfier
@@ -496,3 +495,66 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         format_ = self.format_from_ident(ident)
         return (cache_fp, format_)
+
+
+class PreferredSuffixResolver(_AbstractResolver):
+    """
+    Based on SimpleFS resolver, looks for the identifier in-order in src_img_roots with a pref_suffix and a fallback_suffix.
+    Assumes identifier does NOT have file extension in it.
+    
+    Example:
+    Configured with pref_suffix='_pm', fallback_suffix='_cd',
+    A request for identifier '2003.001_001' will:
+	- Look for a useable image in [src_img_roots]/2003.001_001_pm.jpg/jpeg/tif/tiff/png/jp2 return if found.
+	- If not found, will look for [src_img_roots]/2003.001_001_cd.jpg/jpeg/tif/tiff/png/jp2 return if found
+	- Raise 404 if neither are found.
+    """
+	    
+    def __init__(self, config):
+	super(PreferredSuffixResolver, self).__init__(config)
+	self.source_roots = self.config['src_img_roots']
+	self.pref_suffix = self.config['pref_suffix']
+	self.fallback_suffix = self.config['fallback_suffix']
+	logger.debug("PreferredSuffixResolver loaded")
+
+    def all_exts(self, ident):
+	return [ident + ext for ext in ['.jpg','.jpeg', '.tif', '.tiff', '.png', '.jp2'] ] 
+	
+    def raise_404_for_ident(self, ident):
+	message = 'Source image not found for identifier: %s.' % (ident,)
+        logger.warn(message)
+        raise ResolverException(404, message)
+
+    def source_file_path(self, ident):
+	ident = unquote(ident)
+	suffixed = ident + self.pref_suffix
+	fallback = ident + self.fallback_suffix
+
+	for directory in self.source_roots:
+
+	    for filename in self.all_exts(suffixed):
+		fp = join(directory, filename)
+		if exists(fp):
+		    return fp
+
+	for directory in self.source_roots:
+
+	    for filename in self.all_exts(fallback):
+		fp = join(directory, filename)
+		if exists(fp):
+		    return fp
+	
+    def is_resolvable(self, ident):
+        return not self.source_file_path(ident) is None
+	
+    def resolve(self, ident):
+	if not self.is_resolvable(ident):
+	    self.raise_404_for_ident(ident)
+
+	source_fp = self.source_file_path(ident)
+	logger.debug('src image: %s' % (source_fp))
+	
+	file_format = source_fp.split('.')[-1]
+	logger.debug('src format: %s' % (file_format,))
+
+	return (source_fp, file_format)
