@@ -7,7 +7,7 @@ import errno
 from logging import getLogger
 from loris_exception import ResolverException
 from os.path import join, exists, dirname
-from os import makedirs, rename, remove
+from os import makedirs, rename, remove, listdir
 from shutil import copy
 import tempfile
 from urllib import unquote, quote_plus
@@ -499,62 +499,69 @@ class SourceImageCachingResolver(_AbstractResolver):
 
 class PreferredSuffixResolver(_AbstractResolver):
     """
-    Based on SimpleFS resolver, looks for the identifier in-order in src_img_roots with a pref_suffix and a fallback_suffix.
-    Assumes identifier does NOT have file extension in it.
-    
+    Based on SimpleFS resolver. Searches for a preferred suffix and then tries a fallback suffix.
+
     Example:
-    Configured with pref_suffix='_pm', fallback_suffix='_cd',
+    Configured with pref_regex='_pm.*', fall_regex='_cd.*',
     A request for identifier '2003.001_001' will:
-	- Look for a useable image in [src_img_roots]/2003.001_001_pm.jpg/jpeg/tif/tiff/png/jp2 return if found.
-	- If not found, will look for [src_img_roots]/2003.001_001_cd.jpg/jpeg/tif/tiff/png/jp2 return if found
+	- Look for a useable image for [src_img_roots]/2003.001_001_pm.*, return the file found.
+	- If not found, searches [src_img_roots]/2003.001_001_cd.*, return the file found
 	- Raise 404 if neither are found.
+
+    YMMV: Lots of undefined behavior will result if the source images change a lot/change names a lot. 
     """
 	    
     def __init__(self, config):
-	super(PreferredSuffixResolver, self).__init__(config)
-	self.source_roots = self.config['src_img_roots']
-	self.pref_suffix = self.config['pref_suffix']
-	self.fallback_suffix = self.config['fallback_suffix']
-	logger.debug("PreferredSuffixResolver loaded")
+        super(PreferredSuffixResolver, self).__init__(config)
+        self.source_roots = self.config['src_img_roots']
+        self.pref_pattern = self.config['pref_regex']
+        self.fall_pattern = self.config['fallback_regex']
+        logger.debug("PreferredSuffixResolver loaded")
 
     def all_exts(self, ident):
-	return [ident + ext for ext in ['.jpg','.jpeg', '.tif', '.tiff', '.png', '.jp2'] ] 
+        return [ident + ext for ext in ['.jpg','.jpeg', '.tif', '.tiff', '.png', '.jp2'] ] 
 	
     def raise_404_for_ident(self, ident):
-	message = 'Source image not found for identifier: %s.' % (ident,)
+        message = 'Source image not found for identifier: %s.' % (ident,)
         logger.warn(message)
         raise ResolverException(404, message)
 
+    def search_files(self,path,pattern):
+        # Searches a directory path for files with filenames matching regex pattern, returns first match
+        reg = re.compile(pattern)
+        found = [ f for f in listdir(path) if reg.match(f) and exists(join(path,f)) ]
+        if not found:
+            return None
+        else:
+            return join(path,found[0])
+
+        
     def source_file_path(self, ident):
-	ident = unquote(ident)
-	suffixed = ident + self.pref_suffix
-	fallback = ident + self.fallback_suffix
+        ident = unquote(ident)
 
-	for directory in self.source_roots:
+        pref = '(' + ident + ')' + self.pref_pattern
+        for directory in self.source_roots:
+            match = self.search_files(directory,pref)
+            if match:
+               return match 
 
-	    for filename in self.all_exts(suffixed):
-		fp = join(directory, filename)
-		if exists(fp):
-		    return fp
-
-	for directory in self.source_roots:
-
-	    for filename in self.all_exts(fallback):
-		fp = join(directory, filename)
-		if exists(fp):
-		    return fp
+        fall = ident + self.fall_pattern
+        for directory in self.source_roots:
+            match = self.search_files(directory,fall)
+            if match:
+                return match
 	
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
 	
     def resolve(self, ident):
-	if not self.is_resolvable(ident):
-	    self.raise_404_for_ident(ident)
+        if not self.is_resolvable(ident):
+            self.raise_404_for_ident(ident)
 
-	source_fp = self.source_file_path(ident)
-	logger.debug('src image: %s' % (source_fp))
+        source_fp = self.source_file_path(ident)
+        logger.debug('src image: %s' % (source_fp))
 	
-	file_format = source_fp.split('.')[-1]
-	logger.debug('src format: %s' % (file_format,))
+        file_format = source_fp.split('.')[-1]
+        logger.debug('src format: %s' % (file_format,))
 
-	return (source_fp, file_format)
+        return (source_fp, file_format)
