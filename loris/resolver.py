@@ -502,7 +502,7 @@ class PreferredSuffixResolver(_AbstractResolver):
     Based on SimpleFS resolver. Searches for a preferred suffix and then tries a fallback suffix.
 
     Example:
-    Configured with pref_regex='_pm.*', fall_regex='_cd.*',
+    Configured with pref_suffix='_pm.*', fall_suffix='_cd.*',
     A request for identifier '2003.001_001' will:
 	- Look for a useable image for [src_img_roots]/2003.001_001_pm.*, return the file found.
 	- If not found, searches [src_img_roots]/2003.001_001_cd.*, return the file found
@@ -514,8 +514,8 @@ class PreferredSuffixResolver(_AbstractResolver):
     def __init__(self, config):
         super(PreferredSuffixResolver, self).__init__(config)
         self.source_roots = self.config['src_img_roots']
-        self.pref_pattern = self.config['pref_regex']
-        self.fall_pattern = self.config['fallback_regex']
+        self.pref_pattern = self.config['pref_suffix']
+        self.fall_pattern = self.config['fall_suffix']
         logger.debug("PreferredSuffixResolver loaded")
 
     def all_exts(self, ident):
@@ -527,9 +527,8 @@ class PreferredSuffixResolver(_AbstractResolver):
         raise ResolverException(404, message)
 
     def search_files(self,path,pattern):
-        # Searches a directory path for files with filenames matching regex pattern, returns first match
-        reg = re.compile(pattern)
-        found = [ f for f in listdir(path) if reg.match(f) and exists(join(path,f)) ]
+        # Glob-searches a directory path for filenames pattern, returns first match
+        found = glob.glob( join(path,pattern) )
         if not found:
             return None
         else:
@@ -539,7 +538,7 @@ class PreferredSuffixResolver(_AbstractResolver):
     def source_file_path(self, ident):
         ident = unquote(ident)
 
-        pref = '(' + ident + ')' + self.pref_pattern
+        pref = ident + self.pref_pattern
         for directory in self.source_roots:
             match = self.search_files(directory,pref)
             if match:
