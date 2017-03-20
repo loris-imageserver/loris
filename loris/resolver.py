@@ -7,7 +7,7 @@ import errno
 from logging import getLogger
 from loris_exception import ResolverException
 from os.path import join, exists, dirname
-from os import makedirs, rename, remove
+from os import makedirs, rename, remove, listdir
 from shutil import copy
 import tempfile
 from urllib import unquote, quote_plus
@@ -67,7 +67,6 @@ class _AbstractResolver(object):
                 return constants.EXTENSION_MAP.get(extension, extension)
         message = 'Format could not be determined for: %s.' % (ident)
         raise ResolverException(404, message)
-
 
 class SimpleFSResolver(_AbstractResolver):
     """
@@ -496,3 +495,72 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         format_ = self.format_from_ident(ident)
         return (cache_fp, format_)
+
+
+class PreferredSuffixResolver(_AbstractResolver):
+    """
+    Based on SimpleFS resolver. Searches for a preferred suffix and then tries a fallback suffix.
+
+    Example:
+    Configured with pref_suffix='_pm.*', fall_suffix='_cd.*',
+    A request for identifier '2003.001_001' will:
+	- Look for a useable image for [src_img_roots]/2003.001_001_pm.*, return the file found.
+	- If not found, searches [src_img_roots]/2003.001_001_cd.*, return the file found
+	- Raise 404 if neither are found.
+
+    YMMV: Lots of undefined behavior will result if the source images change a lot/change names a lot. 
+    """
+	    
+    def __init__(self, config):
+        super(PreferredSuffixResolver, self).__init__(config)
+        self.source_roots = self.config['src_img_roots']
+        self.pref_pattern = self.config['pref_suffix']
+        self.fall_pattern = self.config['fall_suffix']
+        logger.debug("PreferredSuffixResolver loaded")
+
+    def all_exts(self, ident):
+        return [ident + ext for ext in ['.jpg','.jpeg', '.tif', '.tiff', '.png', '.jp2'] ] 
+	
+    def raise_404_for_ident(self, ident):
+        message = 'Source image not found for identifier: %s.' % (ident,)
+        logger.warn(message)
+        raise ResolverException(404, message)
+
+    def search_files(self,path,pattern):
+        # Glob-searches a directory path for filenames pattern, returns first match
+        found = glob.glob( join(path,pattern) )
+        if not found:
+            return None
+        else:
+            return join(path,found[0])
+
+        
+    def source_file_path(self, ident):
+        ident = unquote(ident)
+
+        pref = ident + self.pref_pattern
+        for directory in self.source_roots:
+            match = self.search_files(directory,pref)
+            if match:
+               return match 
+
+        fall = ident + self.fall_pattern
+        for directory in self.source_roots:
+            match = self.search_files(directory,fall)
+            if match:
+                return match
+	
+    def is_resolvable(self, ident):
+        return not self.source_file_path(ident) is None
+	
+    def resolve(self, ident):
+        if not self.is_resolvable(ident):
+            self.raise_404_for_ident(ident)
+
+        source_fp = self.source_file_path(ident)
+        logger.debug('src image: %s' % (source_fp))
+	
+        file_format = source_fp.split('.')[-1]
+        logger.debug('src format: %s' % (file_format,))
+
+        return (source_fp, file_format)
