@@ -36,6 +36,7 @@ PIL_MODES_TO_QUALITIES = {
     'P' : ['default','gray','bitonal'],
     'RGB': ['default','color','gray','bitonal'],
     'RGBA': ['default','color','gray','bitonal'],
+    'RGBX': ['default','color','gray','bitonal'],
     'CMYK': ['default','color','gray','bitonal'],
     'YCbCr': ['default','color','gray','bitonal'],
     'I': ['default','color','gray','bitonal'],
