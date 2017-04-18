@@ -439,6 +439,88 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             return (url, options)
 
 
+class TriplestoreHTTPResolver(SimpleHTTPResolver):
+    '''This resolver accepts a UID defined by a specific property and queries a
+    triplstore to get the URI of the image, which is retrieved using
+    functionality provided by the SimpleHttpResolver superclass.
+
+    This is mostly useful in a Fedora4+triplestore index scenario where a
+    client requesting the image only knows an institution-provided UID for
+    the resource.
+
+    The configuration MUST contain:
+     * `sparql_endpoint`: the URL of the SPARQL endpoint.
+     * `property_uri`: the URI of the property to be searched for.
+
+    The configuration MAY contain:
+     * `datatype`: fully qualified datatype URI for the UID. Defaults to
+     xsd:string. Can be set to an empty string for untyped values.
+     * `query_template`: SPARQL query template to override the default query.
+       There are three placeholders (`{}`) respectively for the property URI, the
+       client-provided identifier, and the datatype.
+    '''
+    def __init__(self, config):
+        super(SimpleHTTPResolver, self).__init__(config)
+
+        datatype = self.config.get('datatype',
+                'http://www.w3.org/2001/XMLSchema#string')
+
+        self.sparql_endpoint = self.config.get('sparql_endpoint', '')
+        self.property_uri = self.config.get('property_uri', '')
+        self.datatype = '^^<{}>'.format(datatype) if datatype else ''
+        self.qry_template = self.config.get('query_template',
+                'SELECT ?r WHERE {{ ?r <{}> "{}"{} . }} LIMIT 1')
+        self.source_suffix = self.config.get('source_suffix', '')
+
+        if not self.sparql_endpoint:
+            self._500_error('No SPARQL endpoint provided.')
+        if not self.property_uri:
+            self._500_error('No property URI provided.')
+
+
+        # inherited/required configs from simple http resolver
+        self.head_resolvable = self.config.get('head_resolvable', True)
+        self.default_format = self.config.get('default_format', None)
+        if 'cache_root' in self.config:
+            self.cache_root = self.config['cache_root']
+        else:
+            self._500_error('Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.')
+
+        # Required for SimpleHTTPResolver
+        # All URIs coming from the SPARQL query are resolvable
+        self.uri_resolvable = True
+        self.user = self.config.get('user', None)
+        self.pw = self.config.get('pw', None)
+        self.ssl_check = self.config.get('ssl_check', True)
+
+    def _web_request_url(self, ident):
+        # Build SPARQL query.
+        q = self.qry_template.format(self.property_uri, ident, self.datatype)
+
+        res = requests.post(
+            self.sparql_endpoint,
+            headers = {
+                # This may change depending on the triplestore used.
+                'Accept' : 'application/sparql-results+json, */*;q=0.5',
+                'Content-Type' : 'application/sparql-query',
+            },
+            data = q
+        )
+
+        res_bindings = res.json()['results']['bindings']
+        logger.info('Retrieved SPARQL results: {}'.format(res_bindings))
+        if not res_bindings:
+            return None
+        else:
+            uri = res_bindings[0]['r']['value']
+
+        return uri + self.source_suffix
+
+    def _500_error(self, message):
+        logger.error(message)
+        raise ResolverException(500, message)
+
+
 class SourceImageCachingResolver(_AbstractResolver):
     '''
     Example resolver that one might use if image files were coming from
