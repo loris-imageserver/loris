@@ -546,6 +546,7 @@ class Loris(object):
                 r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
                 return r
         else:
+            src_fp = None
             try:
 
                 # 1. Resolve the identifier
