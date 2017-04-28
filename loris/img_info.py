@@ -153,6 +153,7 @@ class ImageInfo(object):
         if (not initial_bytes[:12] == '\x00\x00\x00\x0cjP  \r\n\x87\n') or \
             (not initial_bytes[16:] == 'ftypjp2 '):
             jp2.close()
+            logger.warning('Invalid JP2 file at %s' % fp)
             raise ImageInfoException(http_status=500, message='Invalid JP2 file')
 
         #grab width and height
