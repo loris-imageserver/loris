@@ -70,6 +70,8 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
+    config['authorizer'] = {'impl': 'loris.authorizer.NooneAuthorizer'}
+
     return config
 
 
@@ -299,6 +301,7 @@ class Loris(object):
 
         self.transformers = self._load_transformers()
         self.resolver = self._load_resolver()
+        self.authorizer = self._load_authorizer()
         self.max_size_above_full = _loris_config.get('max_size_above_full', 200)
 
         if self.enable_caching:
@@ -331,6 +334,14 @@ class Loris(object):
         ResolverClass = self._import_class(impl)
         resolver_config =  self.app_configs['resolver']
         return ResolverClass(resolver_config)
+
+    def _load_authorizer(self):
+        try:
+            impl = self.app_configs['authorizer']['impl']
+        except:
+            return None
+        AuthorizerClass = self._import_class(impl)
+        return AuthorizerClass(self.app_configs['authorizer'])                
 
     def _import_class(self, qname):
         '''Imports a class AND returns it (the class, not an instance).
@@ -427,9 +438,23 @@ class Loris(object):
         r = LorisResponse()
         r.set_acao(request, self.cors_regex)
         ims_hdr = request.headers.get('If-Modified-Since')
-
         ims = parse_date(ims_hdr)
         last_mod = parse_date(http_date(last_mod)) # see note under get_img
+
+        if self.authorizer and self.authorizer.is_protected(info):
+            # Check if user is authorized
+            token = request.headers.get('Authorization', '')
+            authed = self.authorizer.is_authorized(info, token)            
+            if authed['status'] == 'deny':
+                r.status_code = 401
+                # trash If-Mod-Since
+                ims = None
+            elif authed['status'] == 'redirect':
+                r.status_code = 302
+                r.location = authed['location']
+            else:
+                # Nope, we're good to go :)
+                pass
 
         if ims and ims >= last_mod:
             self.logger.debug('Sent 304 for %s ' % (ident,))
@@ -477,6 +502,13 @@ class Loris(object):
 
             # get the info
             info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
+
+            # Maybe inject services before caching
+            if self.authorizer and self.authorizer.is_protected(info):
+                # Call get_services to inject
+                svcs = self.authorizer.get_services_info(info)
+                if svcs and 'service' in svcs:
+                    info.service = svcs['service']
 
             # store
             if self.enable_caching:

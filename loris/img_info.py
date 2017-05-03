@@ -60,7 +60,7 @@ class ImageInfo(object):
         tiles: [{}]
     '''
     __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'ident', 'profile', 'protocol', 'sizes',
+        'ident', 'profile', 'protocol', 'sizes', 'service',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
     def __init__(self):
@@ -80,6 +80,7 @@ class ImageInfo(object):
         new_inst = ImageInfo()
         new_inst.ident = uri
         new_inst.src_img_fp = src_img_fp
+        new_inst.src_format = src_format
         new_inst.tiles = []
         new_inst.sizes = None
         new_inst.scaleFactors = None
@@ -124,6 +125,11 @@ class ImageInfo(object):
         new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
         new_inst.profile = j.get(u'profile')
+        new_inst.service = j.get('service', {})
+
+        # Also add src_img_fp if available
+        new_inst.src_img_fp = j.get('_src_img_fp', '')
+        new_inst.src_format = j.get('_src_format', '')
 
         f.close()
         return new_inst
@@ -140,7 +146,7 @@ class ImageInfo(object):
     def _from_jp2(self, fp):
         '''Get info about a JP2.
         '''
-        logger.debug('Extracting info from JP2 file.')
+        logger.debug('Extracting info from JP2 file: %s' % fp)
         self.profile[1]['qualities'] = ['default', 'bitonal']
 
         scaleFactors = []
@@ -309,14 +315,23 @@ class ImageInfo(object):
         if self.tiles:
             d['tiles'] = self.tiles
         d['sizes'] = self.sizes
+        if self.service:
+            d['service'] = self.service
+
         return d
 
-    def to_json(self):
+    def to_json(self, cache=False):
         '''Serialize as json.
         Returns:
             str (json)
         '''
         d = self.to_dict()
+
+        if cache:
+            # Add in internal properties for caching
+            d['_src_img_fp'] = self.src_img_fp
+            d['_src_format'] = self.src_format
+
         return json.dumps(d)
 
 class InfoCache(object):
@@ -441,7 +456,7 @@ class InfoCache(object):
                     raise
 
         with open(info_fp, 'w') as f:
-            f.write(info.to_json())
+            f.write(info.to_json(cache=True))
             f.close()
             logger.debug('Created %s' % (info_fp,))
 

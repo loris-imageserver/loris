@@ -19,8 +19,13 @@ import glob
 import requests
 import re
 
-logger = getLogger(__name__)
+try:
+    import boto
+    from boto.s3.key import Key
+except:
+    pass
 
+logger = getLogger(__name__)
 
 class _AbstractResolver(object):
 
@@ -143,7 +148,8 @@ class SimpleHTTPResolver(_AbstractResolver):
      * `ssl_check`, whether to check the validity of the origin server's HTTPS
      certificate. Set to False if you are using an origin server with a
      self-signed certificate.
-     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
+     * `cert`, path to an SSL client certificate to use for authentication. 
+        If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
      * `key`, path to an SSL client key to use for authentication.
     '''
     def __init__(self, config):
@@ -320,8 +326,10 @@ class SimpleHTTPResolver(_AbstractResolver):
         (source_url, options) = self._web_request_url(ident)
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
-                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
-                log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
+                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % \
+                    (ident,response.status_code)
+                log_message = 'Source image not found at %s for identifier: %s.' \
+                    ' Status code returned: %s' % (source_url,ident,response.status_code)
                 logger.warn(log_message)
                 raise ResolverException(404, public_message)
 
@@ -496,3 +504,98 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         format_ = self.format_from_ident(ident)
         return (cache_fp, format_)
+
+
+class S3CachingResolver(_AbstractResolver):
+    # user = access_key
+    # pw = secret_key
+    # source_prefix = path/inside/bucket
+    # cache_root = where/on/disk/to/cache/jp2s
+
+    def __init__(self, config):
+        super(S3CachingResolver, self).__init__(config)
+        try:
+            self.bucket = self.config['bucket']
+        except:
+            logger.error("S3 Resolver needs a `bucket` configuration setting.")
+        try:
+            self.access_key = self.config['access_key']
+        except:
+            logger.error("S3 Resolver needs an `access_key` configuration setting.")
+        try:
+            self.secret_key = self.config['secret_key']
+        except:
+            logger.error("S3 Resolver needs a `secret_key` configuration setting.")            
+        try:
+            self.source_prefix = self.config['source_prefix']
+        except:
+            logger.error("S3 Resolver needs a `source_prefix` configuration setting.")
+        try:
+            self.cache_root = self.config['cache_root']
+        except:
+            logger.error("S3 Resolver needs a `cache_root` configuration setting.")
+
+        self._connect()
+        self.key_cache = {}
+
+    def _connect(self):
+        try:
+            self.connection = boto.connect_s3(aws_access_key_id=self.access_key, \
+                aws_secret_access_key=self.secret_key)
+        except:
+            logger.error("S3 Resolver could not connect to S3; is boto installed?")
+        try:
+            self.bucket = self.connection.get_bucket(self.bucket)
+        except:
+            logger.error("S3 Resolver could not retrieve named bucket")
+
+
+    def raise_404_for_ident(self, ident):
+        message = 'Source image not found for identifier: %s.' % (ident,)
+        logger.warn(message)
+        raise ResolverException(404, message)
+
+    def disk_fp(self, ident):
+        """Check on-disk cache of JP2s"""
+        fp = join(self.cache_root, "%s.jp2" % ident)
+        if exists(fp):
+            return fp
+        else:
+            return None
+
+    def s3_key(self, ident):
+        """Check S3 for the Key"""
+        k = Key(self.bucket)
+        k.key = self.source_prefix+'/'+ident
+        if k.exists():
+            self.key_cache[ident] = k
+            return k
+        else:
+            return None
+
+    ### Public methods
+
+    def is_resolvable(self, ident):
+        """Does this image exist?"""
+        if ident in self.key_cache:
+            # Check in memory cache
+            return True
+        elif self.disk_fp(ident) is not None:
+            return True
+        elif self.s3_key(ident) is not None:
+            return True
+        else:
+            return False
+
+    def resolve(self, ident):
+        if not self.is_resolvable(ident):
+            self.raise_404_for_ident(ident)
+
+        fp = self.disk_fp(ident)
+        if not fp:
+            # fetch it from S3 to cache_root
+            # must already be in key_cache
+            fp = join(self.cache_root, "%s.jp2" % ident)
+            logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp))
+            self.key_cache[ident].get_contents_to_filename(fp)
+        return (fp, "jp2")

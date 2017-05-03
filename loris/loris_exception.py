@@ -26,3 +26,4 @@ class ImageException(LorisException): pass
 class ImageInfoException(LorisException): pass
 class ResolverException(LorisException): pass
 class TransformException(LorisException): pass
+class AuthorizerException(LorisException): pass
