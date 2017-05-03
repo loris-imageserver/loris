@@ -13,6 +13,7 @@ class _AbstractAuthorizer(object):
 
     def __init__(self, config):
         self.config = config
+        self.cookie_name = config.get('cookie_name', 'iiif_access_cookie')
 
         self.service_template = {
             "@context": "http://iiif.io/api/auth/1/context.json",
@@ -85,7 +86,6 @@ class _AbstractAuthorizer(object):
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
 
-
 class NullAuthorizer(_AbstractAuthorizer):
     """
     Everything is permissible
@@ -131,5 +131,30 @@ class NooneAuthorizer(_AbstractAuthorizer):
         token['profile'] = self.token_profile
         self._strip_empty_fields(token)
 
+        tmpl['service'] = [token]
+        return {"service": tmpl}
+
+class TestDegradingAuthorizer(_AbstractAuthorizer):
+    """
+    Everything is the test image, except the test image
+    """
+    def is_protected(self, info):
+        return not info.src_img_fp.endswith('67352ccc-d1b0-11e1-89ae-279075081939.jp2')
+
+    def is_authorized(self, info, cookie="", token=""):
+        return {"status": "redirect", 
+            "location": "67352ccc-d1b0-11e1-89ae-279075081939.jp2/info.json"}    
+
+    def get_services_info(self, info):
+        tmpl = self.service_template.copy()
+        tmpl['@id'] = "http://.../degraded"
+        tmpl['label'] = "Go over there"
+        tmpl['profile'] = self.login_profile
+        self._strip_empty_fields(tmpl)
+        token = self.service_template.copy()
+        token['@id'] = "http://.../error_token"
+        token['label'] = "No really, go over there"
+        token['profile'] = self.token_profile
+        self._strip_empty_fields(token)
         tmpl['service'] = [token]
         return {"service": tmpl}

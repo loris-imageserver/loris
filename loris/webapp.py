@@ -70,7 +70,7 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.NooneAuthorizer'}
+    config['authorizer'] = {'impl': 'loris.authorizer.TestDegradingAuthorizer'}
 
     return config
 
@@ -447,14 +447,12 @@ class Loris(object):
             authed = self.authorizer.is_authorized(info, token)            
             if authed['status'] == 'deny':
                 r.status_code = 401
-                # trash If-Mod-Since
+                # trash If-Mod-Since to ensure no 304
                 ims = None
             elif authed['status'] == 'redirect':
                 r.status_code = 302
                 r.location = authed['location']
-            else:
-                # Nope, we're good to go :)
-                pass
+            # Otherwise we're okay
 
         if ims and ims >= last_mod:
             self.logger.debug('Sent 304 for %s ' % (ident,))
@@ -546,6 +544,16 @@ class Loris(object):
         else:
             in_cache = False
 
+        # We need the info to check authorization, still cheaper than always resolving
+        info = self._get_info(ident, request, base_uri)[0]
+        if self.authorizer and self.authorizer.is_protected(info):
+            cookie = request.cookies.get(self.authorizer.cookie_name)
+            authed = self.authorizer.is_authorized(ident, cookie=cookie)
+            if authed['status'] == 'deny':
+                r.status_code = 401
+                return r
+            # otherwise ok, as images don't redirect
+
         if in_cache:
             fp, img_last_mod = self.img_cache[image_request]
             ims_hdr = request.headers.get('If-Modified-Since')
@@ -580,7 +588,6 @@ class Loris(object):
         else:
             src_fp = None
             try:
-
                 # 1. Resolve the identifier
                 src_fp, src_format = self.resolver.resolve(ident)
 

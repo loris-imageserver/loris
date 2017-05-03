@@ -84,6 +84,7 @@ class ImageInfo(object):
         new_inst.tiles = []
         new_inst.sizes = None
         new_inst.scaleFactors = None
+        new_inst.service = {}
         local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES[:]}
         if max_size_above_full == 0 or max_size_above_full > 100:
             local_profile['supports'].append('sizeAboveFull')
