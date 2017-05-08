@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-`resolver` -- Resolve Identifiers to Image Paths
-================================================
+`authorizer` -- Handle authorization of access to content
+=========================================================
 """
 
 from logging import getLogger
 from loris_exception import AuthorizerException
+import requests
 
 logger = getLogger(__name__)
 
@@ -102,7 +103,7 @@ class NullAuthorizer(_AbstractAuthorizer):
         return {"status": "ok"}
 
     def get_services_info(self, info):
-        # No services needed
+        # No services needed, return empty dict
         return {}
 
 class NooneAuthorizer(_AbstractAuthorizer):
@@ -122,12 +123,12 @@ class NooneAuthorizer(_AbstractAuthorizer):
     def get_services_info(self, info):
         tmpl = self.service_template.copy()
         tmpl['@id'] = "http://.../denied"
-        tmpl['label'] = "Go Away"
+        tmpl['label'] = "Please Go Away"
         tmpl['profile'] = self.login_profile
         self._strip_empty_fields(tmpl)
         token = self.service_template.copy()
         token['@id'] = "http://.../error_token"
-        token['label'] = "No really, go away"
+        token['label'] = "No really, please go away"
         token['profile'] = self.token_profile
         self._strip_empty_fields(token)
 
@@ -136,7 +137,7 @@ class NooneAuthorizer(_AbstractAuthorizer):
 
 class TestDegradingAuthorizer(_AbstractAuthorizer):
     """
-    Everything is the test image, except the test image
+    Everything degrades to the test image, except the test image
     """
     def is_protected(self, info):
         return not info.src_img_fp.endswith('67352ccc-d1b0-11e1-89ae-279075081939.jp2')
@@ -148,13 +149,35 @@ class TestDegradingAuthorizer(_AbstractAuthorizer):
     def get_services_info(self, info):
         tmpl = self.service_template.copy()
         tmpl['@id'] = "http://.../degraded"
-        tmpl['label'] = "Go over there"
+        tmpl['label'] = "Please go over there"
         tmpl['profile'] = self.login_profile
         self._strip_empty_fields(tmpl)
         token = self.service_template.copy()
         token['@id'] = "http://.../error_token"
-        token['label'] = "No really, go over there"
+        token['label'] = "No really, please go over there"
         token['profile'] = self.token_profile
         self._strip_empty_fields(token)
         tmpl['service'] = [token]
         return {"service": tmpl}
+
+class ExternalAuthorizer(_AbstractAuthorizer):
+    """
+    Pass info through to remote system for auth'z business logic
+    """
+
+    def __init__(self, config):
+        super(ExternalAuthorizer, self).__init__(config)
+        self.authorized_url = config.get('authorized_url', '')
+        self.protected_url = config.get('protected_url', '')
+        self.services_url = config.get('services_url', '')
+
+    def is_protected(self, info):
+        svc =  (self.authorized_url, info.ident, info.src_img_fp)
+
+
+    def is_authorized(self, info, cookie="", token=""):
+        pass
+
+    def get_services_info(self, info):
+        pass
+
