@@ -235,7 +235,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             url = self.source_prefix + ident + self.source_suffix
         if not (url.startswith('http://') or url.startswith('https://')):
             logger.warn(
-                'Bad URL request at %s for identifier: %s.' % (source_url, ident)
+                'Bad URL request at %s for identifier: %s.' % (url, ident)
             )
             public_message = 'Bad URL request made for identifier: %s.' % (ident,)
             raise ResolverException(404, public_message)
