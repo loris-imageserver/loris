@@ -1,0 +1,18 @@
+{
+	"source": "identifier.jp2",
+	"attribution": "Text to put in attribution field",
+	"logo": "URI/dict to put in logo field",
+	"licence": "URI to put in licence field",
+	"service": {"id": "uri to additional service"},
+	"allowed": ["allowed", "for", "full"],
+	"tiers": [
+		{
+			"name": "degraded",
+			"source": "identifier-2.jp2",
+			"size": 1000,
+			"quality": "gray",
+			"compression": 95,
+			"allowed": ["roles", "allowed", "to", "access"]
+		}
+	]
+}

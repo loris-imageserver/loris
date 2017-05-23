@@ -57,6 +57,7 @@ def get_debug_config(debug_jp2_transformer):
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+    config['resolver']['tier_separator'] = ">>"
     if debug_jp2_transformer == 'opj':
         from transforms import OPJ_JP2Transformer
         opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
@@ -498,6 +499,12 @@ class Loris(object):
             self.logger.debug('Identifier: %s' % (ident,))
             self.logger.debug('Base URI: %s' % (base_uri,))
 
+            # Maybe mutate base_uri from the resolver
+            try:
+                base_uri = self.resolver.fix_base_uri(base_uri)
+            except:
+                logger.debug("FAILED TO FIX BASE URI")
+
             # get the info
             info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
 
@@ -594,6 +601,8 @@ class Loris(object):
                 # 2. Hand the Image object its info
                 info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
                 image_request.info = info
+
+                # 2b. Check if we're a reduced quality version
 
                 # 3. Check that we can make the quality requested
                 if image_request.quality not in info.profile[1]['qualities']:

@@ -6,7 +6,7 @@
 import errno
 from logging import getLogger
 from loris_exception import ResolverException
-from os.path import join, exists, dirname
+from os.path import join, exists, dirname, split
 from os import makedirs, rename, remove
 from shutil import copy
 import tempfile
@@ -19,13 +19,11 @@ import glob
 import requests
 import re
 
-try:
-    import boto
-    from boto.s3.key import Key
-except:
-    pass
+import boto
+from boto.s3.key import Key
 
 logger = getLogger(__name__)
+
 
 class _AbstractResolver(object):
 
@@ -63,6 +61,9 @@ class _AbstractResolver(object):
         """
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
+
+    def fix_base_uri(self, base_uri):
+        return base_uri
 
     def format_from_ident(self, ident):
         if ident.rfind('.') != -1:
@@ -148,8 +149,7 @@ class SimpleHTTPResolver(_AbstractResolver):
      * `ssl_check`, whether to check the validity of the origin server's HTTPS
      certificate. Set to False if you are using an origin server with a
      self-signed certificate.
-     * `cert`, path to an SSL client certificate to use for authentication. 
-        If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
+     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
      * `key`, path to an SSL client key to use for authentication.
     '''
     def __init__(self, config):
@@ -326,10 +326,8 @@ class SimpleHTTPResolver(_AbstractResolver):
         (source_url, options) = self._web_request_url(ident)
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
-                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % \
-                    (ident,response.status_code)
-                log_message = 'Source image not found at %s for identifier: %s.' \
-                    ' Status code returned: %s' % (source_url,ident,response.status_code)
+                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
+                log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
                 logger.warn(log_message)
                 raise ResolverException(404, public_message)
 
@@ -511,6 +509,7 @@ class S3CachingResolver(_AbstractResolver):
     # pw = secret_key
     # source_prefix = path/inside/bucket
     # cache_root = where/on/disk/to/cache/jp2s
+    # tier_separator = chrs-to-split-ident
 
     def __init__(self, config):
         super(S3CachingResolver, self).__init__(config)
@@ -535,20 +534,24 @@ class S3CachingResolver(_AbstractResolver):
         except:
             logger.error("S3 Resolver needs a `cache_root` configuration setting.")
 
+        self.tier_separator = self.config.get('tier_separator', '==')
+        self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
+
         self._connect()
         self.key_cache = {}
 
     def _connect(self):
         try:
-            self.connection = boto.connect_s3(aws_access_key_id=self.access_key, \
-                aws_secret_access_key=self.secret_key)
+            self.connection = boto.connect_s3(aws_access_key_id=self.access_key, aws_secret_access_key=self.secret_key)
         except:
-            logger.error("S3 Resolver could not connect to S3; is boto installed?")
+            logger.error("S3 Resolver could not connect to S3")
         try:
             self.bucket = self.connection.get_bucket(self.bucket)
         except:
             logger.error("S3 Resolver could not retrieve named bucket")
 
+    def fix_base_uri(self, base_uri):
+        return base_uri.replace("%2F", '/')
 
     def raise_404_for_ident(self, ident):
         message = 'Source image not found for identifier: %s.' % (ident,)
@@ -565,10 +568,34 @@ class S3CachingResolver(_AbstractResolver):
 
     def s3_key(self, ident):
         """Check S3 for the Key"""
-        k = Key(self.bucket)
-        k.key = self.source_prefix+'/'+ident
+        ident = ident.replace('%2F', '/')
+
+        idl = ident.split('/')
+        idl2 = [idl[0], 'dynamic']
+        idl2.extend(idl[1:])
+        path = '/'.join(idl2)
+        name = self.source_prefix+'/'+path+'.jp2'
+
+        k = Key(self.bucket, name)
+        logger.debug("Looking in S3 for %s" % name)
         if k.exists():
             self.key_cache[ident] = k
+
+            k2 = Key(self.bucket, name.replace("jp2", self.auth_rules_ext))
+            if k2.exists():
+                # Fetch and locally cache our auth rules
+                js = k2.get_contents_as_string()
+                k._iiif_auth_rules = json.loads(js)
+                fp = join(self.cache_root, "%s.%s" % (ident, auth_rules_ext))
+                (dr, fn) = split(fp)
+                try:
+                    makedirs(dr)
+                except OSError:
+                    # already exists
+                    pass                
+                fh = file(fn, 'w')
+                fh.write(js)
+                fh.close()
             return k
         else:
             return None
@@ -577,6 +604,12 @@ class S3CachingResolver(_AbstractResolver):
 
     def is_resolvable(self, ident):
         """Does this image exist?"""
+
+        try:
+            ident, tier = ident.rsplit(self.tier_separator, 1)
+        except:
+            tier = ""
+
         if ident in self.key_cache:
             # Check in memory cache
             return True
@@ -591,11 +624,16 @@ class S3CachingResolver(_AbstractResolver):
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
 
+        ident = ident.replace('%2F', '/')
         fp = self.disk_fp(ident)
         if not fp:
-            # fetch it from S3 to cache_root
-            # must already be in key_cache
             fp = join(self.cache_root, "%s.jp2" % ident)
+            (dr, fn) = split(fp)
+            try:
+                makedirs(dr)
+            except OSError:
+                # already exists
+                pass
             logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp))
             self.key_cache[ident].get_contents_to_filename(fp)
         return (fp, "jp2")

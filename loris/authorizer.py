@@ -162,8 +162,12 @@ class TestDegradingAuthorizer(_AbstractAuthorizer):
 
 class ExternalAuthorizer(_AbstractAuthorizer):
     """
-    Pass info through to remote system for auth'z business logic
+    Pass info through to remote backend system for auth'z business logic
     """
+
+    # Should pass in options from resolver.
+    # .../public/small.jpg .../private/large.jpg .../protected/medium.jpg
+    # Otherwise need to re-re-resolve.
 
     def __init__(self, config):
         super(ExternalAuthorizer, self).__init__(config)
@@ -172,12 +176,14 @@ class ExternalAuthorizer(_AbstractAuthorizer):
         self.services_url = config.get('services_url', '')
 
     def is_protected(self, info):
-        svc =  (self.authorized_url, info.ident, info.src_img_fp)
-
+        # http://somewhere.org/path/to/service
+        # using POST to ensure data doesn't end up in logs
+        r = requests.post(self.protected_url, data={"id":info.ident, "fp":info.src_img_fp})
 
     def is_authorized(self, info, cookie="", token=""):
-        pass
+        r = requests.post(self.authorized_url, data={"id":info.ident, 
+            "fp":info.src_img_fp, "cookie":cookie, "token": token})
 
     def get_services_info(self, info):
-        pass
+        r = requests.post(self.services_url, data={"id":info.ident, "fp":info.src_img_fp})
 
