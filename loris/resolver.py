@@ -19,8 +19,13 @@ import glob
 import requests
 import re
 
-import boto
-from boto.s3.key import Key
+from img_info import ImageInfo
+
+try:
+    import boto
+    from boto.s3.key import Key
+except:
+    pass
 
 logger = getLogger(__name__)
 
@@ -45,7 +50,7 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('is_resolvable() not implemented for %s' % (cn,))
 
-    def resolve(self, ident):
+    def resolve(self, ident, base_uri):
         """
         Given the identifier of an image, get the path (fp) and format (one of.
         'jpg', 'tif', or 'jp2'). This will likely need to be reimplemented for
@@ -55,7 +60,7 @@ class _AbstractResolver(object):
             ident (str):
                 The identifier for the image.
         Returns:
-            (str, str): (fp, format)
+            ImageInfo: Partially constructed ImageInfo object 
         Raises:
             ResolverException when something goes wrong...
         """
@@ -104,17 +109,16 @@ class SimpleFSResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
 
-    def resolve(self, ident):
+    def resolve(self, ident, base_uri):
 
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
 
         source_fp = self.source_file_path(ident)
         logger.debug('src image: %s' % (source_fp,))
-
         format_ = self.format_from_ident(ident)
-
-        return (source_fp, format_)
+        uri = self.fix_base_uri(base_uri)
+        return ImageInfo(uri, source_fp, format_)
 
 
 class ExtensionNormalizingFSResolver(SimpleFSResolver):
@@ -350,12 +354,13 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         return local_fp
 
-    def resolve(self, ident):
+    def resolve(self, ident, base_uri):
         cached_file_path = self.cached_file_for_ident(ident)
         if not cached_file_path:
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
-        return (cached_file_path, format_)
+        uri = self.fix_base_uri(base_uri)
+        return ImageInfo(uri, cached_file_path, format_)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -491,7 +496,7 @@ class SourceImageCachingResolver(_AbstractResolver):
         logger.warn(log_message)
         raise ResolverException(404, public_message)
 
-    def resolve(self, ident):
+    def resolve(self, ident, base_uri):
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
         if not self.in_cache(ident):
@@ -499,9 +504,9 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         cache_fp = self.cache_file_path(ident)
         logger.debug('Image Served from local cache: %s' % (cache_fp,))
-
         format_ = self.format_from_ident(ident)
-        return (cache_fp, format_)
+        uri = self.fix_base_uri(base_uri)
+        return ImageInfo(uri, cache_fp, format_)
 
 
 class S3CachingResolver(_AbstractResolver):
@@ -620,7 +625,7 @@ class S3CachingResolver(_AbstractResolver):
         else:
             return False
 
-    def resolve(self, ident):
+    def resolve(self, ident, base_uri):
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
 
@@ -636,4 +641,7 @@ class S3CachingResolver(_AbstractResolver):
                 pass
             logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp))
             self.key_cache[ident].get_contents_to_filename(fp)
-        return (fp, "jp2")
+
+        uri = self.fix_base_uri(base_uri)
+
+        return ImageInfo(uri, fp, 'jp2')

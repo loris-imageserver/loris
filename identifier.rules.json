@@ -1,18 +1,27 @@
 {
 	"source": "identifier.jp2",
-	"attribution": "Text to put in attribution field",
-	"logo": "URI/dict to put in logo field",
-	"licence": "URI to put in licence field",
-	"service": {"id": "uri to additional service"},
-	"allowed": ["allowed", "for", "full"],
+	"allowed": ["roles", "allowed", "for", "full"],
+	"extraInfo": {
+		"attribution": "Text to put in attribution field",
+		"logo": "URI/dict to put in logo field",
+		"licence": "URI to put in licence field",
+		"service": {"id": "uri(s) to additional service(s)"}
+	},
+
 	"tiers": [
 		{
-			"name": "degraded",
-			"source": "identifier-2.jp2",
-			"size": 1000,
-			"quality": "gray",
-			"compression": 95,
-			"allowed": ["roles", "allowed", "to", "access"]
+			"identifier": "identifier-degraded or http://.../identifier-degraded",
+			"attribution": "Text to put in attribution field",
+			"logo": "URI/dict to put in logo field",
+			"licence": "URI to put in licence field",
+			"service": {"id": "uri(s) to additional service(s)"},
+			"allowed": ["roles", "allowed", "for", "degraded"],
+			"generation": {
+				"output": "/path/to/identifier-degraded.jp2",
+				"size": 1000,
+				"quality": "gray",
+				"recipe": "/path/to/kakadu/recipe.txt"
+			}
 		}
 	]
 }

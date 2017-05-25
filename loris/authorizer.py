@@ -52,7 +52,7 @@ class _AbstractAuthorizer(object):
             bool
         """
         cn = self.__class__.__name__
-        raise NotImplementedError('is_resolvable() not implemented for %s' % (cn,))
+        raise NotImplementedError('is_protected() not implemented for %s' % (cn,))
 
     def get_services_info(self, info):
         """
@@ -66,7 +66,7 @@ class _AbstractAuthorizer(object):
             ResolverException when something goes wrong...
         """
         cn = self.__class__.__name__
-        raise NotImplementedError('resolve() not implemented for %s' % (cn,))
+        raise NotImplementedError('get_services_info() not implemented for %s' % (cn,))
 
     def is_authorized(self, info, cookie="", token=""):
         """
@@ -81,11 +81,10 @@ class _AbstractAuthorizer(object):
                 The token value from the Authorization header for info.json
         Returns:
             {"status": "ok / deny / redirect", "location": "uri-to-redirect-to"}
-        Raises:
-            ResolverException when something goes wrong...
+
         """
         cn = self.__class__.__name__
-        raise NotImplementedError('resolve() not implemented for %s' % (cn,))
+        raise NotImplementedError('is_authorized() not implemented for %s' % (cn,))
 
 class NullAuthorizer(_AbstractAuthorizer):
     """
@@ -135,16 +134,22 @@ class NooneAuthorizer(_AbstractAuthorizer):
         tmpl['service'] = [token]
         return {"service": tmpl}
 
-class TestDegradingAuthorizer(_AbstractAuthorizer):
+class SingleDegradingAuthorizer(_AbstractAuthorizer):
     """
-    Everything degrades to the test image, except the test image
+    Everything degrades to the configured image, except the configured image
     """
+    def __init__(self, config):
+        super(SingleDegradingAuthorizer, self).__init__(config)
+        self.redirect_fp = config.get('redirect_target', 
+            '67352ccc-d1b0-11e1-89ae-279075081939.jp2')
+
     def is_protected(self, info):
-        return not info.src_img_fp.endswith('67352ccc-d1b0-11e1-89ae-279075081939.jp2')
+        return not info.src_img_fp.endswith(self.redirect_fp)
 
     def is_authorized(self, info, cookie="", token=""):
+        # Assumes a trivial resolver
         return {"status": "redirect", 
-            "location": "67352ccc-d1b0-11e1-89ae-279075081939.jp2/info.json"}    
+            "location": "%s/info.json" % self.redirect_fp}    
 
     def get_services_info(self, info):
         tmpl = self.service_template.copy()
@@ -165,9 +170,7 @@ class ExternalAuthorizer(_AbstractAuthorizer):
     Pass info through to remote backend system for auth'z business logic
     """
 
-    # Should pass in options from resolver.
-    # .../public/small.jpg .../private/large.jpg .../protected/medium.jpg
-    # Otherwise need to re-re-resolve.
+    # Should pass in options/info from resolver!
 
     def __init__(self, config):
         super(ExternalAuthorizer, self).__init__(config)
@@ -186,4 +189,18 @@ class ExternalAuthorizer(_AbstractAuthorizer):
 
     def get_services_info(self, info):
         r = requests.post(self.services_url, data={"id":info.ident, "fp":info.src_img_fp})
+
+class RulesAuthorizer(_AbstractAuthorizer):
+
+    def __init__(self, config):
+        super(RulesAuthorizer, self).__init__(config)
+
+    def is_protected(self, info):
+        pass
+
+    def is_authorized(self, info, cookie="", token=""):
+        pass
+
+    def get_services_info(self, info):
+        pass
 

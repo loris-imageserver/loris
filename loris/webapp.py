@@ -71,7 +71,7 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.TestDegradingAuthorizer'}
+    config['authorizer'] = {'impl': 'loris.authorizer.NullAuthorizer'}
 
     return config
 
@@ -487,26 +487,22 @@ class Loris(object):
             if not all((src_fp, src_format)):
                 # get_img can pass in src_fp, src_format because it needs them
                 # elsewhere; get_info does not.
-                src_fp, src_format = self.resolver.resolve(ident)
+                info = self.resolver.resolve(ident, base_uri)
+            else:
+                info = ImageInfo(ident, src_fp, src_format)
 
             try:
-                formats = self.transformers[src_format].target_formats
+                formats = self.transformers[info.src_format].target_formats
             except KeyError:
                 raise ImageInfoException(500, 'unknown source format')
 
-            self.logger.debug('Format: %s' % (src_format,))
-            self.logger.debug('File Path: %s' % (src_fp,))
+            self.logger.debug('Format: %s' % (info.src_format,))
+            self.logger.debug('File Path: %s' % (info.src_img_fp,))
             self.logger.debug('Identifier: %s' % (ident,))
             self.logger.debug('Base URI: %s' % (base_uri,))
 
-            # Maybe mutate base_uri from the resolver
-            try:
-                base_uri = self.resolver.fix_base_uri(base_uri)
-            except:
-                logger.debug("FAILED TO FIX BASE URI")
-
-            # get the info
-            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
+            # Finish setting up the info from the image file
+            info.from_image_file(formats, self.max_size_above_full)
 
             # Maybe inject services before caching
             if self.authorizer and self.authorizer.is_protected(info):
@@ -553,6 +549,7 @@ class Loris(object):
 
         # We need the info to check authorization, still cheaper than always resolving
         info = self._get_info(ident, request, base_uri)[0]
+
         if self.authorizer and self.authorizer.is_protected(info):
             cookie = request.cookies.get(self.authorizer.cookie_name)
             authed = self.authorizer.is_authorized(ident, cookie=cookie)
@@ -583,9 +580,9 @@ class Loris(object):
                 r.response = file(fp)
 
                 # resolve the identifier
-                src_fp, src_format = self.resolver.resolve(ident)
+                # src_fp, src_format = self.resolver.resolve(ident, base_uri)
                 # hand the Image object its info
-                info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
+                info = self._get_info(ident, request, base_uri)[0]
                 image_request.info = info
                 # we need to do the above to set the canonical link header
 
@@ -593,16 +590,11 @@ class Loris(object):
                 r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
                 return r
         else:
-            src_fp = None
             try:
-                # 1. Resolve the identifier
-                src_fp, src_format = self.resolver.resolve(ident)
-
-                # 2. Hand the Image object its info
-                info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
+                # 1. Get the info
+                info = self._get_info(ident, request, base_uri)[0]
+                # 2. Give the image its info
                 image_request.info = info
-
-                # 2b. Check if we're a reduced quality version
 
                 # 3. Check that we can make the quality requested
                 if image_request.quality not in info.profile[1]['qualities']:
@@ -621,7 +613,7 @@ class Loris(object):
                         return r
 
                 # 6. Make an image
-                fp = self._make_image(image_request, src_fp, src_format)
+                fp = self._make_image(image_request, info.src_img_fp, info.src_format)
 
             except ResolverException as re:
                 return NotFoundResponse(re.message)
@@ -645,7 +637,7 @@ class Loris(object):
                 # used by the transformer.
                 msg = '''%s \n\nThis is likely a permissions problem, though it\'s
 possible that there was a problem with the source file
-(%s).''' % (str(e),src_fp)
+(%s).''' % (str(e),info.src_img_fp)
                 return ServerSideErrorResponse(msg)
         r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
         r.status_code = 200
