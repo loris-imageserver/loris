@@ -475,7 +475,7 @@ class Loris(object):
                 r.data = info.to_json()
         return r
 
-    def _get_info(self,ident,request,base_uri,src_fp=None,src_format=None):
+    def _get_info(self,ident,request,base_uri):
         if self.enable_caching:
             in_cache = request in self.info_cache
         else:
@@ -484,13 +484,8 @@ class Loris(object):
         if in_cache:
             return self.info_cache[request]
         else:
-            if not all((src_fp, src_format)):
-                # get_img can pass in src_fp, src_format because it needs them
-                # elsewhere; get_info does not.
-                info = self.resolver.resolve(ident, base_uri)
-            else:
-                info = ImageInfo(ident, src_fp, src_format)
 
+            info = self.resolver.resolve(ident, base_uri)
             try:
                 formats = self.transformers[info.src_format].target_formats
             except KeyError:
