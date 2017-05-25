@@ -71,7 +71,7 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.NullAuthorizer'}
+    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
 
     return config
 
@@ -445,6 +445,8 @@ class Loris(object):
         if self.authorizer and self.authorizer.is_protected(info):
             # Check if user is authorized
             token = request.headers.get('Authorization', '')
+            token = token.replace("Bearer ", '')
+            self.logger.debug("Found token: %s" % token)
             authed = self.authorizer.is_authorized(info, token)            
             if authed['status'] == 'deny':
                 r.status_code = 401
@@ -574,8 +576,6 @@ class Loris(object):
                 r.headers['Content-Length'] = path.getsize(fp)
                 r.response = file(fp)
 
-                # resolve the identifier
-                # src_fp, src_format = self.resolver.resolve(ident, base_uri)
                 # hand the Image object its info
                 info = self._get_info(ident, request, base_uri)[0]
                 image_request.info = info

@@ -61,17 +61,26 @@ class ImageInfo(object):
         src_img_fp (str): the absolute path on the file system [non IIIF]
         src_format (str): the format of the source image file [non IIIF]
         color_profile_bytes []: the emebedded color profile, if any [non IIIF]
+        auth_rules (dict): extra information about authorization [non IIIF]
 
     '''
     __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
         'ident', 'profile', 'protocol', 'sizes', 'service',
+        'attribution', 'logo', 'license', 'auth_rules',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
-    def __init__(self, ident="", src_img_fp="", src_format=""):
+    def __init__(self, ident="", src_img_fp="", src_format="", extra={}):
         self.protocol = PROTOCOL
         self.ident = ident
         self.src_img_fp = src_img_fp
         self.src_format = src_format
+        self.attribution = None
+        self.logo = None
+        self.license = None
+        self.service = {}
+        self.auth_rules = extra
+        for (k,v) in extra.get('extraInfo', {}).items():
+            setattr(self, k, v)
 
     @staticmethod
     def from_json(path):
@@ -99,6 +108,7 @@ class ImageInfo(object):
         # Also add src_img_fp if available
         new_inst.src_img_fp = j.get('_src_img_fp', '')
         new_inst.src_format = j.get('_src_format', '')
+        new_inst.auth_rules = j.get('_auth_rules', {})
         f.close()
         return new_inst
 
@@ -310,6 +320,12 @@ class ImageInfo(object):
         d['sizes'] = self.sizes
         if self.service:
             d['service'] = self.service
+        if self.attribution:
+            d['attribution'] = self.attribution
+        if self.logo:
+            d['logo'] = self.logo
+        if self.license:
+            d['license'] = self.license
 
         return d
 
@@ -324,6 +340,7 @@ class ImageInfo(object):
             # Add in internal properties for caching
             d['_src_img_fp'] = self.src_img_fp
             d['_src_format'] = self.src_format
+            d['_auth_rules'] = self.auth_rules
 
         return json.dumps(d)
 

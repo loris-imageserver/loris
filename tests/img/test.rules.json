@@ -1,0 +1,8 @@
+{
+	"allowed": ["test"],
+	"tiers": [
+		{
+			"identifier": "http://localhost:5004/67352ccc-d1b0-11e1-89ae-279075081939.jp2"
+		}
+	]
+}

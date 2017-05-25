@@ -7,15 +7,16 @@
 		"licence": "URI to put in licence field",
 		"service": {"id": "uri(s) to additional service(s)"}
 	},
-
 	"tiers": [
 		{
 			"identifier": "identifier-degraded or http://.../identifier-degraded",
-			"attribution": "Text to put in attribution field",
-			"logo": "URI/dict to put in logo field",
-			"licence": "URI to put in licence field",
-			"service": {"id": "uri(s) to additional service(s)"},
 			"allowed": ["roles", "allowed", "for", "degraded"],
+			"extraInfo": {
+				"attribution": "Text to put in attribution field",
+				"logo": "URI/dict to put in logo field",
+				"licence": "URI to put in licence field",
+				"service": {"id": "uri(s) to additional service(s)"},
+			},
 			"generation": {
 				"output": "/path/to/identifier-degraded.jp2",
 				"size": 1000,

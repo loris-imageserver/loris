@@ -18,6 +18,7 @@ import hashlib
 import glob
 import requests
 import re
+import json
 
 from img_info import ImageInfo
 
@@ -93,6 +94,7 @@ class SimpleFSResolver(_AbstractResolver):
             self.source_roots = self.config['src_img_roots']
         else:
             self.source_roots = [self.config['src_img_root']]
+        self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
 
     def raise_404_for_ident(self, ident):
         message = 'Source image not found for identifier: %s.' % (ident,)
@@ -106,6 +108,16 @@ class SimpleFSResolver(_AbstractResolver):
             if exists(fp):
                 return fp
 
+    def _get_extra_info(self, ident, source_fp):
+        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
+        if exists(xjsfp):
+            fh = open(xjsfp)
+            xjs = json.load(fh)
+            fh.close()
+            return xjs
+        else:
+            return {}
+
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
 
@@ -118,7 +130,12 @@ class SimpleFSResolver(_AbstractResolver):
         logger.debug('src image: %s' % (source_fp,))
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
-        return ImageInfo(uri, source_fp, format_)
+        try:
+            extra = self._get_extra_info(ident, source_fp)
+        except:
+            logger.debug("Failed to extract extra information from JSON file")
+            extra = {}
+        return ImageInfo(uri, source_fp, format_, extra)
 
 
 class ExtensionNormalizingFSResolver(SimpleFSResolver):

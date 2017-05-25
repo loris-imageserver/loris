@@ -192,14 +192,54 @@ class ExternalAuthorizer(_AbstractAuthorizer):
 
 class RulesAuthorizer(_AbstractAuthorizer):
 
+    def _roles_from_token(self, token):
+        return [token]
+
+    def _roles_from_cookie(self, cookie):
+        return [cookie]
+
     def __init__(self, config):
         super(RulesAuthorizer, self).__init__(config)
 
+    def find_best_tier(self, tiers, userroles):
+        for t in tiers:
+            roles = t.get('allowed', [])
+            if not roles:
+                # public tier
+                return t['identifier']
+            okay = set(roles).intersection(userroles)            
+            if okay:
+                # user is allowed to see this tier
+                return t['identifier']
+        # No tier is possible with current roles, deny
+        return ""
+
     def is_protected(self, info):
-        pass
+        # Now we can check info.auth_rules
+        logger.debug("Called is_protected with %r" % info.auth_rules)
+        return 'allowed' in info.auth_rules and info.auth_rules['allowed']
 
     def is_authorized(self, info, cookie="", token=""):
-        pass
+        roles = info.auth_rules.get('allowed', [])
+        # get roles from cookie/token
+        if cookie:
+            userroles = self._roles_from_cookie(cookie)
+        elif token:
+            userroles = self._roles_from_token(token)
+        else:
+            userroles = []
+        userroles = set(userroles)
+        okay = set(roles).intersection(userroles)
+        logger.debug("roles: %r  // user:  %r // intersection:  %r" % (roles, userroles, okay))
+
+        if okay:
+            return {"status": "ok"}
+        else:
+            loc = self.find_best_tier(info.auth_rules.get('tiers', []), userroles)
+            if loc:
+                return {"status": "redirect", "location": "%s/info.json" % loc}            
+            else:
+                return {"status": "deny"} 
 
     def get_services_info(self, info):
         pass
