@@ -130,7 +130,6 @@ class NooneAuthorizer(_AbstractAuthorizer):
         token['label'] = "No really, please go away"
         token['profile'] = self.token_profile
         self._strip_empty_fields(token)
-
         tmpl['service'] = [token]
         return {"service": tmpl}
 
@@ -200,6 +199,8 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def __init__(self, config):
         super(RulesAuthorizer, self).__init__(config)
+        self.cookie_service = config.get('cookie_service', "")
+        self.token_service = config.get('token_service', "")
 
     def find_best_tier(self, tiers, userroles):
         for t in tiers:
@@ -242,5 +243,25 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 return {"status": "deny"} 
 
     def get_services_info(self, info):
-        pass
-
+        # This should never get called, just put the services in the extraInfo
+        # in the rules.json file
+        # BUT in case you forget, we'll look on our config
+        xi = info.auth_rules.get('extraInfo', {})
+        if not xi or not xi.get('service', {}):
+            # look in config for URIs
+            if not self.cookie_service:
+                raise AuthorizerException("No known services for authentication")
+            tmpl = self.service_template.copy()
+            tmpl['@id'] = self.cookie_service
+            tmpl['label'] = "Please Login"
+            tmpl['profile'] = self.login_profile
+            self._strip_empty_fields(tmpl)
+            token = self.service_template.copy()
+            token['@id'] = self.token_service
+            token['label'] = "Access Token Service"
+            token['profile'] = self.token_profile
+            self._strip_empty_fields(token)
+            tmpl['service'] = [token]
+            return {"service": tmpl}
+        else:
+            return {}

@@ -89,7 +89,7 @@ class AuthNHandler(object):
             data['messageId'] = msgId
             dataStr = json.dumps(data)
             html = """<html><body><script>
-window.opener.postMessage({0}, '{1}');
+window.parent.postMessage({0}, '{1}');
 </script></body></html>""".format(dataStr, origin)
             return self.application.send(html, ct="text/html")
         else:
