@@ -5,7 +5,7 @@ from datetime import datetime
 from errno import EEXIST
 from logging import getLogger
 from loris_exception import LorisException
-from os import path, sep, symlink, makedirs, unlink, error as os_error
+from os import path, sep, symlink, makedirs, unlink, error as os_error, rename
 from parameters import RegionParameter
 from parameters import RotationParameter
 from parameters import SizeParameter
@@ -294,4 +294,9 @@ class ImageCache(dict):
                 pass
             else:
                 raise
+        return target_fp
+
+    def upsert(self, image_request, temp_fp):
+        target_fp = self.create_dir_and_return_file_path(image_request)
+        rename(temp_fp, target_fp)
         return target_fp
