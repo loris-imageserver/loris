@@ -8,6 +8,20 @@ from logging import getLogger
 from loris_exception import AuthorizerException
 import requests
 
+# Vignere Cipher from
+# https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
+import base64
+def decrypt(enc, key):
+    dec = []
+    # UTF-8 from headers
+    enc = enc.encode('utf-8')
+    enc = base64.urlsafe_b64decode(enc)
+    for i in range(len(enc)):
+        key_c = key[i % len(key)]
+        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
+        dec.append(dec_c)
+    return "".join(dec)
+
 logger = getLogger(__name__)
 
 class _AbstractAuthorizer(object):
@@ -189,18 +203,60 @@ class ExternalAuthorizer(_AbstractAuthorizer):
     def get_services_info(self, info):
         r = requests.post(self.services_url, data={"id":info.ident, "fp":info.src_img_fp})
 
+
 class RulesAuthorizer(_AbstractAuthorizer):
-
-    def _roles_from_token(self, token):
-        return [token]
-
-    def _roles_from_cookie(self, cookie):
-        return [cookie]
 
     def __init__(self, config):
         super(RulesAuthorizer, self).__init__(config)
         self.cookie_service = config.get('cookie_service', "")
         self.token_service = config.get('token_service', "")
+        self.cookie_secret = config.get('cookie_secret', "abc123")
+        self.token_secret = config.get('token_secret', 'xyz987')
+
+    def origin_to_secret(self, origin):
+        ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
+            'gen', 'govt', 'school', 'sch']
+        origin = origin.replace('https://', '')
+        origin = origin.replace('http://', '') # Mixed Content violation
+        slidx = origin.find("/")
+        if slidx > -1:
+            origin = origin[:slidx]
+        cidx = origin.find(":")
+        if cidx > -1:
+            origin = origin[:cidx]
+        domain = origin.split('.')
+        if len(domain) >= 3 and domain[-2] in ccslds:
+            # foo.x.cctld
+            secret = ".".join(domain[-3:])
+        elif len(domain) >= 2:
+            # foo.gtld
+            secret = ".".join(domain[-2:])
+        else:
+            # localhost or * ... hopefully not *!
+            secret = domain
+        return secret
+
+    def _make_secret(self, origin, which):
+        reqsecret = self.origin_to_secret(origin)
+        svrsecret = self.cookie_secret if which == "cookie" else self.token_secret
+        return "{0}-{1}".format(svrsecret, reqsecret)
+
+    def _roles_from_request(self, request):
+        origin = request.headers.get('Origin', '*')
+        key = self._make_secret(origin, "cookie")
+        cookie = request.cookies.get(self.cookie_name)
+        logger.debug("Found Cookie: %r" % cookie) 
+
+        if not cookie:
+            token = request.headers.get('Authorization', '')        
+            token = token.replace("Bearer", '')
+            cookie = token.strip()
+            key = self._make_secret(origin, "token")
+            logger.debug("Found token: %r" % cookie)
+
+        value = decrypt(cookie, key)
+        roles = [value]
+        return roles
 
     def find_best_tier(self, tiers, userroles):
         for t in tiers:
@@ -220,16 +276,9 @@ class RulesAuthorizer(_AbstractAuthorizer):
         logger.debug("Called is_protected with %r" % info.auth_rules)
         return 'allowed' in info.auth_rules and info.auth_rules['allowed']
 
-    def is_authorized(self, info, cookie="", token=""):
+    def is_authorized(self, info, request):
         roles = info.auth_rules.get('allowed', [])
-        # get roles from cookie/token
-        if cookie:
-            userroles = self._roles_from_cookie(cookie)
-        elif token:
-            userroles = self._roles_from_token(token)
-        else:
-            userroles = []
-        userroles = set(userroles)
+        userroles = set(self._roles_from_request(request))
         okay = set(roles).intersection(userroles)
         logger.debug("roles: %r  // user:  %r // intersection:  %r" % (roles, userroles, okay))
 

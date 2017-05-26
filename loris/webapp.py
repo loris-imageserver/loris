@@ -455,14 +455,7 @@ class Loris(object):
         last_mod = parse_date(http_date(last_mod)) # see note under get_img
 
         if self.authorizer and self.authorizer.is_protected(info):
-            # Check if user is authorized
-            # XXX This should go to the authorizer, not here
-            token = request.headers.get('Authorization', '')
-            token = token.replace("Bearer ", '')
-            origin = request.headers.get('Origin', '*')
-            self.logger.debug("Found token: %s" % token)
-
-            authed = self.authorizer.is_authorized(info, token)            
+            authed = self.authorizer.is_authorized(info, request)            
             if authed['status'] == 'deny':
                 r.status_code = 401
                 # trash If-Mod-Since to ensure no 304
@@ -563,12 +556,12 @@ class Loris(object):
         info = self._get_info(ident, request, base_uri)[0]
 
         if self.authorizer and self.authorizer.is_protected(info):
-            cookie = request.cookies.get(self.authorizer.cookie_name)
-            authed = self.authorizer.is_authorized(info, cookie=cookie)
-            if authed['status'] == 'deny':
+            authed = self.authorizer.is_authorized(info, request)
+
+            if authed['status'] != 'ok':
+                # Images don't redirect, they just deny out
                 r.status_code = 401
                 return r
-            # otherwise ok, as images don't redirect
 
         if in_cache:
             fp, img_last_mod = self.img_cache[image_request]

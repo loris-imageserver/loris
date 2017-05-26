@@ -2,12 +2,33 @@
 from bottle import request, response, abort, redirect
 from bottle import auth_basic, parse_auth, Bottle, run
 from bottle import debug as set_debug
-
 import json
 
-# XXX These probably aren't 3.x safe
+# XXX These probably aren't Python 3.x safe?
 import urllib, urllib2
 
+# Vignere Cipher from
+# https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
+import base64
+def encrypt(clear, key):
+    enc = []
+    for i in range(len(clear)):
+        key_c = key[i % len(key)]
+        enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
+        enc.append(enc_c)
+    return base64.urlsafe_b64encode("".join(enc))
+
+def decrypt(enc, key):
+    dec = []
+    # UTF-8 from headers or JSON response
+    enc = enc.encode('utf-8')
+    enc = base64.urlsafe_b64decode(enc)
+    for i in range(len(enc)):
+        key_c = key[i % len(key)]
+        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
+        dec.append(dec_c)
+    return "".join(dec)
+   
 class AuthApp(object):
 
     def __init__(self):
@@ -57,16 +78,44 @@ class AuthApp(object):
 
 class AuthNHandler(object):
 
-    def __init__(self, app, name="iiif_access_cookie", secret="abc123"):
+    def __init__(self, app, name="iiif_access_cookie", cookie_secret="abc123", token_secret="xyz987"):
         self.application = app
         self.cookie_name = name
-        self.cookie_secret = secret
+        self.cookie_secret = cookie_secret
+        self.token_secret = token_secret
+        self.ENCRYPT_TOKEN = True
+
+    def origin_to_secret(self, origin):
+        ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
+            'gen', 'govt', 'school', 'sch']
+        origin = origin.replace('https://', '')
+        origin = origin.replace('http://', '') # Mixed Content violation
+        slidx = origin.find("/")
+        if slidx > -1:
+            origin = origin[:slidx]
+        cidx = origin.find(":")
+        if cidx > -1:
+            origin = origin[:cidx]
+        domain = origin.split('.')
+        if len(domain) >= 3 and domain[-2] in ccslds:
+            # foo.x.cctld
+            secret = ".".join(domain[-3:])
+        elif len(domain) >= 2:
+            # foo.gtld
+            secret = ".".join(domain[-2:])
+        else:
+            # localhost or * ... hopefully not *!
+            secret = domain
+        return secret
 
     def cookie_to_token(self, cookie):
         return cookie
 
-    def make_secret(self, origin='*'):
-        return "{0}-{1}".format(self.cookie_secret, origin)
+    def make_secret(self, origin='*', which="cookie"):
+        # Reduce origin to just domain
+        reqsecret = self.origin_to_secret(origin)
+        svrsecret = self.cookie_secret if which == "cookie" else self.token_secret
+        return "{0}-{1}".format(svrsecret, reqsecret)
 
     def token(self):
         # This is the second step -- client requests a token to send to info.json
@@ -74,15 +123,23 @@ class AuthNHandler(object):
         # postMessage request to get the token to send to info.json in Auth'z header
         msgId = request.query.get('messageId', '')
         origin = request.query.get('origin', '*')
-        secret = self.make_secret(origin)
+        secret = self.make_secret(origin, "cookie")
         try:
-            account = request.get_cookie(self.cookie_name, secret=secret)
+            account = request.get_cookie(self.cookie_name)
+            account = decrypt(account, secret)
         except:
+            raise
             account = ''
         if not account:
             data = {"error":"missingCredentials","description":"No login details received"}
         else:
+            # This is okay, as they're differently salted
             token = self.cookie_to_token(account)
+
+            if self.ENCRYPT_TOKEN:
+                # encrypt token
+                secret2 = self.make_secret(origin, "token")
+                token = encrypt(token, secret2)
             data = {"accessToken":token, "expiresIn": 3600}
 
         if msgId:
@@ -116,8 +173,10 @@ class BasicAuthHandler(AuthNHandler):
         auth = request.headers.get('Authorization')
         who, p = parse_auth(auth)      
         origin = request.query.get('origin', '*')
-        secret = self.make_secret(origin)
-        response.set_cookie(self.cookie_name, who, secret=secret)
+        secret = self.make_secret(origin, "cookie")
+        value = encrypt(who, secret)
+        print "Setting cookie: %s" % value
+        response.set_cookie(self.cookie_name, value)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
 
 class OAuthHandler(AuthNHandler):
@@ -169,8 +228,9 @@ class OAuthHandler(AuthNHandler):
         email = data.get('email', '')
         name = data.get('name', '')
         pic = data.get('picture', '')
-        secret = self.make_secret(origin)
-        response.set_cookie(self.cookie_name, email, secret=secret)
+        secret = self.make_secret(origin, "cookie")
+        value = encrypt(email, secret)
+        response.set_cookie(self.cookie_name, value)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html");
 
 
