@@ -241,21 +241,22 @@ class RulesAuthorizer(_AbstractAuthorizer):
         svrsecret = self.cookie_secret if which == "cookie" else self.token_secret
         return "{0}-{1}".format(svrsecret, reqsecret)
 
+    def _roles_from_value(self, value):
+        return [value]
+
     def _roles_from_request(self, request):
         origin = request.headers.get('Origin', '*')
         key = self._make_secret(origin, "cookie")
         cookie = request.cookies.get(self.cookie_name)
-        logger.debug("Found Cookie: %r" % cookie) 
 
         if not cookie:
             token = request.headers.get('Authorization', '')        
             token = token.replace("Bearer", '')
             cookie = token.strip()
             key = self._make_secret(origin, "token")
-            logger.debug("Found token: %r" % cookie)
 
         value = decrypt(cookie, key)
-        roles = [value]
+        roles = self._roles_from_value(value)
         return roles
 
     def find_best_tier(self, tiers, userroles):

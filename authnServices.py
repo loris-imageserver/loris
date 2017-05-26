@@ -175,7 +175,6 @@ class BasicAuthHandler(AuthNHandler):
         origin = request.query.get('origin', '*')
         secret = self.make_secret(origin, "cookie")
         value = encrypt(who, secret)
-        print "Setting cookie: %s" % value
         response.set_cookie(self.cookie_name, value)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
 
