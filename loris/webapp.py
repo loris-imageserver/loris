@@ -108,7 +108,7 @@ def read_config(config_file_path):
     # interpolating their values into other keys
     # make a copy of the os.environ dictionary so that the config object can't
     # inadvertently modify the environment
-    config['DEFAULT'] = dict(os.environ)
+    config['DEFAULT'] = {key: val for(key, val) in os.environ.items() if key not in ('PS1')}
     return config
 
 
