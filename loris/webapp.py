@@ -15,6 +15,7 @@ import random
 import re
 import string
 from subprocess import CalledProcessError
+from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
 #3rd party imports
@@ -620,9 +621,8 @@ possible that there was a problem with the source file
         Returns:
             (str) the fp of the new image
         '''
-        # figure out paths, make dirs
-        n = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
-        temp_fp = '%s.%s' % (path.join(self.tmp_dp, n), image_request.format)
+        temp_file = NamedTemporaryFile(dir=self.tmp_dp, suffix='.%s' % image_request.format, delete=False)
+        temp_fp = temp_file.name
 
         transformer = self.transformers[src_format]
         transformer.transform(src_fp, temp_fp, image_request)
