@@ -431,15 +431,25 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 400)
 
+    def test_cleans_up_when_caching(self):
+        self.app.enable_caching = True
+        to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self._tmp_has_no_files()
+
     def test_cleans_up_when_not_caching(self):
         self.app.enable_caching = False
         to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get)
+        self._tmp_has_no_files()
+
+    def _tmp_has_no_files(self):
         # callback should delete the image before the test ends, so the tmp dir
         # should not contain any files (there may be dirs)
         tmp = self.app.tmp_dp
         any_files = any([path.isfile(path.join(tmp, n)) for n in listdir(tmp)])
-        self.assertTrue(not any_files)
+        self.assertTrue(not any_files, "There are too many files in %s: %s" % (tmp, any_files))
+
 
 
 class SizeRestriction(loris_t.LorisTest):

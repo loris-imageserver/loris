@@ -15,6 +15,7 @@ import random
 import re
 import string
 from subprocess import CalledProcessError
+from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
 #3rd party imports
@@ -621,20 +622,18 @@ possible that there was a problem with the source file
         Returns:
             (str) the fp of the new image
         '''
-        # figure out paths, make dirs
-        if self.enable_caching:
-            target_fp = self.img_cache.create_dir_and_return_file_path(image_request)
-        else:
-            # random str
-            n = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
-            target_fp = '%s.%s' % (path.join(self.tmp_dp, n), image_request.format)
+        temp_file = NamedTemporaryFile(dir=self.tmp_dp, suffix='.%s' % image_request.format, delete=False)
+        temp_fp = temp_file.name
 
         transformer = self.transformers[src_format]
+        transformer.transform(src_fp, temp_fp, image_request)
 
-        transformer.transform(src_fp, target_fp, image_request)
         if self.enable_caching:
-            self.img_cache[image_request] = target_fp
-        return target_fp
+            temp_fp = self.img_cache.upsert(image_request, temp_fp)
+            # TODO: not sure how the non-canonical use case works
+            self.img_cache[image_request] = temp_fp
+
+        return temp_fp
 
 
 if __name__ == '__main__':
