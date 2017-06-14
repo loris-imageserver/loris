@@ -323,7 +323,7 @@ class SimpleHTTPResolver(_AbstractResolver):
                 public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
                 log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
                 logger.warn(log_message)
-                raise ResolverException(404, public_message)
+                raise ResolverException(response.status_code, public_message)
 
             extension = self.cache_file_extension(ident, response)
             local_fp = join(cache_dir, "loris_cache." + extension)
