@@ -11,9 +11,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from os import path, makedirs, unlink
-import random
 import re
-import string
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
@@ -29,7 +27,6 @@ import img
 from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
-from loris_exception import LorisException
 from loris_exception import RequestException
 from loris_exception import SyntaxException
 from loris_exception import ImageException
