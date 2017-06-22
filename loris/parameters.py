@@ -66,7 +66,7 @@ class RegionParameter(object):
 
         self.mode = RegionParameter._mode_from_region_segment(self.uri_value, self.img_info)
 
-        logger.debug('Region mode is "%s" (from "%s")' % (self.mode,uri_value))
+        logger.debug('Region mode is "%s" (from "%s")', self.mode, uri_value)
 
         if self.mode == FULL_MODE:
             self._populate_slots_for_full()
@@ -78,14 +78,14 @@ class RegionParameter(object):
         else: # self.mode == PCT_MODE:
             self._populate_slots_from_pct()
 
-        logger.debug('decimal_x: %s' % (str(self.decimal_x),))
-        logger.debug('pixel_x: %d' % (self.pixel_x,))
-        logger.debug('decimal_y: %s' % (str(self.decimal_y),))
-        logger.debug('pixel_y: %d' % (self.pixel_y,))
-        logger.debug('decimal_w: %s' % (str(self.decimal_w),))
-        logger.debug('pixel_w: %d' % (self.pixel_w,))
-        logger.debug('decimal_h: %s' % (str(self.decimal_h),))
-        logger.debug('pixel_h: %d' % (self.pixel_h,))
+        logger.debug('decimal_x: %s', self.decimal_x)
+        logger.debug('pixel_x: %d', self.pixel_x)
+        logger.debug('decimal_y: %s', self.decimal_y)
+        logger.debug('pixel_y: %d', self.pixel_y)
+        logger.debug('decimal_w: %s', self.decimal_w)
+        logger.debug('pixel_w: %d', self.pixel_w)
+        logger.debug('decimal_h: %s', self.decimal_h)
+        logger.debug('pixel_h: %d', self.pixel_h)
 
         self._canonicalize()
 
@@ -99,19 +99,19 @@ class RegionParameter(object):
             self.canonical_uri_value = ','.join(map(str, px))
         else:
             self.canonical_uri_value = FULL_MODE
-        logger.debug('canonical uri_value for region %s' % (self.canonical_uri_value,))
+        logger.debug('canonical uri_value for region %s', self.canonical_uri_value)
 
     def _adjust_to_in_bounds(self):
         if (self.decimal_x + self.decimal_w) > DECIMAL_ONE:
             self.decimal_w = DECIMAL_ONE - self.decimal_x
             self.pixel_w = self.img_info.width - self.pixel_x
-            logger.info('decimal_w adjusted to: %s' % (str(self.decimal_w)),)
-            logger.info('pixel_w adjusted to: %d' % (self.pixel_w,))
+            logger.info('decimal_w adjusted to: %s', self.decimal_w)
+            logger.info('pixel_w adjusted to: %d', self.pixel_w)
         if (self.decimal_y + self.decimal_h) > DECIMAL_ONE:
             self.decimal_h = DECIMAL_ONE - self.decimal_y
             self.pixel_h = self.img_info.height - self.pixel_y
-            logger.info('decimal_h adjusted to: %s' % (str(self.decimal_h)),)
-            logger.debug('pixel_h adjusted to: %s' % (str(self.pixel_h)),)
+            logger.info('decimal_h adjusted to: %s', self.decimal_h)
+            logger.debug('pixel_h adjusted to: %s', self.pixel_h)
 
     def _check_for_oob_errors(self):
         if any(axis < 0 for axis in (self.pixel_x, self.pixel_y)):
@@ -271,7 +271,7 @@ class SizeParameter(object):
         '''
         self.uri_value = uri_value
         self.mode = SizeParameter.__mode_from_size_segment(self.uri_value)
-        logger.debug('Size mode is "%s" (from "%s")' % (self.mode,uri_value))
+        logger.debug('Size mode is "%s" (from "%s")', self.mode, uri_value)
 
         if self.mode == FULL_MODE:
             self.force_aspect = False
@@ -292,7 +292,7 @@ class SizeParameter(object):
             else:
                 self.canonical_uri_value = '%d,' % (self.w,)
 
-            logger.debug('canonical uri_value for size: %s' % (self.canonical_uri_value,))
+            logger.debug('canonical uri_value for size: %s', self.canonical_uri_value)
             logger.debug('w %s', self.w)
             logger.debug('h %s', self.h)
             if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
@@ -433,4 +433,4 @@ class RotationParameter(object):
             raise SyntaxException(http_status=400, message=msg)
 
 
-        logger.debug('canonical rotation is %s' % (self.canonical_uri_value,))
+        logger.debug('canonical rotation is %s', self.canonical_uri_value)

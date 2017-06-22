@@ -283,7 +283,7 @@ class Loris(object):
         self.app_configs = app_configs
         self.logger = _configure_logging(app_configs['logging'])
         self.logger.debug('Loris initialized with these settings:')
-        [self.logger.debug('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
+        [self.logger.debug('%s.%s=%s', key, sub_key, self.app_configs[key][sub_key])
             for key in self.app_configs for sub_key in self.app_configs[key]]
 
         # make the loris.Loris configs attrs for easier access
@@ -310,9 +310,9 @@ class Loris(object):
     def _load_transformers(self):
         tforms = self.app_configs['transforms']
         source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
-        self.logger.debug('Source formats: %s' % (repr(source_formats),))
+        self.logger.debug('Source formats: %r', source_formats)
         global_tranform_options = dict((k, v) for k, v in tforms.iteritems() if not isinstance(v, dict))
-        self.logger.debug('Global transform options: %s' % (repr(global_tranform_options),))
+        self.logger.debug('Global transform options: %r', global_tranform_options)
 
         transformers = {}
         for sf in source_formats:
@@ -324,7 +324,7 @@ class Loris(object):
     def _load_transformer(self, config):
         Klass = getattr(transforms, config['impl'])
         instance = Klass(config)
-        self.logger.debug('Loaded Transformer %s' % (config['impl'],))
+        self.logger.debug('Loaded Transformer %s', config['impl'])
         return instance
 
     def _load_resolver(self):
@@ -339,7 +339,7 @@ class Loris(object):
         module_name = '.'.join(qname.split('.')[:-1])
         class_name = qname.split('.')[-1]
         module = __import__(module_name, fromlist=[class_name])
-        self.logger.debug('Imported %s' % (qname,))
+        self.logger.debug('Imported %s', qname)
         return getattr(module, class_name)
 
     def wsgi_app(self, environ, start_response):
@@ -433,7 +433,7 @@ class Loris(object):
         last_mod = parse_date(http_date(last_mod)) # see note under get_img
 
         if ims and ims >= last_mod:
-            self.logger.debug('Sent 304 for %s ' % (ident,))
+            self.logger.debug('Sent 304 for %s ', ident)
             r.status_code = 304
         else:
             if last_mod:
@@ -471,17 +471,17 @@ class Loris(object):
             except KeyError:
                 raise ImageInfoException(500, 'unknown source format')
 
-            self.logger.debug('Format: %s' % (src_format,))
-            self.logger.debug('File Path: %s' % (src_fp,))
-            self.logger.debug('Identifier: %s' % (ident,))
-            self.logger.debug('Base URI: %s' % (base_uri,))
+            self.logger.debug('Format: %s', src_format)
+            self.logger.debug('File Path: %s', src_fp)
+            self.logger.debug('Identifier: %s', ident)
+            self.logger.debug('Base URI: %s', base_uri)
 
             # get the info
             info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
 
             # store
             if self.enable_caching:
-                self.logger.debug('ident used to store %s: %s' % (ident,ident))
+                self.logger.debug('ident used to store %s: %s', ident, ident)
                 self.info_cache[request] = info
                 # pick up the timestamp... :()
                 info,last_mod = self.info_cache[request]
@@ -508,7 +508,7 @@ class Loris(object):
         image_request = img.ImageRequest(ident, region, size, rotation,
                                          quality, target_fmt)
 
-        self.logger.debug('Image Request Path: %s' % (image_request.request_path,))
+        self.logger.debug('Image Request Path: %s', image_request.request_path)
 
         if self.enable_caching:
             in_cache = image_request in self.img_cache
@@ -522,11 +522,11 @@ class Loris(object):
             # as when went sent it, so for an accurate comparison turn it into
             # an http date and then parse it again :-( :
             img_last_mod = parse_date(http_date(img_last_mod))
-            self.logger.debug("Time from FS (default, rounded): " + str(img_last_mod))
-            self.logger.debug("Time from IMS Header (parsed): " + str(parse_date(ims_hdr)))
+            self.logger.debug("Time from FS (default, rounded): %s", img_last_mod)
+            self.logger.debug("Time from IMS Header (parsed): %s", parse_date(ims_hdr))
             # ims_hdr = parse_date(ims_hdr) # catch parsing errors?
             if ims_hdr and parse_date(ims_hdr) >= img_last_mod:
-                self.logger.debug('Sent 304 for %s ' % (fp,))
+                self.logger.debug('Sent 304 for %s ', fp)
                 r.status_code = 304
                 return r
             else:
@@ -568,7 +568,7 @@ class Loris(object):
                 # 5. Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical:
-                        self.logger.debug('Attempting redirect to %s' % (image_request.canonical_request_path,))
+                        self.logger.debug('Attempting redirect to %s', image_request.canonical_request_path,)
                         r.headers['Location'] = image_request.canonical_request_path
                         r.status_code = 301
                         return r
