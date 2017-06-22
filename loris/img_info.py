@@ -12,12 +12,10 @@ from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
 import errno
-import fnmatch
 import json
 import os
 import struct
 from urllib import unquote
-from sys import exit
 
 try:
     from collections import OrderedDict
@@ -409,12 +407,6 @@ class InfoCache(object):
 
     def has_key(self, request):
         return os.path.exists(self._get_info_fp(request))
-
-    # def __len__(self):
-    #     w = os.walk
-    #     ff = fnmatch.filter
-    #     pat = STAR_DOT_JSON
-    #     return len([_ for fp in ff(fps, pat) for r,dps,fps in w(self.root)])
 
     def __contains__(self, request):
         return self.has_key(request)

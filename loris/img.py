@@ -4,8 +4,7 @@
 from datetime import datetime
 from errno import EEXIST
 from logging import getLogger
-from loris_exception import LorisException
-from os import path, sep, symlink, makedirs, unlink, error as os_error, rename
+from os import path, symlink, makedirs, unlink, error as os_error, rename
 from parameters import RegionParameter
 from parameters import RotationParameter
 from parameters import SizeParameter
@@ -13,7 +12,6 @@ from loris_exception import RequestException
 from loris_exception import SyntaxException
 from loris_exception import ImageException
 from urllib import unquote, quote_plus
-from werkzeug.http import generate_etag
 from urllib import unquote
 
 logger = getLogger(__name__)
