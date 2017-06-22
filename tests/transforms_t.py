@@ -17,6 +17,23 @@ from the `/loris` (not `/loris/loris`) directory.
 """
 
 
+class Test_AbstractTransformer(unittest.TestCase):
+
+    def test_missing_transform_raises_not_implemented_error(self):
+        class ExampleTransformer(transforms._AbstractTransformer):
+            pass
+
+        e = ExampleTransformer(config={
+            'target_formats': [],
+            'dither_bitonal_images': '',
+        })
+        with self.assertRaises(NotImplementedError) as cm:
+            e.transform(src_fp=None, target_fp=None, image_request=None)
+        self.assertEqual(
+            cm.exception.message,
+            'transform() not implemented for ExampleTransformer')
+
+
 class UnitTest_KakaduJP2Transformer(unittest.TestCase):
 
     def test_init(self):
@@ -103,6 +120,7 @@ class Test_PILTransformer(loris_t.LorisTest):
 
 def suite():
     test_suites = []
+    test_suites.append(unittest.makeSuite(Test_AbstractTransformer, 'test'))
     test_suites.append(unittest.makeSuite(UnitTest_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_PILTransformer, 'test'))

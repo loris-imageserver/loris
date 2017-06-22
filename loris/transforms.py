@@ -37,7 +37,7 @@ class _AbstractTransformer(object):
             target_fp (str)
             image (ImageRequest)
         '''
-        e = self.__class__.__name__
+        cn = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
 
     def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
