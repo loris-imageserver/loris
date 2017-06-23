@@ -311,26 +311,21 @@ class TestSizeParameter(_ParameterTest):
 
 class TestRotationParameter(_ParameterTest):
 	def test_exceptions(self):
+		bad_values = [
+			'a',
+			'361',
+			'-1',
+			'!-1',
+			'!361',
+			'-0.1',
+		]
 		try:
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('a')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('361')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('-1')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('!-1')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('!361')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('-0.1')
+			for value in bad_values:
+				with self.assertRaises(SyntaxException):
+					RotationParameter(value)
 		except TypeError: # Python < 2.7
-			self.assertRaises(SyntaxException, RotationParameter, 'a')
-			self.assertRaises(SyntaxException, RotationParameter, '361')
-			self.assertRaises(SyntaxException, RotationParameter, '-1')
-			self.assertRaises(SyntaxException, RotationParameter, '!-1')
-			self.assertRaises(SyntaxException, RotationParameter, '!361')
-			self.assertRaises(SyntaxException, RotationParameter, '-0.1')
+			for value in bad_values:
+				self.assertRaises(SyntaxException, RotationParameter, value)
 
 	def test_uri_value(self):
 		rp = RotationParameter('0')
