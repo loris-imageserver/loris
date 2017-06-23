@@ -163,8 +163,8 @@ class ImageInfo(object):
             window.append(c)
         self.height = int(struct.unpack(">I", jp2.read(4))[0]) # height (pg. 136)
         self.width = int(struct.unpack(">I", jp2.read(4))[0]) # width
-        logger.debug("width: " + str(self.width))
-        logger.debug("height: " + str(self.height))
+        logger.debug("width: %s", self.width)
+        logger.debug("height: %s", self.height)
 
         # Figure out color or grayscale.
         # Depending color profiles; there's probably a better way (or more than
@@ -212,7 +212,7 @@ class ImageInfo(object):
             if colr_meth <= 4 and -128 <= colr_prec <= 127 and 1 <= colr_approx <= 4:
                 self.assign_color_profile(jp2)
 
-        logger.debug('qualities: ' + str(self.profile[1]['qualities']))
+        logger.debug('qualities: %s', self.profile[1]['qualities'])
 
         window =  deque(jp2.read(2), 2)
         while map(ord, window) != [0xFF, 0x4F]: # (SOC - required, see pg 14)
@@ -222,8 +222,8 @@ class ImageInfo(object):
         jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
         tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
         tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
-        logger.debug("tile width: " + str(tile_width))
-        logger.debug("tile height: " + str(tile_height))
+        logger.debug("tile width: %s", tile_width)
+        logger.debug("tile height: %s", tile_height)
         self.tiles.append( { 'width' : tile_width } )
         if tile_width != tile_height:
             self.tiles[0]['height'] = tile_height
@@ -237,7 +237,7 @@ class ImageInfo(object):
 
         jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
         levels = int(struct.unpack(">B", jp2.read(1))[0])
-        logger.debug("levels: " + str(levels))
+        logger.debug("levels: %s", levels)
         scaleFactors = [pow(2, l) for l in range(0,levels+1)]
         self.tiles[0]['scaleFactors'] = scaleFactors
         jp2.read(4) # through code block stuff
