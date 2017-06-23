@@ -326,13 +326,9 @@ class TestRotationParameter(_ParameterTest):
 			'.',
 			'.0.',
 		]
-		try:
-			for value in bad_values:
-				with self.assertRaises(SyntaxException):
-					RotationParameter(value)
-		except TypeError: # Python < 2.7
-			for value in bad_values:
-				self.assertRaises(SyntaxException, RotationParameter, value)
+		for value in bad_values:
+			with self.assertRaises(SyntaxException):
+				RotationParameter(value)
 
 	@given(text(alphabet='0123456789.!'))
 	def test_parsing_parameter_either_passes_or_is_syntaxexception(self, xs):
