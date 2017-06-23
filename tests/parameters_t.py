@@ -14,6 +14,9 @@ from loris.parameters import RotationParameter
 from loris.parameters import SizeParameter
 import loris_t
 
+from hypothesis import given
+from hypothesis.strategies import text
+
 """
 Parameter object tests. To run this test on its own, do:
 
@@ -311,26 +314,28 @@ class TestSizeParameter(_ParameterTest):
 
 class TestRotationParameter(_ParameterTest):
 	def test_exceptions(self):
-		try:
+		bad_values = [
+			'a',
+			'361',
+			'-1',
+			'!-1',
+			'!361',
+			'-0.1',
+			'1.3.6',
+			'!2.7.13',
+			'.',
+			'.0.',
+		]
+		for value in bad_values:
 			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('a')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('361')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('-1')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('!-1')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('!361')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('-0.1')
-		except TypeError: # Python < 2.7
-			self.assertRaises(SyntaxException, RotationParameter, 'a')
-			self.assertRaises(SyntaxException, RotationParameter, '361')
-			self.assertRaises(SyntaxException, RotationParameter, '-1')
-			self.assertRaises(SyntaxException, RotationParameter, '!-1')
-			self.assertRaises(SyntaxException, RotationParameter, '!361')
-			self.assertRaises(SyntaxException, RotationParameter, '-0.1')
+				RotationParameter(value)
+
+	@given(text(alphabet='0123456789.!'))
+	def test_parsing_parameter_either_passes_or_is_syntaxexception(self, xs):
+	    try:
+	        RotationParameter(xs)
+	    except SyntaxException:
+	        pass
 
 	def test_uri_value(self):
 		rp = RotationParameter('0')
