@@ -396,23 +396,30 @@ class SizeParameter(object):
 class RotationParameter(object):
     '''Internal representation of the rotation slice of an IIIF image URI.
 
+    See http://iiif.io/api/image/2.0/#rotation:
+
+       The rotation parameter specifies mirroring and rotation. A leading
+       exclamation mark ("!") indicates that the image should be mirrored by
+       reflection on the vertical axis before any rotation is applied.
+       The numerical value represents the number of degrees of clockwise
+       rotation, and may be any floating point number from 0 to 360.
+
     Slots:
-        uri_value (str)
         canonical_uri_value (str)
-        mirror (str)
+        mirror (bool)
         rotation (str)
     '''
     ROTATION_REGEX = re.compile('^!?[\d.]+$')
 
-    __slots__ = ('uri_value','canonical_uri_value','mirror','rotation')
+    __slots__ = ('canonical_uri_value', 'mirror', 'rotation')
 
     def __init__(self, uri_value):
-        '''Take the uri value and round it to the nearest 90.
+        '''Take the uri value, and parse out mirror and rotation values.
         Args:
             uri_value (str): the rotation slice of the request URI.
         Raises:
             SyntaxException:
-                If the argument is not a digit, is < 0, or > 360
+                If the argument is not a valid rotation slice.
         '''
 
         if not RotationParameter.ROTATION_REGEX.match(uri_value):
