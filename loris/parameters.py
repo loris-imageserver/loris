@@ -393,6 +393,7 @@ class SizeParameter(object):
     def __str__(self):
         return self.uri_value
 
+
 class RotationParameter(object):
     '''Internal representation of the rotation slice of an IIIF image URI.
 
@@ -423,7 +424,7 @@ class RotationParameter(object):
         '''
 
         if not RotationParameter.ROTATION_REGEX.match(uri_value):
-            msg = 'Rotation "%s" is not a number'  % (uri_value,)
+            msg = 'Rotation parameter %r is not a number' % (uri_value,)
             raise SyntaxException(http_status=400, message=msg)
 
         if uri_value[0] == '!':
@@ -443,8 +444,7 @@ class RotationParameter(object):
             self.canonical_uri_value = '!%s' % self.canonical_uri_value
 
         if not 0.0 <= float(self.rotation) <= 360.0:
-            msg = 'Rotation argument "%s" is not between 0 and 360' % (uri_value,)
+            msg = 'Rotation parameter %r is not between 0 and 360' % (uri_value,)
             raise SyntaxException(http_status=400, message=msg)
 
-
-        logger.debug('canonical rotation is %s', self.canonical_uri_value)
+        logger.debug('Canonical rotation parameter is %s', self.canonical_uri_value)
