@@ -36,7 +36,13 @@ __N.B.:__ When developing or extending, i.e., instantiating the application inst
 
 Running Tests
 -------------
-To run all of the tests, from the `/loris` directory (not `/loris/loris`) just run `./test.py`. If you just want to run the tests for a single module, do, e.g. `python -m unittest -v tests.parameters_t` from the same dir as above.
+To run all of the tests, you need to install test dependencies:
+
+```console
+$ pip install -r requirements_test.txt
+```
+
+Then run `./test.py` from the `/loris` directory (not `/loris/loris`). If you just want to run the tests for a single module, do, e.g. `python -m unittest -v tests.parameters_t` from the same dir as above.
 
 Using the Development Server
 ----------------------------
