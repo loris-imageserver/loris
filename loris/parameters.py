@@ -429,11 +429,18 @@ class RotationParameter(object):
         if uri_value[0] == '!':
             self.mirror = True
             self.rotation = uri_value[1:]
-            self.canonical_uri_value = '!%g' % (float(uri_value[1:]),)
         else:
             self.mirror = False
             self.rotation = uri_value
-            self.canonical_uri_value = '%g' % (float(uri_value),)
+
+        try:
+            self.canonical_uri_value = '%g' % (float(self.rotation),)
+        except ValueError:
+            msg = 'Rotation parameter %r is not a floating point number' % (uri_value,)
+            raise SyntaxException(http_status=400, message=msg)
+
+        if self.mirror:
+            self.canonical_uri_value = '!%s' % self.canonical_uri_value
 
         if not 0.0 <= float(self.rotation) <= 360.0:
             msg = 'Rotation argument "%s" is not between 0 and 360' % (uri_value,)

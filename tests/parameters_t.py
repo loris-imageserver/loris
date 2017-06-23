@@ -395,6 +395,14 @@ class TestRotationParameter(_ParameterTest):
 			rp = RotationParameter('!361')
 		with self.assertRaises(SyntaxException):
 			rp = RotationParameter('-0.1')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('1.3.6')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('!2.7.13')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('.')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('.0.')
 
 	def test_uri_value(self):
 		rp = RotationParameter('0')
