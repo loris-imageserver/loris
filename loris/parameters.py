@@ -410,7 +410,7 @@ class RotationParameter(object):
         mirror (bool)
         rotation (str)
     '''
-    ROTATION_REGEX = re.compile('^!?[\d.]+$')
+    ROTATION_REGEX = re.compile(r'^(?P<mirror>!?)(?P<rotation>[\d.])+$')
 
     __slots__ = ('canonical_uri_value', 'mirror', 'rotation')
 
@@ -423,16 +423,14 @@ class RotationParameter(object):
                 If the argument is not a valid rotation slice.
         '''
 
-        if not RotationParameter.ROTATION_REGEX.match(uri_value):
+        match = RotationParameter.ROTATION_REGEX.match(uri_value)
+
+        if not match:
             msg = 'Rotation parameter %r is not a number' % (uri_value,)
             raise SyntaxException(http_status=400, message=msg)
 
-        if uri_value[0] == '!':
-            self.mirror = True
-            self.rotation = uri_value[1:]
-        else:
-            self.mirror = False
-            self.rotation = uri_value
+        self.mirror = bool(match.group('mirror'))
+        self.rotation = match.group('rotation')
 
         try:
             self.canonical_uri_value = '%g' % (float(self.rotation),)
