@@ -123,51 +123,35 @@ class TestRegionParameter(_ParameterTest):
 
 	def test_syntax_exceptions(self):
 		info = self._get_info_long_y()
-		try:
-			with self.assertRaises(SyntaxException):
-				RegionParameter('n:1,2,3,4', info)
-			with self.assertRaises(SyntaxException):
-				RegionParameter('1,2,3,q', info)
-			with self.assertRaises(SyntaxException):
-				RegionParameter('1,2,3', info)
-			with self.assertRaises(SyntaxException):
-				RegionParameter('something', info)
-		except TypeError: # python < 2.7
-			self.assertRaises(SyntaxException, RegionParameter, 'something', info)
-			self.assertRaises(SyntaxException, RegionParameter, '1,2,3,q', info)
-			self.assertRaises(SyntaxException, RegionParameter, '1,2,3', info)
-			self.assertRaises(SyntaxException, RegionParameter, 'something', info)
+		with self.assertRaises(SyntaxException):
+			RegionParameter('n:1,2,3,4', info)
+		with self.assertRaises(SyntaxException):
+			RegionParameter('1,2,3,q', info)
+		with self.assertRaises(SyntaxException):
+			RegionParameter('1,2,3', info)
+		with self.assertRaises(SyntaxException):
+			RegionParameter('something', info)
 
 	def test_request_exceptions(self):
 		info = self._get_info_long_y()
-		try:
-			with self.assertRaises(RequestException):
-				RegionParameter('1,2,0,3', info)
-			with self.assertRaises(RequestException):
-				RegionParameter('1,2,3,0', info)
-			with self.assertRaises(RequestException):
-				RegionParameter('pct:100,2,3,0', info)
-		except TypeError: # python < 2.7
-			self.assertRaises(RequestException, RegionParameter, '1,2,0,3', info)
-			self.assertRaises(RequestException, RegionParameter, '1,2,3,0', info)
-			self.assertRaises(RequestException, RegionParameter, 'pct:100,2,3,0', info)
+		with self.assertRaises(RequestException):
+			RegionParameter('1,2,0,3', info)
+		with self.assertRaises(RequestException):
+			RegionParameter('1,2,3,0', info)
+		with self.assertRaises(RequestException):
+			RegionParameter('pct:100,2,3,0', info)
 
 
 class TestSizeParameter(_ParameterTest):
 	def test_exceptions(self):
 		info = self._get_info_long_y()
 		rp = RegionParameter('pct:25,25,75,75', info)
-		try:
-			with self.assertRaises(SyntaxException):
-				SizeParameter('!25,',rp)
-			with self.assertRaises(SyntaxException):
-				SizeParameter('!25',rp)
-			with self.assertRaises(SyntaxException):
-				SizeParameter('25',rp)
-		except TypeError: # python < 2.7
-			self.assertRaises(SyntaxException, SizeParameter, '!25,', rp)
-			self.assertRaises(SyntaxException, SizeParameter, '!25', rp)
-			self.assertRaises(SyntaxException, SizeParameter, '25', rp)
+		with self.assertRaises(SyntaxException):
+			SizeParameter('!25,', rp)
+		with self.assertRaises(SyntaxException):
+			SizeParameter('!25', rp)
+		with self.assertRaises(SyntaxException):
+			SizeParameter('25', rp)
 
 	def test_populate_slots_from_full(self):
 		# full
@@ -311,26 +295,18 @@ class TestSizeParameter(_ParameterTest):
 
 class TestRotationParameter(_ParameterTest):
 	def test_exceptions(self):
-		try:
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('a')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('361')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('-1')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('!-1')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('!361')
-			with self.assertRaises(SyntaxException):
-				rp = RotationParameter('-0.1')
-		except TypeError: # Python < 2.7
-			self.assertRaises(SyntaxException, RotationParameter, 'a')
-			self.assertRaises(SyntaxException, RotationParameter, '361')
-			self.assertRaises(SyntaxException, RotationParameter, '-1')
-			self.assertRaises(SyntaxException, RotationParameter, '!-1')
-			self.assertRaises(SyntaxException, RotationParameter, '!361')
-			self.assertRaises(SyntaxException, RotationParameter, '-0.1')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('a')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('361')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('-1')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('!-1')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('!361')
+		with self.assertRaises(SyntaxException):
+			rp = RotationParameter('-0.1')
 
 	def test_uri_value(self):
 		rp = RotationParameter('0')
