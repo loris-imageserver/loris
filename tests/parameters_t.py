@@ -22,6 +22,14 @@ $ python -m unittest -v tests.parameters_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+def build_image_info(width=100, height=100):
+	"""Produces an ``ImageInfo`` object of the given dimensions."""
+	info = img_info.ImageInfo()
+	info.width = width
+	info.height = height
+	return info
+
+
 class _ParameterTest(loris_t.LorisTest):
 	def _get_info_long_y(self):
 		# jp2, y is long dimension
@@ -83,6 +91,26 @@ class TestRegionParameter(_ParameterTest):
 		self.assertEquals(rp.pixel_w, 2987)
 		self.assertEquals(rp.pixel_h, 2987)
 
+	def test_recognise_full_mode_if_correct_dimensions(self):
+		info = build_image_info(1500, 800)
+		rp = RegionParameter('0,0,1500,800', info)
+		self.assertEquals(rp.mode, FULL_MODE)
+
+	def test_percentage_greater_than_100_is_error(self):
+		info = build_image_info()
+		with self.assertRaises(SyntaxException):
+			RegionParameter('pct:150', info)
+
+	def test_x_parameter_greater_than_width_is_error(self):
+		info = build_image_info(width=100)
+		with self.assertRaises(RequestException):
+			RegionParameter('200,0,100,100', info)
+
+	def test_y_parameter_greater_than_height_is_error(self):
+		info = build_image_info(height=100)
+		with self.assertRaises(RequestException):
+			RegionParameter('0,200,100,100', info)
+
 	def test_canonical_uri_value_oob_w_pixel(self):
 		info = self._get_info_long_x() # x is long dimension
 		x = 200
@@ -141,6 +169,23 @@ class TestRegionParameter(_ParameterTest):
 		with self.assertRaises(RequestException):
 			RegionParameter('pct:100,2,3,0', info)
 
+	def test_str(self):
+		info = self._get_info_long_y()
+		rp1 = RegionParameter('full', info)
+		self.assertEquals(str(rp1), 'full')
+
+		rp2 = RegionParameter('125,15,120,140', info)
+		self.assertEquals(str(rp2), '125,15,120,140')
+
+		rp3 = RegionParameter('pct:41.6,7.5,40,70', info)
+		self.assertEquals(str(rp3), 'pct:41.6,7.5,40,70')
+
+		rp4 = RegionParameter('125,15,200,200', info)
+		self.assertEquals(str(rp4), '125,15,200,200')
+
+		rp5 = RegionParameter('pct:41.6,7.5,66.6,100', info)
+		self.assertEquals(str(rp5), 'pct:41.6,7.5,66.6,100')
+
 
 class TestSizeParameter(_ParameterTest):
 	def test_exceptions(self):
@@ -152,6 +197,49 @@ class TestSizeParameter(_ParameterTest):
 			SizeParameter('!25', rp)
 		with self.assertRaises(SyntaxException):
 			SizeParameter('25', rp)
+
+	def test_zero_or_negative_percentage_is_rejected(self):
+		info = build_image_info(100, 100)
+		rp = RegionParameter('full', info)
+		with self.assertRaises(RequestException):
+			SizeParameter('pct:0', rp)
+
+	def test_very_small_pixel_width_is_positive(self):
+		info = build_image_info(width=1, height=100)
+		rp = RegionParameter('full', info)
+		sp = SizeParameter(',50', rp)
+		self.assertEquals(sp.w, 1)
+
+	def test_very_small_pixel_height_is_positive(self):
+		info = build_image_info(width=100, height=1)
+		rp = RegionParameter('full', info)
+		sp = SizeParameter('50,', rp)
+		self.assertEquals(sp.h, 1)
+
+	def test_very_small_percentage_width_is_positive(self):
+		info = build_image_info(width=1, height=100)
+		rp = RegionParameter('full', info)
+		sp = SizeParameter('pct:50', rp)
+		self.assertEquals(sp.w, 1)
+
+	def test_str_representation(self):
+		info = build_image_info()
+		rp = RegionParameter('full', info)
+		for uri_value in [
+			'full',
+			'pct:50',
+			'50,',
+			',50',
+			'!50,50',
+		]:
+			sp = SizeParameter(uri_value, rp)
+			self.assertEquals(str(sp), uri_value)
+
+	def test_very_small_percentage_height_is_positive(self):
+		info = build_image_info(width=100, height=1)
+		rp = RegionParameter('full', info)
+		sp = SizeParameter('pct:50', rp)
+		self.assertEquals(sp.h, 1)
 
 	def test_populate_slots_from_full(self):
 		# full
