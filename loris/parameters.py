@@ -410,7 +410,7 @@ class RotationParameter(object):
         mirror (bool)
         rotation (str)
     '''
-    ROTATION_REGEX = re.compile(r'^(?P<mirror>!?)(?P<rotation>[\d.])+$')
+    ROTATION_REGEX = re.compile(r'^(?P<mirror>!?)(?P<rotation>[\d.]+)$')
 
     __slots__ = ('canonical_uri_value', 'mirror', 'rotation')
 
