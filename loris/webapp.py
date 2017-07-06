@@ -11,10 +11,9 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from os import path, makedirs, unlink
-import random
 import re
-import string
 from subprocess import CalledProcessError
+from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
 #3rd party imports
@@ -28,7 +27,6 @@ import img
 from img_info import ImageInfo
 from img_info import ImageInfoException
 from img_info import InfoCache
-from loris_exception import LorisException
 from loris_exception import RequestException
 from loris_exception import SyntaxException
 from loris_exception import ImageException
@@ -113,7 +111,7 @@ def read_config(config_file_path):
     # interpolating their values into other keys
     # make a copy of the os.environ dictionary so that the config object can't
     # inadvertently modify the environment
-    config['DEFAULT'] = dict(os.environ)
+    config['DEFAULT'] = {key: val for(key, val) in os.environ.items() if key not in ('PS1')}
     return config
 
 
@@ -289,7 +287,7 @@ class Loris(object):
         self.app_configs = app_configs
         self.logger = _configure_logging(app_configs['logging'])
         self.logger.debug('Loris initialized with these settings:')
-        [self.logger.debug('%s.%s=%s' % (key, sub_key, self.app_configs[key][sub_key]))
+        [self.logger.debug('%s.%s=%s', key, sub_key, self.app_configs[key][sub_key])
             for key in self.app_configs for sub_key in self.app_configs[key]]
 
         # make the loris.Loris configs attrs for easier access
@@ -317,9 +315,9 @@ class Loris(object):
     def _load_transformers(self):
         tforms = self.app_configs['transforms']
         source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
-        self.logger.debug('Source formats: %s' % (repr(source_formats),))
+        self.logger.debug('Source formats: %r', source_formats)
         global_tranform_options = dict((k, v) for k, v in tforms.iteritems() if not isinstance(v, dict))
-        self.logger.debug('Global transform options: %s' % (repr(global_tranform_options),))
+        self.logger.debug('Global transform options: %r', global_tranform_options)
 
         transformers = {}
         for sf in source_formats:
@@ -331,7 +329,7 @@ class Loris(object):
     def _load_transformer(self, config):
         Klass = getattr(transforms, config['impl'])
         instance = Klass(config)
-        self.logger.debug('Loaded Transformer %s' % (config['impl'],))
+        self.logger.debug('Loaded Transformer %s', config['impl'])
         return instance
 
     def _load_resolver(self):
@@ -354,7 +352,7 @@ class Loris(object):
         module_name = '.'.join(qname.split('.')[:-1])
         class_name = qname.split('.')[-1]
         module = __import__(module_name, fromlist=[class_name])
-        self.logger.debug('Imported %s' % (qname,))
+        self.logger.debug('Imported %s', qname)
         return getattr(module, class_name)
 
     def wsgi_app(self, environ, start_response):
@@ -466,7 +464,7 @@ class Loris(object):
             # Otherwise we're okay
 
         if ims and ims >= last_mod:
-            self.logger.debug('Sent 304 for %s ' % (ident,))
+            self.logger.debug('Sent 304 for %s ', ident)
             r.status_code = 304
         else:
             if last_mod:
@@ -501,11 +499,6 @@ class Loris(object):
             except KeyError:
                 raise ImageInfoException(500, 'unknown source format')
 
-            self.logger.debug('Format: %s' % (info.src_format,))
-            self.logger.debug('File Path: %s' % (info.src_img_fp,))
-            self.logger.debug('Identifier: %s' % (ident,))
-            self.logger.debug('Base URI: %s' % (base_uri,))
-
             # Finish setting up the info from the image file
             info.from_image_file(formats, self.max_size_above_full)
 
@@ -518,7 +511,7 @@ class Loris(object):
 
             # store
             if self.enable_caching:
-                self.logger.debug('ident used to store %s: %s' % (ident,ident))
+                self.logger.debug('ident used to store %s: %s', ident, ident)
                 self.info_cache[request] = info
                 # pick up the timestamp... :()
                 info,last_mod = self.info_cache[request]
@@ -545,7 +538,7 @@ class Loris(object):
         image_request = img.ImageRequest(ident, region, size, rotation,
                                          quality, target_fmt)
 
-        self.logger.debug('Image Request Path: %s' % (image_request.request_path,))
+        self.logger.debug('Image Request Path: %s', image_request.request_path)
 
         if self.enable_caching:
             in_cache = image_request in self.img_cache
@@ -570,11 +563,11 @@ class Loris(object):
             # as when went sent it, so for an accurate comparison turn it into
             # an http date and then parse it again :-( :
             img_last_mod = parse_date(http_date(img_last_mod))
-            self.logger.debug("Time from FS (default, rounded): " + str(img_last_mod))
-            self.logger.debug("Time from IMS Header (parsed): " + str(parse_date(ims_hdr)))
+            self.logger.debug("Time from FS (default, rounded): %s", img_last_mod)
+            self.logger.debug("Time from IMS Header (parsed): %s", parse_date(ims_hdr))
             # ims_hdr = parse_date(ims_hdr) # catch parsing errors?
             if ims_hdr and parse_date(ims_hdr) >= img_last_mod:
-                self.logger.debug('Sent 304 for %s ' % (fp,))
+                self.logger.debug('Sent 304 for %s ', fp)
                 r.status_code = 304
                 return r
             else:
@@ -610,7 +603,7 @@ class Loris(object):
                 # 5. Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical:
-                        self.logger.debug('Attempting redirect to %s' % (image_request.canonical_request_path,))
+                        self.logger.debug('Attempting redirect to %s', image_request.canonical_request_path,)
                         r.headers['Location'] = image_request.canonical_request_path
                         r.status_code = 301
                         return r
@@ -664,20 +657,18 @@ possible that there was a problem with the source file
         Returns:
             (str) the fp of the new image
         '''
-        # figure out paths, make dirs
-        if self.enable_caching:
-            target_fp = self.img_cache.create_dir_and_return_file_path(image_request)
-        else:
-            # random str
-            n = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
-            target_fp = '%s.%s' % (path.join(self.tmp_dp, n), image_request.format)
+        temp_file = NamedTemporaryFile(dir=self.tmp_dp, suffix='.%s' % image_request.format, delete=False)
+        temp_fp = temp_file.name
 
         transformer = self.transformers[src_format]
+        transformer.transform(src_fp, temp_fp, image_request)
 
-        transformer.transform(src_fp, target_fp, image_request)
         if self.enable_caching:
-            self.img_cache[image_request] = target_fp
-        return target_fp
+            temp_fp = self.img_cache.upsert(image_request, temp_fp)
+            # TODO: not sure how the non-canonical use case works
+            self.img_cache[image_request] = temp_fp
+
+        return temp_fp
 
 
 if __name__ == '__main__':

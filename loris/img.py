@@ -4,8 +4,7 @@
 from datetime import datetime
 from errno import EEXIST
 from logging import getLogger
-from loris_exception import LorisException
-from os import path, sep, symlink, makedirs, unlink, error as os_error
+from os import path, symlink, makedirs, unlink, error as os_error, rename
 from parameters import RegionParameter
 from parameters import RotationParameter
 from parameters import SizeParameter
@@ -13,7 +12,6 @@ from loris_exception import RequestException
 from loris_exception import SyntaxException
 from loris_exception import ImageException
 from urllib import unquote, quote_plus
-from werkzeug.http import generate_etag
 from urllib import unquote
 
 logger = getLogger(__name__)
@@ -85,11 +83,11 @@ class ImageRequest(object):
         self.quality = quality
         self.format = target_format
 
-        logger.debug('region slice: %s' % (str(region),))
-        logger.debug('size slice: %s' % (str(size),))
-        logger.debug('rotation slice: %s' % (str(rotation),))
-        logger.debug('quality slice: %s' % (self.quality,))
-        logger.debug('format extension: %s' % (self.format,))
+        logger.debug('region slice: %s', region)
+        logger.debug('size slice: %s', size)
+        logger.debug('rotation slice: %s', rotation)
+        logger.debug('quality slice: %s', self.quality)
+        logger.debug('format extension: %s', self.format)
 
         # These aren't set until we first access them
         self._canonical_cache_path = None
@@ -232,7 +230,7 @@ class ImageCache(dict):
     @staticmethod
     def _link(source, link_name):
         if source == link_name:
-            logger.warn('Circular symlink requested from %s to %s; not creating symlink' % (link_name, source))
+            logger.warn('Circular symlink requested from %s to %s; not creating symlink', link_name, source)
             return
         link_dp = path.dirname(link_name)
         if not path.exists(link_dp):
@@ -240,7 +238,7 @@ class ImageCache(dict):
         if path.lexists(link_name): # shouldn't be the case, but helps debugging
             unlink(link_name)
         symlink(source, link_name)
-        logger.debug('Made symlink from %s to %s' % (link_name, source))
+        logger.debug('Made symlink from %s to %s', link_name, source)
 
     def __setitem__(self, image_request, canonical_fp):
         # Because we're working with files, it's more practical to put derived
@@ -294,4 +292,9 @@ class ImageCache(dict):
                 pass
             else:
                 raise
+        return target_fp
+
+    def upsert(self, image_request, temp_fp):
+        target_fp = self.create_dir_and_return_file_path(image_request)
+        rename(temp_fp, target_fp)
         return target_fp

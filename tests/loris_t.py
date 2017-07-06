@@ -137,9 +137,9 @@ class LorisTest(unittest.TestCase):
                     p = path.join(dp, node)
                     if path.isdir(p):
                         rmtree(p)
-                        logger.debug('Removed %s' % (p,))
+                        logger.debug('Removed %s', p)
                     else: # TODO: make sure this covers symlinks
                         unlink(p)
-                        logger.debug('Removed %s' % (p,))
+                        logger.debug('Removed %s', p)
                 rmtree(dp)
-                logger.debug('Removed %s' % (dp,))
+                logger.debug('Removed %s', dp)
