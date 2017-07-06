@@ -644,11 +644,23 @@ class S3CachingResolver(_AbstractResolver):
             logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp))
             self.key_cache[ident].get_contents_to_filename(fp)
 
+            # check that size of file on disk is same as on S3
+            retries = 5
+            while retries and self.key_cache[ident].size != os.stat(fp).st_size:
+                # Retry
+                self.key_cache[ident].get_contents_to_filename(fp)
+                retries -= 1
+
             if ident in self.rules_key_cache:
                 fn2 = fn.replace("jp2", self.auth_rules_ext)
                 fp2 = join(dr, fn2)
                 logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp2))
                 self.rules_key_cache[ident].get_contents_to_filename(fp2)                
+                retries = 10
+                while retries and self.rules_key_cache[ident].size != os.stat(fp2).st_size:
+                    # Retry
+                    self.rules_key_cache[ident].get_contents_to_filename(fp2)
+                    retries -= 1
 
         uri = self.fix_base_uri(base_uri)
 
