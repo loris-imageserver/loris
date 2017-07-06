@@ -127,7 +127,6 @@ class SimpleFSResolver(_AbstractResolver):
             self.raise_404_for_ident(ident)
 
         source_fp = self.source_file_path(ident)
-        logger.debug('src image: %s' % (source_fp,))
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
         try:
@@ -261,9 +260,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         else:
             url = self.source_prefix + ident + self.source_suffix
         if not (url.startswith('http://') or url.startswith('https://')):
-            logger.warn(
-                'Bad URL request at %s for identifier: %s.' % (source_url, ident)
-            )
+            logger.warn('Bad URL request at %s for identifier: %s.', url, ident)
             public_message = 'Bad URL request made for identifier: %s.' % (ident,)
             raise ResolverException(404, public_message)
         return (url, self.request_options())
@@ -321,8 +318,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             try:
                 extension = self.get_format(ident, constants.FORMATS_BY_MEDIA_TYPE[response.headers['content-type']])
             except KeyError:
-                logger.warn('Your server may be responding with incorrect content-types. Reported %s for ident %s.'
-                            % (response.headers['content-type'], ident))
+                logger.warn('Your server may be responding with incorrect content-types. Reported %s for ident %s.',
+                            response.headers['content-type'], ident)
                 # Attempt without the content-type
                 extension = self.get_format(ident, None)
         else:
@@ -363,11 +360,11 @@ class SimpleHTTPResolver(_AbstractResolver):
             #now rename the tmp file to the desired file name if it still doesn't exist
             #   (another process could have created it)
             if exists(local_fp):
-                logger.info('another process downloaded src image %s' % local_fp)
+                logger.info('another process downloaded src image %s', local_fp)
                 remove(tmp_file.name)
             else:
                 rename(tmp_file.name, local_fp)
-                logger.info("Copied %s to %s" % (source_url, local_fp))
+                logger.info("Copied %s to %s", source_url, local_fp)
 
         return local_fp
 
@@ -427,10 +424,10 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             name = name.strip()
             cfg = self.config.get(name, None)
             if cfg is None:
-                logger.warn('No configuration specified for resolver template %s' % name)
+                logger.warn('No configuration specified for resolver template %s', name)
             else:
                 self.templates[name] = cfg
-        logger.debug('TemplateHTTPResolver templates: %s' % str(self.templates))
+        logger.debug('TemplateHTTPResolver templates: %s', self.templates)
 
     def _web_request_url(self, ident):
         # only split identifiers that look like template ids;
@@ -504,7 +501,7 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         makedirs(dirname(cache_fp))
         copy(source_fp, cache_fp)
-        logger.info("Copied %s to %s" % (source_fp, cache_fp))
+        logger.info("Copied %s to %s", source_fp, cache_fp)
 
     def raise_404_for_ident(self, ident):
         source_fp = self.source_file_path(ident)
@@ -520,7 +517,6 @@ class SourceImageCachingResolver(_AbstractResolver):
             self.copy_to_cache(ident)
 
         cache_fp = self.cache_file_path(ident)
-        logger.debug('Image Served from local cache: %s' % (cache_fp,))
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
         return ImageInfo(uri, cache_fp, format_)

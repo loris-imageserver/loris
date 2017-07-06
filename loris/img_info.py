@@ -12,12 +12,10 @@ from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
 import errno
-import fnmatch
 import json
 import os
 import struct
 from urllib import unquote
-from sys import exit
 
 try:
     from collections import OrderedDict
@@ -161,6 +159,7 @@ class ImageInfo(object):
         if (not initial_bytes[:12] == '\x00\x00\x00\x0cjP  \r\n\x87\n') or \
             (not initial_bytes[16:] == 'ftypjp2 '):
             jp2.close()
+            logger.warning('Invalid JP2 file at %s', fp)
             raise ImageInfoException(http_status=500, message='Invalid JP2 file')
 
         #grab width and height
@@ -172,8 +171,8 @@ class ImageInfo(object):
             window.append(c)
         self.height = int(struct.unpack(">I", jp2.read(4))[0]) # height (pg. 136)
         self.width = int(struct.unpack(">I", jp2.read(4))[0]) # width
-        logger.debug("width: " + str(self.width))
-        logger.debug("height: " + str(self.height))
+        logger.debug("width: %s", self.width)
+        logger.debug("height: %s", self.height)
 
         # Figure out color or grayscale.
         # Depending color profiles; there's probably a better way (or more than
@@ -185,19 +184,19 @@ class ImageInfo(object):
             window.append(c)
 
         colr_meth = struct.unpack('B', jp2.read(1))[0]
-        logger.debug('colr METH: %d' % (colr_meth,))
+        logger.debug('colr METH: %d', colr_meth)
 
         # PREC and APPROX, 1 byte each
         colr_prec = struct.unpack('b', jp2.read(1))[0]
         colr_approx = struct.unpack('B', jp2.read(1))[0]
-        logger.debug('colr PREC: %d' % (colr_prec))
-        logger.debug('colr APPROX: %d' % (colr_approx))
+        logger.debug('colr PREC: %d', colr_prec)
+        logger.debug('colr APPROX: %d', colr_approx)
 
         if colr_meth == 1: # Enumerated Colourspace
             self.color_profile_bytes = None
             enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
-            logger.debug('Image contains an enumerated colourspace: %d' % (enum_cs,))
-            logger.debug('Enumerated colourspace: %d' % (enum_cs))
+            logger.debug('Image contains an enumerated colourspace: %d', enum_cs)
+            logger.debug('Enumerated colourspace: %d', enum_cs)
             if enum_cs == 16: # sRGB
                 self.profile[1]['qualities'] += ['gray', 'color']
             elif enum_cs == 17: # grayscale
@@ -221,7 +220,7 @@ class ImageInfo(object):
             if colr_meth <= 4 and -128 <= colr_prec <= 127 and 1 <= colr_approx <= 4:
                 self.assign_color_profile(jp2)
 
-        logger.debug('qualities: ' + str(self.profile[1]['qualities']))
+        logger.debug('qualities: %s', self.profile[1]['qualities'])
 
         window =  deque(jp2.read(2), 2)
         while map(ord, window) != [0xFF, 0x4F]: # (SOC - required, see pg 14)
@@ -231,8 +230,8 @@ class ImageInfo(object):
         jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
         tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
         tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
-        logger.debug("tile width: " + str(tile_width))
-        logger.debug("tile height: " + str(tile_height))
+        logger.debug("tile width: %s", tile_width)
+        logger.debug("tile height: %s", tile_height)
         self.tiles.append( { 'width' : tile_width } )
         if tile_width != tile_height:
             self.tiles[0]['height'] = tile_height
@@ -246,7 +245,7 @@ class ImageInfo(object):
 
         jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)
         levels = int(struct.unpack(">B", jp2.read(1))[0])
-        logger.debug("levels: " + str(levels))
+        logger.debug("levels: %s", levels)
         scaleFactors = [pow(2, l) for l in range(0,levels+1)]
         self.tiles[0]['scaleFactors'] = scaleFactors
         jp2.read(4) # through code block stuff
@@ -290,7 +289,7 @@ class ImageInfo(object):
         profile_size_bytes = jp2.read(4)
         profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
 
-        logger.debug('profile size: %d' % (profile_size))
+        logger.debug('profile size: %d', profile_size)
         self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
 
         # This is an assumption for now (i.e. that if you have a colour profile
@@ -306,7 +305,7 @@ class ImageInfo(object):
         return int(ceil(dim_len * 1.0/scale))
 
     def to_dict(self):
-        logger.debug('self.ident in to_dict: %s' % (self.ident,))
+        logger.debug('self.ident in to_dict: %s', self.ident)
         d = {}
         d['@context'] = CONTEXT
         d['@id'] = self.ident
@@ -424,7 +423,7 @@ class InfoCache(object):
 
                 lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
                 info_and_lastmod = (info, lastmod)
-                logger.debug('Info for %s read from file system' % (request,))
+                logger.debug('Info for %s read from file system', request)
                 # into mem:
                 self._dict[request.url] = info_and_lastmod
 
@@ -432,12 +431,6 @@ class InfoCache(object):
 
     def has_key(self, request):
         return os.path.exists(self._get_info_fp(request))
-
-    # def __len__(self):
-    #     w = os.walk
-    #     ff = fnmatch.filter
-    #     pat = STAR_DOT_JSON
-    #     return len([_ for fp in ff(fps, pat) for r,dps,fps in w(self.root)])
 
     def __contains__(self, request):
         return self.has_key(request)
@@ -451,13 +444,13 @@ class InfoCache(object):
 
     def __setitem__(self, request, info):
         # to fs
-        logger.debug('request passed to __setitem__: %s' % (request,))
+        logger.debug('request passed to __setitem__: %s', request)
         info_fp = self._get_info_fp(request)
         dp = os.path.dirname(info_fp)
         if not os.path.isdir(dp):
             try:
                 os.makedirs(dp)
-                logger.debug('Created %s' % (dp,))
+                logger.debug('Created %s', dp)
             except OSError as e: # this happens once and a while; not sure why
                 if e.errno == errno.EEXIST:
                     pass
@@ -467,14 +460,14 @@ class InfoCache(object):
         with open(info_fp, 'w') as f:
             f.write(info.to_json(cache=True))
             f.close()
-            logger.debug('Created %s' % (info_fp,))
+            logger.debug('Created %s', info_fp)
 
         if info.color_profile_bytes:
             icc_fp = self._get_color_profile_fp(request)
             with open(icc_fp, 'wb') as f:
                 f.write(info.color_profile_bytes)
                 f.close()
-                logger.debug('Created %s' % (icc_fp,))
+                logger.debug('Created %s', icc_fp)
 
         # into mem
         lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))

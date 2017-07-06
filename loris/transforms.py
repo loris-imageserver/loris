@@ -28,7 +28,7 @@ class _AbstractTransformer(object):
         self.config = config
         self.target_formats = config['target_formats']
         self.dither_bitonal_images = config['dither_bitonal_images']
-        logger.debug('Initialized %s.%s' % (__name__, self.__class__.__name__))
+        logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
 
     def transform(self, src_fp, target_fp, image_request):
         '''
@@ -37,7 +37,7 @@ class _AbstractTransformer(object):
             target_fp (str)
             image (ImageRequest)
         '''
-        e = self.__class__.__name__
+        cn = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
 
     def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
@@ -68,13 +68,13 @@ class _AbstractTransformer(object):
                 image_request.region_param.pixel_x+image_request.region_param.pixel_w,
                 image_request.region_param.pixel_y+image_request.region_param.pixel_h
             )
-            logger.debug('cropping to: %s' % (repr(box),))
+            logger.debug('cropping to: %r', box)
             im = im.crop(box)
 
         # resize
         if image_request.size_param.canonical_uri_value != 'full':
             wh = [int(image_request.size_param.w),int(image_request.size_param.h)]
-            logger.debug('Resizing to: %s' % (repr(wh),) )
+            logger.debug('Resizing to: %r', wh)
             im = im.resize(wh, resample=Image.ANTIALIAS)
 
 
@@ -88,7 +88,7 @@ class _AbstractTransformer(object):
             # transparent background (A == Alpha layer)
             if float(image_request.rotation_param.rotation) % 90 != 0.0 and \
                 image_request.format == 'png':
-                
+
                 if image_request.quality in ('gray', 'bitonal'):
                     im = im.convert('LA')
                 else:
@@ -123,7 +123,7 @@ class _AbstractTransformer(object):
         elif image_request.format == 'webp':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
             im.save(target_fp, quality=90)
-         
+
 
 class _PillowTransformer(_AbstractTransformer):
     def __init__(self, config):
@@ -259,7 +259,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             x1 = region_param.pixel_x + region_param.pixel_w
             y1 = region_param.pixel_y + region_param.pixel_h
             arg = ','.join(map(str, (x0, y0, x1, y1)))
-        logger.debug('opj region parameter: %s' % (arg,))
+        logger.debug('opj region parameter: %s', arg)
         return arg
 
     def transform(self, src_fp, target_fp, image_request):
@@ -268,7 +268,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
         # make the named pipe
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        logger.debug('Calling %s' % (mkfifo_call,))
+        logger.debug('Calling %s', mkfifo_call)
         resp = subprocess.check_call(mkfifo_call, shell=True)
         if resp != 0:
             logger.error('Problem with mkfifo')
@@ -284,7 +284,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
         opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
 
-        logger.debug('Calling: %s' % (opj_cmd,))
+        logger.debug('Calling: %s', opj_cmd)
 
         # Start the shellout. Blocks until the pipe is empty
         with open(devnull, 'w') as fnull:
@@ -292,7 +292,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
                 stderr=fnull, stdout=fnull, env=self.env)
 
         f = open(fifo_fp, 'rb')
-        logger.debug('Opened %s' % fifo_fp)
+        logger.debug('Opened %s', fifo_fp)
 
         # read from the named pipe
         p = Parser()
@@ -372,7 +372,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             width = region_param.decimal_w
 
             arg = '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
-        logger.debug('kdu region parameter: %s' % (arg,))
+        logger.debug('kdu region parameter: %s', arg)
         return arg
 
     def _run_transform(self, target_fp, image_request, kdu_cmd, fifo_fp):
@@ -424,7 +424,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         process.start()
         process.join(self.transform_timeout)
         if process.is_alive():
-            logger.info('terminating process for %s, %s' % (src_fp, target_fp))
+            logger.info('terminating process for %s, %s', src_fp, target_fp)
             process.terminate()
             if path.exists(fifo_fp):
                 unlink(fifo_fp)
