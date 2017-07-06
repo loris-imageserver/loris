@@ -4,9 +4,19 @@ from bottle import debug as set_debug
 import json
 import sys
 
-# XXX These probably aren't Python 3.x safe?
-import urllib, urllib2
-from netaddr import IPNetwork, IPAddress
+try:
+    from urllib import urlencode
+    from urllib2 import Request, urlopen
+except ImportError: 
+    from urllib.parse import urlencode
+    from urllib.request import Request, urlopen
+
+try:
+    from netaddr import IPNetwork, IPAddress
+except ImportError:
+    # The IP authentication class just won't work without this
+    # but others will be fine
+    pass
 
 
 # XXX FixMe to do real encryption!
@@ -219,19 +229,19 @@ class OAuthHandler(AuthNHandler):
             'redirect_uri': self.GOOGLE_REDIRECT_URI,
             'grant_type': 'authorization_code',
         }
-        payload = urllib.urlencode(params)
+        payload = urlencode(params)
         url = self.GOOGLE_OAUTH2_URL + 'token'
-        req = urllib2.Request(url, payload) 
-        return json.loads(urllib2.urlopen(req).read())
+        req = Request(url, payload) 
+        return json.loads(urlopen(req).read())
 
     def _get_data(self, response):
         params = {
             'access_token': response['access_token'],
         }
-        payload = urllib.urlencode(params)
+        payload = urlencode(params)
         url = self.GOOGLE_API_URL + 'userinfo?' + payload
-        req = urllib2.Request(url)  # must be GET
-        return json.loads(urllib2.urlopen(req).read())
+        req = Request(url)  # must be GET
+        return json.loads(urlopen(req).read())
 
     def login(self):
         # OAuth starts here. This will redirect User to Google
@@ -243,7 +253,7 @@ class OAuthHandler(AuthNHandler):
             'scope': self.GOOGLE_API_SCOPE,
             'state': request.query.get('origin'),
         }
-        url = self.GOOGLE_OAUTH2_URL + 'auth?' + urllib.urlencode(params)
+        url = self.GOOGLE_OAUTH2_URL + 'auth?' + urlencode(params)
         response['Access-Control-Allow-Origin'] = '*'
         redirect(url)
 
