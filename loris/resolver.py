@@ -80,6 +80,16 @@ class _AbstractResolver(object):
         message = 'Format could not be determined for: %s.' % (ident)
         raise ResolverException(404, message)
 
+    def _get_extra_info(self, ident, source_fp):
+        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
+        if exists(xjsfp):
+            fh = open(xjsfp)
+            xjs = json.load(fh)
+            fh.close()
+            return xjs
+        else:
+            return {}
+
 
 class SimpleFSResolver(_AbstractResolver):
     """
@@ -107,16 +117,6 @@ class SimpleFSResolver(_AbstractResolver):
             fp = join(directory, ident)
             if exists(fp):
                 return fp
-
-    def _get_extra_info(self, ident, source_fp):
-        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
-        if exists(xjsfp):
-            fh = open(xjsfp)
-            xjs = json.load(fh)
-            fh.close()
-            return xjs
-        else:
-            return {}
 
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
@@ -531,7 +531,6 @@ class S3CachingResolver(_AbstractResolver):
     # pw = secret_key
     # source_prefix = path/inside/bucket
     # cache_root = where/on/disk/to/cache/jp2s
-    # tier_separator = chrs-to-split-ident
 
     def __init__(self, config):
         super(S3CachingResolver, self).__init__(config)
@@ -556,11 +555,10 @@ class S3CachingResolver(_AbstractResolver):
         except:
             logger.error("S3 Resolver needs a `cache_root` configuration setting.")
 
-        self.tier_separator = self.config.get('tier_separator', '==')
         self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
-
         self._connect()
         self.key_cache = {}
+        self.rules_key_cache = {}
 
     def _connect(self):
         try:
@@ -591,7 +589,6 @@ class S3CachingResolver(_AbstractResolver):
     def s3_key(self, ident):
         """Check S3 for the Key"""
         ident = ident.replace('%2F', '/')
-
         idl = ident.split('/')
         idl2 = [idl[0], 'dynamic']
         idl2.extend(idl[1:])
@@ -602,22 +599,9 @@ class S3CachingResolver(_AbstractResolver):
         logger.debug("Looking in S3 for %s" % name)
         if k.exists():
             self.key_cache[ident] = k
-
             k2 = Key(self.bucket, name.replace("jp2", self.auth_rules_ext))
             if k2.exists():
-                # Fetch and locally cache our auth rules
-                js = k2.get_contents_as_string()
-                k._iiif_auth_rules = json.loads(js)
-                fp = join(self.cache_root, "%s.%s" % (ident, auth_rules_ext))
-                (dr, fn) = split(fp)
-                try:
-                    makedirs(dr)
-                except OSError:
-                    # already exists
-                    pass                
-                fh = file(fn, 'w')
-                fh.write(js)
-                fh.close()
+                self.rules_key_cache[ident] = k2
             return k
         else:
             return None
@@ -649,6 +633,7 @@ class S3CachingResolver(_AbstractResolver):
         ident = ident.replace('%2F', '/')
         fp = self.disk_fp(ident)
         if not fp:
+            # Pull down from S3
             fp = join(self.cache_root, "%s.jp2" % ident)
             (dr, fn) = split(fp)
             try:
@@ -659,6 +644,18 @@ class S3CachingResolver(_AbstractResolver):
             logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp))
             self.key_cache[ident].get_contents_to_filename(fp)
 
+            if ident in self.rules_key_cache:
+                fn2 = fn.replace("jp2", self.auth_rules_ext)
+                fp2 = join(dr, fn2)
+                logger.debug("Fetching contents of %s to %s" % (self.key_cache[ident], fp2))
+                self.rules_key_cache[ident].get_contents_to_filename(fp2)                
+
         uri = self.fix_base_uri(base_uri)
 
-        return ImageInfo(uri, fp, 'jp2')
+        try:
+            extra = self._get_extra_info(ident, fp)
+        except:
+            logger.debug("Failed to extract extra information from JSON file")
+            extra = {}
+
+        return ImageInfo(uri, fp, 'jp2', extra)

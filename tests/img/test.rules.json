@@ -1,8 +1,23 @@
 {
 	"allowed": ["test"],
+	"extraInfo": {
+		"service": {
+			"@context": "http://iiif.io/api/auth/1/context.json", 
+			"@id": "http://localhost:8000/cookie",
+			"profile": "http://iiif.io/api/auth/1/login", 
+			"label": "Please Login", 
+			"service": [
+				{
+					"@context": "http://iiif.io/api/auth/1/context.json", 
+					"@id": "http://localhost:8000/token",
+					"profile": "http://iiif.io/api/auth/1/token"
+				}
+			]
+		}
+	},
 	"tiers": [
 		{
-			"identifier": "http://localhost:5004/67352ccc-d1b0-11e1-89ae-279075081939.jp2"
+			"identifier": "http://localhost:5004/pir-architecture.png"
 		}
 	]
 }

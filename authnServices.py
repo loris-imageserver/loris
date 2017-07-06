@@ -1,33 +1,20 @@
-
 from bottle import request, response, abort, redirect
 from bottle import auth_basic, parse_auth, Bottle, run
 from bottle import debug as set_debug
 import json
+import sys
 
 # XXX These probably aren't Python 3.x safe?
 import urllib, urllib2
+from netaddr import IPNetwork, IPAddress
 
-# Vignere Cipher from
-# https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
-import base64
+
+# XXX FixMe to do real encryption!
 def encrypt(clear, key):
-    enc = []
-    for i in range(len(clear)):
-        key_c = key[i % len(key)]
-        enc_c = chr((ord(clear[i]) + ord(key_c)) % 256)
-        enc.append(enc_c)
-    return base64.urlsafe_b64encode("".join(enc))
+    return clear
 
 def decrypt(enc, key):
-    dec = []
-    # UTF-8 from headers or JSON response
-    enc = enc.encode('utf-8')
-    enc = base64.urlsafe_b64decode(enc)
-    for i in range(len(enc)):
-        key_c = key[i % len(key)]
-        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
-        dec.append(dec_c)
-    return "".join(dec)
+    return enc
    
 class AuthApp(object):
 
@@ -36,8 +23,11 @@ class AuthApp(object):
         self.AUTH_URL_COOKIE = "cookie"
         self.AUTH_URL_TOKEN = "token"
         self.AUTH_URL_LOGOUT = "logout"
-
-        self.handler = BasicAuthHandler(self)
+        # login:
+        # self.handler = BasicAuthHandler(self)
+        # self.handler = OAuthHandler(self)
+        # kiosk:
+        self.handler = IPRangeHandler(self)
 
     def send(self, data, status=200, ct="text/plain"):
         response.headers['Access-Control-Allow-Origin'] = '*'
@@ -127,8 +117,8 @@ class AuthNHandler(object):
         try:
             account = request.get_cookie(self.cookie_name)
             account = decrypt(account, secret)
+            response.set_cookie(self.cookie_name, account)
         except:
-            raise
             account = ''
         if not account:
             data = {"error":"missingCredentials","description":"No login details received"}
@@ -154,7 +144,7 @@ window.parent.postMessage({0}, '{1}');
             return self.application.send(dataStr, ct="application/json")
 
     def logout(self):
-        response.delete_cookie(self.cookie_name)
+        response.delete_cookie(self.cookie_name, domain="getty.edu", path="/")
         response['Access-Control-Allow-Origin'] = '*'
         return self.application.send("<html><script>window.close();</script></html>", status=401, ct="text/html"); 
 
@@ -171,14 +161,55 @@ class BasicAuthHandler(AuthNHandler):
 
     def cookie(self):
         auth = request.headers.get('Authorization')
+        if not auth:
+            return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
         who, p = parse_auth(auth)      
         origin = request.query.get('origin', '*')
         secret = self.make_secret(origin, "cookie")
         value = encrypt(who, secret)
-        response.set_cookie(self.cookie_name, value)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
 
+class IPRangeHandler(AuthNHandler):
+
+    def __init__(self, app, name="iiif_access_cookie", cookie_secret="abc123", token_secret="xyz987"):
+        self.application = app
+        self.cookie_name = name
+        self.cookie_secret = cookie_secret
+        self.token_secret = token_secret
+        self.ENCRYPT_TOKEN = True
+
+        self.network = IPNetwork("10.0.0.0/16")
+        self.exclude = [IPAddress("10.0.0.1")]
+
+    def login(self):
+        # Check if IP of browser is acceptable
+        reqip = IPAddress(request.environ.get("REMOTE_ADDR"))
+        if reqip in self.network and not reqip in self.exclude:
+            origin = request.query.get('origin', '*')        
+            secret = self.make_secret(origin, "cookie")
+            value = encrypt("on-site", secret)
+            # secure=True to limit to only https connections
+            response.set_cookie(self.cookie_name, value, domain="getty.edu", path="/", httponly=True)
+            return self.application.send("<html><script>window.close();</script><body>%s</body></html>" % reqip, ct="text/html")
+        else:
+            return self.application.send("<html><body>Message for requiring on-site access here</body></html>", status=403, ct="text/html")
+
+
 class OAuthHandler(AuthNHandler):
+
+    def __init__(self, app, name="iiif_access_cookie", cookie_secret="abc123", token_secret="xyz987"):
+        self.application = app
+        self.cookie_name = name
+        self.cookie_secret = cookie_secret
+        self.token_secret = token_secret
+        self.cookie_domain = ""
+        self.ENCRYPT_TOKEN = True
+        self.GOOGLE_API_CLIENT_ID = ""
+        self.GOOGLE_API_CLIENT_SECRET = ""
+        self.GOOGLE_REDIRECT_URI = ""
+        self.GOOGLE_OAUTH2_URL = "https://accounts.google.com/o/oauth2/"
+        self.GOOGLE_API_SCOPE = "https://www.googleapis.com/auth/userinfo.email"
+        self.GOOGLE_API_URL = "https://www.googleapis.com/oauth2/v1/"
 
     def _get_token(self):
         params = {
@@ -210,7 +241,7 @@ class OAuthHandler(AuthNHandler):
             'client_id': self.GOOGLE_API_CLIENT_ID,
             'redirect_uri': self.GOOGLE_REDIRECT_URI,
             'scope': self.GOOGLE_API_SCOPE,
-            'state': request.query.get('next'),
+            'state': request.query.get('origin'),
         }
         url = self.GOOGLE_OAUTH2_URL + 'auth?' + urllib.urlencode(params)
         response['Access-Control-Allow-Origin'] = '*'
@@ -219,23 +250,26 @@ class OAuthHandler(AuthNHandler):
     def cookie(self):
         # OAuth ends up back here from Google. This sets a cookie and closes window
         # to trigger next step
+        origin = request.query.get('state', '')
         resp = self._get_token()
         data = self._get_data(resp)
 
         first = data.get('given_name', '')
         last = data.get('family_name', '')
-        email = data.get('email', '')
+        email = data.get('email', 'foo')
         name = data.get('name', '')
         pic = data.get('picture', '')
         secret = self.make_secret(origin, "cookie")
         value = encrypt(email, secret)
-        response.set_cookie(self.cookie_name, value)
+
+        # secure=True to limit to only https connections
+        response.set_cookie(self.cookie_name, value, domain=self.cookie_domain, path="/", httponly=True)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html");
 
 
 def main():
-    host = "localhost"
-    port = 8000
+    host = "media.getty.edu"
+    port = 80
     authapp = AuthApp()
     app=authapp.get_bottle_app()
 

@@ -8,19 +8,9 @@ from logging import getLogger
 from loris_exception import AuthorizerException
 import requests
 
-# Vignere Cipher from
-# https://stackoverflow.com/questions/2490334/simple-way-to-encode-a-string-according-to-a-password
-import base64
 def decrypt(enc, key):
-    dec = []
-    # UTF-8 from headers
-    enc = enc.encode('utf-8')
-    enc = base64.urlsafe_b64decode(enc)
-    for i in range(len(enc)):
-        key_c = key[i % len(key)]
-        dec_c = chr((256 + ord(enc[i]) - ord(key_c)) % 256)
-        dec.append(dec_c)
-    return "".join(dec)
+    return enc
+
 
 logger = getLogger(__name__)
 
@@ -242,20 +232,24 @@ class RulesAuthorizer(_AbstractAuthorizer):
         return "{0}-{1}".format(svrsecret, reqsecret)
 
     def _roles_from_value(self, value):
-        return [value]
+        if value in ['list of emails']:
+            return ['role for emails']
+        else:
+            return [value]
 
     def _roles_from_request(self, request):
+
         origin = request.headers.get('Origin', '*')
         key = self._make_secret(origin, "cookie")
-        cookie = request.cookies.get(self.cookie_name)
+        cval = request.cookies.get(self.cookie_name)
 
-        if not cookie:
+        if not cval:
             token = request.headers.get('Authorization', '')        
             token = token.replace("Bearer", '')
-            cookie = token.strip()
+            cval = token.strip()
             key = self._make_secret(origin, "token")
 
-        value = decrypt(cookie, key)
+        value = decrypt(cval, key)
         roles = self._roles_from_value(value)
         return roles
 
@@ -281,7 +275,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
         roles = info.auth_rules.get('allowed', [])
         userroles = set(self._roles_from_request(request))
         okay = set(roles).intersection(userroles)
-        logger.debug("roles: %r  // user:  %r // intersection:  %r" % (roles, userroles, okay))
+        logger.info("roles: %r  // user: %r // intersection: %r" % (roles, userroles, okay))
 
         if okay:
             return {"status": "ok"}
