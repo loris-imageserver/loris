@@ -133,6 +133,8 @@ class ImageInfo(object):
         else:
             m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % self.src_format
             raise ImageInfoException(http_status=500, message=m)
+        # in case of ii = ImageInfo().from_image_file()
+        return self
 
     def _extract_with_pillow(self, fp):
         logger.debug('Extracting info from file with Pillow.')
