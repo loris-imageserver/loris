@@ -334,7 +334,7 @@ class InfoCache(loris_t.LorisTest):
 
     def test_info_goes_to_http_fs_cache(self):
         # there isn't a way to do a fake HTTPS request, but this at least
-        # confirms that HTTP goes to ther right place.
+        # confirms that HTTP goes to the right place.
         request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
         resp = self.client.get(request_uri)
         expected_path = path.join(
