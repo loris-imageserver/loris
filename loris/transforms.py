@@ -52,7 +52,7 @@ class _AbstractTransformer(object):
                 True by default; can be set to False in case the rotation was
                 done further upstream.
             crop (bool):
-                True by default; can be set to False when the region was aleady
+                True by default; can be set to False when the region was already
                 extracted further upstream.
         Returns:
             void (puts an image at target_fp)

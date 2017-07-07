@@ -143,7 +143,7 @@ class SimpleHTTPResolver(_AbstractResolver):
      * `ssl_check`, whether to check the validity of the origin server's HTTPS
      certificate. Set to False if you are using an origin server with a
      self-signed certificate.
-     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
+     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authentication.
      * `key`, path to an SSL client key to use for authentication.
     '''
     def __init__(self, config):
