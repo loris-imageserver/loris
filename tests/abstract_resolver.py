@@ -26,4 +26,4 @@ class AbstractResolverTest(object):
 
     def test_resolve_exception(self):
         with self.assertRaises(loris_exception.ResolverException):
-            self.resolver.resolve(self.not_identifier)
+            self.resolver.resolve(self.not_identifier, "")
