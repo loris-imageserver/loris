@@ -37,7 +37,9 @@ class _ParameterTest(loris_t.LorisTest):
 		fmt = self.test_jp2_color_fmt
 		ident = self.test_jp2_color_id
 		uri = self.test_jp2_color_uri
-		return img_info.ImageInfo(uri, fp, fmt)
+		ii = img_info.ImageInfo(uri, fp, fmt)
+		ii.from_image_file()
+		return ii
 
 	def _get_info_long_x(self):
 		# jpeg, x is long dimension
@@ -45,7 +47,9 @@ class _ParameterTest(loris_t.LorisTest):
 		fmt = self.test_jpeg_fmt
 		ident = self.test_jpeg_id
 		uri = self.test_jpeg_uri
-		return img_info.ImageInfo(uri, fp, fmt)
+		ii = img_info.ImageInfo(uri, fp, fmt)
+		ii.from_image_file()
+		return ii
 
 class TestRegionParameter(_ParameterTest):
 	def test_populate_slots_from_pct(self):
