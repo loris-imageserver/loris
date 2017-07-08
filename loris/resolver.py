@@ -3,11 +3,10 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-import errno
 from logging import getLogger
 from loris_exception import ResolverException
 from os.path import join, exists, dirname
-from os import makedirs, rename, remove
+from os import rename, remove
 from shutil import copy
 import tempfile
 from urllib import unquote, quote_plus
@@ -18,6 +17,8 @@ import hashlib
 import glob
 import requests
 import re
+
+from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -300,19 +301,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.get_format(ident, None)
         return extension
 
-    def _create_cache_dir(self, cache_dir):
-        try:
-            makedirs(cache_dir)
-        except OSError as ose:
-            if ose.errno == errno.EEXIST:
-                pass
-            else:
-                raise
-
     def copy_to_cache(self, ident):
         ident = unquote(ident)
         cache_dir = self.cache_dir_path(ident)
-        self._create_cache_dir(cache_dir)
+        mkdir_p(cache_dir)
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
@@ -472,7 +464,7 @@ class SourceImageCachingResolver(_AbstractResolver):
         source_fp = self.source_file_path(ident)
         cache_fp = self.cache_file_path(ident)
 
-        makedirs(dirname(cache_fp))
+        mkdir_p(dirname(cache_fp))
         copy(source_fp, cache_fp)
         logger.info("Copied %s to %s", source_fp, cache_fp)
 

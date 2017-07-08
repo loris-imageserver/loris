@@ -10,7 +10,7 @@ from decimal import getcontext
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from os import path, makedirs, unlink
+from os import path, unlink
 import re
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
@@ -32,6 +32,7 @@ from loris_exception import SyntaxException
 from loris_exception import ImageException
 from loris_exception import ResolverException
 from loris_exception import TransformException
+from loris.utils import mkdir_p
 import transforms
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -72,21 +73,18 @@ def get_debug_config(debug_jp2_transformer):
 
 
 def make_directories(config):
-    dirs_to_make = []
     try:
-        dirs_to_make.append(config['loris.Loris']['tmp_dp'])
+        mkdir_p(config['loris.Loris']['tmp_dp'])
         if config['logging']['log_to'] == 'file':
-            dirs_to_make.append(config['logging']['log_dir'])
+            mkdir_p(config['logging']['log_dir'])
         if config['loris.Loris']['enable_caching']:
-            dirs_to_make.append(config['img.ImageCache']['cache_dp'])
-            dirs_to_make.append(config['img_info.InfoCache']['cache_dp'])
-        [makedirs(d) for d in dirs_to_make if not path.exists(d)]
+            mkdir_p(config['img.ImageCache']['cache_dp'])
+            mkdir_p(config['img_info.InfoCache']['cache_dp'])
     except OSError as ose:
         from sys import exit
         from os import strerror
         # presumably it's permissions
-        msg = '%s (%s)' % (strerror(ose.errno),ose.filename)
-        logger.fatal(msg)
+        logger.fatal('%s (%s)', strerror(ose.errno), ose.filename)
         logger.fatal('Exiting')
         exit(77)
 
