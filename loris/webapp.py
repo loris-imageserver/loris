@@ -69,9 +69,9 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
-    config['authorizer']['cookie_service'] = "http://localhost:8000/cookie"
-    config['authorizer']['token_service'] = "http://localhost:8000/token"
+    #config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
+    #config['authorizer']['cookie_service'] = "http://localhost:8000/cookie"
+    #config['authorizer']['token_service'] = "http://localhost:8000/token"
 
     return config
 
