@@ -17,7 +17,7 @@ class SimpleFSResolverTest(AbstractResolverTest, unittest.TestCase):
 
         self.identifier = '01/02/0001.jp2'
         self.not_identifier = 'DOES_NOT_EXIST.jp2'
-        self.expected_filepath = self.img_dir
+        self.expected_filepath = os.path.join(self.img_dir, self.identifier)
         self.expected_format = 'jp2'
         self.resolver = resolver.SimpleFSResolver(single_config)
 

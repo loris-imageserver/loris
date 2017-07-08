@@ -20,7 +20,7 @@ class AbstractResolverTest(object):
         )
 
     def test_resolve(self):
-        expected_resolved = (self.expected_filepath, self.expected_format)
+        expected_resolved = self.expected_filepath
         ii = self.resolver.resolve(self.identifier, "")
         self.assertSequenceEqual(ii.src_img_fp, expected_resolved)
 
