@@ -302,8 +302,11 @@ class SizeParameter(object):
                 raise RequestException(http_status=400, message=msg)
 
     def _populate_slots_from_pct(self,region_parameter):
+        m = SizeParameter.PCT_MODE_REGEX.match(self.uri_value)
+        assert m is not None
+
         self.force_aspect = False
-        pct_decimal = Decimal(str(self.uri_value.split(':')[1])) * Decimal('0.01')
+        pct_decimal = Decimal(m.group('percentage')) * Decimal('0.01')
         logger.debug(pct_decimal <= Decimal(0))
         logger.debug('pct_decimal: %s', pct_decimal)
 
@@ -325,34 +328,42 @@ class SizeParameter(object):
         else:
             self.h = int(h_decimal)
 
-    def _populate_slots_from_pixels(self,region_parameter):
+    def _populate_slots_from_pixels(self, region_parameter):
+        m = SizeParameter.PIXEL_MODE_REGEX.match(self.uri_value)
+        assert m is not None
 
-        if self.uri_value.endswith(','):
+        best_fit = bool(m.group('best_fit'))
+        request_w = m.group('width')
+        request_h = m.group('height')
+
+        if (not best_fit) and request_w and (not request_h):
             self.force_aspect = False
-            self.w = int(self.uri_value[:-1])
-            reduce_by = Decimal(str(self.w)) / region_parameter.pixel_w
+            self.w = request_w
+            reduce_by = Decimal(request_w) / region_parameter.pixel_w
             self.h = region_parameter.pixel_h * reduce_by
 
-        elif self.uri_value.startswith(','):
+        elif (not best_fit) and (not request_w) and request_h:
             self.force_aspect = False
-            self.h = int(self.uri_value[1:])
-            reduce_by = Decimal(str(self.h)) / region_parameter.pixel_h
+            self.h = request_h
+            reduce_by = Decimal(request_h) / region_parameter.pixel_h
             self.w = region_parameter.pixel_w * reduce_by
 
-        elif self.uri_value[0] == '!':
+        elif best_fit and request_w and request_h:
             self.force_aspect = False
 
-            request_w, request_h = map(int, self.uri_value[1:].split(','))
-
-            ratio_w = Decimal(str(request_w)) / region_parameter.pixel_w
-            ratio_h = Decimal(str(request_h)) / region_parameter.pixel_h
+            ratio_w = Decimal(request_w) / region_parameter.pixel_w
+            ratio_h = Decimal(request_h) / region_parameter.pixel_h
             ratio = min(ratio_w, ratio_h)
-            self.w = int(region_parameter.pixel_w * ratio)
-            self.h = int(region_parameter.pixel_h * ratio)
+            self.w = region_parameter.pixel_w * ratio
+            self.h = region_parameter.pixel_h * ratio
+
+        elif request_w and request_h:
+            self.force_aspect = True
+            self.w = request_w
+            self.h = request_h
 
         else:
-            self.force_aspect = True
-            self.w, self.h = map(int, self.uri_value.split(','))
+            assert False, "Incomplete size data in URI: %r" % self.uri_value
 
         if self.h < 1:
             self.h = 1
