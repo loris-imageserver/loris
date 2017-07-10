@@ -18,7 +18,12 @@ except ImportError:
     # but others will be fine
     pass
 
+import base64
+import os
 from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # cryptography is MUCH faster than simplecrypt
 # to the point of not even being worth writing a simplecrypt wrapper
@@ -29,7 +34,7 @@ from cryptography.fernet import Fernet
    
 class AuthApp(object):
 
-    def __init__(self, cookie_secret, token_secret, name="iiif_access_cookie",
+    def __init__(self, cookie_secret, token_secret, salt, name="iiif_access_cookie",
             cookie_domain="", cookie_path="", is_https=True):
         self.AUTH_URL_LOGIN = "login"
         self.AUTH_URL_COOKIE = "cookie"
@@ -38,7 +43,7 @@ class AuthApp(object):
         # login:
         # self.handler = BasicAuthHandler(self)
         # self.handler = OAuthHandler(self)
-        self.handler = IPRangeHandler(self, cookie_secret, token_secret, name,
+        self.handler = IPRangeHandler(self, cookie_secret, token_secret, salt, name,
             cookie_domain, cookie_path, is_https)
 
     def send(self, data, status=200, ct="text/plain"):
@@ -80,15 +85,20 @@ class AuthApp(object):
 
 class AuthNHandler(object):
 
-    def __init__(self, app, cookie_secret, token_secret, name="iiif_access_cookie",
+    def __init__(self, app, cookie_secret, token_secret, salt, name="iiif_access_cookie",
             cookie_domain="", cookie_path="", is_https=True):
         self.application = app
         self.cookie_name = name
         self.cookie_domain = cookie_domain
         self.cookie_path = cookie_path
         self.is_https = is_https
-        self.cookie_fernet = Fernet(cookie_secret)
-        self.token_fernet = Fernet(token_secret)
+        self.cookie_secret = cookie_secret
+        self.token_secret = token_secret
+        self.salt = salt
+
+    def kdf(self):
+       return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
+            iterations=100000, backend=default_backend())
 
     @staticmethod
     def basic_origin(origin):
@@ -116,7 +126,10 @@ class AuthNHandler(object):
 
     def set_cookie(self, value, origin, response):
         origin = self.basic_origin(origin)
-        value = self.cookie_fernet.encrypt("%s|%s" % (origin, value))
+        secret = "%s-%s" % (self.cookie_secret, origin)        
+        key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+        fern = Fernet(key)
+        value = fern.encrypt("%s|%s" % (origin, value))
         response.set_cookie(self.cookie_name, value, domain=self.cookie_domain, 
             path=self.cookie_path, httponly=True, secure=self.is_https)
 
@@ -134,7 +147,10 @@ class AuthNHandler(object):
 
         try:
             info = request.get_cookie(self.cookie_name)
-            info = self.cookie_fernet.decrypt(info)
+            secret = "%s-%s" % (self.cookie_secret, origin)        
+            key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+            fern = Fernet(key)
+            value = fern.decrypt(info)
         except:
             info = ''
 
@@ -145,7 +161,10 @@ class AuthNHandler(object):
             data = {"error":"invalidCredentials","description":"Login details invalid"}
         else:
             token = self.cookie_to_token(info)
-            token = self.token_fernet.encrypt(token)
+            secret = "%s-%s" % (self.token_secret, origin)        
+            key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+            fern = Fernet(key)
+            value = fern.encrypt(token)
             data = {"accessToken":token, "expiresIn": 3600}
 
         if msgId:
@@ -186,9 +205,9 @@ class BasicAuthHandler(AuthNHandler):
 
 class IPRangeHandler(AuthNHandler):
 
-    def __init__(self, app, cookie_secret, token_secret, name="iiif_access_cookie",
+    def __init__(self, app, cookie_secret, token_secret, salt, name="iiif_access_cookie",
             cookie_domain="", cookie_path="", is_https=True):
-        super(IPRangeHandler,self).__init__(app, cookie_secret, token_secret, name,
+        super(IPRangeHandler,self).__init__(app, cookie_secret, token_secret, salt, name,
             cookie_domain, cookie_path, is_https)
 
         self.network = IPNetwork("10.0.0.0/16")
@@ -207,9 +226,9 @@ class IPRangeHandler(AuthNHandler):
 
 class OAuthHandler(AuthNHandler):
 
-    def __init__(self, app, cookie_secret, token_secret, name="iiif_access_cookie",
+    def __init__(self, app, cookie_secret, token_secret, salt, name="iiif_access_cookie",
             cookie_domain="", cookie_path="", is_https=True):
-        super(OAuthHandler,self).__init__(app, cookie_secret, token_secret, name,
+        super(OAuthHandler,self).__init__(app, cookie_secret, token_secret, salt, name,
             cookie_domain, cookie_path, is_https)
 
         self.GOOGLE_API_CLIENT_ID = ""
@@ -271,10 +290,11 @@ class OAuthHandler(AuthNHandler):
 def main():
     host = "localhost"
     port = 8080
-    k1 = Fernet.generate_key()
-    k2 = Fernet.generate_key()
-    print "Generated keys. Cookie: %s  Token: %s" % (k1, k2)
-    authapp = AuthApp(k1, k2, is_https=False)
+    # These are the test keys, replace with real ones!
+    k1 = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
+    k2 = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
+    salt = "4rakTQJD4lC1B4lu"
+    authapp = AuthApp(k1, k2, salt, is_https=False)
     app=authapp.get_bottle_app()
 
     set_debug(True)

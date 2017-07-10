@@ -7,7 +7,13 @@
 from logging import getLogger
 from loris_exception import AuthorizerException
 import requests
+
+# See: https://cryptography.io/en/latest/fernet/#using-passwords-with-fernet
 from cryptography.fernet import Fernet
+import base64
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = getLogger(__name__)
 
@@ -174,10 +180,16 @@ class RulesAuthorizer(_AbstractAuthorizer):
             raise AuthorizerException("Rules Authorizer needs cookie_secret config")
         if not 'token_secret' in config:
             raise AuthorizerException("Rules Authorizer needs token_secret config")
+        if not 'salt' in config:
+            raise AuthorizerException("Rules Authorizer needs salt config")
 
-        self.cookie_fernet = Fernet(config['cookie_secret'])
-        self.token_fernet = Fernet(config['token_secret'])
+        self.cookie_secret = config['cookie_secret']
+        self.token_secret = config['token_secret']
+        self.salt = config['salt']
 
+    def kdf(self):
+        return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
+            iterations=100000, backend=default_backend())
 
     @staticmethod
     def basic_origin(origin):
@@ -221,9 +233,15 @@ class RulesAuthorizer(_AbstractAuthorizer):
             cval = token.strip()
             if not cval:
                 return []
-            value = self.token_fernet.decrypt(cval)
+
+            # token key builder
+            secret = "%s-%s" % (self.token_secret, origin)
         else:
-            value = self.cookie_fernet.decrypt(cval)
+            secret = "%s-%s" % (self.cookie_secret, origin)        
+
+        key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+        fern = Fernet(key)
+        value = fern.decrypt(cval)
 
         if not value.startswith(origin):
             # Cookie/Token theft

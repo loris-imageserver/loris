@@ -4,6 +4,8 @@ from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
 from loris.img_info import ImageInfo
 
 import unittest
+import base64
+from cryptography.fernet import Fernet
 
 class MockRequest(object):
 
@@ -100,20 +102,28 @@ class Test_RulesAuthorizer(unittest.TestCase):
 
 		self.authorizer = RulesAuthorizer(
 			{"cookie_secret": "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
-			"token_secret": "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="})
+			"token_secret": "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
+			"salt": "4rakTQJD4lC1B4lu"})
 		self.badInfo = ImageInfo(ident, fp, fmt)		
 		self.okayInfo = ImageInfo("67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
 			"img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
 
+		self.origin = "localhost"
 		# role to get access is "test"
 		# en/decryption defaults to return the plain text
 		self.emptyRequest = MockRequest()
 
-		cv = self.authorizer.cookie_fernet.encrypt("localhost|test")
-		tv = self.authorizer.token_fernet.encrypt("localhost|test")
+		secret = "%s-%s" % (self.authorizer.token_secret, self.origin)        
+		key = base64.urlsafe_b64encode(self.authorizer.kdf().derive(secret))
+		self.token_fernet = Fernet(key)
+		tv = self.token_fernet.encrypt("localhost|test")
+		secret = "%s-%s" % (self.authorizer.cookie_secret, self.origin)        
+		key = base64.urlsafe_b64encode(self.authorizer.kdf().derive(secret))
+		self.cookie_fernet = Fernet(key)
+		cv = self.cookie_fernet.encrypt("localhost|test")
 
-		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "Origin": "localhost"})
-		self.cookieRequest = MockRequest(hdrs={"Origin": "localhost"}, cooks={'iiif_access_cookie': cv})
+		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "Origin": self.origin})
+		self.cookieRequest = MockRequest(hdrs={"Origin": self.origin}, cooks={'iiif_access_cookie': cv})
 
 	def test_basic_origin(self):
 
