@@ -254,6 +254,11 @@ class SizeParameter(object):
         h (int):
             The height.
     '''
+    PCT_MODE_REGEX = re.compile(r'^pct:(?P<percentage>[0-9]+)$')
+    PIXEL_MODE_REGEX = re.compile(
+        r'^(?P<best_fit>!?)(?P<width>[0-9]*),(?P<height>[0-9]*)$'
+    )
+
     __slots__ = ('uri_value','canonical_uri_value','mode','force_aspect','w','h')
 
     def __init__(self, uri_value, region_parameter):
@@ -370,22 +375,24 @@ class SizeParameter(object):
         Raises:
             SyntaxException if this can't be determined.
         '''
-        # TODO: wish this were cleaner.
-        if size_segment.split(':')[0] == 'pct':
-            return PCT_MODE
-        elif size_segment == 'full':
+        if size_segment == 'full':
             return FULL_MODE
-        elif not ',' in size_segment:
-            msg = 'Size syntax "%s" is not valid' % (size_segment,)
-            raise SyntaxException(http_status=400, message=msg)
-        elif all([(n.isdigit() or n == '') for n in size_segment.split(',')]):
-            return PIXEL_MODE
-        elif all([n.isdigit() for n in size_segment[1:].split(',')]) and \
-            len(size_segment.split(',')) == 2:
-            return PIXEL_MODE
-        else:
-            msg = 'Size syntax "%s" is not valid' % (size_segment,)
-            raise SyntaxException(http_status=400, message=msg)
+
+        if SizeParameter.PCT_MODE_REGEX.match(size_segment):
+            return PCT_MODE
+
+        m = SizeParameter.PIXEL_MODE_REGEX.match(size_segment)
+        if m is not None:
+            # In best fit mode, we need both width and height to be specified.
+            # Otherwise, we need at least one of width or height.
+            if (
+                (m.group('best_fit') and m.group('width') and m.group('height')) or
+                (not m.group('best_fit') and (m.group('width') or m.group('height')))
+            ):
+                return PIXEL_MODE
+
+        message = 'Size syntax %r is not valid' % size_segment
+        raise SyntaxException(http_status=400, message=message)
 
     def __str__(self):
         return self.uri_value
