@@ -3,7 +3,6 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-import errno
 from logging import getLogger
 from loris_exception import ResolverException
 from os.path import join, exists, dirname, split
@@ -21,6 +20,8 @@ import re
 import json
 
 from img_info import ImageInfo
+
+from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -163,7 +164,7 @@ class SimpleHTTPResolver(_AbstractResolver):
      * `ssl_check`, whether to check the validity of the origin server's HTTPS
      certificate. Set to False if you are using an origin server with a
      self-signed certificate.
-     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authetication.
+     * `cert`, path to an SSL client certificate to use for authentication. If `cert` and `key` are both present, they take precedence over `user` and `pw` for authentication.
      * `key`, path to an SSL client key to use for authentication.
     '''
     def __init__(self, config):
@@ -320,19 +321,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.get_format(ident, None)
         return extension
 
-    def _create_cache_dir(self, cache_dir):
-        try:
-            makedirs(cache_dir)
-        except OSError as ose:
-            if ose.errno == errno.EEXIST:
-                pass
-            else:
-                raise
-
     def copy_to_cache(self, ident):
         ident = unquote(ident)
         cache_dir = self.cache_dir_path(ident)
-        self._create_cache_dir(cache_dir)
+        mkdir_p(cache_dir)
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
@@ -493,7 +485,7 @@ class SourceImageCachingResolver(_AbstractResolver):
         source_fp = self.source_file_path(ident)
         cache_fp = self.cache_file_path(ident)
 
-        makedirs(dirname(cache_fp))
+        mkdir_p(dirname(cache_fp))
         copy(source_fp, cache_fp)
         logger.info("Copied %s to %s", source_fp, cache_fp)
 

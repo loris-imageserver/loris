@@ -275,7 +275,7 @@ setup(
 #   (e.g. `crontab -e -u %(user_n)s`).
 
 #  3. Have a look at the WSGI file in %(www_dp)s. It should be fine as-is, but
-#   there's always a chance that it isn't. The first thing to try is explictly
+#   there's always a chance that it isn't. The first thing to try is explicitly
 #   adding the package to your PYTHONPATH (see commented code).
 
 #  4. Configure Apache (see doc/apache.md).

@@ -2,17 +2,15 @@
 #-*-coding:utf-8-*-
 
 from datetime import datetime
-from errno import EEXIST
 from logging import getLogger
-from os import path, symlink, makedirs, unlink, error as os_error, rename
+from os import path, symlink, unlink, error as os_error, rename
 from parameters import RegionParameter
 from parameters import RotationParameter
 from parameters import SizeParameter
-from loris_exception import RequestException
-from loris_exception import SyntaxException
 from loris_exception import ImageException
 from urllib import unquote, quote_plus
 from urllib import unquote
+from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -109,28 +107,19 @@ class ImageRequest(object):
     @property
     def region_param(self):
         if self._region_param is None:
-            try:
-                self._region_param = RegionParameter(self.region_value, self.info)
-            except (SyntaxException,RequestException):
-                raise
+            self._region_param = RegionParameter(self.region_value, self.info)
         return self._region_param
 
     @property
     def size_param(self):
         if self._size_param is None:
-            try:
-                self._size_param = SizeParameter(self.size_value, self.region_param)
-            except (RequestException,SyntaxException):
-                raise
+            self._size_param = SizeParameter(self.size_value, self.region_param)
         return self._size_param
 
     @property
     def rotation_param(self):
         if self._rotation_param is None:
-            try:
-                self._rotation_param = RotationParameter(self.rotation_value)
-            except (RotationParameter,SyntaxException):
-                raise
+            self._rotation_param = RotationParameter(self.rotation_value)
         return self._rotation_param
 
     @property
@@ -224,7 +213,7 @@ class ImageCache(dict):
     def __getitem__(self, image_request):
         fp = self.get(image_request)
         if fp is None:
-            raise KeyError
+            raise KeyError(image_request)
         return fp
 
     @staticmethod
@@ -233,8 +222,7 @@ class ImageCache(dict):
             logger.warn('Circular symlink requested from %s to %s; not creating symlink', link_name, source)
             return
         link_dp = path.dirname(link_name)
-        if not path.exists(link_dp):
-            makedirs(link_dp)
+        mkdir_p(link_dp)
         if path.lexists(link_name): # shouldn't be the case, but helps debugging
             unlink(link_name)
         symlink(source, link_name)
@@ -285,13 +273,7 @@ class ImageCache(dict):
     def create_dir_and_return_file_path(self, image_request):
         target_fp = self.get_canonical_cache_path(image_request)
         target_dp = path.dirname(target_fp)
-        try:
-            makedirs(target_dp)
-        except os_error as ose:
-            if ose.errno == EEXIST:
-                pass
-            else:
-                raise
+        mkdir_p(target_dp)
         return target_fp
 
     def upsert(self, image_request, temp_fp):

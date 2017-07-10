@@ -2,7 +2,7 @@
 
 See https://code.google.com/p/modwsgi/wiki/VirtualEnvironments
 
-This assumes you'll create virtual enviroment in a user's home directory, and
+This assumes you'll create virtual environment in a user's home directory, and
 use those environments to store the different dependencies for each version.
 
 The system Python is still used to run WSGI, though it may be possible to use 
