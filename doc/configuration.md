@@ -62,7 +62,7 @@ map_embedded_profile_to_srgb=True
 srgb_profile_fp=/usr/share/color/icc/colord/sRGB.icc
 ```
 
-Then Loris will, as the name of the option suggests, map the color profile that is embedded in the JP2 to sRGB. To faciliate this, the Python Imaging Library has to be installed with [Little CMS](http://www.littlecms.com/) support. Instructions on how to do this are on the [Configuration page](configuration.md).
+Then Loris will, as the name of the option suggests, map the color profile that is embedded in the JP2 to sRGB. To facilitate this, the Python Imaging Library has to be installed with [Little CMS](http://www.littlecms.com/) support. Instructions on how to do this are on the [Configuration page](configuration.md).
 
 * * *
 

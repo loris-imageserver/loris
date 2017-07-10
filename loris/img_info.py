@@ -11,11 +11,12 @@ from logging import getLogger
 from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
-import errno
 import json
 import os
 import struct
 from urllib import unquote
+
+from loris.utils import mkdir_p
 
 try:
     from collections import OrderedDict
@@ -449,15 +450,8 @@ class InfoCache(object):
         logger.debug('request passed to __setitem__: %s', request)
         info_fp = self._get_info_fp(request)
         dp = os.path.dirname(info_fp)
-        if not os.path.isdir(dp):
-            try:
-                os.makedirs(dp)
-                logger.debug('Created %s', dp)
-            except OSError as e: # this happens once and a while; not sure why
-                if e.errno == errno.EEXIST:
-                    pass
-                else:
-                    raise
+        mkdir_p(dp)
+        logger.debug('Created %s', dp)
 
         with open(info_fp, 'w') as f:
             f.write(info.to_json(cache=True))

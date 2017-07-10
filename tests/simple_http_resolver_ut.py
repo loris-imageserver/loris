@@ -104,12 +104,6 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                 lambda: self.resolver.resolve(self.not_identifier, "")
         )
 
-    def test_create_cache_dir(self):
-        self.assertFalse(os.path.exists(self.expected_filedir))
-        self.resolver._create_cache_dir(self.expected_filedir)
-        self.assertTrue(os.path.exists(self.expected_filedir))
-        self.resolver._create_cache_dir(self.expected_filedir)
-
     @responses.activate
     def test_cached_file_for_ident(self):
         self.resolver.copy_to_cache(self.identifier)

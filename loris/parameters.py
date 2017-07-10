@@ -254,6 +254,11 @@ class SizeParameter(object):
         h (int):
             The height.
     '''
+    PCT_MODE_REGEX = re.compile(r'^pct:(?P<percentage>[0-9]+)$')
+    PIXEL_MODE_REGEX = re.compile(
+        r'^(?P<best_fit>!?)(?P<width>[0-9]*),(?P<height>[0-9]*)$'
+    )
+
     __slots__ = ('uri_value','canonical_uri_value','mode','force_aspect','w','h')
 
     def __init__(self, uri_value, region_parameter):
@@ -279,13 +284,10 @@ class SizeParameter(object):
             self.h = region_parameter.pixel_h
             self.canonical_uri_value = FULL_MODE
         else:
-            try:
-                if self.mode == PCT_MODE:
-                    self._populate_slots_from_pct(region_parameter)
-                else: # self.mode == PIXEL_MODE:
-                    self._populate_slots_from_pixels(region_parameter)
-            except (SyntaxException, RequestException):
-                raise
+            if self.mode == PCT_MODE:
+                self._populate_slots_from_pct(region_parameter)
+            else: # self.mode == PIXEL_MODE:
+                self._populate_slots_from_pixels(region_parameter)
 
             if self.force_aspect:
                 self.canonical_uri_value = '%d,%d' % (self.w,self.h)
@@ -373,64 +375,78 @@ class SizeParameter(object):
         Raises:
             SyntaxException if this can't be determined.
         '''
-        # TODO: wish this were cleaner.
-        if size_segment.split(':')[0] == 'pct':
-            return PCT_MODE
-        elif size_segment == 'full':
+        if size_segment == 'full':
             return FULL_MODE
-        elif not ',' in size_segment:
-            msg = 'Size syntax "%s" is not valid' % (size_segment,)
-            raise SyntaxException(http_status=400, message=msg)
-        elif all([(n.isdigit() or n == '') for n in size_segment.split(',')]):
-            return PIXEL_MODE
-        elif all([n.isdigit() for n in size_segment[1:].split(',')]) and \
-            len(size_segment.split(',')) == 2:
-            return PIXEL_MODE
-        else:
-            msg = 'Size syntax "%s" is not valid' % (size_segment,)
-            raise SyntaxException(http_status=400, message=msg)
+
+        if SizeParameter.PCT_MODE_REGEX.match(size_segment):
+            return PCT_MODE
+
+        m = SizeParameter.PIXEL_MODE_REGEX.match(size_segment)
+        if m is not None:
+            # In best fit mode, we need both width and height to be specified.
+            # Otherwise, we need at least one of width or height.
+            if (
+                (m.group('best_fit') and m.group('width') and m.group('height')) or
+                (not m.group('best_fit') and (m.group('width') or m.group('height')))
+            ):
+                return PIXEL_MODE
+
+        message = 'Size syntax %r is not valid' % size_segment
+        raise SyntaxException(http_status=400, message=message)
 
     def __str__(self):
         return self.uri_value
 
+
 class RotationParameter(object):
     '''Internal representation of the rotation slice of an IIIF image URI.
 
+    See http://iiif.io/api/image/2.0/#rotation:
+
+       The rotation parameter specifies mirroring and rotation. A leading
+       exclamation mark ("!") indicates that the image should be mirrored by
+       reflection on the vertical axis before any rotation is applied.
+       The numerical value represents the number of degrees of clockwise
+       rotation, and may be any floating point number from 0 to 360.
+
     Slots:
-        uri_value (str)
         canonical_uri_value (str)
-        mirror (str)
+        mirror (bool)
         rotation (str)
     '''
-    ROTATION_REGEX = re.compile('^!?[\d.]+$')
+    ROTATION_REGEX = re.compile(r'^(?P<mirror>!?)(?P<rotation>[\d.]+)$')
 
-    __slots__ = ('uri_value','canonical_uri_value','mirror','rotation')
+    __slots__ = ('canonical_uri_value', 'mirror', 'rotation')
 
     def __init__(self, uri_value):
-        '''Take the uri value and round it to the nearest 90.
+        '''Take the uri value, and parse out mirror and rotation values.
         Args:
             uri_value (str): the rotation slice of the request URI.
         Raises:
             SyntaxException:
-                If the argument is not a digit, is < 0, or > 360
+                If the argument is not a valid rotation slice.
         '''
 
-        if not RotationParameter.ROTATION_REGEX.match(uri_value):
-            msg = 'Rotation "%s" is not a number'  % (uri_value,)
+        match = RotationParameter.ROTATION_REGEX.match(uri_value)
+
+        if not match:
+            msg = 'Rotation parameter %r is not a number' % (uri_value,)
             raise SyntaxException(http_status=400, message=msg)
 
-        if uri_value[0] == '!':
-            self.mirror = True
-            self.rotation = uri_value[1:]
-            self.canonical_uri_value = '!%g' % (float(uri_value[1:]),)
-        else:
-            self.mirror = False
-            self.rotation = uri_value
-            self.canonical_uri_value = '%g' % (float(uri_value),)
+        self.mirror = bool(match.group('mirror'))
+        self.rotation = match.group('rotation')
+
+        try:
+            self.canonical_uri_value = '%g' % (float(self.rotation),)
+        except ValueError:
+            msg = 'Rotation parameter %r is not a floating point number' % (uri_value,)
+            raise SyntaxException(http_status=400, message=msg)
+
+        if self.mirror:
+            self.canonical_uri_value = '!%s' % self.canonical_uri_value
 
         if not 0.0 <= float(self.rotation) <= 360.0:
-            msg = 'Rotation argument "%s" is not between 0 and 360' % (uri_value,)
+            msg = 'Rotation parameter %r is not between 0 and 360' % (uri_value,)
             raise SyntaxException(http_status=400, message=msg)
 
-
-        logger.debug('canonical rotation is %s', self.canonical_uri_value)
+        logger.debug('Canonical rotation parameter is %s', self.canonical_uri_value)
