@@ -40,10 +40,12 @@ class AuthApp(object):
         self.AUTH_URL_COOKIE = "cookie"
         self.AUTH_URL_TOKEN = "token"
         self.AUTH_URL_LOGOUT = "logout"
+
         # login:
-        # self.handler = BasicAuthHandler(self)
-        # self.handler = OAuthHandler(self)
-        self.handler = IPRangeHandler(self, cookie_secret, token_secret, salt, name,
+        # self.handler = BasicAuthHandler(...)
+        # self.handler = OAuthHandler(...)
+        # self.handler = IPRangeHandler(...)
+        self.handler = BasicAuthHandler(self, cookie_secret, token_secret, salt, name,
             cookie_domain, cookie_path, is_https)
 
     def send(self, data, status=200, ct="text/plain"):
@@ -86,7 +88,7 @@ class AuthApp(object):
 class AuthNHandler(object):
 
     def __init__(self, app, cookie_secret, token_secret, salt, name="iiif_access_cookie",
-            cookie_domain="", cookie_path="", is_https=True):
+            cookie_domain="", cookie_path="/", is_https=True):
         self.application = app
         self.cookie_name = name
         self.cookie_domain = cookie_domain
@@ -121,7 +123,7 @@ class AuthNHandler(object):
             secret = ".".join(domain[-2:])
         else:
             # localhost or * ... hopefully not *!
-            secret = domain
+            secret = domain[0]
         return secret
 
     def set_cookie(self, value, origin, response):
@@ -129,9 +131,13 @@ class AuthNHandler(object):
         secret = "%s-%s" % (self.cookie_secret, origin)        
         key = base64.urlsafe_b64encode(self.kdf().derive(secret))
         fern = Fernet(key)
-        value = fern.encrypt("%s|%s" % (origin, value))
-        response.set_cookie(self.cookie_name, value, domain=self.cookie_domain, 
-            path=self.cookie_path, httponly=True, secure=self.is_https)
+        value = fern.encrypt("%s|%s" % (origin, value.encode('utf-8')))
+
+        if self.cookie_domain:
+            response.set_cookie(self.cookie_name, value, max_age=3600, httponly=True,
+                domain=self.cookie_domain, path=self.cookie_path)
+        else:
+            response.set_cookie(self.cookie_name, value, max_age=3600, httponly=True)   
 
     def cookie_to_token(self, cookie):
         # this is okay, so long as the encryption keys are different
@@ -143,29 +149,30 @@ class AuthNHandler(object):
         # postMessage request to get the token to send to info.json in Auth'z header
         msgId = request.query.get('messageId', '')
         origin = request.query.get('origin', '*')
-        origin = self.basic_origin(origin)
+        borigin = self.basic_origin(origin)
 
+        info = request.get_cookie(self.cookie_name, '')
         try:
-            info = request.get_cookie(self.cookie_name)
-            secret = "%s-%s" % (self.cookie_secret, origin)        
+            secret = "%s-%s" % (self.cookie_secret, borigin)        
             key = base64.urlsafe_b64encode(self.kdf().derive(secret))
             fern = Fernet(key)
-            value = fern.decrypt(info)
+            info = fern.decrypt(info.encode('utf-8'))
         except:
             info = ''
 
         if not info:
             data = {"error":"missingCredentials","description":"No login details received"}
-        elif not info.startswith(origin):
+        elif not info.startswith(borigin):
             # Hmmm... hack attempt?
             data = {"error":"invalidCredentials","description":"Login details invalid"}
         else:
+            # currently noop
             token = self.cookie_to_token(info)
-            secret = "%s-%s" % (self.token_secret, origin)        
+            secret = "%s-%s" % (self.token_secret, borigin)        
             key = base64.urlsafe_b64encode(self.kdf().derive(secret))
             fern = Fernet(key)
             value = fern.encrypt(token)
-            data = {"accessToken":token, "expiresIn": 3600}
+            data = {"accessToken":value, "expiresIn": 3600}
 
         if msgId:
             data['messageId'] = msgId
@@ -289,7 +296,7 @@ class OAuthHandler(AuthNHandler):
 
 def main():
     host = "localhost"
-    port = 8080
+    port = 8000
     # These are the test keys, replace with real ones!
     k1 = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
     k2 = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="

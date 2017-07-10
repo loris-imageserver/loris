@@ -32,7 +32,7 @@ from loris_exception import SyntaxException
 from loris_exception import ImageException
 from loris_exception import ResolverException
 from loris_exception import TransformException
-from loris.utils import mkdir_p
+from utils import mkdir_p
 import transforms
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -56,7 +56,6 @@ def get_debug_config(debug_jp2_transformer):
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
-    config['resolver']['tier_separator'] = ">>"
     if debug_jp2_transformer == 'opj':
         from transforms import OPJ_JP2Transformer
         opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
@@ -70,9 +69,12 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    #config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
-    #config['authorizer']['cookie_service'] = "http://localhost:8000/cookie"
-    #config['authorizer']['token_service'] = "http://localhost:8000/token"
+    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
+    config['authorizer']['cookie_service'] = "http://localhost:8000/cookie"
+    config['authorizer']['token_service'] = "http://localhost:8000/token"
+    config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
+    config['authorizer']['salt'] = "4rakTQJD4lC1B4lu"
+    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
 
     return config
 

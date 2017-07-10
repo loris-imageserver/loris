@@ -223,7 +223,9 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def _roles_from_request(self, request):
 
-        origin = request.headers.get('Origin', '*')
+        origin = request.headers.get('origin', '')
+        if not origin:
+            origin = request.headers.get('referer', '*')
         origin = self.basic_origin(origin)
         cval = request.cookies.get(self.cookie_name)
 
@@ -239,7 +241,13 @@ class RulesAuthorizer(_AbstractAuthorizer):
         else:
             secret = "%s-%s" % (self.cookie_secret, origin)        
 
-        key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+        cval = cval.encode('utf-8')
+
+        print "secret %r" % secret
+        print "cval %r" % cval
+
+        key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
+        print "key %r" % key
         fern = Fernet(key)
         value = fern.decrypt(cval)
 
