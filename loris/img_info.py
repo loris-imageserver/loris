@@ -453,7 +453,7 @@ class InfoCache(object):
         info_fp = self._get_info_fp(request)
         os.unlink(info_fp)
 
-        icc_fp = self._getcolor_profile_bytes(request)
+        icc_fp = self._get_color_profile_fp(request)
         if os.path.exists(icc_fp):
             os.unlink(icc_fp)
 
