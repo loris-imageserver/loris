@@ -6,4 +6,4 @@ requests >= 2.12.0
 mock == 1.0.1
 responses == 0.3.0
 netaddr >= 0.7.19
-cryptography >= 2.0.0
+cryptography >= 1.9
