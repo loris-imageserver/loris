@@ -18,17 +18,19 @@ except ImportError:
     # but others will be fine
     pass
 
+from cryptography.fernet import Fernet
 
-# XXX FixMe to do real encryption!
-def encrypt(clear, key):
-    return clear
-
-def decrypt(enc, key):
-    return enc
+# cryptography is MUCH faster than simplecrypt
+# to the point of not even being worth writing a simplecrypt wrapper
+# pycrypto functions could be used, but most require a specific blocksize
+# PKCS1_OAEP doesn't, but does need a full on RSA key
+# Others could be used with some padding
+# But Fernet seems fine :)
    
 class AuthApp(object):
 
-    def __init__(self):
+    def __init__(self, cookie_secret, token_secret, name="iiif_access_cookie",
+            cookie_domain="", cookie_path="", is_https=True):
         self.AUTH_URL_LOGIN = "login"
         self.AUTH_URL_COOKIE = "cookie"
         self.AUTH_URL_TOKEN = "token"
@@ -36,8 +38,8 @@ class AuthApp(object):
         # login:
         # self.handler = BasicAuthHandler(self)
         # self.handler = OAuthHandler(self)
-        # kiosk:
-        self.handler = IPRangeHandler(self)
+        self.handler = IPRangeHandler(self, cookie_secret, token_secret, name,
+            cookie_domain, cookie_path, is_https)
 
     def send(self, data, status=200, ct="text/plain"):
         response.headers['Access-Control-Allow-Origin'] = '*'
@@ -78,14 +80,18 @@ class AuthApp(object):
 
 class AuthNHandler(object):
 
-    def __init__(self, app, name="iiif_access_cookie", cookie_secret="abc123", token_secret="xyz987"):
+    def __init__(self, app, cookie_secret, token_secret, name="iiif_access_cookie",
+            cookie_domain="", cookie_path="", is_https=True):
         self.application = app
         self.cookie_name = name
-        self.cookie_secret = cookie_secret
-        self.token_secret = token_secret
-        self.ENCRYPT_TOKEN = True
+        self.cookie_domain = cookie_domain
+        self.cookie_path = cookie_path
+        self.is_https = is_https
+        self.cookie_fernet = Fernet(cookie_secret)
+        self.token_fernet = Fernet(token_secret)
 
-    def origin_to_secret(self, origin):
+    @staticmethod
+    def basic_origin(origin):
         ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
             'gen', 'govt', 'school', 'sch']
         origin = origin.replace('https://', '')
@@ -108,14 +114,15 @@ class AuthNHandler(object):
             secret = domain
         return secret
 
-    def cookie_to_token(self, cookie):
-        return cookie
+    def set_cookie(self, value, origin, response):
+        origin = self.basic_origin(origin)
+        value = self.cookie_fernet.encrypt("%s|%s" % (origin, value))
+        response.set_cookie(self.cookie_name, value, domain=self.cookie_domain, 
+            path=self.cookie_path, httponly=True, secure=self.is_https)
 
-    def make_secret(self, origin='*', which="cookie"):
-        # Reduce origin to just domain
-        reqsecret = self.origin_to_secret(origin)
-        svrsecret = self.cookie_secret if which == "cookie" else self.token_secret
-        return "{0}-{1}".format(svrsecret, reqsecret)
+    def cookie_to_token(self, cookie):
+        # this is okay, so long as the encryption keys are different
+        return cookie
 
     def token(self):
         # This is the second step -- client requests a token to send to info.json
@@ -123,23 +130,22 @@ class AuthNHandler(object):
         # postMessage request to get the token to send to info.json in Auth'z header
         msgId = request.query.get('messageId', '')
         origin = request.query.get('origin', '*')
-        secret = self.make_secret(origin, "cookie")
-        try:
-            account = request.get_cookie(self.cookie_name)
-            account = decrypt(account, secret)
-            response.set_cookie(self.cookie_name, account)
-        except:
-            account = ''
-        if not account:
-            data = {"error":"missingCredentials","description":"No login details received"}
-        else:
-            # This is okay, as they're differently salted
-            token = self.cookie_to_token(account)
+        origin = self.basic_origin(origin)
 
-            if self.ENCRYPT_TOKEN:
-                # encrypt token
-                secret2 = self.make_secret(origin, "token")
-                token = encrypt(token, secret2)
+        try:
+            info = request.get_cookie(self.cookie_name)
+            info = self.cookie_fernet.decrypt(info)
+        except:
+            info = ''
+
+        if not info:
+            data = {"error":"missingCredentials","description":"No login details received"}
+        elif not info.startswith(origin):
+            # Hmmm... hack attempt?
+            data = {"error":"invalidCredentials","description":"Login details invalid"}
+        else:
+            token = self.cookie_to_token(info)
+            token = self.token_fernet.encrypt(token)
             data = {"accessToken":token, "expiresIn": 3600}
 
         if msgId:
@@ -154,7 +160,7 @@ window.parent.postMessage({0}, '{1}');
             return self.application.send(dataStr, ct="application/json")
 
     def logout(self):
-        response.delete_cookie(self.cookie_name, domain="getty.edu", path="/")
+        response.delete_cookie(self.cookie_name, domain=self.cookie_domain, path=self.cookie_path)
         response['Access-Control-Allow-Origin'] = '*'
         return self.application.send("<html><script>window.close();</script></html>", status=401, ct="text/html"); 
 
@@ -175,18 +181,15 @@ class BasicAuthHandler(AuthNHandler):
             return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
         who, p = parse_auth(auth)      
         origin = request.query.get('origin', '*')
-        secret = self.make_secret(origin, "cookie")
-        value = encrypt(who, secret)
+        self.set_cookie(who, origin, response)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
 
 class IPRangeHandler(AuthNHandler):
 
-    def __init__(self, app, name="iiif_access_cookie", cookie_secret="abc123", token_secret="xyz987"):
-        self.application = app
-        self.cookie_name = name
-        self.cookie_secret = cookie_secret
-        self.token_secret = token_secret
-        self.ENCRYPT_TOKEN = True
+    def __init__(self, app, cookie_secret, token_secret, name="iiif_access_cookie",
+            cookie_domain="", cookie_path="", is_https=True):
+        super(IPRangeHandler,self).__init__(app, cookie_secret, token_secret, name,
+            cookie_domain, cookie_path, is_https)
 
         self.network = IPNetwork("10.0.0.0/16")
         self.exclude = [IPAddress("10.0.0.1")]
@@ -195,11 +198,8 @@ class IPRangeHandler(AuthNHandler):
         # Check if IP of browser is acceptable
         reqip = IPAddress(request.environ.get("REMOTE_ADDR"))
         if reqip in self.network and not reqip in self.exclude:
-            origin = request.query.get('origin', '*')        
-            secret = self.make_secret(origin, "cookie")
-            value = encrypt("on-site", secret)
-            # secure=True to limit to only https connections
-            response.set_cookie(self.cookie_name, value, domain="getty.edu", path="/", httponly=True)
+            origin = request.query.get('origin', '*')
+            self.set_cookie("on-site", origin, response)
             return self.application.send("<html><script>window.close();</script><body>%s</body></html>" % reqip, ct="text/html")
         else:
             return self.application.send("<html><body>Message for requiring on-site access here</body></html>", status=403, ct="text/html")
@@ -207,13 +207,11 @@ class IPRangeHandler(AuthNHandler):
 
 class OAuthHandler(AuthNHandler):
 
-    def __init__(self, app, name="iiif_access_cookie", cookie_secret="abc123", token_secret="xyz987"):
-        self.application = app
-        self.cookie_name = name
-        self.cookie_secret = cookie_secret
-        self.token_secret = token_secret
-        self.cookie_domain = ""
-        self.ENCRYPT_TOKEN = True
+    def __init__(self, app, cookie_secret, token_secret, name="iiif_access_cookie",
+            cookie_domain="", cookie_path="", is_https=True):
+        super(OAuthHandler,self).__init__(app, cookie_secret, token_secret, name,
+            cookie_domain, cookie_path, is_https)
+
         self.GOOGLE_API_CLIENT_ID = ""
         self.GOOGLE_API_CLIENT_SECRET = ""
         self.GOOGLE_REDIRECT_URI = ""
@@ -244,7 +242,7 @@ class OAuthHandler(AuthNHandler):
         return json.loads(urlopen(req).read())
 
     def login(self):
-        # OAuth starts here. This will redirect User to Google
+        # OAuth starts here. This will redirect User to Google to authenticate
         origin = request.query.get('origin', '*')
         params = {
             'response_type': 'code',
@@ -264,23 +262,19 @@ class OAuthHandler(AuthNHandler):
         resp = self._get_token()
         data = self._get_data(resp)
 
-        first = data.get('given_name', '')
-        last = data.get('family_name', '')
-        email = data.get('email', 'foo')
-        name = data.get('name', '')
-        pic = data.get('picture', '')
-        secret = self.make_secret(origin, "cookie")
-        value = encrypt(email, secret)
-
-        # secure=True to limit to only https connections
-        response.set_cookie(self.cookie_name, value, domain=self.cookie_domain, path="/", httponly=True)
+        # Other info in data are: given_name, family_name, name, picture, ...
+        email = data.get('email', 'noone@nowhere')
+        self.set_cookie(email, origin, response)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html");
 
 
 def main():
-    host = "media.getty.edu"
-    port = 80
-    authapp = AuthApp()
+    host = "localhost"
+    port = 8080
+    k1 = Fernet.generate_key()
+    k2 = Fernet.generate_key()
+    print "Generated keys. Cookie: %s  Token: %s" % (k1, k2)
+    authapp = AuthApp(k1, k2, is_https=False)
     app=authapp.get_bottle_app()
 
     set_debug(True)

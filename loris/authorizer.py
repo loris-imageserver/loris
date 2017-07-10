@@ -7,10 +7,7 @@
 from logging import getLogger
 from loris_exception import AuthorizerException
 import requests
-
-def decrypt(enc, key):
-    return enc
-
+from cryptography.fernet import Fernet
 
 logger = getLogger(__name__)
 
@@ -19,7 +16,6 @@ class _AbstractAuthorizer(object):
     def __init__(self, config):
         self.config = config
         self.cookie_name = config.get('cookie_name', 'iiif_access_cookie')
-
         self.service_template = {
             "@context": "http://iiif.io/api/auth/1/context.json",
             "@id": "",
@@ -174,11 +170,17 @@ class RulesAuthorizer(_AbstractAuthorizer):
         super(RulesAuthorizer, self).__init__(config)
         self.cookie_service = config.get('cookie_service', "")
         self.token_service = config.get('token_service', "")
-        self.cookie_secret = config.get('cookie_secret', "abc123")
-        self.token_secret = config.get('token_secret', 'xyz987')
+        if not 'cookie_secret' in config:
+            raise AuthorizerException("Rules Authorizer needs cookie_secret config")
+        if not 'token_secret' in config:
+            raise AuthorizerException("Rules Authorizer needs token_secret config")
+
+        self.cookie_fernet = Fernet(config['cookie_secret'])
+        self.token_fernet = Fernet(config['token_secret'])
+
 
     @staticmethod
-    def origin_to_secret(origin):
+    def basic_origin(origin):
         ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
             'gen', 'govt', 'school', 'sch']
         origin = origin.replace('https://', '')
@@ -201,11 +203,6 @@ class RulesAuthorizer(_AbstractAuthorizer):
             secret = domain[0]
         return secret
 
-    def _make_secret(self, origin, which):
-        reqsecret = self.origin_to_secret(origin)
-        svrsecret = self.cookie_secret if which == "cookie" else self.token_secret
-        return "{0}-{1}".format(svrsecret, reqsecret)
-
     def _roles_from_value(self, value):
         if value in ['_list', '_of', '_identities']:
             return ['_roles', '_for', '_identities']
@@ -215,16 +212,25 @@ class RulesAuthorizer(_AbstractAuthorizer):
     def _roles_from_request(self, request):
 
         origin = request.headers.get('Origin', '*')
-        key = self._make_secret(origin, "cookie")
+        origin = self.basic_origin(origin)
         cval = request.cookies.get(self.cookie_name)
 
         if not cval:
             token = request.headers.get('Authorization', '')        
             token = token.replace("Bearer", '')
             cval = token.strip()
-            key = self._make_secret(origin, "token")
+            if not cval:
+                return []
+            value = self.token_fernet.decrypt(cval)
+        else:
+            value = self.cookie_fernet.decrypt(cval)
 
-        value = decrypt(cval, key)
+        if not value.startswith(origin):
+            # Cookie/Token theft
+            return []
+        else:
+            value = value[len(origin)+1:]
+
         roles = self._roles_from_value(value)
         return roles
 

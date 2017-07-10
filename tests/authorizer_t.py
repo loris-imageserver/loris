@@ -97,7 +97,10 @@ class Test_RulesAuthorizer(unittest.TestCase):
 		ident = "test"
 		fp = "img/test.png"
 		fmt = "png"
-		self.authorizer = RulesAuthorizer({})
+
+		self.authorizer = RulesAuthorizer(
+			{"cookie_secret": "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
+			"token_secret": "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="})
 		self.badInfo = ImageInfo(ident, fp, fmt)		
 		self.okayInfo = ImageInfo("67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
 			"img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
@@ -105,10 +108,14 @@ class Test_RulesAuthorizer(unittest.TestCase):
 		# role to get access is "test"
 		# en/decryption defaults to return the plain text
 		self.emptyRequest = MockRequest()
-		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer test"})
-		self.cookieRequest = MockRequest(cooks={'iiif_access_cookie': 'test'})
 
-	def test_origin_to_secret(self):
+		cv = self.authorizer.cookie_fernet.encrypt("localhost|test")
+		tv = self.authorizer.token_fernet.encrypt("localhost|test")
+
+		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "Origin": "localhost"})
+		self.cookieRequest = MockRequest(hdrs={"Origin": "localhost"}, cooks={'iiif_access_cookie': cv})
+
+	def test_basic_origin(self):
 
 		tests = {"http://www.foobar.com/": "foobar.com",
 			"https://www.foobar.com": "foobar.com",
@@ -122,7 +129,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
 			}
 
 		for (test, expect) in tests.items():
-			self.assertEqual(self.authorizer.origin_to_secret(test), expect)
+			self.assertEqual(self.authorizer.basic_origin(test), expect)
 
 	def test_is_protected(self):
 		self.badInfo.auth_rules = {"allowed": ["test"]}
@@ -144,7 +151,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
 		self.badInfo.auth_rules = {"allowed": ["test"]}
 		authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
 		self.assertEqual(authd['status'], "deny")
-		authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)		
+		authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)
 		self.assertEqual(authd['status'], "ok")
 		authd = self.authorizer.is_authorized(self.badInfo, self.cookieRequest)		
 		self.assertEqual(authd['status'], "ok")
