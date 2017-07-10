@@ -302,8 +302,11 @@ class SizeParameter(object):
                 raise RequestException(http_status=400, message=msg)
 
     def _populate_slots_from_pct(self,region_parameter):
+        m = SizeParameter.PCT_MODE_REGEX.match(self.uri_value)
+        assert m is not None
+
         self.force_aspect = False
-        pct_decimal = Decimal(str(self.uri_value.split(':')[1])) * Decimal('0.01')
+        pct_decimal = Decimal(m.group('percentage')) * Decimal('0.01')
         logger.debug(pct_decimal <= Decimal(0))
         logger.debug('pct_decimal: %s', pct_decimal)
 
