@@ -545,8 +545,12 @@ class Loris(object):
         else:
             in_cache = False
 
-        # We need the info to check authorization, still cheaper than always resolving
-        info = self._get_info(ident, request, base_uri)[0]
+        try:
+            # We need the info to check authorization, 
+            # ... still cheaper than always resolving as likely to be cached
+            info = self._get_info(ident, request, base_uri)[0]
+        except ResolverException as re:
+            return NotFoundResponse(re.message)
 
         if self.authorizer and self.authorizer.is_protected(info):
             authed = self.authorizer.is_authorized(info, request)

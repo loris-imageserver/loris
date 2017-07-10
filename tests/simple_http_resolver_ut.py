@@ -118,9 +118,9 @@ class SimpleHTTPResolverTest(unittest.TestCase):
 
     @responses.activate
     def test_resolve_001(self):
-        expected_resolved = (self.expected_filepath, self.expected_format)
-        resolved = self.resolver.resolve(self.identifier, "")
-        self.assertSequenceEqual(resolved, expected_resolved)
+        expected_resolved = self.expected_filepath
+        ii = self.resolver.resolve(self.identifier, "")
+        self.assertEqual(ii.src_img_fp, expected_resolved)
         # Make sure the file exists in the cache
         self.assertTrue(os.path.isfile(self.expected_filepath))
 
