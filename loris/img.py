@@ -7,8 +7,6 @@ from os import path, symlink, unlink, error as os_error, rename
 from parameters import RegionParameter
 from parameters import RotationParameter
 from parameters import SizeParameter
-from loris_exception import RequestException
-from loris_exception import SyntaxException
 from loris_exception import ImageException
 from urllib import unquote, quote_plus
 from urllib import unquote
@@ -109,28 +107,19 @@ class ImageRequest(object):
     @property
     def region_param(self):
         if self._region_param is None:
-            try:
-                self._region_param = RegionParameter(self.region_value, self.info)
-            except (SyntaxException,RequestException):
-                raise
+            self._region_param = RegionParameter(self.region_value, self.info)
         return self._region_param
 
     @property
     def size_param(self):
         if self._size_param is None:
-            try:
-                self._size_param = SizeParameter(self.size_value, self.region_param)
-            except (RequestException,SyntaxException):
-                raise
+            self._size_param = SizeParameter(self.size_value, self.region_param)
         return self._size_param
 
     @property
     def rotation_param(self):
         if self._rotation_param is None:
-            try:
-                self._rotation_param = RotationParameter(self.rotation_value)
-            except (RotationParameter,SyntaxException):
-                raise
+            self._rotation_param = RotationParameter(self.rotation_value)
         return self._rotation_param
 
     @property
@@ -224,7 +213,7 @@ class ImageCache(dict):
     def __getitem__(self, image_request):
         fp = self.get(image_request)
         if fp is None:
-            raise KeyError
+            raise KeyError(image_request)
         return fp
 
     @staticmethod

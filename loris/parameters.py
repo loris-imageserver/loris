@@ -279,13 +279,10 @@ class SizeParameter(object):
             self.h = region_parameter.pixel_h
             self.canonical_uri_value = FULL_MODE
         else:
-            try:
-                if self.mode == PCT_MODE:
-                    self._populate_slots_from_pct(region_parameter)
-                else: # self.mode == PIXEL_MODE:
-                    self._populate_slots_from_pixels(region_parameter)
-            except (SyntaxException, RequestException):
-                raise
+            if self.mode == PCT_MODE:
+                self._populate_slots_from_pct(region_parameter)
+            else: # self.mode == PIXEL_MODE:
+                self._populate_slots_from_pixels(region_parameter)
 
             if self.force_aspect:
                 self.canonical_uri_value = '%d,%d' % (self.w,self.h)
