@@ -143,7 +143,6 @@ class ImageInfo(object):
 
         scaleFactors = []
 
-        #TODO use context manager so it's automatically closed
         with open(fp, 'rb') as jp2:
 
             #check that this is a jp2 file
