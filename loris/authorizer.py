@@ -45,6 +45,8 @@ class _AbstractAuthorizer(object):
         for (k, v) in svc.items():
             if not v:
                 del svc[k]
+        # but return it just in case
+        return svc
 
     def is_protected(self, info):
         """
@@ -72,17 +74,14 @@ class _AbstractAuthorizer(object):
         cn = self.__class__.__name__
         raise NotImplementedError('get_services_info() not implemented for %s' % (cn,))
 
-    def is_authorized(self, info, cookie="", token=""):
+    def is_authorized(self, info, request):
         """
 
         Args:
             info (ImageInfo):
                 The ImageInfo description of the image
-        KWArgs:
-            cookie (str):
-                The cookie value from the request for an image
-            token (str):
-                The token value from the Authorization header for info.json
+            request (Request):
+                The wsgi request object
         Returns:
             {"status": "ok / deny / redirect", "location": "uri-to-redirect-to"}
 
@@ -101,7 +100,7 @@ class NullAuthorizer(_AbstractAuthorizer):
     def is_protected(self, info):
         return False
 
-    def is_authorized(self, info, cookie="", token=""):
+    def is_authorized(self, info, request):
         # Should never be called
         return {"status": "ok"}
 
@@ -120,7 +119,7 @@ class NooneAuthorizer(_AbstractAuthorizer):
     def is_protected(self, info):
         return True
 
-    def is_authorized(self, info, cookie="", token=""):
+    def is_authorized(self, info, request):
         return {"status": "deny"}
 
     def get_services_info(self, info):
@@ -149,8 +148,8 @@ class SingleDegradingAuthorizer(_AbstractAuthorizer):
     def is_protected(self, info):
         return not info.src_img_fp.endswith(self.redirect_fp)
 
-    def is_authorized(self, info, cookie="", token=""):
-        # Assumes a trivial resolver
+    def is_authorized(self, info, request):
+        # Won't be called for the redirect img, as it's not protected
         return {"status": "redirect", 
             "location": "%s/info.json" % self.redirect_fp}    
 
@@ -168,31 +167,6 @@ class SingleDegradingAuthorizer(_AbstractAuthorizer):
         tmpl['service'] = [token]
         return {"service": tmpl}
 
-class ExternalAuthorizer(_AbstractAuthorizer):
-    """
-    Pass info through to remote backend system for auth'z business logic
-    """
-
-    # Should pass in options/info from resolver!
-
-    def __init__(self, config):
-        super(ExternalAuthorizer, self).__init__(config)
-        self.authorized_url = config.get('authorized_url', '')
-        self.protected_url = config.get('protected_url', '')
-        self.services_url = config.get('services_url', '')
-
-    def is_protected(self, info):
-        # http://somewhere.org/path/to/service
-        # using POST to ensure data doesn't end up in logs
-        r = requests.post(self.protected_url, data={"id":info.ident, "fp":info.src_img_fp})
-
-    def is_authorized(self, info, cookie="", token=""):
-        r = requests.post(self.authorized_url, data={"id":info.ident, 
-            "fp":info.src_img_fp, "cookie":cookie, "token": token})
-
-    def get_services_info(self, info):
-        r = requests.post(self.services_url, data={"id":info.ident, "fp":info.src_img_fp})
-
 
 class RulesAuthorizer(_AbstractAuthorizer):
 
@@ -203,7 +177,8 @@ class RulesAuthorizer(_AbstractAuthorizer):
         self.cookie_secret = config.get('cookie_secret', "abc123")
         self.token_secret = config.get('token_secret', 'xyz987')
 
-    def origin_to_secret(self, origin):
+    @staticmethod
+    def origin_to_secret(origin):
         ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
             'gen', 'govt', 'school', 'sch']
         origin = origin.replace('https://', '')
@@ -223,7 +198,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
             secret = ".".join(domain[-2:])
         else:
             # localhost or * ... hopefully not *!
-            secret = domain
+            secret = domain[0]
         return secret
 
     def _make_secret(self, origin, which):
@@ -232,8 +207,8 @@ class RulesAuthorizer(_AbstractAuthorizer):
         return "{0}-{1}".format(svrsecret, reqsecret)
 
     def _roles_from_value(self, value):
-        if value in ['list of emails']:
-            return ['role for emails']
+        if value in ['_list', '_of', '_identities']:
+            return ['_roles', '_for', '_identities']
         else:
             return [value]
 
@@ -268,14 +243,19 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def is_protected(self, info):
         # Now we can check info.auth_rules
+        # Protected if there's an 'allowed' key, with a non-false value 
         logger.debug("Called is_protected with %r" % info.auth_rules)
-        return 'allowed' in info.auth_rules and info.auth_rules['allowed']
+        return bool('allowed' in info.auth_rules and info.auth_rules['allowed'])
 
     def is_authorized(self, info, request):
-        roles = info.auth_rules.get('allowed', [])
+        if not "allowed" in info.auth_rules:
+            # We shouldn't be here, but just check in case
+            return {"status": "ok"}
+
+        roles = info.auth_rules['allowed']
         userroles = set(self._roles_from_request(request))
         okay = set(roles).intersection(userroles)
-        logger.info("roles: %r  // user: %r // intersection: %r" % (roles, userroles, okay))
+        logger.debug("roles: %r  // user: %r // intersection: %r" % (roles, userroles, okay))
 
         if okay:
             return {"status": "ok"}
@@ -287,14 +267,14 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 return {"status": "deny"} 
 
     def get_services_info(self, info):
-        # This should never get called, just put the services in the extraInfo
-        # in the rules.json file
-        # BUT in case you forget, we'll look on our config
+
         xi = info.auth_rules.get('extraInfo', {})
         if not xi or not xi.get('service', {}):
-            # look in config for URIs
+            # look in config for URIs instead of in XI
             if not self.cookie_service:
-                raise AuthorizerException("No known services for authentication")
+                raise AuthorizerException("No cookie service for authentication")
+            elif not self.token_service:
+                raise AuthorizerException("No token service for authentication")
             tmpl = self.service_template.copy()
             tmpl['@id'] = self.cookie_service
             tmpl['label'] = "Please Login"
@@ -307,5 +287,33 @@ class RulesAuthorizer(_AbstractAuthorizer):
             self._strip_empty_fields(token)
             tmpl['service'] = [token]
             return {"service": tmpl}
+        elif xi and xi.get('service', {}):
+            return {"service": xi['service']}
         else:
-            return {}
+            raise AuthorizerException("No services for authentication for %s" % info.ident)
+
+
+class ExternalAuthorizer(_AbstractAuthorizer):
+    """
+    Pass info through to remote backend system for auth'z business logic
+    """
+
+    # Should pass in options/info from resolver!
+
+    def __init__(self, config):
+        super(ExternalAuthorizer, self).__init__(config)
+        self.authorized_url = config.get('authorized_url', '')
+        self.protected_url = config.get('protected_url', '')
+        self.services_url = config.get('services_url', '')
+
+    def is_protected(self, info):
+        # http://somewhere.org/path/to/service
+        # using POST to ensure data doesn't end up in logs
+        r = requests.post(self.protected_url, data={"id":info.ident, "fp":info.src_img_fp})
+
+    def is_authorized(self, info, cookie="", token=""):
+        r = requests.post(self.authorized_url, data={"id":info.ident, 
+            "fp":info.src_img_fp, "cookie":cookie, "token": token})
+
+    def get_services_info(self, info):
+        r = requests.post(self.services_url, data={"id":info.ident, "fp":info.src_img_fp})

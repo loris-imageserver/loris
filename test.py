@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # test.py
 from sys import exit
+from tests import authorizer_t
 from tests import img_info_t
 from tests import parameters_t
 from tests import resolver_t
@@ -13,6 +14,7 @@ from tests import source_image_caching_resolver_ut
 from unittest import TestSuite, TextTestRunner
 
 test_suite = TestSuite()
+test_suite.addTest(authorizer_t.suite())
 test_suite.addTest(img_info_t.suite())
 test_suite.addTest(transforms_t.suite())
 test_suite.addTest(parameters_t.suite())

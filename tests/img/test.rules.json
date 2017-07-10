@@ -17,7 +17,7 @@
 	},
 	"tiers": [
 		{
-			"identifier": "http://localhost:5004/pir-architecture.png"
+			"identifier": "http://localhost:5004/"
 		}
 	]
 }
