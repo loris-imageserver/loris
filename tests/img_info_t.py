@@ -13,6 +13,8 @@ import loris_t
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
+import webapp_t
+
 
 """
 Info unit and function tests. To run this test on its own, do:
@@ -354,9 +356,7 @@ class InfoCache(loris_t.LorisTest):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
 
         path = self.test_jp2_color_fp
-        builder = EnvironBuilder(path=path)
-        env = builder.get_environ()
-        req = Request(env)
+        req = webapp_t._get_werkzeug_request(path=path)
 
         info = img_info.ImageInfo.from_image_file(
             uri=self.test_jp2_color_uri,
