@@ -69,12 +69,12 @@ def get_debug_config(debug_jp2_transformer):
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
-    config['authorizer']['cookie_service'] = "http://localhost:8000/cookie"
-    config['authorizer']['token_service'] = "http://localhost:8000/token"
-    config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
-    config['authorizer']['salt'] = "4rakTQJD4lC1B4lu"
-    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
+    #config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
+    #config['authorizer']['cookie_service'] = "http://localhost:8000/cookie"
+    #config['authorizer']['token_service'] = "http://localhost:8000/token"
+    #config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
+    #config['authorizer']['salt'] = "4rakTQJD4lC1B4lu"
+    #config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
 
     return config
 
