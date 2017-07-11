@@ -242,12 +242,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
             secret = "%s-%s" % (self.cookie_secret, origin)        
 
         cval = cval.encode('utf-8')
-
-        print "secret %r" % secret
-        print "cval %r" % cval
-
         key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
-        print "key %r" % key
         fern = Fernet(key)
         value = fern.decrypt(cval)
 

@@ -122,8 +122,8 @@ class Test_RulesAuthorizer(unittest.TestCase):
 		self.cookie_fernet = Fernet(key)
 		cv = self.cookie_fernet.encrypt("localhost|test")
 
-		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "Origin": self.origin})
-		self.cookieRequest = MockRequest(hdrs={"Origin": self.origin}, cooks={'iiif_access_cookie': cv})
+		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "origin": self.origin})
+		self.cookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': cv})
 
 	def test_basic_origin(self):
 
