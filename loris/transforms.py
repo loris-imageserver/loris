@@ -8,7 +8,7 @@ from PIL.ImageOps import mirror
 from logging import getLogger
 from loris_exception import TransformException
 from math import ceil, log
-from os import makedirs, path, unlink, devnull
+from os import path, unlink, devnull
 from parameters import FULL_MODE
 import cStringIO
 import platform
@@ -20,6 +20,8 @@ try:
     from PIL.ImageCms import profileToProfile # Pillow
 except ImportError:
     from ImageCms import profileToProfile # PIL
+
+from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -162,14 +164,12 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             self.srgb_profile_fp = config['srgb_profile_fp']
 
         try:
-            if not path.exists(self.tmp_dp):
-                makedirs(self.tmp_dp)
+            mkdir_p(self.tmp_dp)
         except OSError as ose:
             # Almost certainly a permissions error on one of the required dirs
             from sys import exit
             from os import strerror
-            msg = '%s (%s)' % (strerror(ose.errno),ose.filename)
-            logger.fatal(msg)
+            logger.fatal('%s (%s)', strerror(ose.errno), ose.filename)
             logger.fatal('Exiting')
             exit(77)
 
@@ -291,17 +291,15 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1,
                 stderr=fnull, stdout=fnull, env=self.env)
 
-        f = open(fifo_fp, 'rb')
-        logger.debug('Opened %s', fifo_fp)
-
-        # read from the named pipe
-        p = Parser()
-        while True:
-            s = f.read(1024)
-            if not s:
-                break
-            p.feed(s)
-        im = p.close() # a PIL.Image
+        with open(fifo_fp, 'rb') as f:
+            # read from the named pipe
+            p = Parser()
+            while True:
+                s = f.read(1024)
+                if not s:
+                    break
+                p.feed(s)
+            im = p.close() # a PIL.Image
 
         # finish opj
         opj_exit = opj_decompress_proc.wait()
@@ -380,16 +378,15 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             # Start the kdu shellout. Blocks until the pipe is empty
             kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
                 stderr=subprocess.PIPE, env=self.env)
-            f = open(fifo_fp, 'rb')
-
-            # read from the named pipe
-            p = Parser()
-            while True:
-                s = f.read(1024)
-                if not s:
-                    break
-                p.feed(s)
-            im = p.close() # a PIL.Image
+            with open(fifo_fp, 'rb') as f:
+                # read from the named pipe
+                p = Parser()
+                while True:
+                    s = f.read(1024)
+                    if not s:
+                        break
+                    p.feed(s)
+                im = p.close() # a PIL.Image
         finally:
             stdoutdata, stderrdata = kdu_expand_proc.communicate()
             kdu_exit = kdu_expand_proc.returncode
