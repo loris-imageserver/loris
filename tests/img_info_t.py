@@ -10,9 +10,6 @@ from werkzeug.datastructures import Headers
 import json
 import loris_t
 
-from werkzeug.test import EnvironBuilder
-from werkzeug.wrappers import Request
-
 import webapp_t
 
 
