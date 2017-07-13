@@ -1,21 +1,25 @@
 # img_info.py
 
-from PIL import Image
+from __future__ import absolute_import
+
 from collections import deque, OrderedDict
-from constants import COMPLIANCE
-from constants import CONTEXT
-from constants import OPTIONAL_FEATURES
-from constants import PROTOCOL
 from datetime import datetime
 from logging import getLogger
-from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
 import json
 import os
 import struct
-from urllib import unquote
 
+try:
+    from urllib.parse import unquote
+except ImportError:  # Python 2
+    from urllib import unquote
+
+from PIL import Image
+
+from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
+from loris.loris_exception import ImageInfoException
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)

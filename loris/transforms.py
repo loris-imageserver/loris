@@ -1,26 +1,30 @@
 # transformers.py
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 import multiprocessing
-from PIL import Image
-from PIL.ImageFile import Parser
-from PIL.ImageOps import mirror
 from logging import getLogger
-from loris_exception import TransformException
 from math import ceil, log
 from os import path, unlink, devnull
-from parameters import FULL_MODE
 import cStringIO
 import platform
 import random
 import string
 import subprocess
 import sys
-try:
-    from PIL.ImageCms import profileToProfile # Pillow
-except ImportError:
-    from ImageCms import profileToProfile # PIL
 
+from PIL import Image
+from PIL.ImageFile import Parser
+from PIL.ImageOps import mirror
+
+try:
+    from PIL.ImageCms import profileToProfile  # Pillow
+except ImportError:
+    from ImageCms import profileToProfile  # PIL
+
+from loris.loris_exception import TransformException
+from loris.parameters import FULL_MODE
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)

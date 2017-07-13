@@ -1,21 +1,20 @@
 # parameters_t.py
 #-*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from decimal import Decimal
-from loris import img_info
-from loris.loris_exception import RequestException
-from loris.loris_exception import SyntaxException
-from loris.parameters import DECIMAL_ONE
-from loris.parameters import FULL_MODE
-from loris.parameters import PCT_MODE
-from loris.parameters import PIXEL_MODE
-from loris.parameters import RegionParameter
-from loris.parameters import RotationParameter
-from loris.parameters import SizeParameter
-import loris_t
 
 from hypothesis import given
 from hypothesis.strategies import text
+
+from loris import img_info
+from loris.loris_exception import RequestException, SyntaxException
+from loris.parameters import (
+	DECIMAL_ONE, FULL_MODE, PCT_MODE, PIXEL_MODE,
+	RegionParameter, RotationParameter, SizeParameter,
+)
+import loris_t
 
 """
 Parameter object tests. To run this test on its own, do:

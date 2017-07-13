@@ -1,9 +1,14 @@
 #-*- coding: utf-8 -*-
+from __future__ import absolute_import
+
 from cStringIO import StringIO
 import unittest
-import loris_t, operator, itertools
+import operator, itertools
+
 from PIL.ImageFile import Parser
+
 from loris import transforms
+import loris_t
 
 """
 Transformer tests. These right now these work with the kakadu and PIL

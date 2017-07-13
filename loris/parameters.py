@@ -8,12 +8,14 @@ The attributes of this class should make it possible to work with most imaging
 libraries without any further need to process the IIIF syntax.
 '''
 
+from __future__ import absolute_import
+
 import re
 from decimal import Decimal
 from math import floor
 from logging import getLogger
-from loris_exception import SyntaxException
-from loris_exception import RequestException
+
+from loris.loris_exception import RequestException, SyntaxException
 
 logger = getLogger(__name__)
 

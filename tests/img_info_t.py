@@ -1,15 +1,21 @@
 # img_info_t.py
 #-*- coding: utf-8 -*-
 
-from loris import img_info
-from loris import loris_exception
-from loris.constants import PROTOCOL
-from os import path
-from urllib import unquote
-from werkzeug.datastructures import Headers
-import json
-import loris_t
+from __future__ import absolute_import
 
+from os import path
+import json
+
+try:
+    from urllib.parse import unquote
+except ImportError:  # Python 2
+    from urllib import unquote
+
+from werkzeug.datastructures import Headers
+
+from loris import img_info, loris_exception
+from loris.constants import PROTOCOL
+import loris_t
 import webapp_t
 
 

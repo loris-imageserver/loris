@@ -94,7 +94,7 @@ class LorisTest(unittest.TestCase):
         self.test_png_uri = '%s/%s' % (self.URI_BASE,self.test_png_id)
         self.test_png_dims = (504,360) # w,h
         self.test_png_sizes = []
-        
+
         self.test_altpng_id = 'foo.png'
         self.test_altpng_fp = path.join(self.test_img_dir2,'foo.png')
 

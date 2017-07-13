@@ -3,22 +3,30 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
+
+from __future__ import absolute_import
+
 from logging import getLogger
-from loris_exception import ResolverException
 from os.path import join, exists, dirname
 from os import rename, remove
 from shutil import copy
 import tempfile
-from urllib import unquote, quote_plus
 from contextlib import closing
-
-import constants
 import hashlib
 import glob
-import requests
 import re
 
+try:
+    from urllib.parse import quote_plus, unquote
+except ImportError:  # Python 2
+    from urllib import quote_plus, unquote
+
+import requests
+
+from loris import constants
+from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p
+
 
 logger = getLogger(__name__)
 

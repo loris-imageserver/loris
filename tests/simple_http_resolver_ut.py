@@ -1,9 +1,13 @@
-from loris.resolver import SimpleHTTPResolver
-from loris.loris_exception import ResolverException
+from __future__ import absolute_import
+
 import os
 import shutil
 import unittest
+
 import responses
+
+from loris.resolver import SimpleHTTPResolver
+from loris.loris_exception import ResolverException
 
 
 class SimpleHTTPResolverTest(unittest.TestCase):

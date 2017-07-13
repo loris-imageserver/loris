@@ -1,19 +1,21 @@
 # webapp_t.py
 #-*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from datetime import datetime
 from os import path, listdir
 from time import sleep
 from unittest import TestCase
+import re
+
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
-import re
+
+from loris import img_info, loris_exception, webapp
 import loris_t
-from loris import img_info
-from loris import webapp
-from loris import loris_exception
 
 
 """
