@@ -1,0 +1,7 @@
+[run]
+branch = True
+include =
+    loris/*.py
+
+[report]
+show_missing = True
