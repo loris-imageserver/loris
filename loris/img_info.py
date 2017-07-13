@@ -1,7 +1,7 @@
 # img_info.py
 
 from PIL import Image
-from collections import deque
+from collections import deque, OrderedDict
 from constants import COMPLIANCE
 from constants import CONTEXT
 from constants import OPTIONAL_FEATURES
@@ -17,11 +17,6 @@ import struct
 from urllib import unquote
 
 from loris.utils import mkdir_p
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
 
 logger = getLogger(__name__)
 
