@@ -24,7 +24,7 @@ from loris.resolver import (
     SourceImageCachingResolver,
     SimpleFSResolver
 )
-import loris_t
+from tests import loris_t
 
 
 """

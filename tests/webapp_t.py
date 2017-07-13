@@ -15,7 +15,7 @@ from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
 from loris import img_info, loris_exception, webapp
-import loris_t
+from tests import loris_t
 
 
 """

@@ -15,8 +15,7 @@ from werkzeug.datastructures import Headers
 
 from loris import img_info, loris_exception
 from loris.constants import PROTOCOL
-import loris_t
-import webapp_t
+from tests import loris_t, webapp_t
 
 
 """

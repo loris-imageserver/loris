@@ -8,7 +8,7 @@ import operator, itertools
 from PIL.ImageFile import Parser
 
 from loris import transforms
-import loris_t
+from tests import loris_t
 
 """
 Transformer tests. These right now these work with the kakadu and PIL

@@ -4,13 +4,17 @@
 '''
 Superclass for integration tests.
 '''
+from __future__ import absolute_import
+
 import unittest
-from loris.webapp import get_debug_config, Loris
 from os import path, listdir, unlink
 from shutil import rmtree
+from logging import getLogger
+
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
-from logging import getLogger
+
+from loris.webapp import get_debug_config, Loris
 
 logger = getLogger(__name__)
 

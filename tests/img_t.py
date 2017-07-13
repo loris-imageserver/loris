@@ -15,7 +15,7 @@ except ImportError:  # Python 2
 
 from loris import img, img_info
 from loris.loris_exception import ImageException
-import loris_t
+from tests import loris_t
 
 
 """

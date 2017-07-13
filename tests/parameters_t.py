@@ -14,7 +14,7 @@ from loris.parameters import (
 	DECIMAL_ONE, FULL_MODE, PCT_MODE, PIXEL_MODE,
 	RegionParameter, RotationParameter, SizeParameter,
 )
-import loris_t
+from tests import loris_t
 
 """
 Parameter object tests. To run this test on its own, do:
