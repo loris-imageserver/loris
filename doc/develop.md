@@ -36,13 +36,26 @@ __N.B.:__ When developing or extending, i.e., instantiating the application inst
 
 Running Tests
 -------------
-To run all of the tests, you need to install test dependencies:
+To run the tests, you need to install test dependencies:
 
 ```console
 $ pip install -r requirements_test.txt
 ```
 
-Then run `./test.py` from the `/loris` directory (not `/loris/loris`). If you just want to run the tests for a single module, do, e.g. `python -m unittest -v tests.parameters_t` from the same dir as above.
+Then, in the root of the repository, run:
+
+```console
+$ coverage run -m py.test tests/*.py
+$ coverage report
+```
+
+This will run the tests, and print coverage information for the ``loris`` directory.
+If you'd like to run a specific test, pass a filename to ``coverage run``.
+For example:
+
+```console
+$ coverage run -m py.test tests/parameters_t.py
+```
 
 Using the Development Server
 ----------------------------
