@@ -24,7 +24,7 @@ install:
  - pip install -r requirements_test.txt
 
 script:
-  - "coverage run ./test.py"
+  - "coverage run -m py.test tests/*.py"
   - "coverage report"
 
 notifications:
