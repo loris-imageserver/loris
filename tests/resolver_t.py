@@ -1,26 +1,34 @@
 #-*- coding: utf-8 -*-
-from loris.loris_exception import ResolverException
-from loris.resolver import (
-        _AbstractResolver,
-        SimpleHTTPResolver,
-        TemplateHTTPResolver,
-        SourceImageCachingResolver,
-        SimpleFSResolver
-    )
+
+from __future__ import absolute_import
+
 from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import exists
 import unittest
-from urllib import unquote, quote_plus
 
-import loris_t
+try:
+    from urllib.parse import quote_plus, unquote
+except ImportError:  # Python 2
+    from urllib import quote_plus, unquote
+
 import responses
+
+from loris.loris_exception import ResolverException
+from loris.resolver import (
+    _AbstractResolver,
+    SimpleHTTPResolver,
+    TemplateHTTPResolver,
+    SourceImageCachingResolver,
+    SimpleFSResolver
+)
+from tests import loris_t
 
 
 """
-Resolver tests. This may need to be modified if you change the resolver 
+Resolver tests. This may need to be modified if you change the resolver
 implementation. To run this test on its own, do:
 
 $ python -m unittest tests.resolver_t
@@ -66,10 +74,10 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
     def test_source_image_caching_resolver(self):
-        # First we need to change the resolver on the test instance of the 
+        # First we need to change the resolver on the test instance of the
         # application (overrides the config to use SimpleFSResolver)
         config = {
-            'source_root' : join(dirname(realpath(__file__)), 'img'), 
+            'source_root' : join(dirname(realpath(__file__)), 'img'),
             'cache_root' : self.app.img_cache.cache_root
         }
         self.app.resolver = SourceImageCachingResolver(config)

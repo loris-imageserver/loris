@@ -1,3 +1,6 @@
+from __future__ import absolute_import
+
+
 class LorisException(Exception):
 	"""Base exception class for Loris.
 

@@ -1,7 +1,10 @@
-from .abstract_resolver import AbstractResolverTest
-from loris import resolver
+from __future__ import absolute_import
+
 import os
 import unittest
+
+from loris import resolver
+from tests.abstract_resolver import AbstractResolverTest
 
 
 class SimpleFSResolverTest(AbstractResolverTest, unittest.TestCase):

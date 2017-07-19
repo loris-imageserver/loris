@@ -4,13 +4,17 @@
 '''
 Superclass for integration tests.
 '''
+from __future__ import absolute_import
+
 import unittest
-from loris.webapp import get_debug_config, Loris
 from os import path, listdir, unlink
 from shutil import rmtree
+from logging import getLogger
+
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
-from logging import getLogger
+
+from loris.webapp import get_debug_config, Loris
 
 logger = getLogger(__name__)
 
@@ -94,7 +98,7 @@ class LorisTest(unittest.TestCase):
         self.test_png_uri = '%s/%s' % (self.URI_BASE,self.test_png_id)
         self.test_png_dims = (504,360) # w,h
         self.test_png_sizes = []
-        
+
         self.test_altpng_id = 'foo.png'
         self.test_altpng_fp = path.join(self.test_img_dir2,'foo.png')
 

@@ -5,6 +5,8 @@ webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 '''
+from __future__ import absolute_import
+
 from datetime import datetime
 from decimal import getcontext
 import logging
@@ -16,24 +18,23 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
-#3rd party imports
 from configobj import ConfigObj
 from werkzeug.http import parse_date, http_date
-from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
+from werkzeug.wrappers import (
+	Request, Response, BaseResponse, CommonResponseDescriptorsMixin
+)
 
-#Loris imports
-import constants
-import img
-from img_info import ImageInfo
-from img_info import ImageInfoException
-from img_info import InfoCache
-from loris_exception import RequestException
-from loris_exception import SyntaxException
-from loris_exception import ImageException
-from loris_exception import ResolverException
-from loris_exception import TransformException
+from loris import constants, img, transforms
+from loris.img_info import ImageInfo, InfoCache
+from loris.loris_exception import (
+	ImageException,
+	ImageInfoException,
+	RequestException,
+	ResolverException,
+	SyntaxException,
+	TransformException,
+)
 from loris.utils import mkdir_p
-import transforms
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
@@ -57,13 +58,13 @@ def get_debug_config(debug_jp2_transformer):
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     if debug_jp2_transformer == 'opj':
-        from transforms import OPJ_JP2Transformer
+        from loris.transforms import OPJ_JP2Transformer
         opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
         config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
         libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
         config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
     else: # kdu
-        from transforms import KakaduJP2Transformer
+        from loris.transforms import KakaduJP2Transformer
         kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
         config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()

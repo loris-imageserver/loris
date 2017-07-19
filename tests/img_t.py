@@ -1,15 +1,21 @@
 #-*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from os.path import exists
 from os.path import islink
 from os.path import isfile
 from os.path import join
 import unittest
-from urllib import unquote
 
-from loris.loris_exception import ImageException
+try:
+    from urllib.parse import unquote
+except ImportError:  # Python 2
+    from urllib import unquote
+
 from loris import img, img_info
-import loris_t
+from loris.loris_exception import ImageException
+from tests import loris_t
 
 
 """
