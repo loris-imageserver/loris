@@ -1,7 +1,7 @@
 Installing Dependencies
 =======================
 
-These instructions are known to work with Ubuntu 12.04, Ubuntu 14.04 and Ubuntu 16.04. If you have further information, please provide it!
+These instructions are known to work with Ubuntu 14.04 and Ubuntu 16.04. If you have further information, please provide it!
 
 Loris (Pillow, actually, with the exception of Kakadu) depends on several external libraries that can't be installed with pip, so there are few steps that must be carefully followed to get going. Installing the dependencies manually is a good idea if you want to run the tests.
 
