@@ -231,24 +231,6 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         '''
         return 'lib/%s/%s' % (platform.system(),platform.machine())
 
-    @staticmethod
-    def libopenjp2_name():
-        '''Only used in dev and tests.
-        '''
-        system = platform.system()
-        if system == 'Linux':
-            return 'libopenjp2.so.2.1.0'
-        elif system == 'Darwin':
-            return 'libopenjp2.2.1.0.dylib'
-
-    @staticmethod
-    def local_libopenjp2_path():
-        '''Only used in dev and tests.
-        '''
-        dir_ = OPJ_JP2Transformer.local_libopenjp2_dir()
-        name = OPJ_JP2Transformer.libopenjp2_name()
-        return '%s/%s' % (dir_,name)
-
     def _region_to_opj_arg(self, region_param):
         '''
         Args:
@@ -340,24 +322,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         '''Only used in dev and tests.
         '''
         return 'lib/%s/%s' % (platform.system(),platform.machine())
-
-    @staticmethod
-    def libkdu_name():
-        '''Only used in dev and tests.
-        '''
-        system = platform.system()
-        if system == 'Linux':
-            return 'libkdu_v74R.so'
-        elif system == 'Darwin':
-            return 'libkdu_v73R.dylib'
-
-    @staticmethod
-    def local_libkdu_path():
-        '''Only used in dev and tests.
-        '''
-        dir_ = KakaduJP2Transformer.local_libkdu_dir()
-        name = KakaduJP2Transformer.libkdu_name()
-        return '%s/%s' % (dir_,name)
 
     def _region_to_kdu_arg(self, region_param):
         '''
