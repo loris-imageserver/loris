@@ -2,5 +2,3 @@ werkzeug >= 0.11.4
 pillow >= 2.4.0
 configobj >= 4.7.2,<=5.0.0
 requests >= 2.12.0
-mock == 1.0.1
-responses == 0.3.0
