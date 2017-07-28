@@ -34,7 +34,6 @@ from loris.loris_exception import (
 	SyntaxException,
 	TransformException,
 )
-from loris.utils import mkdir_p
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
@@ -71,23 +70,6 @@ def get_debug_config(debug_jp2_transformer):
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
 
     return config
-
-
-def make_directories(config):
-    try:
-        mkdir_p(config['loris.Loris']['tmp_dp'])
-        if config['logging']['log_to'] == 'file':
-            mkdir_p(config['logging']['log_dir'])
-        if config['loris.Loris']['enable_caching']:
-            mkdir_p(config['img.ImageCache']['cache_dp'])
-            mkdir_p(config['img_info.InfoCache']['cache_dp'])
-    except OSError as ose:
-        from sys import exit
-        from os import strerror
-        # presumably it's permissions
-        logger.fatal('%s (%s)', strerror(ose.errno), ose.filename)
-        logger.fatal('Exiting')
-        exit(77)
 
 
 def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
