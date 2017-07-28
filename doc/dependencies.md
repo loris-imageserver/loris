@@ -1,7 +1,7 @@
 Installing Dependencies
 =======================
 
-These instructions are known to work with Ubuntu 12.04 and Ubuntu 14.04. If you have further information, please provide it!
+These instructions are known to work with Ubuntu 14.04 and Ubuntu 16.04. If you have further information, please provide it!
 
 Loris (Pillow, actually, with the exception of Kakadu) depends on several external libraries that can't be installed with pip, so there are few steps that must be carefully followed to get going. Installing the dependencies manually is a good idea if you want to run the tests.
 
@@ -28,7 +28,7 @@ Pillow's external dependencies __MUST__ be built/installed before Pillow is inst
 Then, install all of the dependencies--note that exact versions may vary depending on your package manager and OS version:
 
     $ sudo apt-get install libjpeg-turbo8-dev libfreetype6-dev zlib1g-dev \
-    liblcms2-dev liblcms-utils libtiff5-dev python-dev libwebp-dev apache2 \
+    liblcms2-dev liblcms2-utils libtiff5-dev python-dev libwebp-dev apache2 \
     libapache2-mod-wsgi
 
 Now install Pillow (setup.py would do this for you, but it's better to do separately and check):
