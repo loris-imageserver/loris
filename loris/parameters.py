@@ -288,8 +288,10 @@ class SizeParameter(object):
         else:
             if self.mode == PCT_MODE:
                 self._populate_slots_from_pct(region_parameter)
-            else: # self.mode == PIXEL_MODE:
+            elif self.mode == PIXEL_MODE:
                 self._populate_slots_from_pixels(region_parameter)
+            else:  # pragma: no cover
+                assert False, "Unrecognised mode: %r" % self.mode
 
             if self.force_aspect:
                 self.canonical_uri_value = '%d,%d' % (self.w,self.h)
@@ -364,7 +366,7 @@ class SizeParameter(object):
             self.w = request_w
             self.h = request_h
 
-        else:
+        else:  # pragma: no cover
             assert False, "Incomplete size data in URI: %r" % self.uri_value
 
         if self.h < 1:

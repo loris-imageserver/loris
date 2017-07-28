@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from hypothesis import given
 from hypothesis.strategies import text
+import pytest
 
 from loris import img_info
 from loris.loris_exception import RequestException, SyntaxException
@@ -397,6 +398,26 @@ class TestSizeParameter(_ParameterTest):
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '143,')
+
+	def test_zero_width_or_height_is_rejected(self):
+		info = build_image_info()
+		rp = RegionParameter('full', info)
+		with pytest.raises(RequestException):
+			SizeParameter('0,', rp)
+		with pytest.raises(RequestException):
+			SizeParameter(',0', rp)
+		with pytest.raises(RequestException):
+			SizeParameter('0,0', rp)
+
+	@given(text(alphabet='0123456789.,!'))
+	def test_parsing_parameter_either_passes_or_is_exception(self, uri_value):
+		info = build_image_info()
+		rp = RegionParameter('full', info)
+		try:
+			SizeParameter(uri_value, rp)
+		except (RequestException, SyntaxException):
+			pass
+
 
 class TestRotationParameter(_ParameterTest):
 	def test_exceptions(self):
