@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 from os.path import exists
 from os.path import islink
-from os.path import isfile
 from os.path import join
 import unittest
 

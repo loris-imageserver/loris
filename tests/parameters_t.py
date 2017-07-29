@@ -11,7 +11,7 @@ from hypothesis.strategies import text
 from loris import img_info
 from loris.loris_exception import RequestException, SyntaxException
 from loris.parameters import (
-	DECIMAL_ONE, FULL_MODE, PCT_MODE, PIXEL_MODE,
+	FULL_MODE, PCT_MODE, PIXEL_MODE,
 	RegionParameter, RotationParameter, SizeParameter,
 )
 from tests import loris_t

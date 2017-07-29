@@ -16,7 +16,6 @@
 from json import dumps
 from os.path import dirname
 from os.path import exists
-from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import splitext
@@ -40,7 +39,7 @@ except ImportError:
     from loris.img_info import ImageInfo
 
     EX_USAGE = 64
-    EX_DATAERR = 65 
+    EX_DATAERR = 65
     EX_NOINPUT = 66
     VERBOSE = '-v'
 
