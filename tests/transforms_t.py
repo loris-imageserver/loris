@@ -1,9 +1,13 @@
 #-*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from cStringIO import StringIO
 import unittest
 import operator, itertools
+
+try:
+    from io import StringIO
+except ImportError:  # Python 2
+    from cStringIO import StringIO
 
 from PIL.ImageFile import Parser
 

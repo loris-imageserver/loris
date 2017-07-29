@@ -7,12 +7,16 @@ import multiprocessing
 from logging import getLogger
 from math import ceil, log
 from os import path, unlink, devnull
-import cStringIO
 import platform
 import random
 import string
 import subprocess
 import sys
+
+try:
+    from io import StringIO
+except ImportError:  # Python 2
+    from cStringIO import StringIO
 
 from PIL import Image
 from PIL.ImageFile import Parser
@@ -294,7 +298,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         unlink(fifo_fp)
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+            emb_profile = StringIO(image_request.info.color_profile_bytes)
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
@@ -363,7 +367,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             unlink(fifo_fp)
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+            emb_profile = StringIO(image_request.info.color_profile_bytes)
             im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
