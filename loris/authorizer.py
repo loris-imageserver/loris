@@ -223,23 +223,24 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def _roles_from_request(self, request):
 
+        ### Use request to determine type of request
+        # (Duh)
+
         origin = request.headers.get('origin', '')
         if not origin:
             origin = request.headers.get('referer', '*')
         origin = self.basic_origin(origin)
-        cval = request.cookies.get(self.cookie_name)
-
-        if not cval:
+        
+        if request.path.endswith("info.json"):
             token = request.headers.get('Authorization', '')        
             token = token.replace("Bearer", '')
             cval = token.strip()
             if not cval:
                 return []
-
-            # token key builder
             secret = "%s-%s" % (self.token_secret, origin)
         else:
-            secret = "%s-%s" % (self.cookie_secret, origin)        
+            cval = request.cookies.get(self.cookie_name)
+            secret = "%s-%s" % (self.cookie_secret, origin)
 
         cval = cval.encode('utf-8')
         key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
