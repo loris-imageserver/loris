@@ -4,8 +4,8 @@ import logging
 
 import pytest
 
-from loris.config import configure_logging
 from loris.loris_exception import ConfigError
+from loris.webapp import configure_logging
 
 
 class TestLoggingConfig(object):
