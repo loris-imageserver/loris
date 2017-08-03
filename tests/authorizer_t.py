@@ -12,6 +12,7 @@ class MockRequest(object):
 	def __init__(self, hdrs={}, cooks={}):
 		self.headers = hdrs
 		self.cookies = cooks
+		self.path = "bla/info.json"
 
 class Test_AbstractAuthorizer(unittest.TestCase):
 	

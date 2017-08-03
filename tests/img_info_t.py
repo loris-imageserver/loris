@@ -365,11 +365,9 @@ class InfoCache(loris_t.LorisTest):
         path = self.test_jp2_color_fp
         req = webapp_t._get_werkzeug_request(path=path)
 
-        info = img_info.ImageInfo.from_image_file(
-            uri=self.test_jp2_color_uri,
-            src_img_fp=self.test_jp2_color_fp,
-            src_format=self.test_jp2_color_fmt
-        )
+        info = img_info.ImageInfo(self.test_jp2_color_uri, 
+            self.test_jp2_color_fp, self.test_jp2_color_fmt)
+        info.from_image_file([ "jpg", "png", "gif", "webp" ])
 
         cache[req] = info
         del cache[req]
