@@ -17,8 +17,6 @@ import glob
 import re
 import json
 
-from img_info import ImageInfo
-
 try:
     from urllib.parse import quote_plus, unquote
 except ImportError:  # Python 2
@@ -29,6 +27,7 @@ import requests
 from loris import constants
 from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p
+from loris.img_info import ImageInfo
 
 
 logger = getLogger(__name__)
