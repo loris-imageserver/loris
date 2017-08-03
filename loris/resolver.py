@@ -370,9 +370,13 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         # Check for rules file associated with image file
         # These files are < 2k in size, so fetch in one go.
-        # Assumes that the image will have an extension, and the rules will be next to the image
+        # Assumes that the rules will be next to the image
         # cache_dir is image specific, so this is easy
-        rules_url = source_url.rsplit('.')[0] + "." + self.auth_rules_ext
+
+        bits = split(source_url)
+        fn = bits[1].rsplit('.')[0] + "." + self.auth_rules_ext
+        rules_url = bits[0] + '/' + fn
+
         resp = requests.get(rules_url)
         if resp.status_code == 200:
             local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
