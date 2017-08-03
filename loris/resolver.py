@@ -37,7 +37,8 @@ class _AbstractResolver(object):
 
     def __init__(self, config):
         self.config = config
-        self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
+        if config:
+            self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
 
     def is_resolvable(self, ident):
         """
