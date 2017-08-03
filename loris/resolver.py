@@ -30,6 +30,7 @@ class _AbstractResolver(object):
 
     def __init__(self, config):
         self.config = config
+        self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
 
     def is_resolvable(self, ident):
         """
@@ -63,6 +64,30 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
 
+    def get_extra_info(self, ident, source_fp):
+        """
+        Given the identifier and any resolved source file, find the associated
+        extra information to include in info.json, plus any additional authorizer
+        specific information.  It might end up there after being copied by a
+        caching implementation, or live there permanently.
+
+        Args:
+            ident (str):
+                The identifier for the image
+            source_fp (str):
+                The source image filepath, if there is one
+        Returns:
+            dict: The dict of information to embed in info.json
+        """
+        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
+        if exists(xjsfp):
+            fh = open(xjsfp)
+            xjs = json.load(fh)
+            fh.close()
+            return xjs
+        else:
+            return {}
+
     def fix_base_uri(self, base_uri):
         return base_uri
 
@@ -74,16 +99,6 @@ class _AbstractResolver(object):
                 return constants.EXTENSION_MAP.get(extension, extension)
         message = 'Format could not be determined for: %s.' % (ident)
         raise ResolverException(404, message)
-
-    def _get_extra_info(self, ident, source_fp):
-        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
-        if exists(xjsfp):
-            fh = open(xjsfp)
-            xjs = json.load(fh)
-            fh.close()
-            return xjs
-        else:
-            return {}
 
 
 class SimpleFSResolver(_AbstractResolver):
@@ -99,7 +114,6 @@ class SimpleFSResolver(_AbstractResolver):
             self.source_roots = self.config['src_img_roots']
         else:
             self.source_roots = [self.config['src_img_root']]
-        self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
 
     def raise_404_for_ident(self, ident):
         message = 'Source image not found for identifier: %s.' % (ident,)
@@ -124,11 +138,7 @@ class SimpleFSResolver(_AbstractResolver):
         source_fp = self.source_file_path(ident)
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
-        try:
-            extra = self._get_extra_info(ident, source_fp)
-        except:
-            logger.debug("Failed to extract extra information from JSON file")
-            extra = {}
+        extra = self.get_extra_info(ident, source_fp)
         return ImageInfo(uri, source_fp, format_, extra)
 
 
@@ -233,12 +243,10 @@ class SimpleHTTPResolver(_AbstractResolver):
                 response = requests.head(url, **options)
                 if response.ok:
                     return True
-
             else:
                 with closing(requests.get(url, stream=True, **options)) as response:
                     if response.ok:
                         return True
-
         return False
 
     def get_format(self, ident, potential_format):
@@ -352,6 +360,8 @@ class SimpleHTTPResolver(_AbstractResolver):
                 rename(tmp_file.name, local_fp)
                 logger.info("Copied %s to %s", source_url, local_fp)
 
+            # TODO:  This should check for rules file associated with image file
+
         return local_fp
 
     def resolve(self, ident, base_uri):
@@ -360,7 +370,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
         uri = self.fix_base_uri(base_uri)
-        return ImageInfo(uri, cached_file_path, format_)
+        extra = self.get_extra_info(ident, cached_file_path)
+        return ImageInfo(uri, cached_file_path, format_, extra)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -489,6 +500,8 @@ class SourceImageCachingResolver(_AbstractResolver):
         copy(source_fp, cache_fp)
         logger.info("Copied %s to %s", source_fp, cache_fp)
 
+        # TODO: This should also check for and cache rules file
+
     def raise_404_for_ident(self, ident):
         source_fp = self.source_file_path(ident)
         public_message = 'Source image not found for identifier: %s.' % (ident,)
@@ -505,4 +518,5 @@ class SourceImageCachingResolver(_AbstractResolver):
         cache_fp = self.cache_file_path(ident)
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
-        return ImageInfo(uri, cache_fp, format_)
+        extra = self.get_extra_info(ident, cache_fp)
+        return ImageInfo(uri, cache_fp, format_, extra)

@@ -224,7 +224,6 @@ class RulesAuthorizer(_AbstractAuthorizer):
     def _roles_from_request(self, request):
 
         ### Use request to determine type of request
-        # (Duh)
 
         origin = request.headers.get('origin', '')
         if not origin:
