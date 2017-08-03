@@ -376,14 +376,17 @@ class SimpleHTTPResolver(_AbstractResolver):
         bits = split(source_url)
         fn = bits[1].rsplit('.')[0] + "." + self.auth_rules_ext
         rules_url = bits[0] + '/' + fn
-
-        resp = requests.get(rules_url)
-        if resp.status_code == 200:
-            local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
-            if not exists(local_rules_fp):
-                fh = open(local_rules_fp, 'w')
-                fh.write(r.text)
-                fh.close()
+        try:
+            resp = requests.get(rules_url)            
+            if resp.status_code == 200:
+                local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
+                if not exists(local_rules_fp):
+                    fh = open(local_rules_fp, 'w')
+                    fh.write(r.text)
+                    fh.close()
+        except:
+            # No connection available
+            pass
 
         return local_fp
 
