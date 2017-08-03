@@ -3,7 +3,6 @@
 
 from PIL import Image
 from PIL.ImageFile import Parser
-from os import makedirs, path, unlink
 import subprocess
 import sys
 
@@ -25,8 +24,8 @@ mkfifo_resp = subprocess.check_call(mkfifo_cmd, shell=True)
 if mkfifo_resp == 0:
     print 'mkfifo OK'
 
-# write kdu_expand's output to the named pipe 
-kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, 
+# write kdu_expand's output to the named pipe
+kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True,
     bufsize=-1, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
     env={ 'LD_LIBRARY_PATH' : LIB_KDU })
 

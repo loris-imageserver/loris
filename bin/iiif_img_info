@@ -16,7 +16,6 @@
 from json import dumps
 from os.path import dirname
 from os.path import exists
-from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import splitext
@@ -24,8 +23,13 @@ from sys import argv
 from sys import exit
 from sys import stderr
 from sys import stdout
-from urllib import pathname2url
-from urlparse import urljoin
+
+try:
+    from urllib.parse import urljoin
+    from urllib.request import pathname2url
+except ImportError:  # Python 2
+    from urllib import pathname2url
+    from urlparse import urljoin
 
 
 try:
@@ -40,7 +44,7 @@ except ImportError:
     from loris.img_info import ImageInfo
 
     EX_USAGE = 64
-    EX_DATAERR = 65 
+    EX_DATAERR = 65
     EX_NOINPUT = 66
     VERBOSE = '-v'
 
