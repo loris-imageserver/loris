@@ -125,6 +125,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
 
 		self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "origin": self.origin})
 		self.cookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': cv})
+		self.cookieRequest.path = ".../default.jpg"
 
 	def test_basic_origin(self):
 
