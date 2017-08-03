@@ -33,4 +33,5 @@ class TransformException(LorisException): pass
 
 class ConfigError(LorisException):
     """Raised for errors in the user config."""
-    pass
+    def __init__(self, message):
+        super(ConfigError, self).__init__(http_status=None, message=message)
