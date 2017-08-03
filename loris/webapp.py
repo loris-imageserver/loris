@@ -27,6 +27,7 @@ from werkzeug.wrappers import (
 from loris import constants, img, transforms
 from loris.img_info import ImageInfo, InfoCache
 from loris.loris_exception import (
+	ConfigError,
 	ImageException,
 	ImageInfoException,
 	RequestException,
@@ -93,6 +94,12 @@ def read_config(config_file_path):
 
 def configure_logging(config):
     logger = logging.getLogger()
+
+    log_to = config['log_to']
+    if log_to not in ('file', 'console'):
+        raise ConfigError(
+            'logging.log_to=%r, expected one of file/console' % log_to
+        )
 
     conf_level = config['log_level']
 
