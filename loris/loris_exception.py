@@ -29,3 +29,9 @@ class ImageException(LorisException): pass
 class ImageInfoException(LorisException): pass
 class ResolverException(LorisException): pass
 class TransformException(LorisException): pass
+
+
+class ConfigError(LorisException):
+    """Raised for errors in the user config."""
+    def __init__(self, message):
+        super(ConfigError, self).__init__(http_status=None, message=message)

@@ -38,13 +38,13 @@ The options are fairly self-explanatory; a few pointers
 
  * `log_to`. Can be `file` or `console` If set to `console`, and you're in production behind Apache, statements will go to Apache's logs. `DEBUG` and `INFO` are mapped to stdout, the rest to stderr.
  * `log_level`. Can be `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`
+ * `format`. Format of the log entries. See [Python LogRecord attributes](http://docs.python.org/2/library/logging.html#logrecord-attributes) for options.
 
  The rest only matter if `log_to=file`:
 
  * `log_dir`. This MUST exist and be writable. `setup.py` will take care of this, but it's your responsibility if you make changes once deployed.
  * `max_size`. Is in bytes, e.g. 5242880 == 5 MB
  * `max_backups`. This many previous logs will be kept.
- * `format`. Format of the log entries. See [Python LogRecord attributes](http://docs.python.org/2/library/logging.html#logrecord-attributes) for options.
 
 ### `[resolver]`
 

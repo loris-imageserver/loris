@@ -27,6 +27,7 @@ from werkzeug.wrappers import (
 from loris import constants, img, transforms
 from loris.img_info import ImageInfo, InfoCache
 from loris.loris_exception import (
+	ConfigError,
 	ImageException,
 	ImageInfoException,
 	RequestException,
@@ -91,21 +92,55 @@ def read_config(config_file_path):
     return config
 
 
-def _configure_logging(config):
+def _validate_logging_config(config):
+    """
+    Validate the logging config before setting up a logger.
+    """
+    mandatory_keys = ['log_to', 'log_level', 'format']
+    missing_keys = []
+    for key in mandatory_keys:
+        if key not in config:
+            missing_keys.append(key)
+
+    if missing_keys:
+        raise ConfigError(
+            'Missing mandatory logging parameters: %r' %
+            ','.join(missing_keys)
+        )
+
+    if config['log_to'] not in ('file', 'console'):
+        raise ConfigError(
+            'logging.log_to=%r, expected one of file/console' % config['log_to']
+        )
+
+    if config['log_to'] == 'file':
+        mandatory_keys = ['log_dir', 'max_size', 'max_backups']
+        missing_keys = []
+        for key in mandatory_keys:
+            if key not in config:
+                missing_keys.append(key)
+
+        if missing_keys:
+            raise ConfigError(
+                'When log_to=file, the following parameters are required: %r' %
+                ','.join(missing_keys)
+            )
+
+
+def configure_logging(config):
+    _validate_logging_config(config)
+
     logger = logging.getLogger()
 
-    conf_level = config['log_level']
-
-    if conf_level == 'CRITICAL': logger.setLevel(logging.CRITICAL)
-    elif conf_level == 'ERROR': logger.setLevel(logging.ERROR)
-    elif conf_level == 'WARNING': logger.setLevel(logging.WARNING)
-    elif conf_level == 'INFO': logger.setLevel(logging.INFO)
-    else: logger.setLevel(logging.DEBUG)
+    try:
+        logger.setLevel(config['log_level'])
+    except ValueError:
+        logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(fmt=config['format'])
 
-    if config['log_to'] == 'file':
-        if not getattr(logger, 'handler_set', None):
+    if not getattr(logger, 'handler_set', None):
+        if config['log_to'] == 'file':
             fp = '%s.log' % (path.join(config['log_dir'], 'loris'),)
             handler = RotatingFileHandler(fp,
                 maxBytes=config['max_size'],
@@ -113,8 +148,7 @@ def _configure_logging(config):
                 delay=True)
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-    else:
-        if not getattr(logger, 'handler_set', None):
+        else:
             from sys import __stderr__, __stdout__
             # STDERR
             err_handler = logging.StreamHandler(__stderr__)
@@ -259,7 +293,7 @@ class Loris(object):
                 file.
         '''
         self.app_configs = app_configs
-        self.logger = _configure_logging(app_configs['logging'])
+        self.logger = configure_logging(app_configs['logging'])
         self.logger.debug('Loris initialized with these settings:')
         [self.logger.debug('%s.%s=%s', key, sub_key, self.app_configs[key][sub_key])
             for key in self.app_configs for sub_key in self.app_configs[key]]
