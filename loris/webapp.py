@@ -92,14 +92,33 @@ def read_config(config_file_path):
     return config
 
 
-def configure_logging(config):
-    logger = logging.getLogger()
+def _validate_logging_config(config):
+    """
+    Validate the logging config before setting up a logger.
+    """
+    # These keys should be defined for _all_ logging configurations.
+    mandatory_keys = ['log_to', 'log_level', 'format']
+    missing_keys = []
+    for key in mandatory_keys:
+        if key not in config:
+            missing_keys.append(key)
 
-    log_to = config['log_to']
+    if missing_keys:
+        raise ConfigError(
+            'Missing mandatory logging parameters: %r' % ','.join(missing_keys)
+        )
+
+    # Check these keys take only one of several values.
     if log_to not in ('file', 'console'):
         raise ConfigError(
             'logging.log_to=%r, expected one of file/console' % log_to
         )
+
+
+def configure_logging(config):
+    _validate_logging_config(config)
+
+    logger = logging.getLogger()
 
     conf_level = config['log_level']
 
