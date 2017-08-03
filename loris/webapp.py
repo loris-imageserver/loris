@@ -5,6 +5,8 @@ webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 '''
+from __future__ import absolute_import
+
 from datetime import datetime
 from decimal import getcontext
 import logging
@@ -16,24 +18,24 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
-#3rd party imports
 from configobj import ConfigObj
 from werkzeug.http import parse_date, http_date
-from werkzeug.wrappers import Request, Response, BaseResponse, CommonResponseDescriptorsMixin
 
-#Loris imports
-import constants
-import img
-from img_info import ImageInfo
-from img_info import ImageInfoException
-from img_info import InfoCache
-from loris_exception import RequestException
-from loris_exception import SyntaxException
-from loris_exception import ImageException
-from loris_exception import ResolverException
-from loris_exception import TransformException
-from utils import mkdir_p
-import transforms
+from werkzeug.wrappers import (
+	Request, Response, BaseResponse, CommonResponseDescriptorsMixin
+)
+
+from loris import constants, img, transforms
+from loris.img_info import ImageInfo, InfoCache
+from loris.loris_exception import (
+	ConfigError,
+	ImageException,
+	ImageInfoException,
+	RequestException,
+	ResolverException,
+	SyntaxException,
+	TransformException,
+)
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
@@ -57,13 +59,13 @@ def get_debug_config(debug_jp2_transformer):
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     if debug_jp2_transformer == 'opj':
-        from transforms import OPJ_JP2Transformer
+        from loris.transforms import OPJ_JP2Transformer
         opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
         config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
         libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
         config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
     else: # kdu
-        from transforms import KakaduJP2Transformer
+        from loris.transforms import KakaduJP2Transformer
         kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
         config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
@@ -77,23 +79,6 @@ def get_debug_config(debug_jp2_transformer):
     #config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
 
     return config
-
-
-def make_directories(config):
-    try:
-        mkdir_p(config['loris.Loris']['tmp_dp'])
-        if config['logging']['log_to'] == 'file':
-            mkdir_p(config['logging']['log_dir'])
-        if config['loris.Loris']['enable_caching']:
-            mkdir_p(config['img.ImageCache']['cache_dp'])
-            mkdir_p(config['img_info.InfoCache']['cache_dp'])
-    except OSError as ose:
-        from sys import exit
-        from os import strerror
-        # presumably it's permissions
-        logger.fatal('%s (%s)', strerror(ose.errno), ose.filename)
-        logger.fatal('Exiting')
-        exit(77)
 
 
 def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
@@ -115,21 +100,55 @@ def read_config(config_file_path):
     return config
 
 
-def _configure_logging(config):
+def _validate_logging_config(config):
+    """
+    Validate the logging config before setting up a logger.
+    """
+    mandatory_keys = ['log_to', 'log_level', 'format']
+    missing_keys = []
+    for key in mandatory_keys:
+        if key not in config:
+            missing_keys.append(key)
+
+    if missing_keys:
+        raise ConfigError(
+            'Missing mandatory logging parameters: %r' %
+            ','.join(missing_keys)
+        )
+
+    if config['log_to'] not in ('file', 'console'):
+        raise ConfigError(
+            'logging.log_to=%r, expected one of file/console' % config['log_to']
+        )
+
+    if config['log_to'] == 'file':
+        mandatory_keys = ['log_dir', 'max_size', 'max_backups']
+        missing_keys = []
+        for key in mandatory_keys:
+            if key not in config:
+                missing_keys.append(key)
+
+        if missing_keys:
+            raise ConfigError(
+                'When log_to=file, the following parameters are required: %r' %
+                ','.join(missing_keys)
+            )
+
+
+def configure_logging(config):
+    _validate_logging_config(config)
+
     logger = logging.getLogger()
 
-    conf_level = config['log_level']
-
-    if conf_level == 'CRITICAL': logger.setLevel(logging.CRITICAL)
-    elif conf_level == 'ERROR': logger.setLevel(logging.ERROR)
-    elif conf_level == 'WARNING': logger.setLevel(logging.WARNING)
-    elif conf_level == 'INFO': logger.setLevel(logging.INFO)
-    else: logger.setLevel(logging.DEBUG)
+    try:
+        logger.setLevel(config['log_level'])
+    except ValueError:
+        logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(fmt=config['format'])
 
-    if config['log_to'] == 'file':
-        if not getattr(logger, 'handler_set', None):
+    if not getattr(logger, 'handler_set', None):
+        if config['log_to'] == 'file':
             fp = '%s.log' % (path.join(config['log_dir'], 'loris'),)
             handler = RotatingFileHandler(fp,
                 maxBytes=config['max_size'],
@@ -137,8 +156,7 @@ def _configure_logging(config):
                 delay=True)
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-    else:
-        if not getattr(logger, 'handler_set', None):
+        else:
             from sys import __stderr__, __stdout__
             # STDERR
             err_handler = logging.StreamHandler(__stderr__)
@@ -285,7 +303,7 @@ class Loris(object):
                 file.
         '''
         self.app_configs = app_configs
-        self.logger = _configure_logging(app_configs['logging'])
+        self.logger = configure_logging(app_configs['logging'])
         self.logger.debug('Loris initialized with these settings:')
         [self.logger.debug('%s.%s=%s', key, sub_key, self.app_configs[key][sub_key])
             for key in self.app_configs for sub_key in self.app_configs[key]]

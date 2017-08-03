@@ -1,21 +1,21 @@
 # parameters_t.py
 #-*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 from decimal import Decimal
-from loris import img_info
-from loris.loris_exception import RequestException
-from loris.loris_exception import SyntaxException
-from loris.parameters import DECIMAL_ONE
-from loris.parameters import FULL_MODE
-from loris.parameters import PCT_MODE
-from loris.parameters import PIXEL_MODE
-from loris.parameters import RegionParameter
-from loris.parameters import RotationParameter
-from loris.parameters import SizeParameter
-import loris_t
 
 from hypothesis import given
 from hypothesis.strategies import text
+import pytest
+
+from loris import img_info
+from loris.loris_exception import RequestException, SyntaxException
+from loris.parameters import (
+	DECIMAL_ONE, FULL_MODE, PCT_MODE, PIXEL_MODE,
+	RegionParameter, RotationParameter, SizeParameter,
+)
+from tests import loris_t
 
 """
 Parameter object tests. To run this test on its own, do:
@@ -102,10 +102,15 @@ class TestRegionParameter(_ParameterTest):
 		rp = RegionParameter('0,0,1500,800', info)
 		self.assertEquals(rp.mode, FULL_MODE)
 
-	def test_percentage_greater_than_100_is_error(self):
+	def test_anything_except_four_coordinates_is_error(self):
 		info = build_image_info()
 		with self.assertRaises(SyntaxException):
-			RegionParameter('pct:150', info)
+			RegionParameter('pct:100', info)
+
+	def test_percentage_greater_than_100_is_error(self):
+		info = build_image_info()
+		with self.assertRaises(RequestException):
+			RegionParameter('pct:150,150,150,150', info)
 
 	def test_x_parameter_greater_than_width_is_error(self):
 		info = build_image_info(width=100)
@@ -227,6 +232,16 @@ class TestSizeParameter(_ParameterTest):
 		rp = RegionParameter('full', info)
 		sp = SizeParameter('pct:50', rp)
 		self.assertEquals(sp.w, 1)
+
+	def test_negative_x_percentage_is_rejected(self):
+		info = build_image_info()
+		with self.assertRaises(RequestException):
+			rp = RegionParameter('pct:-5,100,100,100', info)
+
+	def test_negative_y_percentage_is_rejected(self):
+		info = build_image_info()
+		with self.assertRaises(RequestException):
+			rp = RegionParameter('pct:100,-5,100,100', info)
 
 	def test_str_representation(self):
 		info = build_image_info()
@@ -386,6 +401,26 @@ class TestSizeParameter(_ParameterTest):
 		self.assertEquals(sp.force_aspect, False)
 		self.assertEquals(sp.mode, PIXEL_MODE)
 		self.assertEquals(sp.canonical_uri_value, '143,')
+
+	def test_zero_width_or_height_is_rejected(self):
+		info = build_image_info()
+		rp = RegionParameter('full', info)
+		with pytest.raises(RequestException):
+			SizeParameter('0,', rp)
+		with pytest.raises(RequestException):
+			SizeParameter(',0', rp)
+		with pytest.raises(RequestException):
+			SizeParameter('0,0', rp)
+
+	@given(text(alphabet='0123456789.,!'))
+	def test_parsing_parameter_either_passes_or_is_exception(self, uri_value):
+		info = build_image_info()
+		rp = RegionParameter('full', info)
+		try:
+			SizeParameter(uri_value, rp)
+		except (RequestException, SyntaxException):
+			pass
+
 
 class TestRotationParameter(_ParameterTest):
 	def test_exceptions(self):

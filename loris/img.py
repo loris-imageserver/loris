@@ -1,15 +1,19 @@
 # img.py
 #-*-coding:utf-8-*-
 
+from __future__ import absolute_import
+
 from datetime import datetime
 from logging import getLogger
-from os import path, symlink, unlink, error as os_error, rename
-from parameters import RegionParameter
-from parameters import RotationParameter
-from parameters import SizeParameter
-from loris_exception import ImageException
-from urllib import unquote, quote_plus
-from urllib import unquote
+from os import path, symlink, unlink, rename
+
+try:
+    from urllib.parse import quote_plus, unquote
+except ImportError:  # Python 2
+    from urllib import quote_plus, unquote
+
+from loris.loris_exception import ImageException
+from loris.parameters import RegionParameter, RotationParameter, SizeParameter
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)

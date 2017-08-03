@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from loris import loris_exception
 
 

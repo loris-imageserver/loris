@@ -1,14 +1,21 @@
 # img_info_t.py
 #-*- coding: utf-8 -*-
 
-from loris import img_info
-from loris import loris_exception
-from loris.constants import PROTOCOL
+from __future__ import absolute_import
+
 from os import path
-from urllib import unquote
-from werkzeug.datastructures import Headers
 import json
-import loris_t
+
+try:
+    from urllib.parse import unquote
+except ImportError:  # Python 2
+    from urllib import unquote
+
+from werkzeug.datastructures import Headers
+
+from loris import img_info, loris_exception
+from loris.constants import PROTOCOL
+from tests import loris_t, webapp_t
 
 
 """
@@ -348,6 +355,25 @@ class InfoCache(loris_t.LorisTest):
             'info.json'
         )
         self.assertTrue(path.exists(expected_path))
+
+    def test_can_delete_items_from_infocache(self):
+        '''
+        Test for InfoCache.__delitem__.
+        '''
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
+
+        path = self.test_jp2_color_fp
+        req = webapp_t._get_werkzeug_request(path=path)
+
+        info = img_info.ImageInfo.from_image_file(
+            uri=self.test_jp2_color_uri,
+            src_img_fp=self.test_jp2_color_fp,
+            src_format=self.test_jp2_color_fmt
+        )
+
+        cache[req] = info
+        del cache[req]
+
 
 def suite():
     import unittest

@@ -1,8 +1,11 @@
-from .abstract_resolver import AbstractResolverTest
-from loris import resolver
+from __future__ import absolute_import
+
 import os
 import shutil
 import unittest
+
+from tests.abstract_resolver import AbstractResolverTest
+from loris import resolver
 
 
 class SourceImageCachingResolverTest(AbstractResolverTest, unittest.TestCase):

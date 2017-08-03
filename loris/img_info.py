@@ -1,27 +1,26 @@
 # img_info.py
 
-from PIL import Image
-from collections import deque
-from constants import COMPLIANCE
-from constants import CONTEXT
-from constants import OPTIONAL_FEATURES
-from constants import PROTOCOL
+from __future__ import absolute_import
+
+from collections import deque, OrderedDict
 from datetime import datetime
 from logging import getLogger
-from loris_exception import ImageInfoException
 from math import ceil
 from threading import Lock
 import json
 import os
 import struct
-from urllib import unquote
-
-from loris.utils import mkdir_p
 
 try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
+    from urllib.parse import unquote
+except ImportError:  # Python 2
+    from urllib import unquote
+
+from PIL import Image
+
+from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
+from loris.loris_exception import ImageInfoException
+from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -472,12 +471,12 @@ class InfoCache(object):
 
     def __delitem__(self, request):
         with self._lock:
-            del self._dict[request]
+            del self._dict[request.url]
 
         info_fp = self._get_info_fp(request)
         os.unlink(info_fp)
 
-        icc_fp = self._getcolor_profile_bytes(request)
+        icc_fp = self._get_color_profile_fp(request)
         if os.path.exists(icc_fp):
             os.unlink(icc_fp)
 

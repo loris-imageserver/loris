@@ -1,26 +1,30 @@
 # transformers.py
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 import multiprocessing
-from PIL import Image
-from PIL.ImageFile import Parser
-from PIL.ImageOps import mirror
 from logging import getLogger
-from loris_exception import TransformException
 from math import ceil, log
 from os import path, unlink, devnull
-from parameters import FULL_MODE
 import cStringIO
 import platform
 import random
 import string
 import subprocess
 import sys
-try:
-    from PIL.ImageCms import profileToProfile # Pillow
-except ImportError:
-    from ImageCms import profileToProfile # PIL
 
+from PIL import Image
+from PIL.ImageFile import Parser
+from PIL.ImageOps import mirror
+
+try:
+    from PIL.ImageCms import profileToProfile  # Pillow
+except ImportError:
+    from ImageCms import profileToProfile  # PIL
+
+from loris.loris_exception import TransformException
+from loris.parameters import FULL_MODE
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
@@ -227,24 +231,6 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         '''
         return 'lib/%s/%s' % (platform.system(),platform.machine())
 
-    @staticmethod
-    def libopenjp2_name():
-        '''Only used in dev and tests.
-        '''
-        system = platform.system()
-        if system == 'Linux':
-            return 'libopenjp2.so.2.1.0'
-        elif system == 'Darwin':
-            return 'libopenjp2.2.1.0.dylib'
-
-    @staticmethod
-    def local_libopenjp2_path():
-        '''Only used in dev and tests.
-        '''
-        dir_ = OPJ_JP2Transformer.local_libopenjp2_dir()
-        name = OPJ_JP2Transformer.libopenjp2_name()
-        return '%s/%s' % (dir_,name)
-
     def _region_to_opj_arg(self, region_param):
         '''
         Args:
@@ -336,24 +322,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         '''Only used in dev and tests.
         '''
         return 'lib/%s/%s' % (platform.system(),platform.machine())
-
-    @staticmethod
-    def libkdu_name():
-        '''Only used in dev and tests.
-        '''
-        system = platform.system()
-        if system == 'Linux':
-            return 'libkdu_v74R.so'
-        elif system == 'Darwin':
-            return 'libkdu_v73R.dylib'
-
-    @staticmethod
-    def local_libkdu_path():
-        '''Only used in dev and tests.
-        '''
-        dir_ = KakaduJP2Transformer.local_libkdu_dir()
-        name = KakaduJP2Transformer.libkdu_name()
-        return '%s/%s' % (dir_,name)
 
     def _region_to_kdu_arg(self, region_param):
         '''

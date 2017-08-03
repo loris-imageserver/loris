@@ -61,11 +61,7 @@ DEPENDENCIES = [
     ('pillow', '>=2.4.0', 'PIL'),
     ('configobj', '>=4.7.2,<=5.0.0', 'configobj'),
     ('requests', '>=2.12.0', 'requests'),
-    ('mock', '==1.0.1', 'mock'),
-    ('responses', '==0.3.0', 'responses')
 ]
-if version_info[1] < 7:
-    DEPENDENCIES.append(('ordereddict','>=1.1','ordereddict'))
 
 class LorisInstallCommand(install):
     description = 'Installs Loris image server'
