@@ -369,7 +369,18 @@ class SimpleHTTPResolver(_AbstractResolver):
                 rename(tmp_file.name, local_fp)
                 logger.info("Copied %s to %s", source_url, local_fp)
 
-            # TODO:  This should check for rules file associated with image file
+        # Check for rules file associated with image file
+        # These files are < 2k in size, so fetch in one go.
+        # Assumes that the image will have an extension, and the rules will be next to the image
+        # cache_dir is image specific, so this is easy
+        rules_url = source_url.rsplit('.')[0] + "." + self.auth_rules_ext
+        resp = requests.get(rules_url)
+        if resp.status_code == 200:
+            local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
+            if not exists(local_rules_fp):
+                fh = open(local_rules_fp, 'w')
+                fh.write(r.text)
+                fh.close()
 
         return local_fp
 
