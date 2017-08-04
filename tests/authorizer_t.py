@@ -137,7 +137,8 @@ class Test_RulesAuthorizer(unittest.TestCase):
 			"http://www.foobar.co.uk": "foobar.co.uk",
 			"http://www.foobar.co.uk/baz": "foobar.co.uk",
 			"http://foobar.com:80/": "foobar.com",
-			"http://localhost:5004/": "localhost"
+			"http://localhost:5004/": "localhost",
+			"http://10.0.0.1/": "10.0.0.1"
 			}
 
 		for (test, expect) in tests.items():
