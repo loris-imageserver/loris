@@ -27,7 +27,7 @@ from the `/loris` (not `/loris/loris`) directory.
 
 def build_image_info(width=100, height=100):
 	"""Produces an ``ImageInfo`` object of the given dimensions."""
-	info = img_info.ImageInfo()
+	info = img_info.ImageInfo(None)
 	info.width = width
 	info.height = height
 	return info
