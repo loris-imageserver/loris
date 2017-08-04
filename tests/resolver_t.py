@@ -53,7 +53,7 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
 
     def test_configured_resolver(self):
         expected_path = self.test_jp2_color_fp
-        ii = self.app.resolver.resolve(self.test_jp2_color_id, "")
+        ii = self.app.resolver.resolve(self.app, self.test_jp2_color_id, "")
         self.assertEqual(expected_path, ii.src_img_fp)
         self.assertEqual(ii.src_format, 'jp2')
         self.assertTrue(isfile(ii.src_img_fp))
@@ -64,10 +64,10 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         }
         self.app.resolver = SimpleFSResolver(config)
 
-        ii = self.app.resolver.resolve(self.test_png_id, "")
+        ii = self.app.resolver.resolve(self.app, self.test_png_id, "")
         self.assertEqual(self.test_png_fp2, ii.src_img_fp)
 
-        ii2 = self.app.resolver.resolve(self.test_altpng_id, "")
+        ii2 = self.app.resolver.resolve(self.app, self.test_altpng_id, "")
         self.assertEqual(self.test_altpng_fp, ii2.src_img_fp)
 
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
@@ -83,7 +83,7 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
         # Now...
         ident = self.test_jp2_color_id
-        ii = self.app.resolver.resolve(ident, "")
+        ii = self.app.resolver.resolve(self.app, ident, "")
         expected_path = join(self.app.img_cache.cache_root, unquote(ident))
 
         self.assertEqual(expected_path, ii.src_img_fp)
@@ -196,7 +196,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, '032')
         expected_path = join(expected_path, 'loris_cache.tif')
 
-        ii = self.app.resolver.resolve(ident, "")
+        ii = self.app.resolver.resolve(self.app, ident, "")
         self.assertEqual(expected_path, ii.src_img_fp)
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
@@ -219,26 +219,26 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'loris_cache.tif')
 
         self.assertFalse(exists(expected_path))
-        ii = self.app.resolver.resolve(ident, "")
+        ii = self.app.resolver.resolve(self.app, ident, "")
         self.assertEqual(expected_path, ii.src_img_fp)
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
 
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident, ""))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
         #Test with a bad url
         ident = quote_plus('http://sample.sample/DOESNOTEXIST')
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident, ""))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
         #Test with no content-type or extension or default format
         ident = '0002'
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident, ""))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
         #Test with invalid content-type
         ident = '0003'
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident, ""))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
     @responses.activate
     def test_with_default_format(self):
@@ -254,7 +254,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.app.resolver = SimpleHTTPResolver(config)
 
         ident = '0002'
-        ii = self.app.resolver.resolve(ident, "")
+        ii = self.app.resolver.resolve(self.app, ident, "")
         self.assertIsNotNone(ii.src_img_fp)
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))

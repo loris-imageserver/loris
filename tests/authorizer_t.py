@@ -29,7 +29,7 @@ class Test_NullAuthorizer(unittest.TestCase):
 		fp = "img/test.png"
 		fmt = "png"
 		self.authorizer = NullAuthorizer({})
-		self.info = ImageInfo(ident, fp, fmt)
+		self.info = ImageInfo(None, ident, fp, fmt)
 		self.request = MockRequest()
 
 	def test_is_protected(self):
@@ -52,7 +52,7 @@ class Test_NooneAuthorizer(unittest.TestCase):
 		fp = "img/test.png"
 		fmt = "png"
 		self.authorizer = NooneAuthorizer({})
-		self.info = ImageInfo(ident, fp, fmt)
+		self.info = ImageInfo(None, ident, fp, fmt)
 		self.request = MockRequest()
 
 	def test_is_protected(self):
@@ -74,8 +74,8 @@ class Test_SingleDegradingAuthorizer(unittest.TestCase):
 		fp = "img/test.png"
 		fmt = "png"
 		self.authorizer = SingleDegradingAuthorizer({})
-		self.badInfo = ImageInfo(ident, fp, fmt)
-		self.okayInfo = ImageInfo("67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
+		self.badInfo = ImageInfo(None, ident, fp, fmt)
+		self.okayInfo = ImageInfo(None, "67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
 			"img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
 		self.request = MockRequest()
 
@@ -105,8 +105,8 @@ class Test_RulesAuthorizer(unittest.TestCase):
 			{"cookie_secret": "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
 			"token_secret": "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
 			"salt": "4rakTQJD4lC1B4lu"})
-		self.badInfo = ImageInfo(ident, fp, fmt)		
-		self.okayInfo = ImageInfo("67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
+		self.badInfo = ImageInfo(None, ident, fp, fmt)		
+		self.okayInfo = ImageInfo(None, "67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
 			"img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
 
 		self.origin = "localhost"

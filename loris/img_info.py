@@ -67,7 +67,8 @@ class ImageInfo(object):
         'attribution', 'logo', 'license', 'auth_rules',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
-    def __init__(self, ident="", src_img_fp="", src_format="", extra={}):
+    def __init__(self, app=None, ident="", src_img_fp="", src_format="", extra={}):
+
         self.protocol = PROTOCOL
         self.ident = ident
         self.src_img_fp = src_img_fp
@@ -79,6 +80,16 @@ class ImageInfo(object):
         self.auth_rules = extra
         for (k,v) in extra.get('extraInfo', {}).items():
             setattr(self, k, v)
+
+        # If constructed from JSON, the pixel info will already be processed
+        if app:
+            try:
+                formats = app.transformers[src_format].target_formats
+            except KeyError:
+                m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
+                raise ImageInfoException(500, m)
+            # Finish setting up the info from the image file
+            self.from_image_file(formats, app.max_size_above_full)
 
     @staticmethod
     def from_json(path):

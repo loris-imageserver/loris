@@ -23,9 +23,9 @@ class AbstractResolverTest(object):
 
     def test_resolve(self):
         expected_resolved = self.expected_filepath
-        ii = self.resolver.resolve(self.identifier, "")
+        ii = self.resolver.resolve(None, self.identifier, "")
         self.assertSequenceEqual(ii.src_img_fp, expected_resolved)
 
     def test_resolve_exception(self):
         with self.assertRaises(loris_exception.ResolverException):
-            self.resolver.resolve(self.not_identifier, "")
+            self.resolver.resolve(None, self.not_identifier, "")

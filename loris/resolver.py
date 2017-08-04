@@ -55,7 +55,7 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('is_resolvable() not implemented for %s' % (cn,))
 
-    def resolve(self, ident, base_uri):
+    def resolve(self, app, ident, base_uri):
         """
         Given the identifier of an image, get the path (fp) and format (one of.
         'jpg', 'tif', or 'jp2'). This will likely need to be reimplemented for
@@ -138,7 +138,7 @@ class SimpleFSResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
 
-    def resolve(self, ident, base_uri):
+    def resolve(self, app, ident, base_uri):
 
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
@@ -147,7 +147,7 @@ class SimpleFSResolver(_AbstractResolver):
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, source_fp)
-        return ImageInfo(uri, source_fp, format_, extra)
+        return ImageInfo(app, uri, source_fp, format_, extra)
 
 
 class ExtensionNormalizingFSResolver(SimpleFSResolver):
@@ -390,14 +390,14 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         return local_fp
 
-    def resolve(self, ident, base_uri):
+    def resolve(self, app, ident, base_uri):
         cached_file_path = self.cached_file_for_ident(ident)
         if not cached_file_path:
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
         uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, cached_file_path)
-        return ImageInfo(uri, cached_file_path, format_, extra)
+        return ImageInfo(app, uri, cached_file_path, format_, extra)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -535,7 +535,7 @@ class SourceImageCachingResolver(_AbstractResolver):
         logger.warn(log_message)
         raise ResolverException(404, public_message)
 
-    def resolve(self, ident, base_uri):
+    def resolve(self, app, ident, base_uri):
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
         if not self.in_cache(ident):
@@ -545,4 +545,4 @@ class SourceImageCachingResolver(_AbstractResolver):
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, cache_fp)
-        return ImageInfo(uri, cache_fp, format_, extra)
+        return ImageInfo(app, uri, cache_fp, format_, extra)

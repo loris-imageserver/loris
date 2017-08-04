@@ -83,7 +83,7 @@ class Test_ImageCache(loris_t.LorisTest):
 
     def test_cache_dir_already_exists(self):
         ident = 'id1'
-        image_info = img_info.ImageInfo()
+        image_info = img_info.ImageInfo(None)
         image_info.width = 100
         image_info.height = 100
         image_request = img.ImageRequest(ident, 'full', 'full', '0', 'default', 'jpg')
