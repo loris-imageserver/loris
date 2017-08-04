@@ -209,7 +209,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
             secret = ".".join(domain[-3:])
         elif domain[-1].isdigit():
             # 10.0.0.1
-            secret = domain
+            secret = origin
         elif len(domain) >= 2:
             # foo.gtld
             secret = ".".join(domain[-2:])
