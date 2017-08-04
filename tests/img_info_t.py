@@ -38,8 +38,9 @@ class MockApp(object):
 class InfoUnit(loris_t.LorisTest):
     'Tests ImageInfo constructors.'
 
-    def setUp(self):
-        self.app = MockApp()
+    #def setUp(self):
+    #    super(InfoUnit, self).setUp()
+    #    self.mockapp = MockApp()
 
     def test_color_jp2_info_from_image(self):
         fp = self.test_jp2_color_fp
@@ -367,9 +368,9 @@ class InfoCache(loris_t.LorisTest):
 
         path = self.test_jp2_color_fp
         req = webapp_t._get_werkzeug_request(path=path)
-        app = MockApp()
+        # app = MockApp()
 
-        info = img_info.ImageInfo(app, self.test_jp2_color_uri, 
+        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri, 
             self.test_jp2_color_fp, self.test_jp2_color_fmt)
 
         cache[req] = info
