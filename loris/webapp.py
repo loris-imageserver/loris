@@ -511,14 +511,7 @@ class Loris(object):
             return self.info_cache[request]
         else:
 
-            info = self.resolver.resolve(ident, base_uri)
-            try:
-                formats = self.transformers[info.src_format].target_formats
-            except KeyError:
-                raise ImageInfoException(500, 'unknown source format')
-
-            # Finish setting up the info from the image file
-            info.from_image_file(formats, self.max_size_above_full)
+            info = self.resolver.resolve(self, ident, base_uri)
 
             # Maybe inject services before caching
             if self.authorizer and self.authorizer.is_protected(info):
