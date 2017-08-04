@@ -118,6 +118,9 @@ class AuthNHandler(object):
         if len(domain) >= 3 and domain[-2] in ccslds:
             # foo.x.cctld
             secret = ".".join(domain[-3:])
+        elif domain[-1].isdigit():
+            # 10.0.0.1
+            secret = domain
         elif len(domain) >= 2:
             # foo.gtld
             secret = ".".join(domain[-2:])
