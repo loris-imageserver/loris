@@ -26,8 +26,21 @@ $ python -m unittest -v tests.img_info_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+class MockApp(object):
+    transformers = {}
+    max_size_above_full = 200
+
+    def __init__(self, formats=["jpg", "png", "gif", "webp"], msaf=200):
+        self.transformers = {'jp2': formats, 'png': formats}
+        self.max_size_above_full = msaf
+
+
 class InfoUnit(loris_t.LorisTest):
     'Tests ImageInfo constructors.'
+
+    #def setUp(self):
+    #    super(InfoUnit, self).setUp()
+    #    self.mockapp = MockApp()
 
     def test_color_jp2_info_from_image(self):
         fp = self.test_jp2_color_fp
@@ -53,9 +66,9 @@ class InfoUnit(loris_t.LorisTest):
             }
         ]
 
-        formats = ["jpg", "png", "gif", "webp"]
         #test that sizeAboveFull isn't in profile if max_size_above_full is > 0 and <= 100
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats, max_size_above_full=80)
+        self.app.max_size_above_full = 80
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
@@ -65,17 +78,19 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats, max_size_above_full=0)
+        self.app.max_size_above_full = 0
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
         self.assertTrue('sizeAboveFull' in info.profile[1]['supports'])
+        self.app.max_size_above_full = 200
+
 
     def test_precinct_jp2_tiles_from_image(self):
-        formats = [ "jpg", "png", "gif", "webp"]
         fp = self.test_jp2_with_precincts_fp
         fmt = self.test_jp2_with_precincts_fmt
         ident = self.test_jp2_with_precincts_id
         uri = self.test_jp2_with_precincts_uri
 
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         self.assertEqual(info.tiles, self.test_jp2_with_precincts_tiles)
         self.assertEqual(info.sizes, self.test_jp2_with_precincts_sizes)
@@ -87,7 +102,7 @@ class InfoUnit(loris_t.LorisTest):
         uri = self.test_jp2_with_embedded_profile_uri
         profile_copy_fp = self.test_jp2_embedded_profile_copy_fp
 
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         with open(self.test_jp2_embedded_profile_copy_fp, 'rb') as fixture_bytes:
             self.assertEqual(info.color_profile_bytes, fixture_bytes.read())
@@ -98,8 +113,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_jp2_color_id
         uri = self.test_jp2_color_uri
 
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt)
-
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
         self.assertEqual(info.color_profile_bytes, None)
 
     def test_gray_jp2_info_from_image(self):
@@ -125,8 +139,8 @@ class InfoUnit(loris_t.LorisTest):
                 ]
             }
         ]
-        formats = [ "jpg", "png", "gif", "webp" ]
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         self.assertEqual(info.width, self.test_jp2_gray_dims[0])
         self.assertEqual(info.height, self.test_jp2_gray_dims[1])
@@ -141,9 +155,8 @@ class InfoUnit(loris_t.LorisTest):
         fmt = 'jp2'
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
-        formats = [ "jpg", "png", "gif", "webp" ]
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
-            img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+            img_info.ImageInfo(self.app, uri, fp, fmt)
         self.assertEqual(cm.exception.message, 'Invalid JP2 file')
 
     def test_info_from_invalid_src_format(self):
@@ -151,10 +164,9 @@ class InfoUnit(loris_t.LorisTest):
         fmt = 'invalid_format'
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
-        formats = [ "jpg", "png", "gif", "webp" ]
         error_message = 'Didn\'t get a source format, or at least one we recognize ("invalid_format")'
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
-            img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+            img_info.ImageInfo(self.app, uri, fp, fmt)
         self.assertEqual(cm.exception.message, error_message)
 
     def test_jpeg_info_from_image(self):
@@ -163,8 +175,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_jpeg_id
         uri = self.test_jpeg_uri
 
-        formats = [ "jpg", "png", "gif", "webp" ]
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
@@ -193,8 +204,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_png_id
         uri = self.test_png_uri
 
-        formats = [ "jpg", "png", "gif", "webp" ]
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
@@ -224,8 +234,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_tiff_id
         uri = self.test_tiff_uri
 
-        formats = [ "jpg", "png", "gif", "webp" ]
-        info = img_info.ImageInfo.from_image_file(uri, fp, fmt, formats)
+        info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
@@ -359,12 +368,10 @@ class InfoCache(loris_t.LorisTest):
 
         path = self.test_jp2_color_fp
         req = webapp_t._get_werkzeug_request(path=path)
+        # app = MockApp()
 
-        info = img_info.ImageInfo.from_image_file(
-            uri=self.test_jp2_color_uri,
-            src_img_fp=self.test_jp2_color_fp,
-            src_format=self.test_jp2_color_fmt
-        )
+        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri, 
+            self.test_jp2_color_fp, self.test_jp2_color_fmt)
 
         cache[req] = info
         del cache[req]

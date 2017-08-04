@@ -2,3 +2,5 @@ werkzeug >= 0.11.4
 pillow >= 2.4.0
 configobj >= 4.7.2,<=5.0.0
 requests >= 2.12.0
+netaddr >= 0.7.19
+cryptography >= 1.9

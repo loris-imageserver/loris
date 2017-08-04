@@ -43,62 +43,53 @@ PIL_MODES_TO_QUALITIES = {
 
 class ImageInfo(object):
     '''Info about the image.
-    See: <http://www-sul.stanford.edu/iiif/image-api/#info>
+    See: <http://iiif.io/api/image/>
 
     Slots:
         ident (str): The image identifier.
         width (int)
         height (int)
         scaleFactors [(int)]
-        src_img_fp (str): the absolute path on the file system
-        protocol (str): the protocol URI (constant)
-        profile []: Features supported by the server/available for this image
-        color_profile_bytes []: the emebedded color profile, if any
         sizes [(str)]: the optimal sizes of the image to request
         tiles: [{}]
+        protocol (str): the protocol URI (constant)
+        service (dict): services associated with the image
+        profile []: Features supported by the server/available for this image
+
+        src_img_fp (str): the absolute path on the file system [non IIIF]
+        src_format (str): the format of the source image file [non IIIF]
+        color_profile_bytes []: the emebedded color profile, if any [non IIIF]
+        auth_rules (dict): extra information about authorization [non IIIF]
+
     '''
     __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'ident', 'profile', 'protocol', 'sizes',
+        'ident', 'profile', 'protocol', 'sizes', 'service',
+        'attribution', 'logo', 'license', 'auth_rules',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
-    def __init__(self):
+    def __init__(self, app=None, ident="", src_img_fp="", src_format="", extra={}):
+
         self.protocol = PROTOCOL
+        self.ident = ident
+        self.src_img_fp = src_img_fp
+        self.src_format = src_format
+        self.attribution = None
+        self.logo = None
+        self.license = None
+        self.service = {}
+        self.auth_rules = extra
+        for (k,v) in extra.get('extraInfo', {}).items():
+            setattr(self, k, v)
 
-    @staticmethod
-    def from_image_file(uri, src_img_fp, src_format, formats=[], max_size_above_full=200):
-        '''
-        Args:
-            ident (str): The URI for the image.
-            src_img_fp (str): The absolute path to the image.
-            src_format (str): The format of the image as a three-char str.
-            formats ([str]): The derivative formats the application can produce.
-        '''
-        # Assumes that the image exists and the format is supported. Exceptions
-        # should be raised by the resolver if that's not the case.
-        new_inst = ImageInfo()
-        new_inst.ident = uri
-        new_inst.src_img_fp = src_img_fp
-        new_inst.tiles = []
-        new_inst.sizes = None
-        new_inst.scaleFactors = None
-        local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES[:]}
-        if max_size_above_full == 0 or max_size_above_full > 100:
-            local_profile['supports'].append('sizeAboveFull')
-        new_inst.profile = [ COMPLIANCE, local_profile ]
-
-        logger.debug('Source Format: %s', src_format)
-        logger.debug('Source File Path: %s', new_inst.src_img_fp)
-        logger.debug('Identifier: %s', new_inst.ident)
-
-        if src_format == 'jp2':
-            new_inst._from_jp2(src_img_fp)
-        elif src_format  in ('jpg','tif','png'):
-            new_inst._extract_with_pillow(src_img_fp)
-        else:
-            m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
-            raise ImageInfoException(http_status=500, message=m)
-
-        return new_inst
+        # If constructed from JSON, the pixel info will already be processed
+        if app:
+            try:
+                formats = app.transformers[src_format].target_formats
+            except KeyError:
+                m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
+                raise ImageInfoException(500, m)
+            # Finish setting up the info from the image file
+            self.from_image_file(formats, app.max_size_above_full)
 
     @staticmethod
     def from_json(path):
@@ -122,8 +113,41 @@ class ImageInfo(object):
         new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
         new_inst.profile = j.get(u'profile')
+        new_inst.service = j.get('service', {})
+        
+        # Also add src_img_fp if available
+        new_inst.src_img_fp = j.get('_src_img_fp', '')
+        new_inst.src_format = j.get('_src_format', '')
+        new_inst.auth_rules = j.get('_auth_rules', {})
+        f.close()
 
         return new_inst
+
+    def from_image_file(self, formats=[], max_size_above_full=200):
+        '''
+        Args:
+            ident (str): The URI for the image.
+            formats ([str]): The derivative formats the application can produce.
+        '''
+        # Assumes that the image exists and the format is supported. Exceptions
+        # should be raised by the resolver if that's not the case.
+        self.tiles = []
+        self.sizes = None
+        self.scaleFactors = None
+        local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES[:]}
+        if max_size_above_full == 0 or max_size_above_full > 100:
+            local_profile['supports'].append('sizeAboveFull')
+        self.profile = [ COMPLIANCE, local_profile ]
+
+        if self.src_format == 'jp2':
+            self._from_jp2(self.src_img_fp)
+        elif self.src_format  in ('jpg','tif','png'):
+            self._extract_with_pillow(self.src_img_fp)
+        else:
+            m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % self.src_format
+            raise ImageInfoException(http_status=500, message=m)
+        # in case of ii = ImageInfo().from_image_file()
+        return self
 
     def _extract_with_pillow(self, fp):
         logger.debug('Extracting info from file with Pillow.')
@@ -137,7 +161,7 @@ class ImageInfo(object):
     def _from_jp2(self, fp):
         '''Get info about a JP2.
         '''
-        logger.debug('Extracting info from JP2 file.')
+        logger.debug('Extracting info from JP2 file: %s' % fp)
         self.profile[1]['qualities'] = ['default', 'bitonal']
 
         scaleFactors = []
@@ -303,14 +327,30 @@ class ImageInfo(object):
         if self.tiles:
             d['tiles'] = self.tiles
         d['sizes'] = self.sizes
+        if self.service:
+            d['service'] = self.service
+        if self.attribution:
+            d['attribution'] = self.attribution
+        if self.logo:
+            d['logo'] = self.logo
+        if self.license:
+            d['license'] = self.license
+
         return d
 
-    def to_json(self):
+    def to_json(self, cache=False):
         '''Serialize as json.
         Returns:
             str (json)
         '''
         d = self.to_dict()
+
+        if cache:
+            # Add in internal properties for caching
+            d['_src_img_fp'] = self.src_img_fp
+            d['_src_format'] = self.src_format
+            d['_auth_rules'] = self.auth_rules
+
         return json.dumps(d)
 
 class InfoCache(object):
@@ -422,8 +462,10 @@ class InfoCache(object):
         logger.debug('Created %s', dp)
 
         with open(info_fp, 'w') as f:
-            f.write(info.to_json())
-        logger.debug('Created %s', info_fp)
+            f.write(info.to_json(cache=True))
+            f.close()
+            logger.debug('Created %s', info_fp)
+
 
         if info.color_profile_bytes:
             icc_fp = self._get_color_profile_fp(request)
