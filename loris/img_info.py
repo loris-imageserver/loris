@@ -86,7 +86,8 @@ class ImageInfo(object):
             try:
                 formats = app.transformers[src_format].target_formats
             except KeyError:
-                raise ImageInfoException(500, 'unknown source format')
+                m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
+                raise ImageInfoException(500, m)
             # Finish setting up the info from the image file
             self.from_image_file(formats, app.max_size_above_full)
 

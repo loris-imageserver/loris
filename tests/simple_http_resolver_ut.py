@@ -98,14 +98,14 @@ class SimpleHTTPResolverTest(unittest.TestCase):
     def test_bad_url(self):
         self.assertRaises(
                 ResolverException,
-                lambda: self.resolver.resolve(self.app, self.not_identifier_url, "")
+                lambda: self.resolver.resolve(None, self.not_identifier_url, "")
         )
 
     @responses.activate
     def test_does_not_exist(self):
         self.assertRaises(
                 ResolverException,
-                lambda: self.resolver.resolve(self.app, self.not_identifier, "")
+                lambda: self.resolver.resolve(None, self.not_identifier, "")
         )
 
     @responses.activate
@@ -117,7 +117,7 @@ class SimpleHTTPResolverTest(unittest.TestCase):
     @responses.activate
     def test_resolve_001(self):
         expected_resolved = self.expected_filepath
-        ii = self.resolver.resolve(self.app, self.identifier, "")
+        ii = self.resolver.resolve(None, self.identifier, "")
         self.assertEqual(ii.src_img_fp, expected_resolved)
         # Make sure the file exists in the cache
         self.assertTrue(os.path.isfile(self.expected_filepath))
