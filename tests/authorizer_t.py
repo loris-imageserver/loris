@@ -6,6 +6,7 @@ from loris.img_info import ImageInfo
 import unittest
 import base64
 from cryptography.fernet import Fernet
+import jwt
 
 class MockRequest(object):
 
