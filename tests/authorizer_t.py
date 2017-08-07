@@ -135,6 +135,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
 
 		self.jwtTokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % jwt_tv, "origin": self.origin}) 
 		self.jwtCookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': jwt_cv})
+		self.jwtCookieRequest.path = ".../default.jpg"
 
 
 	def test_basic_origin(self):
@@ -241,7 +242,6 @@ class Test_RulesAuthorizer(unittest.TestCase):
 		self.assertEqual(authd['status'], "deny")
 		authd = self.authorizer.is_authorized(self.badInfo, self.jwtCookieRequest)		
 		self.assertEqual(authd['status'], "deny")		
-
 
 		# Set a degraded tier
 		# Should redirect for empty, pass for cookie/token
