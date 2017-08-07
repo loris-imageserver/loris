@@ -133,7 +133,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
 		self.cookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': cv})
 		self.cookieRequest.path = ".../default.jpg"
 
-		self.jwtTokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % jwt_cv, "origin": self.origin}) 
+		self.jwtTokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % jwt_tv, "origin": self.origin}) 
 		self.jwtCookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': jwt_cv})
 
 
