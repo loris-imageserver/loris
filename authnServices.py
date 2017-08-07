@@ -124,7 +124,7 @@ class AuthNHandler(object):
             secret = ".".join(domain[-3:])
         elif domain[-1].isdigit():
             # 10.0.0.1
-            secret = origin
+            secret = u.hostname
         elif len(domain) >= 2:
             # foo.gtld
             secret = ".".join(domain[-2:])
