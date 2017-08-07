@@ -1,5 +1,4 @@
 {
-	"allowed": ["test"],
 	"extraInfo": {
 		"service": {
 			"@context": "http://iiif.io/api/auth/1/context.json", 
@@ -14,10 +13,5 @@
 				}
 			]
 		}
-	},
-	"tiers": [
-		{
-			"identifier": "http://localhost:5004/"
-		}
-	]
+	}
 }

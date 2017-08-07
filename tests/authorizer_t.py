@@ -138,7 +138,12 @@ class Test_RulesAuthorizer(unittest.TestCase):
 			"http://www.foobar.co.uk/baz": "foobar.co.uk",
 			"http://foobar.com:80/": "foobar.com",
 			"http://localhost:5004/": "localhost",
-			"http://10.0.0.1/": "10.0.0.1"
+			"http://10.0.0.1/": "10.0.0.1",
+			"https://x.y.z.foo.com": "foo.com",
+			"http://x.y.z.foo.co.uk": "foo.co.uk",
+			"www.foobar.com": "foobar.com",
+			"localhost.localdomain": "localhost.localdomain",
+			"x.y.z.foo.co.uk": "foo.co.uk"
 			}
 
 		for (test, expect) in tests.items():

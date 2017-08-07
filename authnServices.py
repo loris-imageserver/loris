@@ -11,6 +11,8 @@ except ImportError:
     from urllib.parse import urlencode
     from urllib.request import Request, urlopen
 
+from urlparse import urlparse
+
 try:
     from netaddr import IPNetwork, IPAddress
 except ImportError:
@@ -20,17 +22,17 @@ except ImportError:
 
 import base64
 import os
+
+import jwt
+import datetime
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-# cryptography is MUCH faster than simplecrypt
-# to the point of not even being worth writing a simplecrypt wrapper
-# pycrypto functions could be used, but most require a specific blocksize
-# PKCS1_OAEP doesn't, but does need a full on RSA key
-# Others could be used with some padding
-# But Fernet seems fine :)
+# For non JWT implementation, cryptography is MUCH faster than simplecrypt
+
    
 class AuthApp(object):
 
@@ -56,7 +58,7 @@ class AuthApp(object):
         response.status = status
         return data
 
-    def not_implemented():
+    def not_implemented(self):
         abort(501)
 
     def dispatch_views(self):
@@ -97,6 +99,12 @@ class AuthNHandler(object):
         self.cookie_secret = cookie_secret
         self.token_secret = token_secret
         self.salt = salt
+        self.use_jwt = True
+        self.token_expiresIn = 300
+        self.cookie_expiresIn = 3600
+        self.token_iss = ""
+        self.token_aud = ""
+
 
     def kdf(self):
        return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
@@ -106,15 +114,11 @@ class AuthNHandler(object):
     def basic_origin(origin):
         ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
             'gen', 'govt', 'school', 'sch']
-        origin = origin.replace('https://', '')
-        origin = origin.replace('http://', '') # Mixed Content violation
-        slidx = origin.find("/")
-        if slidx > -1:
-            origin = origin[:slidx]
-        cidx = origin.find(":")
-        if cidx > -1:
-            origin = origin[:cidx]
-        domain = origin.split('.')
+        if not origin.startswith('http'):
+            origin = "http://" + origin
+        u = urlparse(origin)
+        domain = u.hostname.split('.')
+
         if len(domain) >= 3 and domain[-2] in ccslds:
             # foo.x.cctld
             secret = ".".join(domain[-3:])
@@ -130,17 +134,28 @@ class AuthNHandler(object):
         return secret
 
     def set_cookie(self, value, origin, response):
+        # Reduce to public suffix
         origin = self.basic_origin(origin)
+        # Append to our internal secret
         secret = "%s-%s" % (self.cookie_secret, origin)        
-        key = base64.urlsafe_b64encode(self.kdf().derive(secret))
-        fern = Fernet(key)
-        value = fern.encrypt("%s|%s" % (origin, value.encode('utf-8')))
+
+        if self.use_jwt:          
+            value['exp'] = datetime.datetime.utcnow() + datetime.timedelta(seconds=self.cookie_expiresIn)
+            print "Issuing cookie to origin %s, expires at %s" % (origin, value['exp'])
+            value = jwt.encode(value, secret, algorithm='HS256')
+        else:
+            key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+            fern = Fernet(key)
+            value = fern.encrypt("%s|%s" % (origin, value.encode('utf-8')))
 
         if self.cookie_domain:
-            response.set_cookie(self.cookie_name, value, max_age=3600, httponly=True,
+            response.set_cookie(self.cookie_name, value, max_age=self.cookie_expiresIn, httponly=True,
                 domain=self.cookie_domain, path=self.cookie_path)
         else:
-            response.set_cookie(self.cookie_name, value, max_age=3600, httponly=True)   
+            response.set_cookie(self.cookie_name, value, max_age=self.cookie_expiresIn, httponly=True)   
+
+    def token_extra(self):
+        return {}
 
     def cookie_to_token(self, cookie):
         # this is okay, so long as the encryption keys are different
@@ -155,27 +170,45 @@ class AuthNHandler(object):
         borigin = self.basic_origin(origin)
 
         info = request.get_cookie(self.cookie_name, '')
+        data = {}
         try:
             secret = "%s-%s" % (self.cookie_secret, borigin)        
-            key = base64.urlsafe_b64encode(self.kdf().derive(secret))
-            fern = Fernet(key)
-            info = fern.decrypt(info.encode('utf-8'))
+            if self.use_jwt:
+                info = jwt.decode(info, secret, algorithms=['HS256'])
+            else:
+                key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+                fern = Fernet(key)
+                info = fern.decrypt(info.encode('utf-8'))
+                if not info.startswith(borigin):
+                    # Hmmm... hack attempt?
+                    data = {"error":"invalidCredentials","description":"Login details invalid"}
+
         except:
             info = ''
 
         if not info:
             data = {"error":"missingCredentials","description":"No login details received"}
-        elif not info.startswith(borigin):
-            # Hmmm... hack attempt?
-            data = {"error":"invalidCredentials","description":"Login details invalid"}
-        else:
+        elif not data:
             # currently noop
             token = self.cookie_to_token(info)
-            secret = "%s-%s" % (self.token_secret, borigin)        
-            key = base64.urlsafe_b64encode(self.kdf().derive(secret))
-            fern = Fernet(key)
-            value = fern.encrypt(token)
-            data = {"accessToken":value, "expiresIn": 3600}
+            secret = "%s-%s" % (self.token_secret, borigin)
+
+            if self.use_jwt:
+                token['exp'] = datetime.datetime.utcnow() + datetime.timedelta(seconds=self.token_expiresIn)
+                print "Issuing token to origin %s, expires at %s" % (origin, token['exp'])
+                if self.token_iss:
+                    token['iss'] = self.token_iss
+                if self.token_aud:
+                    token['aud'] = self.token_aud
+                extra = self.token_extra()
+                if extra:
+                    token.update(extra)
+                value = jwt.encode(token, secret, algorithm='HS256')
+            else:
+                key = base64.urlsafe_b64encode(self.kdf().derive(secret))
+                fern = Fernet(key)
+                value = fern.encrypt(token)
+            data = {"accessToken":value, "expiresIn": self.token_expiresIn}
 
         if msgId:
             data['messageId'] = msgId
@@ -210,7 +243,9 @@ class BasicAuthHandler(AuthNHandler):
             return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
         who, p = parse_auth(auth)      
         origin = request.query.get('origin', '*')
-        self.set_cookie(who, origin, response)
+        # who is an identity (the username)
+        value = {'sub': who}
+        self.set_cookie(value, origin, response)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html", );
 
 class IPRangeHandler(AuthNHandler):
@@ -228,7 +263,8 @@ class IPRangeHandler(AuthNHandler):
         reqip = IPAddress(request.environ.get("REMOTE_ADDR"))
         if reqip in self.network and not reqip in self.exclude:
             origin = request.query.get('origin', '*')
-            self.set_cookie("on-site", origin, response)
+            value = {"roles": ["onsite"]}
+            self.set_cookie(value, origin, response)
             return self.application.send("<html><script>window.close();</script><body>%s</body></html>" % reqip, ct="text/html")
         else:
             return self.application.send("<html><body>Message for requiring on-site access here</body></html>", status=403, ct="text/html")
@@ -293,7 +329,8 @@ class OAuthHandler(AuthNHandler):
 
         # Other info in data are: given_name, family_name, name, picture, ...
         email = data.get('email', 'noone@nowhere')
-        self.set_cookie(email, origin, response)
+        value = {'sub': email}
+        self.set_cookie(value, origin, response)
         return self.application.send("<html><script>window.close();</script></html>", ct="text/html");
 
 

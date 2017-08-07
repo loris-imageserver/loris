@@ -18,6 +18,9 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
+import sys
+sys.path.append('.')
+
 from configobj import ConfigObj
 from werkzeug.http import parse_date, http_date
 
@@ -36,6 +39,8 @@ from loris.loris_exception import (
 	SyntaxException,
 	TransformException,
 )
+
+
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
@@ -70,6 +75,14 @@ def get_debug_config(debug_jp2_transformer):
         config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
+
+    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
+    config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
+    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="     
+    config['authorizer']['roles_key'] = 'roles'
+    config['authorizer']['id_key'] = 'sub'
+
+
 
     return config
 

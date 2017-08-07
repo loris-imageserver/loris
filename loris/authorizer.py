@@ -8,12 +8,17 @@ from logging import getLogger
 from loris_exception import AuthorizerException
 import requests
 
+from urlparse import urlparse
+
+import jwt
+
 # See: https://cryptography.io/en/latest/fernet/#using-passwords-with-fernet
 from cryptography.fernet import Fernet
 import base64
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 
 logger = getLogger(__name__)
 
@@ -180,12 +185,17 @@ class RulesAuthorizer(_AbstractAuthorizer):
             raise AuthorizerException("Rules Authorizer needs cookie_secret config")
         if not 'token_secret' in config:
             raise AuthorizerException("Rules Authorizer needs token_secret config")
-        if not 'salt' in config:
-            raise AuthorizerException("Rules Authorizer needs salt config")
-
         self.cookie_secret = config['cookie_secret']
         self.token_secret = config['token_secret']
-        self.salt = config['salt']
+
+        self.use_jwt = config.get('use_jwt', True)
+        if not self.use_jwt:
+            if not 'salt' in config:
+                raise AuthorizerException("Rules Authorizer needs salt config")
+        self.salt = config.get('salt', '')
+        self.roles_key = config.get('roles_key', 'roles')
+        self.id_key = config.get('id_key', 'sub')
+
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
@@ -195,15 +205,11 @@ class RulesAuthorizer(_AbstractAuthorizer):
     def basic_origin(origin):
         ccslds = ['co', 'org', 'com', 'net', 'ac', 'edu', 'gov', 'mil', 'or', \
             'gen', 'govt', 'school', 'sch']
-        origin = origin.replace('https://', '')
-        origin = origin.replace('http://', '') # Mixed Content violation
-        slidx = origin.find("/")
-        if slidx > -1:
-            origin = origin[:slidx]
-        cidx = origin.find(":")
-        if cidx > -1:
-            origin = origin[:cidx]
-        domain = origin.split('.')
+        if not origin.startswith('http'):
+            origin = "http://" + origin
+        u = urlparse(origin)
+        domain = u.hostname.split('.')
+
         if len(domain) >= 3 and domain[-2] in ccslds:
             # foo.x.cctld
             secret = ".".join(domain[-3:])
@@ -218,11 +224,19 @@ class RulesAuthorizer(_AbstractAuthorizer):
             secret = domain[0]
         return secret
 
+    def _get_roles_for_identity(self, value):
+        return [value]
+
     def _roles_from_value(self, value):
-        if value in ['_list', '_of', '_identities']:
-            return ['_roles', '_for', '_identities']
+        if type(value) == dict:            
+            # JWT
+            roles = value.get(self.roles_key, [])
+            if not roles:
+                return self._get_roles_for_identity(value.get(self.id_key, ''))
+            return roles
         else:
-            return [value]
+            # assume that our value is an identity not a role
+            return self._get_roles_for_identity(value)
 
     def _roles_from_request(self, request):
 
@@ -232,6 +246,8 @@ class RulesAuthorizer(_AbstractAuthorizer):
         if not origin:
             origin = request.headers.get('referer', '*')
         origin = self.basic_origin(origin)
+
+        logger.debug("Got basic origin: %s" % origin)
         
         if request.path.endswith("info.json"):
             token = request.headers.get('Authorization', '')        
@@ -242,18 +258,29 @@ class RulesAuthorizer(_AbstractAuthorizer):
             secret = "%s-%s" % (self.token_secret, origin)
         else:
             cval = request.cookies.get(self.cookie_name)
+            if not cval:
+                return []
             secret = "%s-%s" % (self.cookie_secret, origin)
 
-        cval = cval.encode('utf-8')
-        key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
-        fern = Fernet(key)
-        value = fern.decrypt(cval)
-
-        if not value.startswith(origin):
-            # Cookie/Token theft
-            return []
+        if self.use_jwt:
+            try:
+                value = jwt.decode(cval, secret)
+            except jwt.ExpiredSignatureError:
+                value = jwt.decode(cval, secret, verify=False)                
+                logger.debug(value)
+                raise AuthorizerException(message="invalidCredentials: expired")
+            except:
+                raise
         else:
-            value = value[len(origin)+1:]
+            cval = cval.encode('utf-8')
+            key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
+            fern = Fernet(key)
+            value = fern.decrypt(cval)
+            if not value.startswith(origin):
+                # Cookie/Token theft
+                return []
+            else:
+                value = value[len(origin)+1:]
 
         roles = self._roles_from_value(value)
         return roles
@@ -283,7 +310,13 @@ class RulesAuthorizer(_AbstractAuthorizer):
             return {"status": "ok"}
 
         roles = info.auth_rules['allowed']
-        userroles = set(self._roles_from_request(request))
+
+        try:
+            userroles = set(self._roles_from_request(request))
+        except AuthorizerException as e:
+            logger.debug("Got authorization exception: %s" % e.message)
+            return {"status": "deny"}
+
         okay = set(roles).intersection(userroles)
         logger.debug("roles: %r  // user: %r // intersection: %r" % (roles, userroles, okay))
 
