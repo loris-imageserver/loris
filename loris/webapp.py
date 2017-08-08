@@ -621,7 +621,7 @@ possible that there was a problem with the source file
         r.response = file(fp)
 
         if not self.enable_caching:
-            r.call_on_close(unlink(fp))
+            r.call_on_close(lambda: unlink(fp))
 
         return r
 
