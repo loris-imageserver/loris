@@ -18,8 +18,12 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 from urllib import unquote, quote_plus
 
+import sys
+sys.path.append('.')
+
 from configobj import ConfigObj
 from werkzeug.http import parse_date, http_date
+
 from werkzeug.wrappers import (
 	Request, Response, BaseResponse, CommonResponseDescriptorsMixin
 )
@@ -35,6 +39,8 @@ from loris.loris_exception import (
 	SyntaxException,
 	TransformException,
 )
+
+
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
@@ -69,6 +75,14 @@ def get_debug_config(debug_jp2_transformer):
         config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
+
+    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
+    config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
+    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="     
+    config['authorizer']['roles_key'] = 'roles'
+    config['authorizer']['id_key'] = 'sub'
+
+
 
     return config
 
@@ -195,6 +209,8 @@ class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
                 self.headers['Access-Control-Allow-Origin'] = request.url_root
         else:
             self.headers['Access-Control-Allow-Origin'] = "*"
+        self.headers['Access-Control-Allow-Methods'] = "GET, OPTIONS"
+        self.headers['Access-Control-Allow-Headers'] = "Authorization"
 
 
 class BadRequestResponse(LorisResponse):
@@ -312,6 +328,7 @@ class Loris(object):
 
         self.transformers = self._load_transformers()
         self.resolver = self._load_resolver()
+        self.authorizer = self._load_authorizer()
         self.max_size_above_full = _loris_config.get('max_size_above_full', 200)
 
         if self.enable_caching:
@@ -344,6 +361,14 @@ class Loris(object):
         ResolverClass = self._import_class(impl)
         resolver_config =  self.app_configs['resolver']
         return ResolverClass(resolver_config)
+
+    def _load_authorizer(self):
+        try:
+            impl = self.app_configs['authorizer']['impl']
+        except:
+            return None
+        AuthorizerClass = self._import_class(impl)
+        return AuthorizerClass(self.app_configs['authorizer'])                
 
     def _import_class(self, qname):
         '''Imports a class AND returns it (the class, not an instance).
@@ -387,6 +412,14 @@ class Loris(object):
             return r
 
         elif request_type == 'info':
+
+            if request.method == "OPTIONS":
+                # never redirect
+                r = LorisResponse()
+                r.set_acao(request)
+                r.status_code = 200
+                return r                
+
             return self.get_info(request, ident, base_uri)
 
         else: #request_type == 'image':
@@ -440,9 +473,19 @@ class Loris(object):
         r = LorisResponse()
         r.set_acao(request, self.cors_regex)
         ims_hdr = request.headers.get('If-Modified-Since')
-
         ims = parse_date(ims_hdr)
         last_mod = parse_date(http_date(last_mod)) # see note under get_img
+
+        if self.authorizer and self.authorizer.is_protected(info):
+            authed = self.authorizer.is_authorized(info, request)            
+            if authed['status'] == 'deny':
+                r.status_code = 401
+                # trash If-Mod-Since to ensure no 304
+                ims = None
+            elif authed['status'] == 'redirect':
+                r.status_code = 302
+                r.location = authed['location']
+            # Otherwise we're okay
 
         if ims and ims >= last_mod:
             self.logger.debug('Sent 304 for %s ', ident)
@@ -464,7 +507,7 @@ class Loris(object):
                 r.data = info.to_json()
         return r
 
-    def _get_info(self,ident,request,base_uri,src_fp=None,src_format=None):
+    def _get_info(self,ident,request,base_uri):
         if self.enable_caching:
             in_cache = request in self.info_cache
         else:
@@ -473,23 +516,15 @@ class Loris(object):
         if in_cache:
             return self.info_cache[request]
         else:
-            if not all((src_fp, src_format)):
-                # get_img can pass in src_fp, src_format because it needs them
-                # elsewhere; get_info does not.
-                src_fp, src_format = self.resolver.resolve(ident)
 
-            try:
-                formats = self.transformers[src_format].target_formats
-            except KeyError:
-                raise ImageInfoException(500, 'unknown source format')
+            info = self.resolver.resolve(self, ident, base_uri)
 
-            self.logger.debug('Format: %s', src_format)
-            self.logger.debug('File Path: %s', src_fp)
-            self.logger.debug('Identifier: %s', ident)
-            self.logger.debug('Base URI: %s', base_uri)
-
-            # get the info
-            info = ImageInfo.from_image_file(base_uri, src_fp, src_format, formats, self.max_size_above_full)
+            # Maybe inject services before caching
+            if self.authorizer and self.authorizer.is_protected(info):
+                # Call get_services to inject
+                svcs = self.authorizer.get_services_info(info)
+                if svcs and 'service' in svcs:
+                    info.service = svcs['service']
 
             # store
             if self.enable_caching:
@@ -527,6 +562,21 @@ class Loris(object):
         else:
             in_cache = False
 
+        try:
+            # We need the info to check authorization, 
+            # ... still cheaper than always resolving as likely to be cached
+            info = self._get_info(ident, request, base_uri)[0]
+        except ResolverException as re:
+            return NotFoundResponse(re.message)
+
+        if self.authorizer and self.authorizer.is_protected(info):
+            authed = self.authorizer.is_authorized(info, request)
+
+            if authed['status'] != 'ok':
+                # Images don't redirect, they just deny out
+                r.status_code = 401
+                return r
+
         if in_cache:
             fp, img_last_mod = self.img_cache[image_request]
             ims_hdr = request.headers.get('If-Modified-Since')
@@ -548,10 +598,8 @@ class Loris(object):
                 r.headers['Content-Length'] = path.getsize(fp)
                 r.response = file(fp)
 
-                # resolve the identifier
-                src_fp, src_format = self.resolver.resolve(ident)
                 # hand the Image object its info
-                info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
+                info = self._get_info(ident, request, base_uri)[0]
                 image_request.info = info
                 # we need to do the above to set the canonical link header
 
@@ -559,14 +607,10 @@ class Loris(object):
                 r.headers['Link'] = '%s,<%s>;rel="canonical"' % (r.headers['Link'], canonical_uri,)
                 return r
         else:
-            src_fp = None
             try:
-
-                # 1. Resolve the identifier
-                src_fp, src_format = self.resolver.resolve(ident)
-
-                # 2. Hand the Image object its info
-                info = self._get_info(ident, request, base_uri, src_fp, src_format)[0]
+                # 1. Get the info
+                info = self._get_info(ident, request, base_uri)[0]
+                # 2. Give the image its info
                 image_request.info = info
 
                 # 3. Check that we can make the quality requested
@@ -586,7 +630,7 @@ class Loris(object):
                         return r
 
                 # 6. Make an image
-                fp = self._make_image(image_request, src_fp, src_format)
+                fp = self._make_image(image_request, info.src_img_fp, info.src_format)
 
             except ResolverException as re:
                 return NotFoundResponse(re.message)
@@ -610,7 +654,7 @@ class Loris(object):
                 # used by the transformer.
                 msg = '''%s \n\nThis is likely a permissions problem, though it\'s
 possible that there was a problem with the source file
-(%s).''' % (str(e),src_fp)
+(%s).''' % (str(e),info.src_img_fp)
                 return ServerSideErrorResponse(msg)
         r.content_type = constants.FORMATS_BY_EXTENSION[target_fmt]
         r.status_code = 200

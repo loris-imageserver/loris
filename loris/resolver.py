@@ -7,14 +7,15 @@
 from __future__ import absolute_import
 
 from logging import getLogger
-from os.path import join, exists, dirname
-from os import rename, remove
+from os.path import join, exists, dirname, split
+from os import makedirs, rename, remove
 from shutil import copy
 import tempfile
 from contextlib import closing
 import hashlib
 import glob
 import re
+import json
 
 try:
     from urllib.parse import quote_plus, unquote
@@ -26,6 +27,7 @@ import requests
 from loris import constants
 from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p
+from loris.img_info import ImageInfo
 
 
 logger = getLogger(__name__)
@@ -35,6 +37,8 @@ class _AbstractResolver(object):
 
     def __init__(self, config):
         self.config = config
+        if config:
+            self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
 
     def is_resolvable(self, ident):
         """
@@ -51,7 +55,7 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('is_resolvable() not implemented for %s' % (cn,))
 
-    def resolve(self, ident):
+    def resolve(self, app, ident, base_uri):
         """
         Given the identifier of an image, get the path (fp) and format (one of.
         'jpg', 'tif', or 'jp2'). This will likely need to be reimplemented for
@@ -61,12 +65,39 @@ class _AbstractResolver(object):
             ident (str):
                 The identifier for the image.
         Returns:
-            (str, str): (fp, format)
+            ImageInfo: Partially constructed ImageInfo object 
         Raises:
             ResolverException when something goes wrong...
         """
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
+
+    def get_extra_info(self, ident, source_fp):
+        """
+        Given the identifier and any resolved source file, find the associated
+        extra information to include in info.json, plus any additional authorizer
+        specific information.  It might end up there after being copied by a
+        caching implementation, or live there permanently.
+
+        Args:
+            ident (str):
+                The identifier for the image
+            source_fp (str):
+                The source image filepath, if there is one
+        Returns:
+            dict: The dict of information to embed in info.json
+        """
+        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
+        if exists(xjsfp):
+            fh = open(xjsfp)
+            xjs = json.load(fh)
+            fh.close()
+            return xjs
+        else:
+            return {}
+
+    def fix_base_uri(self, base_uri):
+        return base_uri
 
     def format_from_ident(self, ident):
         if ident.rfind('.') != -1:
@@ -107,17 +138,16 @@ class SimpleFSResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         return not self.source_file_path(ident) is None
 
-    def resolve(self, ident):
+    def resolve(self, app, ident, base_uri):
 
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
 
         source_fp = self.source_file_path(ident)
-        logger.debug('src image: %s', source_fp)
-
         format_ = self.format_from_ident(ident)
-
-        return (source_fp, format_)
+        uri = self.fix_base_uri(base_uri)
+        extra = self.get_extra_info(ident, source_fp)
+        return ImageInfo(app, uri, source_fp, format_, extra)
 
 
 class ExtensionNormalizingFSResolver(SimpleFSResolver):
@@ -221,12 +251,10 @@ class SimpleHTTPResolver(_AbstractResolver):
                 response = requests.head(url, **options)
                 if response.ok:
                     return True
-
             else:
                 with closing(requests.get(url, stream=True, **options)) as response:
                     if response.ok:
                         return True
-
         return False
 
     def get_format(self, ident, potential_format):
@@ -340,14 +368,36 @@ class SimpleHTTPResolver(_AbstractResolver):
                 rename(tmp_file.name, local_fp)
                 logger.info("Copied %s to %s", source_url, local_fp)
 
+        # Check for rules file associated with image file
+        # These files are < 2k in size, so fetch in one go.
+        # Assumes that the rules will be next to the image
+        # cache_dir is image specific, so this is easy
+
+        bits = split(source_url)
+        fn = bits[1].rsplit('.')[0] + "." + self.auth_rules_ext
+        rules_url = bits[0] + '/' + fn
+        try:
+            resp = requests.get(rules_url)            
+            if resp.status_code == 200:
+                local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
+                if not exists(local_rules_fp):
+                    fh = open(local_rules_fp, 'w')
+                    fh.write(r.text)
+                    fh.close()
+        except:
+            # No connection available
+            pass
+
         return local_fp
 
-    def resolve(self, ident):
+    def resolve(self, app, ident, base_uri):
         cached_file_path = self.cached_file_for_ident(ident)
         if not cached_file_path:
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
-        return (cached_file_path, format_)
+        uri = self.fix_base_uri(base_uri)
+        extra = self.get_extra_info(ident, cached_file_path)
+        return ImageInfo(app, uri, cached_file_path, format_, extra)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -476,6 +526,8 @@ class SourceImageCachingResolver(_AbstractResolver):
         copy(source_fp, cache_fp)
         logger.info("Copied %s to %s", source_fp, cache_fp)
 
+        # TODO: This should also check for and cache rules file
+
     def raise_404_for_ident(self, ident):
         source_fp = self.source_file_path(ident)
         public_message = 'Source image not found for identifier: %s.' % (ident,)
@@ -483,14 +535,14 @@ class SourceImageCachingResolver(_AbstractResolver):
         logger.warn(log_message)
         raise ResolverException(404, public_message)
 
-    def resolve(self, ident):
+    def resolve(self, app, ident, base_uri):
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
         if not self.in_cache(ident):
             self.copy_to_cache(ident)
 
         cache_fp = self.cache_file_path(ident)
-        logger.debug('Image Served from local cache: %s', cache_fp)
-
         format_ = self.format_from_ident(ident)
-        return (cache_fp, format_)
+        uri = self.fix_base_uri(base_uri)
+        extra = self.get_extra_info(ident, cache_fp)
+        return ImageInfo(app, uri, cache_fp, format_, extra)

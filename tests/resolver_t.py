@@ -53,10 +53,10 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
 
     def test_configured_resolver(self):
         expected_path = self.test_jp2_color_fp
-        resolved_path, fmt = self.app.resolver.resolve(self.test_jp2_color_id)
-        self.assertEqual(expected_path, resolved_path)
-        self.assertEqual(fmt, 'jp2')
-        self.assertTrue(isfile(resolved_path))
+        ii = self.app.resolver.resolve(self.app, self.test_jp2_color_id, "")
+        self.assertEqual(expected_path, ii.src_img_fp)
+        self.assertEqual(ii.src_format, 'jp2')
+        self.assertTrue(isfile(ii.src_img_fp))
 
     def test_multiple_cache_roots(self):
         config = {
@@ -64,12 +64,11 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         }
         self.app.resolver = SimpleFSResolver(config)
 
-        resolved_path, fmt = self.app.resolver.resolve(self.test_png_id)
-        self.assertEqual(self.test_png_fp2, resolved_path)
+        ii = self.app.resolver.resolve(self.app, self.test_png_id, "")
+        self.assertEqual(self.test_png_fp2, ii.src_img_fp)
 
-        resolved_path, fmt = self.app.resolver.resolve(self.test_altpng_id)
-        self.assertEqual(self.test_altpng_fp, resolved_path)
-
+        ii2 = self.app.resolver.resolve(self.app, self.test_altpng_id, "")
+        self.assertEqual(self.test_altpng_fp, ii2.src_img_fp)
 
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
@@ -84,23 +83,25 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
         # Now...
         ident = self.test_jp2_color_id
-        resolved_path, fmt = self.app.resolver.resolve(ident)
+        ii = self.app.resolver.resolve(self.app, ident, "")
         expected_path = join(self.app.img_cache.cache_root, unquote(ident))
 
-        self.assertEqual(expected_path, resolved_path)
-        self.assertEqual(fmt, 'jp2')
-        self.assertTrue(isfile(resolved_path))
+        self.assertEqual(expected_path, ii.src_img_fp)
+        self.assertEqual(ii.src_format, 'jp2')
+        self.assertTrue(isfile(ii.src_img_fp))
 
 class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
     def _mock_urls(self):
-        responses.add(responses.GET, 'http://sample.sample/0001',
-                      body='II*\x00\x0c\x00\x00\x00\x80\x00  \x0e\x00\x00\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x02\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x03\x01\x03\x00\x01\x00\x00\x00\x05\x00\x00\x00\x06\x01\x03\x00\x01\x00\x00\x00\x03\x00\x00\x00\x11\x01\x04\x00\x01\x00\x00\x00\x08\x00\x00\x00\x15\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x17\x01\x04\x00\x01\x00\x00\x00\x04\x00\x00\x00\x1a\x01\x05\x00\x01\x00\x00\x00\xba\x00\x00\x00\x1b\x01\x05\x00\x01\x00\x00\x00\xc2\x00\x00\x00\x1c\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00(\x01\x03\x00\x01\x00\x00\x00\x02\x00\x00\x00@\x01\x03\x00\x00\x03\x00\x00\xca\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00\xff`\xe6q\x19\x08\x00\x00\x80\t\x00\x00\x80\n\x00\x00\x80\x0b\x00\x00\x80\x0c\x00\x00\x80\r',
+        with open('tests/img/01/04/0001.tif', 'rb') as f:
+            responses.add(responses.GET, 'http://sample.sample/0001',
+                      body=f.read(),
                       status=200,
                       content_type='image/tiff')
 
-        responses.add(responses.GET, 'http://sample.sample/0002',
-                      body='II*\x00\x0c\x00\x00\x00\x80\x00  \x0e\x00\x00\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x02\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x03\x01\x03\x00\x01\x00\x00\x00\x05\x00\x00\x00\x06\x01\x03\x00\x01\x00\x00\x00\x03\x00\x00\x00\x11\x01\x04\x00\x01\x00\x00\x00\x08\x00\x00\x00\x15\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x17\x01\x04\x00\x01\x00\x00\x00\x04\x00\x00\x00\x1a\x01\x05\x00\x01\x00\x00\x00\xba\x00\x00\x00\x1b\x01\x05\x00\x01\x00\x00\x00\xc2\x00\x00\x00\x1c\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00(\x01\x03\x00\x01\x00\x00\x00\x02\x00\x00\x00@\x01\x03\x00\x00\x03\x00\x00\xca\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00\xff`\xe6q\x19\x08\x00\x00\x80\t\x00\x00\x80\n\x00\x00\x80\x0b\x00\x00\x80\x0c\x00\x00\x80\r',
+        with open('tests/img/01/04/0001.tif', 'rb') as f:
+            responses.add(responses.GET, 'http://sample.sample/0002',
+                      body=f.read(),
                       status=200)
 
         responses.add(responses.GET, 'http://sample.sample/0003',
@@ -197,10 +198,10 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, '032')
         expected_path = join(expected_path, 'loris_cache.tif')
 
-        resolved_path, fmt = self.app.resolver.resolve(ident)
-        self.assertEqual(expected_path, resolved_path)
-        self.assertEqual(fmt, 'tif')
-        self.assertTrue(isfile(resolved_path))
+        ii = self.app.resolver.resolve(self.app, ident, "")
+        self.assertEqual(expected_path, ii.src_img_fp)
+        self.assertEqual(ii.src_format, 'tif')
+        self.assertTrue(isfile(ii.src_img_fp))
 
         #Test with a full uri
         #Note: This seems weird but idents resolve wrong and removes a slash from //
@@ -220,26 +221,26 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'loris_cache.tif')
 
         self.assertFalse(exists(expected_path))
-        resolved_path, fmt = self.app.resolver.resolve(ident)
-        self.assertEqual(expected_path, resolved_path)
-        self.assertEqual(fmt, 'tif')
-        self.assertTrue(isfile(resolved_path))
+        ii = self.app.resolver.resolve(self.app, ident, "")
+        self.assertEqual(expected_path, ii.src_img_fp)
+        self.assertEqual(ii.src_format, 'tif')
+        self.assertTrue(isfile(ii.src_img_fp))
 
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
         #Test with a bad url
         ident = quote_plus('http://sample.sample/DOESNOTEXIST')
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
         #Test with no content-type or extension or default format
         ident = '0002'
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
         #Test with invalid content-type
         ident = '0003'
-        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(ident))
+        self.assertRaises(ResolverException, lambda: self.app.resolver.resolve(self.app, ident, ""))
 
     @responses.activate
     def test_with_default_format(self):
@@ -255,10 +256,10 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.app.resolver = SimpleHTTPResolver(config)
 
         ident = '0002'
-        resolved_path, fmt = self.app.resolver.resolve(ident)
-        self.assertIsNotNone(resolved_path)
-        self.assertEqual(fmt, 'tif')
-        self.assertTrue(isfile(resolved_path))
+        ii = self.app.resolver.resolve(self.app, ident, "")
+        self.assertIsNotNone(ii.src_img_fp)
+        self.assertEqual(ii.src_format, 'tif')
+        self.assertTrue(isfile(ii.src_img_fp))
 
 
 class Test_TemplateHTTPResolver(loris_t.LorisTest):
