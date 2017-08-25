@@ -45,7 +45,7 @@ Explanation:
 
  (Loris is setting the `Last-Modified` header based on the file system metadata.)
 
- * `AllowEncodedSlashes On` lets `%2F` though in requests (they're allowed but must be escaped in the identifier portion of the URI).
+ * `AllowEncodedSlashes On` lets `%2F` though in requests (they're allowed but must be escaped in the identifier portion of the URI). Depending on your hosting environment, this may need to be explicitly declared *inside* a VirtualHosts container as `AllowEncodedSlashes` is not inherited by VirtualHosts if declared in a global context (see [Apache Bug 46830](https://bz.apache.org/bugzilla/show_bug.cgi?id=46830)).
 
  * WSGI Flags. Have a look at the [mod-wsgi configuration guidelines](https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines). In general is seems like a good idea to prefer threads over processes; ([check out this answer on serverfault](http://serverfault.com/a/146382)).
 
