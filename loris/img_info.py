@@ -58,7 +58,7 @@ class ImageInfo(object):
 
         src_img_fp (str): the absolute path on the file system [non IIIF]
         src_format (str): the format of the source image file [non IIIF]
-        color_profile_bytes []: the emebedded color profile, if any [non IIIF]
+        color_profile_bytes []: the embedded color profile, if any [non IIIF]
         auth_rules (dict): extra information about authorization [non IIIF]
 
     '''
