@@ -56,10 +56,19 @@ def _validate_color_profile_conversion_config(config):
 
 class _AbstractTransformer(object):
     def __init__(self, config):
+        _validate_color_profile_conversion_config(config)
         self.config = config
         self.target_formats = config['target_formats']
         self.dither_bitonal_images = config['dither_bitonal_images']
         logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
+
+    @property
+    def map_profile_to_srgb(self):
+        return self.config.get('map_profile_to_srgb', False)
+
+    @property
+    def srgb_profile_fp(self):
+        return self.config.get('srgb_profile_fp')
 
     def transform(self, src_fp, target_fp, image_request):
         '''
@@ -180,7 +189,6 @@ class _AbstractJP2Transformer(_AbstractTransformer):
     Exits if OSError is raised during init.
     '''
     def __init__(self, config):
-        _validate_color_profile_conversion_config(config)
         self.mkfifo = config['mkfifo']
         self.tmp_dp = config['tmp_dp']
 
@@ -195,14 +203,6 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             exit(77)
 
         super(_AbstractJP2Transformer, self).__init__(config)
-
-    @property
-    def map_profile_to_srgb(self):
-        return self.config.get('map_profile_to_srgb', False)
-
-    @property
-    def srgb_profile_fp(self):
-        return self.config.get('srgb_profile_fp')
 
     def _make_tmp_fp(self, fmt='bmp'):
         n = ''.join(random.choice(string.ascii_lowercase) for x in range(5))

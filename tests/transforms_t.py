@@ -64,7 +64,7 @@ class UnitTest_KakaduJP2Transformer(unittest.TestCase):
 
     def test_init(self):
         config = {'kdu_expand': '', 'num_threads': 4, 'kdu_libs': '',
-                  'map_profile_to_srgb': True, 'mkfifo': '', 'tmp_dp': '/tmp/loris/tmp',
+                  'map_profile_to_srgb': False, 'mkfifo': '', 'tmp_dp': '/tmp/loris/tmp',
                   'srgb_profile_fp': '', 'target_formats': [], 'dither_bitonal_images': ''}
         kdu_transformer = transforms.KakaduJP2Transformer(config)
         self.assertEqual(kdu_transformer.transform_timeout, 120)
@@ -175,7 +175,6 @@ class Test_PILTransformer(loris_t.LorisTest):
 def suite():
     test_suites = []
     test_suites.append(unittest.makeSuite(Test_AbstractTransformer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_JP2TransformerConfig, 'test'))
     test_suites.append(unittest.makeSuite(UnitTest_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_PILTransformer, 'test'))
