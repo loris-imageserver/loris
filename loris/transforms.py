@@ -19,9 +19,9 @@ from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
 
 try:
-    from PIL.ImageCms import profileToProfile  # Pillow
+    from PIL.ImageCms import profileToProfile
 except ImportError:
-    from ImageCms import profileToProfile  # PIL
+    pass
 
 from loris.loris_exception import TransformException
 from loris.parameters import FULL_MODE
