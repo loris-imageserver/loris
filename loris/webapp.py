@@ -65,16 +65,20 @@ def get_debug_config(debug_jp2_transformer):
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     if debug_jp2_transformer == 'opj':
         from loris.transforms import OPJ_JP2Transformer
+        config['transforms']['jp2']['impl'] = 'OPJ_JP2Transformer'
         opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
         config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
         libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
         config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
-    else: # kdu
+    elif debug_jp2_transformer == 'kdu':
         from loris.transforms import KakaduJP2Transformer
+        config['transforms']['jp2']['impl'] = 'KakaduJP2Transformer'
         kdu_expand = KakaduJP2Transformer.local_kdu_expand_path()
         config['transforms']['jp2']['kdu_expand'] = path.join(project_dp, kdu_expand)
         libkdu_dir = KakaduJP2Transformer.local_libkdu_dir()
         config['transforms']['jp2']['kdu_libs'] = path.join(project_dp, libkdu_dir)
+    else:
+        raise ConfigError('Unrecognized debug JP2 transformer: %r' % debug_jp2_transformer)
 
     config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
     config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
