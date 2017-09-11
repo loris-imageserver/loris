@@ -11,6 +11,12 @@ from os import path, listdir, unlink
 from shutil import rmtree
 from logging import getLogger
 
+try:
+    from cStringIO import StringIO
+except ImportError:  # Python 3
+    from io import StringIO
+
+from PIL.ImageFile import Parser
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
@@ -19,6 +25,10 @@ from loris.webapp import get_debug_config, Loris
 logger = getLogger(__name__)
 
 class LorisTest(unittest.TestCase):
+
+    def build_client_from_config(self, config):
+        self.app = Loris(config)
+        self.client = Client(self.app, BaseResponse)
 
     def setUp(self):
         self.URI_BASE = 'http://localhost'
@@ -30,8 +40,7 @@ class LorisTest(unittest.TestCase):
         # see http://werkzeug.pocoo.org/docs/test/
         config = get_debug_config('kdu')
         config['logging']['log_level'] = 'INFO'
-        self.app = Loris(config)
-        self.client = Client(self.app, BaseResponse)
+        self.build_client_from_config(config)
 
         # constant info about test images.
         self.test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
@@ -108,6 +117,12 @@ class LorisTest(unittest.TestCase):
         self.test_jp2_with_embedded_profile_fmt = 'jp2'
         self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_embedded_profile_id)
 
+        # A copy of 47102787.jp2, with the embedded color profile converted
+        # to sRGB and saved as JPG.
+        self.test_jp2_with_embedded_profile_to_srgb_jpg_fp = path.join(
+            self.test_img_dir, '47102787_to_srgb.jpg'
+        )
+
         self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
         self.test_jp2_with_precincts_fp = path.join(self.test_img_dir,self.test_jp2_with_precincts_id)
         self.test_jp2_with_precincts_fmt = 'jp2'
@@ -126,6 +141,9 @@ class LorisTest(unittest.TestCase):
             { "width": 256, "scaleFactors": [32,64] }
         ]
 
+        # An ICC v2 sRGB color profile.
+        # Downloaded from http://www.color.org/srgbprofiles.xalter
+        self.srgb_color_profile_fp = path.join(test_icc_dir, 'sRGB2014.icc')
 
     def tearDown(self):
         # empty the cache
@@ -147,3 +165,15 @@ class LorisTest(unittest.TestCase):
                         logger.debug('Removed %s', p)
                 rmtree(dp)
                 logger.debug('Removed %s', dp)
+
+    def request_image_from_client(self, request_path):
+        resp = self.client.get(request_path)
+        self.assertEqual(resp.status_code, 200)
+
+        bytes = StringIO(resp.data)
+        p = Parser()
+        p.feed(bytes.read())
+        image = p.close()
+        bytes.close()
+
+        return image

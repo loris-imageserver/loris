@@ -1,13 +1,11 @@
 #-*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from cStringIO import StringIO
 import unittest
 import operator, itertools
 
-from PIL.ImageFile import Parser
-
 from loris import transforms
+from loris.webapp import get_debug_config
 from tests import loris_t
 
 """
@@ -58,19 +56,33 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
         # Makes a request rather than building everything from scratch
         ident = self.test_jp2_color_id
         request_path = '/%s/full/pct:110/0/default.jpg' % (ident,)
-        resp = self.client.get(request_path)
+        image = self.request_image_from_client(request_path)
 
-        self.assertEqual(resp.status_code, 200)
-
-        image = None
-        bytes = StringIO(resp.data)
-        p = Parser()
-        p.feed(bytes.read()) # all in one gulp!
-        image = p.close()
-        bytes.close()
         expected_dims = tuple(int(d*1.10) for d in self.test_jp2_color_dims)
 
         self.assertEqual(expected_dims, image.size)
+
+    def test_can_edit_embedded_color_profile(self):
+        ident = self.test_jp2_with_embedded_profile_id
+        request_path = '/%s/full/full/0/default.jpg' % ident
+
+        image_orig = self.request_image_from_client(request_path)
+
+        # Set up an instance of the client with color profile editing.
+        # We need to disable caching so the new request doesn't pick up
+        # the cached image.
+        config = get_debug_config('kdu')
+        config['transforms']['jp2']['map_profile_to_srgb'] = True
+        config['transforms']['jp2']['srgb_profile_fp'] = self.srgb_color_profile_fp
+        config['loris.Loris']['enable_caching'] = False
+        self.build_client_from_config(config)
+
+        image_converted = self.request_image_from_client(request_path)
+
+        # Now check that the image pixels have been edited -- this means
+        # that the color profile has changed.  Because image conversion isn't
+        # stable across platforms, this is the best we can do for now.
+        self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
 
 class Test_PILTransformer(loris_t.LorisTest):
@@ -79,16 +91,7 @@ class Test_PILTransformer(loris_t.LorisTest):
         ident = 'test.png'
         rotate = '45'
         request_path = '/%s/full/full/%s/default.png' % (ident,rotate)
-        resp = self.client.get(request_path)
-
-        self.assertEqual(resp.status_code, 200)
-
-        image = None
-        bytes = StringIO(resp.data)
-        p = Parser()
-        p.feed(bytes.read()) # all in one gulp!
-        image = p.close()
-        bytes.close()
+        image = self.request_image_from_client(request_path)
 
         # Get the alpha channel as an itertools.imap
         alpha = self.get_alpha_channel(image)
