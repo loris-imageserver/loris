@@ -310,6 +310,8 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         logger.debug('Calling: %s', opj_cmd)
 
         # Start the shellout. Blocks until the pipe is empty
+        # TODO: If this command hangs, the server never returns.
+        # Surely that can't be right!
         with open(devnull, 'w') as fnull:
             opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1,
                 stderr=fnull, stdout=fnull, env=self.env)
