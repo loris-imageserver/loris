@@ -154,7 +154,7 @@ class LorisTest(unittest.TestCase):
                 rmtree(dp)
                 logger.debug('Removed %s', dp)
 
-    def get_image_from_response(self, request_path):
+    def request_image_from_client(self, request_path):
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
