@@ -22,6 +22,34 @@ $ python -m unittest tests.transforms_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+class ColorConversionMixin:
+    """
+    Adds a helper method for testing that a transformer can edit the
+    embedded color profile on an image.
+    """
+
+    def _assert_can_edit_embedded_color_profile(self, ident, transformer, debug_config='kdu'):
+        request_path = '/%s/full/full/0/default.jpg' % ident
+
+        image_orig = self.request_image_from_client(request_path)
+
+        # Set up an instance of the client with color profile editing.
+        # We need to disable caching so the new request doesn't pick up
+        # the cached image.
+        config = get_debug_config(debug_config)
+        config['transforms'][transformer]['map_profile_to_srgb'] = True
+        config['transforms'][transformer]['srgb_profile_fp'] = self.srgb_color_profile_fp
+        config['loris.Loris']['enable_caching'] = False
+        self.build_client_from_config(config)
+
+        image_converted = self.request_image_from_client(request_path)
+
+        # Now check that the image pixels have been edited -- this means
+        # that the color profile has changed.  Because image conversion isn't
+        # stable across platforms, this is the best we can do for now.
+        self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
+
+
 class ExampleTransformer(transforms._AbstractTransformer):
     pass
 
@@ -73,7 +101,7 @@ class UnitTest_KakaduJP2Transformer(unittest.TestCase):
         self.assertEqual(kdu_transformer.transform_timeout, 100)
 
 
-class Test_KakaduJP2Transformer(loris_t.LorisTest):
+class Test_KakaduJP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
     def test_allows_jp2_upsample(self):
         # Makes a request rather than building everything from scratch
@@ -86,29 +114,29 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
         self.assertEqual(expected_dims, image.size)
 
     def test_can_edit_embedded_color_profile(self):
-        ident = self.test_jp2_with_embedded_profile_id
-        request_path = '/%s/full/full/0/default.jpg' % ident
+        self._assert_can_edit_embedded_color_profile(
+            ident=self.test_jp2_with_embedded_profile_id,
+            transformer='jp2',
+            debug_config='kdu'
+        )
 
-        image_orig = self.request_image_from_client(request_path)
 
-        # Set up an instance of the client with color profile editing.
-        # We need to disable caching so the new request doesn't pick up
-        # the cached image.
-        config = get_debug_config('kdu')
-        config['transforms']['jp2']['map_profile_to_srgb'] = True
-        config['transforms']['jp2']['srgb_profile_fp'] = self.srgb_color_profile_fp
-        config['loris.Loris']['enable_caching'] = False
+class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
+
+    def test_can_edit_embedded_color_profile(self):
+        # By default, LorisTest uses the Kakadu transformer.  Switch to the
+        # OPENJPEG transformer before we get the reference image.
+        config = get_debug_config('opj')
         self.build_client_from_config(config)
 
-        image_converted = self.request_image_from_client(request_path)
+        self._assert_can_edit_embedded_color_profile(
+            ident=self.test_jp2_with_embedded_profile_id,
+            transformer='jp2',
+            debug_config='opj'
+        )
 
-        # Now check that the image pixels have been edited -- this means
-        # that the color profile has changed.  Because image conversion isn't
-        # stable across platforms, this is the best we can do for now.
-        self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
-
-class Test_PILTransformer(loris_t.LorisTest):
+class Test_PILTransformer(loris_t.LorisTest, ColorConversionMixin):
 
     def test_png_rotate_has_alpha_transparency(self):
         ident = 'test.png'
@@ -149,27 +177,10 @@ class Test_PILTransformer(loris_t.LorisTest):
         return itertools.imap(alpha_getter, image.getdata())
 
     def test_can_edit_embedded_color_profile(self):
-        ident = self.test_jpeg_with_embedded_profile_id
-        request_path = '/%s/full/full/0/default.jpg' % ident
-
-        image_orig = self.request_image_from_client(request_path)
-
-        # Set up an instance of the client with color profile editing.
-        # We need to disable caching so the new request doesn't pick up
-        # the cached image.
-        config = get_debug_config('kdu')
-        config['transforms']['jpg']['map_profile_to_srgb'] = True
-        config['transforms']['jpg']['srgb_profile_fp'] = self.srgb_color_profile_fp
-        config['loris.Loris']['enable_caching'] = False
-        self.build_client_from_config(config)
-
-        image_converted = self.request_image_from_client(request_path)
-
-        # Now check that the image pixels have been edited -- this means
-        # that the color profile has changed.  Because image conversion isn't
-        # stable across platforms, this is the best we can do for now.
-        self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
-
+        self._assert_can_edit_embedded_color_profile(
+            ident=self.test_jpeg_with_embedded_profile_id,
+            transformer='jpg'
+        )
 
 
 def suite():
