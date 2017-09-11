@@ -4,7 +4,10 @@ from __future__ import absolute_import
 import unittest
 import operator, itertools
 
+import pytest
+
 from loris import transforms
+from loris.loris_exception import ConfigError
 from loris.webapp import get_debug_config
 from tests import loris_t
 
@@ -19,22 +22,42 @@ $ python -m unittest tests.transforms_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+class ExampleTransformer(transforms._AbstractTransformer):
+    pass
 
-class Test_AbstractTransformer(unittest.TestCase):
+
+class Test_AbstractTransformer(object):
 
     def test_missing_transform_raises_not_implemented_error(self):
-        class ExampleTransformer(transforms._AbstractTransformer):
-            pass
-
         e = ExampleTransformer(config={
             'target_formats': [],
             'dither_bitonal_images': '',
         })
-        with self.assertRaises(NotImplementedError) as cm:
+        with with pytest.raises(NotImplementedError) as err:
             e.transform(src_fp=None, target_fp=None, image_request=None)
-        self.assertEqual(
-            cm.exception.message,
-            'transform() not implemented for ExampleTransformer')
+        assert e.value.message == 'transform() not implemented for ExampleTransformer'
+
+    @pytest.mark.parametrize('config', [
+        {'map_profile_to_srgb': True},
+        {'map_profile_to_srgb': True, 'srgb_profile_fp': ''},
+        {'map_profile_to_srgb': True, 'srgb_profile_fp': None},
+    ])
+    def test_bad_srgb_profile_fp_is_configerror(self, config):
+        with pytest.raises(ConfigError) as err:
+            ExampleTransformer(config=config)
+        assert 'you need to give the path to an sRGB color profile' in err.value.message
+
+    def test_missing_littlecms_with_srgb_conversion_is_configerror(self):
+        try:
+            transforms.has_imagecms = False
+            with pytest.raises(ConfigError) as err:
+                ExampleTransformer(config={
+                    'map_profile_to_srgb': True,
+                    'srgb_profile_fp': '/home/profiles/srgb.icc'
+                })
+        finally:
+            transforms.has_imagecms = True
+        assert 'you need to install Pillow with LittleCMS support' in err.value.message
 
 
 class UnitTest_KakaduJP2Transformer(unittest.TestCase):
@@ -129,6 +152,7 @@ class Test_PILTransformer(loris_t.LorisTest):
 def suite():
     test_suites = []
     test_suites.append(unittest.makeSuite(Test_AbstractTransformer, 'test'))
+    test_suites.append(unittest.makeSuite(Test_JP2TransformerConfig, 'test'))
     test_suites.append(unittest.makeSuite(UnitTest_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_KakaduJP2Transformer, 'test'))
     test_suites.append(unittest.makeSuite(Test_PILTransformer, 'test'))
