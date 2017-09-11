@@ -33,9 +33,9 @@ class Test_AbstractTransformer(object):
             'target_formats': [],
             'dither_bitonal_images': '',
         })
-        with with pytest.raises(NotImplementedError) as err:
+        with pytest.raises(NotImplementedError) as err:
             e.transform(src_fp=None, target_fp=None, image_request=None)
-        assert e.value.message == 'transform() not implemented for ExampleTransformer'
+        assert err.value.message == 'transform() not implemented for ExampleTransformer'
 
     @pytest.mark.parametrize('config', [
         {'map_profile_to_srgb': True},
@@ -147,6 +147,29 @@ class Test_PILTransformer(loris_t.LorisTest):
 
         alpha_getter= operator.itemgetter(alpha_index)
         return itertools.imap(alpha_getter, image.getdata())
+
+    def test_can_edit_embedded_color_profile(self):
+        ident = self.test_jpeg_with_embedded_profile_id
+        request_path = '/%s/full/full/0/default.jpg' % ident
+
+        image_orig = self.request_image_from_client(request_path)
+
+        # Set up an instance of the client with color profile editing.
+        # We need to disable caching so the new request doesn't pick up
+        # the cached image.
+        config = get_debug_config('kdu')
+        config['transforms']['jpg']['map_profile_to_srgb'] = True
+        config['transforms']['jpg']['srgb_profile_fp'] = self.srgb_color_profile_fp
+        config['loris.Loris']['enable_caching'] = False
+        self.build_client_from_config(config)
+
+        image_converted = self.request_image_from_client(request_path)
+
+        # Now check that the image pixels have been edited -- this means
+        # that the color profile has changed.  Because image conversion isn't
+        # stable across platforms, this is the best we can do for now.
+        self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
+
 
 
 def suite():
