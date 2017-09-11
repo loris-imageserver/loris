@@ -1,10 +1,13 @@
 #-*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import filecmp
 import unittest
 import operator, itertools
+import tempfile
 
 from loris import transforms
+from loris.webapp import get_debug_config
 from tests import loris_t
 
 """
@@ -60,6 +63,22 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
         expected_dims = tuple(int(d*1.10) for d in self.test_jp2_color_dims)
 
         self.assertEqual(expected_dims, image.size)
+
+    def test_can_edit_embedded_color_profile(self):
+        ident = self.test_jp2_with_embedded_profile_id
+        request_path = '/%s/full/full/0/default.jpg' % ident
+
+        # Set up an instance of the client with color profile editing
+        config = get_debug_config('kdu')
+        config['transforms']['jp2']['map_profile_to_srgb'] = True
+        config['transforms']['jp2']['srgb_profile_fp'] = self.srgb_color_profile_fp
+        self.build_client_from_config(config)
+
+        image = self.request_image_from_client(request_path)
+        _, fp = tempfile.mkstemp(suffix='.jpg')
+        image.save(fp)
+
+        self.assertTrue(filecmp.cmp(fp, self.test_jp2_with_embedded_profile_to_srgb_jpg_fp))
 
 
 class Test_PILTransformer(loris_t.LorisTest):

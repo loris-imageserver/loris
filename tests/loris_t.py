@@ -117,6 +117,12 @@ class LorisTest(unittest.TestCase):
         self.test_jp2_with_embedded_profile_fmt = 'jp2'
         self.test_jp2_with_embedded_profile_uri = '%s/%s' % (self.URI_BASE,self.test_jp2_with_embedded_profile_id)
 
+        # A copy of 47102787.jp2, with the embedded color profile converted
+        # to sRGB and saved as JPG.
+        self.test_jp2_with_embedded_profile_to_srgb_jpg_fp = path.join(
+            self.test_img_dir, '47102787_to_srgb.jpg'
+        )
+
         self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
         self.test_jp2_with_precincts_fp = path.join(self.test_img_dir,self.test_jp2_with_precincts_id)
         self.test_jp2_with_precincts_fmt = 'jp2'
@@ -135,6 +141,9 @@ class LorisTest(unittest.TestCase):
             { "width": 256, "scaleFactors": [32,64] }
         ]
 
+        # An ICC v2 sRGB color profile.
+        # Downloaded from http://www.color.org/srgbprofiles.xalter
+        self.srgb_color_profile_fp = path.join(test_icc_dir, 'sRGB2014.icc')
 
     def tearDown(self):
         # empty the cache
