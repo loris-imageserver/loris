@@ -62,14 +62,6 @@ class _AbstractTransformer(object):
         self.dither_bitonal_images = config['dither_bitonal_images']
         logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
 
-    @property
-    def map_profile_to_srgb(self):
-        return self.config.get('map_profile_to_srgb', False)
-
-    @property
-    def srgb_profile_fp(self):
-        return self.config.get('srgb_profile_fp')
-
     def transform(self, src_fp, target_fp, image_request):
         '''
         Args:
@@ -79,6 +71,17 @@ class _AbstractTransformer(object):
         '''
         cn = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
+
+    @property
+    def map_profile_to_srgb(self):
+        return self.config.get('map_profile_to_srgb', False)
+
+    @property
+    def srgb_profile_fp(self):
+        return self.config.get('srgb_profile_fp')
+
+    def _map_im_profile_to_srgb(self, im, input_profile):
+        return profileToProfile(im, input_profile, self.srgb_profile_fp)
 
     def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
         '''
