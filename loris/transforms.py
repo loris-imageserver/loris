@@ -14,6 +14,11 @@ import string
 import subprocess
 import sys
 
+try:
+    from cStringIO import BytesIO
+except ImportError:  # Python 3
+    from io import BytesIO
+
 from PIL import Image
 from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
@@ -150,6 +155,10 @@ class _AbstractTransformer(object):
                 # not 1-bit w. JPG
                 dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
                 im = im.convert('1', dither=dither)
+
+        if self.map_profile_to_srgb and 'icc_profile' in im.info:
+            embedded_profile = BytesIO(im.info['icc_profile'])
+            im = self._map_im_profile_to_srgb(im, embedded_profile)
 
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
@@ -322,7 +331,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         unlink(fifo_fp)
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+            emb_profile = BytesIO(image_request.info.color_profile_bytes)
             im = self._map_im_profile_to_srgb(im, emb_profile)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
@@ -391,7 +400,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             unlink(fifo_fp)
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
+            emb_profile = BytesIO(image_request.info.color_profile_bytes)
             im = self._map_im_profile_to_srgb(im, emb_profile)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
