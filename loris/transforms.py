@@ -18,16 +18,41 @@ from PIL import Image
 from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
 
+# This import is only used for converting embedded color profiles to sRGB,
+# which is a user-configurable setting.  If they don't have this enabled,
+# the failure of this import isn't catastrophic.
 try:
     from PIL.ImageCms import profileToProfile
+    has_imagecms = True
 except ImportError:
-    pass
+    has_imagecms = False
 
-from loris.loris_exception import TransformException
+from loris.loris_exception import ConfigError, TransformException
 from loris.parameters import FULL_MODE
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
+
+
+def _validate_color_profile_conversion_config(config):
+    """
+    Validate the config for setting up color profile conversion.
+    """
+    if not config.get('map_profile_to_srgb', False):
+        return
+
+    if config['map_profile_to_srgb'] and not config.get('srgb_profile_fp'):
+        raise ConfigError(
+            'When map_profile_to_srgb=True, you need to give the path to '
+            'an sRGB color profile in the srgb_profile_fp setting.'
+        )
+
+    if config['map_profile_to_srgb'] and not has_imagecms:
+        raise ConfigError(
+            'When map_profile_to_srgb=True, you need to install Pillow with '
+            'LittleCMS support.  See http://www.littlecms.com/ for instructions.'
+        )
+
 
 class _AbstractTransformer(object):
     def __init__(self, config):
@@ -155,17 +180,9 @@ class _AbstractJP2Transformer(_AbstractTransformer):
     Exits if OSError is raised during init.
     '''
     def __init__(self, config):
-        self.map_profile_to_srgb = bool(config['map_profile_to_srgb'])
+        _validate_color_profile_conversion_config(config)
         self.mkfifo = config['mkfifo']
         self.tmp_dp = config['tmp_dp']
-
-        if self.map_profile_to_srgb and \
-            ('PIL.ImageCms' not in sys.modules and 'ImageCms' not in sys.modules):
-            logger.warn('Could not import profileToProfile from ImageCms.')
-            logger.warn('Images will not have their embedded color profiles mapped to sSRGB.')
-            self.map_profile_to_srgb = False
-        else:
-            self.srgb_profile_fp = config['srgb_profile_fp']
 
         try:
             mkdir_p(self.tmp_dp)
@@ -178,6 +195,14 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             exit(77)
 
         super(_AbstractJP2Transformer, self).__init__(config)
+
+    @property
+    def map_profile_to_srgb(self):
+        return self.config.get('map_profile_to_srgb', False)
+
+    @property
+    def srgb_profile_fp(self):
+        return self.config.get('srgb_profile_fp')
 
     def _make_tmp_fp(self, fmt='bmp'):
         n = ''.join(random.choice(string.ascii_lowercase) for x in range(5))
