@@ -29,17 +29,10 @@ from the `/loris` (not `/loris/loris`) directory.
 
 class TestImageRequest(unittest.TestCase):
 
-	def test_missing_info_attribute_is_error(self):
-		request = img.ImageRequest(
-			ident='V1234.jpg',
-			region='100,100,100,100',
-			size='100,100',
-			rotation='0',
-			quality='color',
-			target_format='jpeg'
-		)
-		with self.assertRaises(ImageException):
-			request.info
+    def test_missing_info_attribute_is_error(self):
+        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
+        with self.assertRaises(ImageException):
+            request.info
 
 
 class Test_ImageCache(loris_t.LorisTest):
@@ -93,19 +86,18 @@ class Test_ImageCache(loris_t.LorisTest):
         # throws an exception if we don't handle that existence properly
         self.app.img_cache.create_dir_and_return_file_path(image_request)
 
-	def test_missing_entry_is_keyerror(self):
-		cache = img.ImageCache(cache_root='/tmp')
-		request = img.ImageRequest(
-			ident='V1234.jpg',
-			region='100,100,100,100',
-			size='100,100',
-			rotation='0',
-			quality='color',
-			target_format='jpeg'
-		)
+    def test_missing_entry_is_keyerror(self):
+        cache = img.ImageCache(cache_root='/tmp')
+        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
 
-		with self.assertRaises(KeyError):
-			cache[request]
+        with self.assertRaises(KeyError):
+            cache[request]
+
+    def test_missing_entry_gets_none(self):
+        cache = img.ImageCache(cache_root='/tmp')
+        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
+
+        self.assertIsNone(cache.get(request))
 
 
 def suite():
