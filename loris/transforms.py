@@ -14,23 +14,54 @@ import string
 import subprocess
 import sys
 
+try:
+    from cStringIO import BytesIO
+except ImportError:  # Python 3
+    from io import BytesIO
+
 from PIL import Image
 from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
 
+# This import is only used for converting embedded color profiles to sRGB,
+# which is a user-configurable setting.  If they don't have this enabled,
+# the failure of this import isn't catastrophic.
 try:
-    from PIL.ImageCms import profileToProfile  # Pillow
+    from PIL.ImageCms import profileToProfile
+    has_imagecms = True
 except ImportError:
-    from ImageCms import profileToProfile  # PIL
+    has_imagecms = False
 
-from loris.loris_exception import TransformException
+from loris.loris_exception import ConfigError, TransformException
 from loris.parameters import FULL_MODE
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
+
+def _validate_color_profile_conversion_config(config):
+    """
+    Validate the config for setting up color profile conversion.
+    """
+    if not config.get('map_profile_to_srgb', False):
+        return
+
+    if config['map_profile_to_srgb'] and not config.get('srgb_profile_fp'):
+        raise ConfigError(
+            'When map_profile_to_srgb=True, you need to give the path to '
+            'an sRGB color profile in the srgb_profile_fp setting.'
+        )
+
+    if config['map_profile_to_srgb'] and not has_imagecms:
+        raise ConfigError(
+            'When map_profile_to_srgb=True, you need to install Pillow with '
+            'LittleCMS support.  See http://www.littlecms.com/ for instructions.'
+        )
+
+
 class _AbstractTransformer(object):
     def __init__(self, config):
+        _validate_color_profile_conversion_config(config)
         self.config = config
         self.target_formats = config['target_formats']
         self.dither_bitonal_images = config['dither_bitonal_images']
@@ -45,6 +76,17 @@ class _AbstractTransformer(object):
         '''
         cn = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
+
+    @property
+    def map_profile_to_srgb(self):
+        return self.config.get('map_profile_to_srgb', False)
+
+    @property
+    def srgb_profile_fp(self):
+        return self.config.get('srgb_profile_fp')
+
+    def _map_im_profile_to_srgb(self, im, input_profile):
+        return profileToProfile(im, input_profile, self.srgb_profile_fp)
 
     def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
         '''
@@ -114,6 +156,10 @@ class _AbstractTransformer(object):
                 dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
                 im = im.convert('1', dither=dither)
 
+        if self.map_profile_to_srgb and 'icc_profile' in im.info:
+            embedded_profile = BytesIO(im.info['icc_profile'])
+            im = self._map_im_profile_to_srgb(im, embedded_profile)
+
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
@@ -155,17 +201,8 @@ class _AbstractJP2Transformer(_AbstractTransformer):
     Exits if OSError is raised during init.
     '''
     def __init__(self, config):
-        self.map_profile_to_srgb = bool(config['map_profile_to_srgb'])
         self.mkfifo = config['mkfifo']
         self.tmp_dp = config['tmp_dp']
-
-        if self.map_profile_to_srgb and \
-            ('PIL.ImageCms' not in sys.modules and 'ImageCms' not in sys.modules):
-            logger.warn('Could not import profileToProfile from ImageCms.')
-            logger.warn('Images will not have their embedded color profiles mapped to sSRGB.')
-            self.map_profile_to_srgb = False
-        else:
-            self.srgb_profile_fp = config['srgb_profile_fp']
 
         try:
             mkdir_p(self.tmp_dp)
@@ -273,6 +310,8 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         logger.debug('Calling: %s', opj_cmd)
 
         # Start the shellout. Blocks until the pipe is empty
+        # TODO: If this command hangs, the server never returns.
+        # Surely that can't be right!
         with open(devnull, 'w') as fnull:
             opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1,
                 stderr=fnull, stdout=fnull, env=self.env)
@@ -294,8 +333,8 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         unlink(fifo_fp)
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
-            im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+            emb_profile = BytesIO(image_request.info.color_profile_bytes)
+            im = self._map_im_profile_to_srgb(im, emb_profile)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
@@ -363,8 +402,8 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             unlink(fifo_fp)
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
-            im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+            emb_profile = BytesIO(image_request.info.color_profile_bytes)
+            im = self._map_im_profile_to_srgb(im, emb_profile)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
