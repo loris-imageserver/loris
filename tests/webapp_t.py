@@ -9,12 +9,15 @@ from time import sleep
 from unittest import TestCase
 import re
 
+import pytest
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
 from loris import img_info, loris_exception, webapp
+from loris.loris_exception import ConfigError
+from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
 from tests import loris_t
 
 
@@ -29,6 +32,23 @@ def _get_werkzeug_request(path):
     builder = EnvironBuilder(path=path)
     env = builder.get_environ()
     return Request(env)
+
+
+class TestDebugConfig(object):
+    def test_debug_config_gives_kakadu_transformer(self):
+        config = webapp.get_debug_config('kdu')
+        app = webapp.Loris(config)
+        assert isinstance(app.transformers['jp2'], KakaduJP2Transformer)
+
+    def test_debug_config_gives_openjpeg_transformer(self):
+        config = webapp.get_debug_config('opj')
+        app = webapp.Loris(config)
+        assert isinstance(app.transformers['jp2'], OPJ_JP2Transformer)
+
+    def test_unrecognized_debug_config_is_configerror(self):
+        with pytest.raises(ConfigError) as err:
+            webapp.get_debug_config('no_such_jp2_transformer')
+        assert 'Unrecognized debug JP2 transformer' in err.value.message
 
 
 class TestLorisRequest(TestCase):
