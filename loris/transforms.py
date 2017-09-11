@@ -323,7 +323,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
             emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
-            im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+            im = self._map_im_profile_to_srgb(im, emb_profile)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
@@ -392,7 +392,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
 
         if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
             emb_profile = cStringIO.StringIO(image_request.info.color_profile_bytes)
-            im = profileToProfile(im, emb_profile, self.srgb_profile_fp)
+            im = self._map_im_profile_to_srgb(im, emb_profile)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
