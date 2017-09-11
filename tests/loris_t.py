@@ -26,6 +26,10 @@ logger = getLogger(__name__)
 
 class LorisTest(unittest.TestCase):
 
+    def build_client_from_config(self, config):
+        self.app = Loris(config)
+        self.client = Client(self.app, BaseResponse)
+
     def setUp(self):
         self.URI_BASE = 'http://localhost'
 
@@ -36,8 +40,7 @@ class LorisTest(unittest.TestCase):
         # see http://werkzeug.pocoo.org/docs/test/
         config = get_debug_config('kdu')
         config['logging']['log_level'] = 'INFO'
-        self.app = Loris(config)
-        self.client = Client(self.app, BaseResponse)
+        self.build_client_from_config(config)
 
         # constant info about test images.
         self.test_img_dir = path.join(path.abspath(path.dirname(__file__)), 'img')
