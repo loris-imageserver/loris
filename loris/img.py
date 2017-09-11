@@ -4,6 +4,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime
+import errno
 from logging import getLogger
 from os import path, symlink, unlink, rename
 
@@ -215,10 +216,15 @@ class ImageCache(dict):
         return path.exists(self.get_request_cache_path(image_request))
 
     def __getitem__(self, image_request):
-        fp = self.get(image_request)
-        if fp is None:
-            raise KeyError(image_request)
-        return fp
+        try:
+            cache_fp = self.get_request_cache_path(image_request)
+            last_mod = datetime.utcfromtimestamp(path.getmtime(cache_fp))
+            return (cache_fp, last_mod)
+        except OSError as err:
+            if err.errno == errno.ENOENT:
+                raise KeyError(image_request)
+            else:
+                raise
 
     @staticmethod
     def _link(source, link_name):
@@ -259,11 +265,9 @@ class ImageCache(dict):
         '''Returns (str, ):
             The path to the file or None if the file does not exist.
         '''
-        cache_fp = self.get_request_cache_path(image_request)
-        last_mod = datetime.utcfromtimestamp(path.getmtime(cache_fp))
-        if path.exists(cache_fp):
-            return (cache_fp, last_mod)
-        else:
+        try:
+            return self[image_request]
+        except KeyError:
             return None
 
     def get_request_cache_path(self, image_request):
