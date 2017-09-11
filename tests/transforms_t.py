@@ -75,6 +75,7 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest):
         config['transforms']['jp2']['map_profile_to_srgb'] = True
         config['transforms']['jp2']['srgb_profile_fp'] = self.srgb_color_profile_fp
         config['loris.Loris']['enable_caching'] = False
+        self.build_client_from_config(config)
 
         image_converted = self.request_image_from_client(request_path)
 
