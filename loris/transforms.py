@@ -133,8 +133,8 @@ class _AbstractTransformer(object):
             if self.map_profile_to_srgb and 'icc_profile' in im.info:
                 embedded_profile = BytesIO(im.info['icc_profile'])
                 im = self._map_im_profile_to_srgb(im, embedded_profile)
-        except PyCMSError:
-            pass
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
 
         if image_request.rotation_param.rotation != '0' and rotate:
             r = 0-float(image_request.rotation_param.rotation)
