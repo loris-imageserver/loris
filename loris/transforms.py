@@ -27,7 +27,7 @@ from PIL.ImageOps import mirror
 # which is a user-configurable setting.  If they don't have this enabled,
 # the failure of this import isn't catastrophic.
 try:
-    from PIL.ImageCms import profileToProfile
+    from PIL.ImageCms import profileToProfile, PyCMSError
     has_imagecms = True
 except ImportError:
     has_imagecms = False
@@ -129,9 +129,12 @@ class _AbstractTransformer(object):
         if image_request.rotation_param.mirror:
             im = mirror(im)
 
-        if self.map_profile_to_srgb and 'icc_profile' in im.info:
-            embedded_profile = BytesIO(im.info['icc_profile'])
-            im = self._map_im_profile_to_srgb(im, embedded_profile)
+        try:
+            if self.map_profile_to_srgb and 'icc_profile' in im.info:
+                embedded_profile = BytesIO(im.info['icc_profile'])
+                im = self._map_im_profile_to_srgb(im, embedded_profile)
+        except PyCMSError:
+            pass
 
         if image_request.rotation_param.rotation != '0' and rotate:
             r = 0-float(image_request.rotation_param.rotation)
