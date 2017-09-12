@@ -183,6 +183,26 @@ class Test_PILTransformer(loris_t.LorisTest, ColorConversionMixin):
             transformer='jpg'
         )
 
+    def test_editing_embedded_color_profile_failure_is_not_error(self):
+        ident = self.test_jpeg_with_embedded_cmyk_profile_id
+        request_path = '/%s/full/full/0/default.jpg' % ident
+
+        image_orig = self.request_image_from_client(request_path)
+
+        # Set up an instance of the client with color profile editing.
+        # We need to disable caching so the new request doesn't pick up
+        # the cached image.
+        config = get_debug_config('kdu')
+        config['transforms']['jpg']['map_profile_to_srgb'] = True
+        config['transforms']['jpg']['srgb_profile_fp'] = self.srgb_color_profile_fp
+        config['loris.Loris']['enable_caching'] = False
+        self.build_client_from_config(config)
+
+        image_converted = self.request_image_from_client(request_path)
+
+        # Now fetch the image, and check that it remains unmodified.
+        self.assertEqual(image_orig.histogram(), image_converted.histogram())
+
 
 def suite():
     test_suites = []
