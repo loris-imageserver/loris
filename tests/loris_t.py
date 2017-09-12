@@ -126,6 +126,10 @@ class LorisTest(unittest.TestCase):
         self.test_jpeg_with_embedded_profile_id = 'jpeg_with_p3_profile.jpg'
         self.test_jpeg_with_embedded_profile_fp = path.join(self.test_img_dir, self.test_jpeg_with_embedded_profile_id)
 
+        # A JPEG with an embedded CMYK profile.  Public domain image downloaded
+        # from https://commons.wikimedia.org/wiki/File:Frog_logo_CMYK.jpg
+        self.test_jpeg_with_embedded_cmyk_profile_id = 'jpeg_with_cmyk_profile.jpg'
+
         self.test_jp2_with_precincts_id = 'sul_precincts.jp2'
         self.test_jp2_with_precincts_fp = path.join(self.test_img_dir,self.test_jp2_with_precincts_id)
         self.test_jp2_with_precincts_fmt = 'jp2'
