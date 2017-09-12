@@ -335,9 +335,12 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             map(logger.error, opj_decompress_proc.stderr)
         unlink(fifo_fp)
 
-        if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = BytesIO(image_request.info.color_profile_bytes)
-            im = self._map_im_profile_to_srgb(im, emb_profile)
+        try:
+            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+                im = self._map_im_profile_to_srgb(im, emb_profile)
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
@@ -404,9 +407,12 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                 map(logger.error, stderrdata)
             unlink(fifo_fp)
 
-        if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = BytesIO(image_request.info.color_profile_bytes)
-            im = self._map_im_profile_to_srgb(im, emb_profile)
+        try:
+            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+                im = self._map_im_profile_to_srgb(im, emb_profile)
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
