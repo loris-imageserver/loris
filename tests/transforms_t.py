@@ -29,25 +29,30 @@ class ColorConversionMixin:
     """
 
     def _assert_can_edit_embedded_color_profile(self, ident, transformer, debug_config='kdu'):
-        request_path = '/%s/full/full/0/default.jpg' % ident
+        # Rotating images can modify the color profile, so we test both
+        # with and without rotation.
+        for rotation in ('0', '30'):
 
-        image_orig = self.request_image_from_client(request_path)
+            request_path = '/%s/full/full/%s/default.jpg' % (ident, rotation)
 
-        # Set up an instance of the client with color profile editing.
-        # We need to disable caching so the new request doesn't pick up
-        # the cached image.
-        config = get_debug_config(debug_config)
-        config['transforms'][transformer]['map_profile_to_srgb'] = True
-        config['transforms'][transformer]['srgb_profile_fp'] = self.srgb_color_profile_fp
-        config['loris.Loris']['enable_caching'] = False
-        self.build_client_from_config(config)
+            image_orig = self.request_image_from_client(request_path)
 
-        image_converted = self.request_image_from_client(request_path)
+            # Set up an instance of the client with color profile editing.
+            # We need to disable caching so the new request doesn't pick up
+            # the cached image.
+            config = get_debug_config(debug_config)
+            config['transforms'][transformer]['map_profile_to_srgb'] = True
+            config['transforms'][transformer]['srgb_profile_fp'] = self.srgb_color_profile_fp
+            config['loris.Loris']['enable_caching'] = False
+            self.build_client_from_config(config)
 
-        # Now check that the image pixels have been edited -- this means
-        # that the color profile has changed.  Because image conversion isn't
-        # stable across platforms, this is the best we can do for now.
-        self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
+            image_converted = self.request_image_from_client(request_path)
+
+            # Now check that the image pixels have been edited -- this means
+            # that the color profile has changed.  Because image conversion
+            # isn't stable across platforms, this is the best we can do for now.
+            # TODO: Maybe try image hashing here?
+            self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
 
 class ExampleTransformer(transforms._AbstractTransformer):
