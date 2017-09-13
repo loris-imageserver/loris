@@ -339,11 +339,14 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     def copy_to_cache(self, ident):
         ident = unquote(ident)
-        cache_dir = self.cache_dir_path(ident)
-        mkdir_p(cache_dir)
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
+        assert source_url is not None
+
+        cache_dir = self.cache_dir_path(ident)
+        mkdir_p(cache_dir)
+
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
                 public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
@@ -401,36 +404,59 @@ class SimpleHTTPResolver(_AbstractResolver):
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
-    '''HTTP resolver that suppors multiple configurable patterns for supported
-    urls.  Based on SimpleHTTPResolver.  Identifiers in URLs should be
-    specified as `template_name:id`.
+    """
+    An HTTP resolver that supports multiple configurable patterns for
+    supported URLs.  It is based on SimpleHTTPResolver.  Identifiers in URLs
+    should be specified as ``template_name:id``.
 
-    The configuration MUST contain
-     * `cache_root`, which is the absolute path to the directory where source images
-        should be cached.
+    It has the same mandatory config as SimpleHTTPResolver (must specify
+    ``cache_root``, one of ``source_prefix`` or ``uri_resolvable=True``).
 
-    The configuration SHOULD contain
-     * `templates`, a comma-separated list of template names e.g.
-        templates=`site1,site2`
-     * A subsection named for each template, e.g. `[[site1]]`. This subsection
-       MUST contain a `url`, which is a url pattern for each specified template, e.g.
-       url='http://example.edu/images/%s' or
-       url='http://example.edu/images/%s/master'. It MAY also contain other keys
-       from the SimpleHTTPResolver configuration to provide a per-template
-       override of these options. Overridable keys are `user`, `pw`,
-       `ssl_check`, `cert`, and `key`.
+    The configuration should contain:
 
-    Note that if a template is listed but has no pattern configured, the
-    resolver will warn but not fail.
+    *   ``templates``, a comma-separated list of template names.  For example:
 
-    The configuration may also include the following settings, as used by
-    SimpleHTTPResolver:
-     * `default_format`, the format of images (will use content-type of
-        response if not specified).
-     * `head_resolvable` with value True, whether to make HEAD requests
-        to verify object existence (don't set if using Fedora Commons
-        prior to 3.8).  [Currently must be the same for all templates]
-    '''
+            templates = 'site1,site2'
+
+    *   A named subsection for each template.  This subsection MUST contain
+        a ``url``, with a URL pattern for each template.  For example:
+
+            [[site1]]
+            url = 'http://example.edu/images/%'
+
+            [[site2]]
+            url = 'https://example.edu/images/%s/master'
+
+        Each subsection MAY also contain other keys from the SimpleHTTPResolver
+        configuration to provide a per-template override of each of these
+        options -- ``user``, ``pw``, ``ssl_check``, ``cert`` and ``key``.
+
+    If a template is listed but has no pattern configured, the resolver
+    will warn but not error.
+
+    If a template has multiple fill-in sections, you can pass a ``delimiter``
+    option to the global config.  When an identifier is received, it will
+    be split on this delimiter to get the different parts.  For example:
+
+        templates = 'site'
+        delimiter = '|'
+
+        [[site]]
+        url = 'http://example.edu/images/%/dir/%s'
+
+    Making a request for identifier ``site:red|yellow`` would resolve to the
+    URL ``http://example.edu/images/red/dir/yellow``.
+
+    The configuration may also include the following settings, as used
+    by SimpleHTTPResolver:
+
+    *   ``default_format``, the format of images (will use the Content-Type
+        of the response if unspecified)
+    *   ``head_resolvable`` with value True, whether to make HEAD requests
+        to validate object existence (don't set if using Fedora Commons
+        prior to 3.8.)  [Currently must be the same for all templates.]
+
+    """
     def __init__(self, config):
         # required for simplehttpresolver
         # all templates are assumed to be uri resolvable
@@ -456,35 +482,41 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # only split identifiers that look like template ids;
         # ignore other requests (e.g. favicon)
         if ':' not in ident:
-            return (None, {})
-        prefix, ident = ident.split(':', 1)
+            logger.warn('Bad URL request for identifier: %r.', ident)
+            public_message = 'Bad URL request made for identifier: %r.' % ident
+            raise ResolverException(404, public_message)
 
-        url = None
-        if 'delimiter' in self.config:
-            # uses delimiter of choice from config file to split identifier
-            # into tuple that will be fed to template
-            ident_components = ident.split(self.config['delimiter'])
-            if prefix in self.templates:
-                url = self.templates[prefix]['url'] % tuple(ident_components)
-        else:
-            if prefix in self.templates:
-                url = self.templates[prefix]['url'] % ident
-        if url is None:
-            # if prefix is not recognized, no identifier is returned
-            # and loris will return a 404
-            return (None, {})
-        else:
-            # first get the generic options
-            options = self.request_options()
-            # then add any template-specific ones
-            conf = self.templates[prefix]
-            if 'cert' in conf and 'key' in conf:
-                options['cert'] = (conf['cert'], conf['key'])
-            if 'user' in conf and 'pw' in conf:
-                options['auth'] = (conf['user'], conf['pw'])
-            if 'ssl_check' in conf:
-                options['verify'] = conf['ssl_check']
-            return (url, options)
+        prefix, ident_parts = ident.split(':', 1)
+
+        try:
+            url_template = self.templates[prefix]['url']
+        except KeyError:
+            logger.warn('No template found for identifier: %r.', ident)
+            public_message = 'Bad URL request made for identifier: %r.' % ident
+            raise ResolverException(404, public_message)
+
+        try:
+            url = url_template % tuple(ident_parts.split(self.config['delimiter']))
+        except KeyError:
+            url = url_template % ident_parts
+        except TypeError as e:
+            # Raised if there are more parts in the ident than spaces in
+            # the template, e.g. '%s' % (1, 2).
+            logger.warn('TypeError raised when processing identifier: %r (%r).', (ident, e))
+            public_message = 'Bad URL request made for identifier: %r.' % ident
+            raise ResolverException(404, public_message)
+
+        # Get the generic options
+        options = self.request_options()
+        # Then add any template-specific ones
+        conf = self.templates[prefix]
+        if 'cert' in conf and 'key' in conf:
+            options['cert'] = (conf['cert'], conf['key'])
+        if 'user' in conf and 'pw' in conf:
+            options['auth'] = (conf['user'], conf['pw'])
+        if 'ssl_check' in conf:
+            options['verify'] = conf['ssl_check']
+        return (url, options)
 
 
 class SourceImageCachingResolver(_AbstractResolver):
