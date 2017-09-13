@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import copy
 from os.path import dirname
 from os.path import isfile
 from os.path import join
@@ -361,8 +362,7 @@ class Test_TemplateHTTPResolver(object):
         ({'ssl_check': False}, {'verify': False}),
     ])
     def test_adding_options_to_parsed_uri(self, config, expected_options):
-        new_config = {k: v for k, v in self.config.items()}
-        print(new_config)
+        new_config = copy.deepcopy(self.config)
         new_config['a'].update(config)
         resolver = TemplateHTTPResolver(new_config)
         _, options = resolver._web_request_url('a:id1.jpg')
