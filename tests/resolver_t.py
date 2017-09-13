@@ -319,7 +319,7 @@ class Test_TemplateHTTPResolver(object):
 
     delimited_config = {
         'cache_root' : '/var/cache/loris',
-        'templates': 'delim',
+        'templates': 'delim1, delim2',
         'delimiter': '|',
         'delim1': {
             'url': 'http://mysite.com/images/%s/access/%s'
@@ -330,16 +330,16 @@ class Test_TemplateHTTPResolver(object):
     }
 
     @pytest.mark.parametrize('ident, expected_uri', [
-        ('delim:foo|bar', 'http://mysite.com/images/foo/access/bar'),
+        ('delim1:foo|bar', 'http://mysite.com/images/foo/access/bar'),
         ('delim2:red|green|blue', 'http://anothersite.com/img/red/files/green/dir/blue'),
     ])
     def test_using_delimiters_for_template(self, ident, expected_uri):
         resolver = TemplateHTTPResolver(self.delimited_config)
-        uri, _ = resolver._web_request_url('delim:foo|bar')
+        uri, _ = resolver._web_request_url(ident)
         assert uri == expected_uri
 
     @pytest.mark.parametrize('bad_ident', [
-        'delim:up|down|left|right',
+        'delim1:up|down|left|right',
         'nodelim',
     ])
     def test_bad_delimited_ident_is_resolvererror(self, bad_ident):
