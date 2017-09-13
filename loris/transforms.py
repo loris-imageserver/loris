@@ -27,7 +27,7 @@ from PIL.ImageOps import mirror
 # which is a user-configurable setting.  If they don't have this enabled,
 # the failure of this import isn't catastrophic.
 try:
-    from PIL.ImageCms import profileToProfile
+    from PIL.ImageCms import profileToProfile, PyCMSError
     has_imagecms = True
 except ImportError:
     has_imagecms = False
@@ -129,6 +129,13 @@ class _AbstractTransformer(object):
         if image_request.rotation_param.mirror:
             im = mirror(im)
 
+        try:
+            if self.map_profile_to_srgb and 'icc_profile' in im.info:
+                embedded_profile = BytesIO(im.info['icc_profile'])
+                im = self._map_im_profile_to_srgb(im, embedded_profile)
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
+
         if image_request.rotation_param.rotation != '0' and rotate:
             r = 0-float(image_request.rotation_param.rotation)
 
@@ -155,10 +162,6 @@ class _AbstractTransformer(object):
                 # not 1-bit w. JPG
                 dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
                 im = im.convert('1', dither=dither)
-
-        if self.map_profile_to_srgb and 'icc_profile' in im.info:
-            embedded_profile = BytesIO(im.info['icc_profile'])
-            im = self._map_im_profile_to_srgb(im, embedded_profile)
 
         if image_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
@@ -332,9 +335,12 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             map(logger.error, opj_decompress_proc.stderr)
         unlink(fifo_fp)
 
-        if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = BytesIO(image_request.info.color_profile_bytes)
-            im = self._map_im_profile_to_srgb(im, emb_profile)
+        try:
+            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+                im = self._map_im_profile_to_srgb(im, emb_profile)
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
@@ -401,9 +407,12 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                 map(logger.error, stderrdata)
             unlink(fifo_fp)
 
-        if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-            emb_profile = BytesIO(image_request.info.color_profile_bytes)
-            im = self._map_im_profile_to_srgb(im, emb_profile)
+        try:
+            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+                im = self._map_im_profile_to_srgb(im, emb_profile)
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
 
         self._derive_with_pil(im, target_fp, image_request, crop=False)
 
