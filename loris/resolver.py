@@ -339,8 +339,6 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     def copy_to_cache(self, ident):
         ident = unquote(ident)
-        cache_dir = self.cache_dir_path(ident)
-        mkdir_p(cache_dir)
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
@@ -353,6 +351,9 @@ class SimpleHTTPResolver(_AbstractResolver):
             )
             logger.warn('Unable to determine source URL for ident %r', ident)
             raise ResolverException(404, public_message)
+
+        cache_dir = self.cache_dir_path(ident)
+        mkdir_p(cache_dir)
 
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
