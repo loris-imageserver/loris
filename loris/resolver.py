@@ -342,15 +342,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
-
-        # If we can't find a source URL to retrieve the image from, there's
-        # no point trying to look it up.
-        if source_url is None:
-            public_message = (
-                'Source image not found for identifier: %s.' % ident
-            )
-            logger.warn('Unable to determine source URL for ident %r', ident)
-            raise ResolverException(404, public_message)
+        assert source_url is not None
 
         cache_dir = self.cache_dir_path(ident)
         mkdir_p(cache_dir)
@@ -467,35 +459,41 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # only split identifiers that look like template ids;
         # ignore other requests (e.g. favicon)
         if ':' not in ident:
-            return (None, {})
-        prefix, ident = ident.split(':', 1)
+            logger.warn('Bad URL request for identifier: %r.', ident)
+            public_message = 'Bad URL request made for identifier: %r.' % ident
+            raise ResolverException(404, public_message)
 
-        url = None
-        if 'delimiter' in self.config:
-            # uses delimiter of choice from config file to split identifier
-            # into tuple that will be fed to template
-            ident_components = ident.split(self.config['delimiter'])
-            if prefix in self.templates:
-                url = self.templates[prefix]['url'] % tuple(ident_components)
-        else:
-            if prefix in self.templates:
-                url = self.templates[prefix]['url'] % ident
-        if url is None:
-            # if prefix is not recognized, no identifier is returned
-            # and loris will return a 404
-            return (None, {})
-        else:
-            # first get the generic options
-            options = self.request_options()
-            # then add any template-specific ones
-            conf = self.templates[prefix]
-            if 'cert' in conf and 'key' in conf:
-                options['cert'] = (conf['cert'], conf['key'])
-            if 'user' in conf and 'pw' in conf:
-                options['auth'] = (conf['user'], conf['pw'])
-            if 'ssl_check' in conf:
-                options['verify'] = conf['ssl_check']
-            return (url, options)
+        prefix, ident_parts = ident.split(':', 1)
+
+        try:
+            url_template = self.templates[prefix]['url']
+        except KeyError:
+            logger.warn('No template found for identifier: %r.', ident)
+            public_message = 'Bad URL request made for identifier: %r.' % ident
+            raise ResolverException(404, public_message)
+
+        try:
+            url = url_template % tuple(ident_parts.split(self.config['delimiter']))
+        except KeyError:
+            url = url_template % ident_parts
+        except TypeError as e:
+            # Raised if there are more parts in the ident than spaces in
+            # the template, e.g. '%s' % (1, 2).
+            logger.warn('TypeError raised when processing identifier: %r (%r).', (ident, e))
+            public_message = 'Bad URL request made for identifier: %r.' % ident
+            raise ResolverException(404, public_message)
+
+        # Get the generic options
+        options = self.request_options()
+        # Then add any template-specific ones
+        conf = self.templates[prefix]
+        if 'cert' in conf and 'key' in conf:
+            options['cert'] = (conf['cert'], conf['key'])
+        if 'user' in conf and 'pw' in conf:
+            options['auth'] = (conf['user'], conf['pw'])
+        if 'ssl_check' in conf:
+            options['verify'] = conf['ssl_check']
+        return (url, options)
 
 
 class SourceImageCachingResolver(_AbstractResolver):
