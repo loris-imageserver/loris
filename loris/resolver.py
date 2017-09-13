@@ -344,6 +344,16 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         #get source image and write to temporary file
         (source_url, options) = self._web_request_url(ident)
+
+        # If we can't find a source URL to retrieve the image from, there's
+        # no point trying to look it up.
+        if source_url is None:
+            public_message = (
+                'Source image not found for identifier: %s.' % ident
+            )
+            logger.warn('Unable to determine source URL for ident %r', ident)
+            raise ResolverException(404, public_message)
+
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
                 public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)

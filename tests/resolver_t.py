@@ -14,6 +14,7 @@ try:
 except ImportError:  # Python 2
     from urllib import quote_plus, unquote
 
+import pytest
 import responses
 
 from loris.loris_exception import ResolverException
@@ -309,6 +310,19 @@ class Test_TemplateHTTPResolver(loris_t.LorisTest):
             self.app.resolver._web_request_url('c:foo:bar:baz')[0])
         self.assertEqual(None,
             self.app.resolver._web_request_url('unknown:id2')[0])
+
+    def test_looking_up_unrecognised_ident_is_404(self):
+        config = {
+            'cache_root' : self.app.img_cache.cache_root,
+            'templates': 'x',
+            'x': {'url': 'http://example.org/images/%s'},
+        }
+        resolver = TemplateHTTPResolver(config)
+        with pytest.raises(ResolverException) as exc:
+            resolver.copy_to_cache('foo')
+
+        assert exc.value.http_status == 404
+        assert 'Source image not found' in exc.value.message
 
 
 def suite():
