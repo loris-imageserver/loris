@@ -263,66 +263,110 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertTrue(isfile(ii.src_img_fp))
 
 
-class Test_TemplateHTTPResolver(loris_t.LorisTest):
+class Test_TemplateHTTPResolver(object):
 
-    def test_template_http_resolver(self):
-
-        # Test with no config
-        self.assertRaises(ResolverException,
-            lambda: TemplateHTTPResolver({}))
-
-        # Test with the multiple templates
-        config = {
-            'cache_root' : self.app.img_cache.cache_root,
-            'templates': 'a,b, c, d',
-            'a': {
-                'url': 'http://mysite.com/images/%s'
-            },
-            'b': {
-                'url': 'http://mysite.com/images/%s/access/'
-            },
-            'c': {
-                'url': 'http://othersite.co/img/%s'
-            }
+    config = {
+        'cache_root' : '/var/cache/loris',
+        'templates': 'a, b, c, d',
+        'a': {
+            'url': 'http://mysite.com/images/%s'
+        },
+        'b': {
+            'url': 'http://mysite.com/images/%s/access/'
+        },
+        'c': {
+            'url': 'http://othersite.co/img/%s'
         }
+    }
 
-        self.app.resolver = TemplateHTTPResolver(config)
-        self.assertEqual(self.app.resolver.cache_root, self.app.img_cache.cache_root)
-        self.assert_('a' in self.app.resolver.templates)
-        self.assert_('b' in self.app.resolver.templates)
-        self.assert_('c' in self.app.resolver.templates)
-        self.assert_('d' not in self.app.resolver.templates)
-        self.assertEqual(self.app.resolver.templates['a'],
-            config['a'])
-        self.assertEqual(self.app.resolver.templates['b'],
-            config['b'])
-        self.assertEqual(self.app.resolver.templates['c'],
-            config['c'])
-        # automatically set for simple http resolver
-        self.assertEqual(self.app.resolver.uri_resolvable, True)
+    def test_template_http_resolver_with_no_config_is_error(self):
+        with pytest.raises(ResolverException):
+            TemplateHTTPResolver({})
 
-        # test web request uri logic
-        self.assertEqual('http://mysite.com/images/foo.jpg',
-            self.app.resolver._web_request_url('a:foo.jpg')[0])
-        self.assertEqual('http://mysite.com/images/id1/access/',
-            self.app.resolver._web_request_url('b:id1')[0])
-        self.assertEqual('http://othersite.co/img/foo:bar:baz',
-            self.app.resolver._web_request_url('c:foo:bar:baz')[0])
-        self.assertEqual(None,
-            self.app.resolver._web_request_url('unknown:id2')[0])
+    def test_parsing_template_http_resolver_config(self):
+        resolver = TemplateHTTPResolver(self.config)
+        assert resolver.cache_root == self.config['cache_root']
 
-    def test_looking_up_unrecognised_ident_is_404(self):
-        config = {
-            'cache_root' : self.app.img_cache.cache_root,
-            'templates': 'x',
-            'x': {'url': 'http://example.org/images/%s'},
-        }
-        resolver = TemplateHTTPResolver(config)
+        assert resolver.templates['a'] == self.config['a']
+        assert resolver.templates['b'] == self.config['b']
+        assert resolver.templates['c'] == self.config['c']
+        assert 'd' not in resolver.templates
+
+        # Automatically set by SimpleHTTPResolver
+        assert resolver.uri_resolvable
+
+    @pytest.mark.parametrize('ident, expected_uri', [
+        ('a:foo.jpg', 'http://mysite.com/images/foo.jpg'),
+        ('b:id1', 'http://mysite.com/images/id1/access/'),
+        ('c:foo:bar:baz', 'http://othersite.co/img/foo:bar:baz'),
+    ])
+    def test_web_request_uri_logic(self, ident, expected_uri):
+        resolver = TemplateHTTPResolver(self.config)
+        uri, _ = resolver._web_request_url(ident)
+        assert uri == expected_uri
+
+    @pytest.mark.parametrize('bad_ident', [
+        'foo',
+        'unknown:id2',
+    ])
+    def test_bad_ident_is_resolvererror(self, bad_ident):
+        resolver = TemplateHTTPResolver(self.config)
         with pytest.raises(ResolverException) as exc:
-            resolver.copy_to_cache('foo')
-
+            resolver._web_request_url(bad_ident)
         assert exc.value.http_status == 404
-        assert 'Source image not found' in exc.value.message
+        assert 'Bad URL request' in exc.value.message
+
+    delimited_config = {
+        'cache_root' : '/var/cache/loris',
+        'templates': 'delim',
+        'delimiter': '|',
+        'delim1': {
+            'url': 'http://mysite.com/images/%s/access/%s'
+        },
+        'delim2': {
+            'url': 'http://anothersite.com/img/%s/files/%s/dir/%s'
+        }
+    }
+
+    @pytest.mark.parametrize('ident, expected_uri', [
+        ('delim:foo|bar', 'http://mysite.com/images/foo/access/bar'),
+        ('delim2:red|green|blue', 'http://anothersite.com/img/red/files/green/dir/blue'),
+    ])
+    def test_using_delimiters_for_template(self, ident, expected_uri):
+        resolver = TemplateHTTPResolver(self.delimited_config)
+        uri, _ = resolver._web_request_url('delim:foo|bar')
+        assert uri == expected_uri
+
+    @pytest.mark.parametrize('bad_ident', [
+        'delim:up|down|left|right',
+        'nodelim',
+    ])
+    def test_bad_delimited_ident_is_resolvererror(self, bad_ident):
+        resolver = TemplateHTTPResolver(self.delimited_config)
+        with pytest.raises(ResolverException) as exc:
+            resolver._web_request_url(bad_ident)
+        assert exc.value.http_status == 404
+        assert 'Bad URL request' in exc.value.message
+
+    @pytest.mark.parametrize('config, expected_options', [
+        ({'cert': '/home/cert.pem'},
+         {'verify': True}),
+        ({'cert': '/home/cert.pem', 'key': '/home/key.pem'},
+         {'cert': ('/home/cert.pem', '/home/key.pem'), 'verify': True}),
+        ({'user': 'loris'},
+         {'verify': True}),
+        ({'user': 'loris', 'pw': 'l3mur'},
+         {'auth': ('loris', 'l3mur'), 'verify': True}),
+        ({'ssl_check': True}, {'verify': True}),
+        ({'ssl_check': False}, {'verify': False}),
+    ])
+    def test_adding_options_to_parsed_uri(self, config, expected_options):
+        new_config = {k: v for k, v in self.config.items()}
+        print(new_config)
+        new_config['a'].update(config)
+        resolver = TemplateHTTPResolver(new_config)
+        _, options = resolver._web_request_url('a:id1.jpg')
+        assert options == expected_options
 
 
 def suite():
