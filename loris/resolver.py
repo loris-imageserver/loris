@@ -404,36 +404,59 @@ class SimpleHTTPResolver(_AbstractResolver):
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
-    '''HTTP resolver that suppors multiple configurable patterns for supported
-    urls.  Based on SimpleHTTPResolver.  Identifiers in URLs should be
-    specified as `template_name:id`.
+    """
+    An HTTP resolver that supports multiple configurable patterns for
+    supported URLs.  It is based on SimpleHTTPResolver.  Identifiers in URLs
+    should be specified as ``template_name:id``.
 
-    The configuration MUST contain
-     * `cache_root`, which is the absolute path to the directory where source images
-        should be cached.
+    It has the same mandatory config as SimpleHTTPResolver (must specify
+    ``cache_root``, one of ``source_prefix`` or ``uri_resolvable=True``).
 
-    The configuration SHOULD contain
-     * `templates`, a comma-separated list of template names e.g.
-        templates=`site1,site2`
-     * A subsection named for each template, e.g. `[[site1]]`. This subsection
-       MUST contain a `url`, which is a url pattern for each specified template, e.g.
-       url='http://example.edu/images/%s' or
-       url='http://example.edu/images/%s/master'. It MAY also contain other keys
-       from the SimpleHTTPResolver configuration to provide a per-template
-       override of these options. Overridable keys are `user`, `pw`,
-       `ssl_check`, `cert`, and `key`.
+    The configuration should contain:
 
-    Note that if a template is listed but has no pattern configured, the
-    resolver will warn but not fail.
+    *   ``templates``, a comma-separated list of template names.  For example:
 
-    The configuration may also include the following settings, as used by
-    SimpleHTTPResolver:
-     * `default_format`, the format of images (will use content-type of
-        response if not specified).
-     * `head_resolvable` with value True, whether to make HEAD requests
-        to verify object existence (don't set if using Fedora Commons
-        prior to 3.8).  [Currently must be the same for all templates]
-    '''
+            templates = 'site1,site2'
+
+    *   A named subsection for each template.  This subsection MUST contain
+        a ``url``, with a URL pattern for each template.  For example:
+
+            [[site1]]
+            url = 'http://example.edu/images/%'
+
+            [[site2]]
+            url = 'https://example.edu/images/%s/master'
+
+        Each subsection MAY also contain other keys from the SimpleHTTPResolver
+        configuration to provide a per-template override of each of these
+        options -- ``user``, ``pw``, ``ssl_check``, ``cert`` and ``key``.
+
+    If a template is listed but has no pattern configured, the resolver
+    will warn but not error.
+
+    If a template has multiple fill-in sections, you can pass a ``delimiter``
+    option to the global config.  When an identifier is received, it will
+    be split on this delimiter to get the different parts.  For example:
+
+        templates = 'site'
+        delimiter = '|'
+
+        [[site]]
+        url = 'http://example.edu/images/%/dir/%s'
+
+    Making a request for identifier ``site:red|yellow`` would resolve to the
+    URL ``http://example.edu/images/red/dir/yellow``.
+
+    The configuration may also include the following settings, as used
+    by SimpleHTTPResolver:
+
+    *   ``default_format``, the format of images (will use the Content-Type
+        of the response if unspecified)
+    *   ``head_resolvable`` with value True, whether to make HEAD requests
+        to validate object existence (don't set if using Fedora Commons
+        prior to 3.8.)  [Currently must be the same for all templates.]
+
+    """
     def __init__(self, config):
         # required for simplehttpresolver
         # all templates are assumed to be uri resolvable
