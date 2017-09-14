@@ -119,7 +119,6 @@ class ImageInfo(object):
         new_inst.src_img_fp = j.get('_src_img_fp', '')
         new_inst.src_format = j.get('_src_format', '')
         new_inst.auth_rules = j.get('_auth_rules', {})
-        f.close()
 
         return new_inst
 
@@ -463,8 +462,7 @@ class InfoCache(object):
 
         with open(info_fp, 'w') as f:
             f.write(info.to_json(cache=True))
-            f.close()
-            logger.debug('Created %s', info_fp)
+        logger.debug('Created %s', info_fp)
 
 
         if info.color_profile_bytes:
