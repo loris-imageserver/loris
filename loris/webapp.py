@@ -500,7 +500,7 @@ class Loris(object):
             callback = request.args.get('callback', None)
             if callback:
                 r.mimetype = 'application/javascript'
-                r.data = '%s(%s);' % (callback, info.to_json())
+                r.data = '%s(%s);' % (callback, info.to_iiif_json())
             else:
                 if request.headers.get('accept') == 'application/ld+json':
                     r.content_type = 'application/ld+json'
@@ -508,7 +508,7 @@ class Loris(object):
                     r.content_type = 'application/json'
                     l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                     r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                r.data = info.to_json()
+                r.data = info.to_iiif_json()
         return r
 
     def _get_info(self,ident,request,base_uri):

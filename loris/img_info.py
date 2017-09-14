@@ -314,8 +314,8 @@ class ImageInfo(object):
     def scale_dim(dim_len, scale):
         return int(ceil(dim_len * 1.0/scale))
 
-    def to_dict(self):
-        logger.debug('self.ident in to_dict: %s', self.ident)
+    def _get_iiif_info(self):
+        #returns only IIIF info (not Loris-specific info like src_format)
         d = {}
         d['@context'] = CONTEXT
         d['@id'] = self.ident
@@ -337,20 +337,17 @@ class ImageInfo(object):
 
         return d
 
-    def to_json(self, cache=False):
-        '''Serialize as json.
-        Returns:
-            str (json)
-        '''
-        d = self.to_dict()
-
-        if cache:
-            # Add in internal properties for caching
-            d['_src_img_fp'] = self.src_img_fp
-            d['_src_format'] = self.src_format
-            d['_auth_rules'] = self.auth_rules
-
+    def to_iiif_json(self):
+        d = self._get_iiif_info()
         return json.dumps(d)
+
+    def to_full_info_json(self):
+        d = self._get_iiif_info()
+        d['_src_img_fp'] = self.src_img_fp
+        d['_src_format'] = self.src_format
+        d['_auth_rules'] = self.auth_rules
+        return json.dumps(d)
+
 
 class InfoCache(object):
     """A dict-like cache for ImageInfo objects. The n most recently used are
@@ -461,7 +458,7 @@ class InfoCache(object):
         logger.debug('Created %s', dp)
 
         with open(info_fp, 'w') as f:
-            f.write(info.to_json(cache=True))
+            f.write(info.to_full_info_json())
         logger.debug('Created %s', info_fp)
 
 
