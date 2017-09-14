@@ -38,6 +38,20 @@ $ python -m unittest tests.resolver_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
+check_options_test_cases = [
+    ({'cert': '/home/cert.pem'}, {'verify': True}),
+    ({'cert': '/home/cert.pem', 'key': '/home/key.pem'},
+     {'cert': ('/home/cert.pem', '/home/key.pem'), 'verify': True}),
+    ({'user': 'loris'}, {'verify': True}),
+    ({'user': 'loris', 'pw': 'l3mur'},
+     {'auth': ('loris', 'l3mur'), 'verify': True}),
+    ({'cert': '/home/cert.pem', 'key': '/home/key.pem', 'user': 'loris', 'pw': 'l3mur'},
+     {'cert': ('/home/cert.pem', '/home/key.pem'), 'auth': ('loris', 'l3mur'), 'verify': True}),
+    ({'ssl_check': True}, {'verify': True}),
+    ({'ssl_check': False}, {'verify': False}),
+]
+
+
 class Test_AbstractResolver(unittest.TestCase):
 
     def test_format_from_ident(self):
@@ -49,6 +63,16 @@ class Test_AbstractResolver(unittest.TestCase):
             _AbstractResolver(None).format_from_ident('datastream/content')
         with self.assertRaises(ResolverException):
             _AbstractResolver(None).format_from_ident('datastream/content.master')
+
+    def test_is_resolvable_is_notimplementederror(self):
+        resolver = _AbstractResolver(None)
+        with pytest.raises(NotImplementedError):
+            resolver.is_resolvable('001.jpg')
+
+    def test_resolve_is_notimplementederror(self):
+        resolver = _AbstractResolver(None)
+        with pytest.raises(NotImplementedError):
+            resolver.resolve(app=None, ident='001.jpg', base_uri='example.org')
 
 
 class Test_SimpleFSResolver(loris_t.LorisTest):
@@ -264,6 +288,20 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertTrue(isfile(ii.src_img_fp))
 
 
+class TestSimpleHTTPResolver(object):
+
+    @pytest.mark.parametrize('config, expected_options',
+                             check_options_test_cases)
+    def test_request_options_self(self):
+        # Uninteresting for this test, but required so we have a
+        # valid config set
+        config['cache_root'] = '/var/cache/loris'
+        config['uri_resolvable'] = True
+
+        resolver = SimpleHTTPResolver(config)
+        assert resolver.request_options() == expected_options
+
+
 class Test_TemplateHTTPResolver(object):
 
     config = {
@@ -349,18 +387,8 @@ class Test_TemplateHTTPResolver(object):
         assert exc.value.http_status == 404
         assert 'Bad URL request' in exc.value.message
 
-    @pytest.mark.parametrize('config, expected_options', [
-        ({'cert': '/home/cert.pem'},
-         {'verify': True}),
-        ({'cert': '/home/cert.pem', 'key': '/home/key.pem'},
-         {'cert': ('/home/cert.pem', '/home/key.pem'), 'verify': True}),
-        ({'user': 'loris'},
-         {'verify': True}),
-        ({'user': 'loris', 'pw': 'l3mur'},
-         {'auth': ('loris', 'l3mur'), 'verify': True}),
-        ({'ssl_check': True}, {'verify': True}),
-        ({'ssl_check': False}, {'verify': False}),
-    ])
+    @pytest.mark.parametrize('config, expected_options',
+                             check_options_test_cases)
     def test_adding_options_to_parsed_uri(self, config, expected_options):
         new_config = copy.deepcopy(self.config)
         new_config['a'].update(config)
