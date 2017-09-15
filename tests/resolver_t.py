@@ -292,7 +292,7 @@ class TestSimpleHTTPResolver(object):
 
     @pytest.mark.parametrize('config, expected_options',
                              check_options_test_cases)
-    def test_request_options_self(self):
+    def test_request_options_self(self, config, expected_options):
         # Uninteresting for this test, but required so we have a
         # valid config set
         config['cache_root'] = '/var/cache/loris'
