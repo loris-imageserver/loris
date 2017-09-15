@@ -517,7 +517,9 @@ class Loris(object):
         else:
             in_cache = False
 
-        if in_cache:
+        #Checking for src_format in ImageInfo signals that it's not old cache data:
+        #   src_format should be in the cache now.
+        if in_cache and self.info_cache[request][0].src_format:
             return self.info_cache[request]
         else:
 
