@@ -8,6 +8,8 @@ from os.path import isfile
 from os.path import join
 import unittest
 
+import pytest
+
 try:
     from urllib.parse import unquote
 except ImportError:  # Python 2
@@ -27,12 +29,23 @@ $ python -m unittest tests.img_t
 from the `/loris` (not `/loris/loris`) directory.
 """
 
-class TestImageRequest(unittest.TestCase):
+class TestImageRequest(object):
 
     def test_missing_info_attribute_is_error(self):
         request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
-        with self.assertRaises(ImageException):
+        with pytest.raises(ImageException):
             request.info
+
+    @pytest.mark.parametrize('args, request_path', [
+        (('id1', 'full', 'full', '0', 'default', 'jpg'),
+         'id1/full/full/0/default.jpg'),
+        (('id2', '100,100,200,200', '200,', '30', 'gray', 'png'),
+         'id2/100,100,200,200/200,/30/gray.png'),
+    ])
+    def test_request_path(self, args, request_path):
+        request = img.ImageRequest(*args)
+        assert request.request_path == request_path
+        assert request.request_path == request_path
 
 
 class Test_ImageCache(loris_t.LorisTest):
