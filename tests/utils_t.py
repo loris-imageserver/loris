@@ -36,4 +36,3 @@ class TestMkdirP:
             with pytest.raises(RuntimeError) as err:
                 utils.mkdir_p(path)
             assert err.value.message == message
-
