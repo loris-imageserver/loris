@@ -31,8 +31,7 @@ class TestMkdirP:
 
         message = "Exception thrown in utils_t.py for TestMkdirP"
 
-        m = mock.Mock(side_effect=RuntimeError(message))
+        m = mock.Mock(side_effect=OSError(-1, message))
         with mock.patch('loris.utils.os.makedirs', m):
-            with pytest.raises(RuntimeError) as err:
+            with pytest.raises(OSError) as err:
                 utils.mkdir_p(path)
-            assert err.value.message == message
