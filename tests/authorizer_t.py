@@ -21,6 +21,21 @@ class Test_AbstractAuthorizer(unittest.TestCase):
 		aa = _AbstractAuthorizer({})
 		self.assertEqual(aa._strip_empty_fields({"a": "", "b": 0, "c": False}), {})
 
+	def test_is_protected_is_notimplementederror(self):
+		aa = _AbstractAuthorizer({})
+		with pytest.raises(NotImplementedError):
+			aa.is_protected(info={})
+
+	def test_get_services_info_is_notimplementederror(self):
+		aa = _AbstractAuthorizer({})
+		with pytest.raises(NotImplementedError):
+			aa.get_services_info(info={})
+
+	def test_is_authorized_is_notimplementederror(self):
+		aa = _AbstractAuthorizer({})
+		with pytest.raises(NotImplementedError):
+			aa.is_authorized(info={}, request=None)
+
 
 # This is mostly pointless, as the values returned are static
 class Test_NullAuthorizer(unittest.TestCase):
