@@ -7,6 +7,7 @@ import unittest
 import base64
 from cryptography.fernet import Fernet
 import jwt
+import pytest
 
 class MockRequest(object):
 
