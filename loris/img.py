@@ -180,7 +180,7 @@ class ImageRequest(object):
     @property
     def is_canonical(self):
         if self._is_canonical is None:
-            self._is_canonical = self.as_path == self.canonical_as_path
+            self._is_canonical = (self.as_path == self.canonical_as_path)
         return self._is_canonical
 
     @property

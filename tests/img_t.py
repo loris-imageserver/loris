@@ -45,8 +45,29 @@ class TestImageRequest(object):
     ])
     def test_request_path(self, args, request_path):
         request = img.ImageRequest(*args)
+
+        # Called twice for caching behaviour
         assert request.request_path == request_path
         assert request.request_path == request_path
+
+    @pytest.mark.parametrize('args, is_canonical', [
+        (('id1', 'full', 'full', '0', 'default', 'jpg'), True),
+        (('id2', 'full', 'full', '30', 'default', 'jpg'), True),
+        (('id3', 'full', '100,20', '30', 'default', 'jpg'), True),
+
+        # This is a best-fit size, so the canonical size parameter is "80,".
+        (('id4', 'full', '!80,20', '30', 'default', 'jpg'), False),
+    ])
+    def test_is_canonical(self, args, is_canonical):
+        info = img_info.ImageInfo(None)
+        info.width = 100
+        info.height = 100
+        request = img.ImageRequest(*args)
+        request.info = info
+
+        # Called twice for caching behaviour
+        assert request.is_canonical == is_canonical
+        assert request.is_canonical == is_canonical
 
 
 class Test_ImageCache(loris_t.LorisTest):
@@ -122,6 +143,13 @@ class Test_ImageCache(loris_t.LorisTest):
         with mock.patch('loris.img.path.getmtime', m):
             with pytest.raises(OSError) as err:
                 cache[request]
+
+    def test_deleting_cache_entries(self):
+        # Because this operation is a no-op, we just check we can call the
+        # __del__ method without an error.
+        cache = img.ImageCache(cache_root='/tmp')
+        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
+        del cache[request]
 
 
 def suite():
