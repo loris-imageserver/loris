@@ -6,7 +6,7 @@ from __future__ import absolute_import
 from datetime import datetime
 import errno
 from logging import getLogger
-from os import path, symlink, unlink, rename
+from os import path, rename
 
 try:
     from urllib.parse import quote_plus, unquote
@@ -15,7 +15,7 @@ except ImportError:  # Python 2
 
 from loris.loris_exception import ImageException
 from loris.parameters import RegionParameter, RotationParameter, SizeParameter
-from loris.utils import mkdir_p
+from loris.utils import mkdir_p, symlink
 
 logger = getLogger(__name__)
 
@@ -226,18 +226,6 @@ class ImageCache(dict):
             else:
                 raise
 
-    @staticmethod
-    def _link(source, link_name):
-        if source == link_name:
-            logger.warn('Circular symlink requested from %s to %s; not creating symlink', link_name, source)
-            return
-        link_dp = path.dirname(link_name)
-        mkdir_p(link_dp)
-        if path.lexists(link_name): # shouldn't be the case, but helps debugging
-            unlink(link_name)
-        symlink(source, link_name)
-        logger.debug('Made symlink from %s to %s', link_name, source)
-
     def __setitem__(self, image_request, canonical_fp):
         # Because we're working with files, it's more practical to put derived
         # images where the cache expects them when they are created (i.e. by
@@ -255,7 +243,7 @@ class ImageCache(dict):
         # transformer.
         if not image_request.is_canonical:
             requested_fp = self.get_request_cache_path(image_request)
-            ImageCache._link(canonical_fp, requested_fp)
+            symlink(src=canonical_fp, dst=requested_fp)
 
     def __delitem__(self, image_request):
         # if we ever decide to start cleaning our own cache...
