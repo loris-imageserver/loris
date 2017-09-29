@@ -492,3 +492,6 @@ class InfoCache(object):
             os.unlink(icc_fp)
 
         os.removedirs(os.path.dirname(info_fp))
+
+    def __len__(self):
+        return len(self._dict)
