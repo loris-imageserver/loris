@@ -427,6 +427,19 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get, headers=headers)
         self.assertEqual(resp.status_code, 304)
 
+    def test_info_with_callback_is_wrapped_correctly(self):
+        to_get = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
+        resp = self.client.get(to_get)
+        assert resp.status_code == 200
+
+        assert re.match(r'^mycallback\(.*\);$', resp.data)
+
+    def test_info_as_options(self):
+        to_opt = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
+        resp = self.client.options(to_opt)
+        assert resp.status_code == 200
+        assert b'Access-Control-Allow-Methods' in resp.headers
+
     def test_bad_format_returns_400(self):
         to_get = '/%s/full/full/0/default.hey' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get)
