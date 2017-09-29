@@ -8,6 +8,7 @@ from os.path import isfile
 from os.path import join
 import unittest
 
+import mock
 import pytest
 
 try:
@@ -111,6 +112,16 @@ class Test_ImageCache(loris_t.LorisTest):
         request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
 
         self.assertIsNone(cache.get(request))
+
+    def test_getitem_with_unexpected_error_is_raised(self):
+        cache = img.ImageCache(cache_root='/tmp')
+        request = img.ImageRequest('id', 'full', 'full', '0', 'default', 'jpg')
+
+        message = "Exception thrown in img_t.py for Test_ImageCache"
+        m = mock.Mock(side_effect=OSError(-1, message))
+        with mock.patch('loris.img.path.getmtime', m):
+            with pytest.raises(OSError) as err:
+                cache[request]
 
 
 def suite():
