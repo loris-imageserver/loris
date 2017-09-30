@@ -248,12 +248,12 @@ class Test_PILTransformer(loris_t.LorisTest,
 
     def test_cropping_image_top_left_corner(self):
         ident = self.test_jpeg_grid_id
-        request_path = '/%s/pct:0,0,50,50/full/0/default.jpg' % ident
+        request_path = '/%s/pct:0,0,45,45/full/0/default.jpg' % ident
         image = self.request_image_from_client(request_path)
 
         # If we select just the top left-hand corner, we expect that all
         # the pixels will be black.
-        assert image.getcolors() == [(3600, (0, 0, 0))]
+        assert image.getcolors() == [(2916, (0, 0, 0))]
 
     def test_cropping_image_top_right_corner(self):
         ident = self.test_jpeg_grid_id
@@ -264,6 +264,31 @@ class Test_PILTransformer(loris_t.LorisTest,
         # the pixels will be white.  Note that we select slightly beyond
         # halfway to avoid getting JPEG artefacts mixed in here.
         assert image.getcolors() == [(3240, (255, 255, 255))]
+
+    def test_rotation_and_mirroring(self):
+        ident = self.test_jpeg_grid_id
+
+        # If we request the image without rotation, we expect to see a
+        # black pixel in the top left-hand corner.
+        request_path = '/%s/full/full/0/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (0, 0, 0)
+
+        # Now if we rotate the image through 90 degrees, we'll see a
+        # white pixel.
+        request_path = '/%s/full/full/90/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (255, 255, 255)
+
+        # Rotation through 180 degrees gets us a red pixel
+        request_path = '/%s/full/full/180/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (254, 0, 0)
+
+        # Rotation through 180 degrees with mirroring gets us a white pixel
+        request_path = '/%s/full/full/!180/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (255, 255, 255)
 
 
 def suite():
