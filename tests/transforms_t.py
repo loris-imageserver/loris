@@ -51,7 +51,7 @@ class ColorConversionMixin:
         self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
 
-class ResizingMixin:
+class _ResizingTestMixin:
     """
     Tests that image resizing works correctly.
     """
@@ -131,7 +131,7 @@ class UnitTest_KakaduJP2Transformer(unittest.TestCase):
 
 class Test_KakaduJP2Transformer(loris_t.LorisTest,
                                 ColorConversionMixin,
-                                ResizingMixin):
+                                _ResizingTestMixin):
 
     def setUp(self):
         self.ident = self.test_jp2_color_id
@@ -174,7 +174,7 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
 class Test_PILTransformer(loris_t.LorisTest,
                           ColorConversionMixin,
-                          ResizingMixin):
+                          _ResizingTestMixin):
 
     def setUp(self):
         self.ident = self.test_jpeg_id
