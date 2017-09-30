@@ -246,6 +246,25 @@ class Test_PILTransformer(loris_t.LorisTest,
         # Now fetch the image, and check that it remains unmodified.
         self.assertEqual(image_orig.histogram(), image_converted.histogram())
 
+    def test_cropping_image_top_left_corner(self):
+        ident = self.test_jpeg_grid_id
+        request_path = '/%s/pct:0,0,50,50/full/0/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+
+        # If we select just the top left-hand corner, we expect that all
+        # the pixels will be black.
+        assert image.getcolors() == [(3600, (0, 0, 0))]
+
+    def test_cropping_image_top_right_corner(self):
+        ident = self.test_jpeg_grid_id
+        request_path = '/%s/pct:55,0,50,50/full/0/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+
+        # If we select just the top right-hand corner, we expect that all
+        # the pixels will be white.  Note that we select slightly beyond
+        # halfway to avoid getting JPEG artefacts mixed in here.
+        assert image.getcolors() == [(3240, (255, 255, 255))]
+
 
 def suite():
     test_suites = []

@@ -93,6 +93,10 @@ class LorisTest(unittest.TestCase):
         self.test_jpeg_dims = (3600,2987) # w,h
         self.test_jpeg_sizes = []
 
+        self.test_jpeg_grid_fp = path.join(self.test_img_dir, 'black_white_grid.jpg')
+        self.test_jpeg_grid_id = 'black_white_grid.jpg'
+        self.test_jpeg_grid_dims = (120, 120)
+
         self.test_tiff_fp = path.join(self.test_img_dir,'01','04','0001.tif')
         self.test_tiff_fmt = 'tif'
         self.test_tiff_id = '01%2F04%2F0001.tif'
