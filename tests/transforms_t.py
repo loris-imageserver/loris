@@ -134,6 +134,7 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest,
                                 _ResizingTestMixin):
 
     def setUp(self):
+        super(Test_KakaduJP2Transformer, self).setUp()
         self.ident = self.test_jp2_color_id
 
     def test_allows_jp2_upsample(self):
@@ -157,6 +158,7 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest,
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
     def setUp(self):
+        super(Test_OPJ_JP2Transformer, self).setUp()
         self.ident = self.test_jp2_color_id
 
     def test_can_edit_embedded_color_profile(self):
@@ -177,6 +179,7 @@ class Test_PILTransformer(loris_t.LorisTest,
                           _ResizingTestMixin):
 
     def setUp(self):
+        super(Test_PILTransformer, self).setUp()
         self.ident = self.test_jpeg_id
 
     def test_png_rotate_has_alpha_transparency(self):
