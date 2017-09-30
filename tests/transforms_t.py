@@ -290,6 +290,18 @@ class Test_PILTransformer(loris_t.LorisTest,
         image = self.request_image_from_client(request_path)
         assert image.getpixel((0, 0)) == (255, 255, 255)
 
+    def test_can_request_gif_format(self):
+        ident = self.test_jpeg_id
+        request_path = '/%s/full/full/0/default.gif' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.format == 'GIF'
+
+    def test_can_request_webp_format(self):
+        ident = self.test_jpeg_id
+        request_path = '/%s/full/full/0/default.webp' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.format == 'WEBP'
+
 
 def suite():
     test_suites = []
