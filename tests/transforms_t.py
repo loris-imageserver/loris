@@ -51,6 +51,33 @@ class ColorConversionMixin:
         self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
 
+class ResizingMixin:
+    """
+    Tests that image resizing works correctly.
+    """
+    def test_resizing_image_with_fixed_width(self):
+        request_path = '/%s/full/300,/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.width == 300
+
+    def test_resizing_image_with_fixed_height(self):
+        request_path = '/%s/full/,300/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.height == 300
+
+    def test_resizing_image_with_best_fit(self):
+        request_path = '/%s/full/300,300/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.width <= 300
+        assert image.height <= 300
+
+    def test_resizing_image_with_fixed_dimensions(self):
+        request_path = '/%s/full/420,180/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.width <= 420
+        assert image.height <= 180
+
+
 class ExampleTransformer(transforms._AbstractTransformer):
     pass
 
@@ -102,7 +129,12 @@ class UnitTest_KakaduJP2Transformer(unittest.TestCase):
         self.assertEqual(kdu_transformer.transform_timeout, 100)
 
 
-class Test_KakaduJP2Transformer(loris_t.LorisTest, ColorConversionMixin):
+class Test_KakaduJP2Transformer(loris_t.LorisTest,
+                                ColorConversionMixin,
+                                ResizingMixin):
+
+    def setUp(self):
+        self.ident = self.test_jp2_color_id
 
     def test_allows_jp2_upsample(self):
         # Makes a request rather than building everything from scratch
@@ -124,6 +156,9 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
+    def setUp(self):
+        self.ident = self.test_jp2_color_id
+
     def test_can_edit_embedded_color_profile(self):
         # By default, LorisTest uses the Kakadu transformer.  Switch to the
         # OPENJPEG transformer before we get the reference image.
@@ -137,7 +172,12 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
         )
 
 
-class Test_PILTransformer(loris_t.LorisTest, ColorConversionMixin):
+class Test_PILTransformer(loris_t.LorisTest,
+                          ColorConversionMixin,
+                          ResizingMixin):
+
+    def setUp(self):
+        self.ident = self.test_jpeg_id
 
     def test_png_rotate_has_alpha_transparency(self):
         ident = 'test.png'
