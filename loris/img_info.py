@@ -385,8 +385,8 @@ class InfoCache(object):
         self.http_root = os.path.join(root, 'http')
         self.https_root = os.path.join(root, 'https')
         self.size = size
-        self._dict = OrderedDict(last=False) # keyed with the URL, so we don't
-                                             # need toseparate HTTP and HTTPS
+        self._dict = OrderedDict()  # keyed by URL, so we don't need
+                                    # to separate HTTP and HTTPS
         self._lock = Lock()
 
     def _which_root(self, request):
@@ -492,3 +492,6 @@ class InfoCache(object):
             os.unlink(icc_fp)
 
         os.removedirs(os.path.dirname(info_fp))
+
+    def __len__(self):
+        return len(self._dict)

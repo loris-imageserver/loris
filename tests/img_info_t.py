@@ -376,6 +376,10 @@ class InfoCache(loris_t.LorisTest):
         cache[req] = info
         del cache[req]
 
+    def test_empty_cache_has_zero_size(self):
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
+        assert len(cache) == 0
+
 
 def suite():
     import unittest
