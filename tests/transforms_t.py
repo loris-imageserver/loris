@@ -302,6 +302,16 @@ class Test_PILTransformer(loris_t.LorisTest,
         image = self.request_image_from_client(request_path)
         assert image.format == 'WEBP'
 
+    def test_convert_to_bitonal_with_rotation_is_mode_la(self):
+        request_path = '/%s/full/full/45/bitonal.webp' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.mode == 'LA'
+
+    def test_convert_to_gray_with_rotation_is_mode_la(self):
+        request_path = '/%s/full/full/45/gray.webp' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.mode == 'LA'
+
 
 def suite():
     test_suites = []
