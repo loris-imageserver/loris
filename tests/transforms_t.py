@@ -317,11 +317,6 @@ class Test_PILTransformer(loris_t.LorisTest,
         image = self.request_image_from_client(request_path)
         assert image.mode == 'L'
 
-    def test_convert_to_bitonal_with_no_alpha_is_mode_1(self):
-        request_path = '/%s/full/full/0/bitonal.jpg' % self.test_jpeg_id
-        image = self.request_image_from_client(request_path)
-        assert image.mode == '1'
-
 
 def suite():
     test_suites = []
