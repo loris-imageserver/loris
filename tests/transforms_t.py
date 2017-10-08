@@ -302,15 +302,20 @@ class Test_PILTransformer(loris_t.LorisTest,
         image = self.request_image_from_client(request_path)
         assert image.format == 'WEBP'
 
-    def test_convert_to_bitonal_with_rotation_is_mode_la(self):
-        request_path = '/%s/full/full/45/bitonal.webp' % self.ident
+    def test_convert_to_bitonal_with_rotation_is_mode_LA(self):
+        request_path = '/%s/full/full/45/bitonal.png' % self.ident
         image = self.request_image_from_client(request_path)
         assert image.mode == 'LA'
 
-    def test_convert_to_gray_with_rotation_is_mode_la(self):
-        request_path = '/%s/full/full/45/gray.webp' % self.ident
+    def test_convert_to_gray_with_rotation_is_mode_LA(self):
+        request_path = '/%s/full/full/45/gray.png' % self.ident
         image = self.request_image_from_client(request_path)
         assert image.mode == 'LA'
+
+    def test_convert_to_gray_with_no_alpha_is_mode_L(self):
+        request_path = '/%s/full/full/0/gray.jpg' % self.test_jpeg_id
+        image = self.request_image_from_client(request_path)
+        assert image.mode == 'L'
 
 
 def suite():
