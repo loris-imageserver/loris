@@ -11,12 +11,7 @@ from os import path, listdir, unlink
 from shutil import rmtree
 from logging import getLogger
 
-try:
-    from cStringIO import StringIO
-except ImportError:  # Python 3
-    from io import StringIO
-
-from PIL.ImageFile import Parser
+from PIL import Image
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
@@ -181,10 +176,6 @@ class LorisTest(unittest.TestCase):
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
-        bytes = StringIO(resp.data)
-        p = Parser()
-        p.feed(bytes.read())
-        image = p.close()
-        bytes.close()
-
-        return image
+        image_bytes = StringIO(resp.data)
+        im = Image.open(image_bytes)
+        return im
