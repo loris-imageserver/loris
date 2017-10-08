@@ -18,13 +18,13 @@ OPTIONAL_FEATURES = [
 ]
 
 __formats = (
-	('gif','image/gif'),
-	('jp2','image/jp2'),
-	('jpg','image/jpeg'),
-	('pdf','application/pdf'),
-	('png','image/png'),
-	('tif','image/tiff'),
-	('webp','image/webp'),
+    ('gif','image/gif'),
+    ('jp2','image/jp2'),
+    ('jpg','image/jpeg'),
+    ('pdf','application/pdf'),
+    ('png','image/png'),
+    ('tif','image/tiff'),
+    ('webp','image/webp'),
 )
 
 FORMATS_BY_EXTENSION = dict(__formats)
