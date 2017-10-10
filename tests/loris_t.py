@@ -12,11 +12,11 @@ from shutil import rmtree
 from logging import getLogger
 
 try:
-    from cStringIO import StringIO
+    from cStringIO import StringIO as BytesIO
 except ImportError:  # Python 3
-    from io import StringIO
+    from io import BytesIO
 
-from PIL.ImageFile import Parser
+from PIL import Image
 from werkzeug.test import Client
 from werkzeug.wrappers import BaseResponse
 
@@ -92,6 +92,10 @@ class LorisTest(unittest.TestCase):
         self.test_jpeg_uri = '%s/%s' % (self.URI_BASE,self.test_jpeg_id)
         self.test_jpeg_dims = (3600,2987) # w,h
         self.test_jpeg_sizes = []
+
+        self.test_jpeg_grid_fp = path.join(self.test_img_dir, 'black_white_grid.jpg')
+        self.test_jpeg_grid_id = 'black_white_grid.jpg'
+        self.test_jpeg_grid_dims = (120, 120)
 
         self.test_tiff_fp = path.join(self.test_img_dir,'01','04','0001.tif')
         self.test_tiff_fmt = 'tif'
@@ -177,10 +181,6 @@ class LorisTest(unittest.TestCase):
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
 
-        bytes = StringIO(resp.data)
-        p = Parser()
-        p.feed(bytes.read())
-        image = p.close()
-        bytes.close()
-
-        return image
+        image_bytes = BytesIO(resp.data)
+        im = Image.open(image_bytes)
+        return im

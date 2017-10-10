@@ -51,6 +51,33 @@ class ColorConversionMixin:
         self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
 
+class _ResizingTestMixin:
+    """
+    Tests that image resizing works correctly.
+    """
+    def test_resizing_image_with_fixed_width(self):
+        request_path = '/%s/full/300,/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.width == 300
+
+    def test_resizing_image_with_fixed_height(self):
+        request_path = '/%s/full/,300/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.height == 300
+
+    def test_resizing_image_with_best_fit(self):
+        request_path = '/%s/full/300,300/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.width <= 300
+        assert image.height <= 300
+
+    def test_resizing_image_with_fixed_dimensions(self):
+        request_path = '/%s/full/420,180/0/default.jpg' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.width <= 420
+        assert image.height <= 180
+
+
 class ExampleTransformer(transforms._AbstractTransformer):
     pass
 
@@ -102,7 +129,13 @@ class UnitTest_KakaduJP2Transformer(unittest.TestCase):
         self.assertEqual(kdu_transformer.transform_timeout, 100)
 
 
-class Test_KakaduJP2Transformer(loris_t.LorisTest, ColorConversionMixin):
+class Test_KakaduJP2Transformer(loris_t.LorisTest,
+                                ColorConversionMixin,
+                                _ResizingTestMixin):
+
+    def setUp(self):
+        super(Test_KakaduJP2Transformer, self).setUp()
+        self.ident = self.test_jp2_color_id
 
     def test_allows_jp2_upsample(self):
         # Makes a request rather than building everything from scratch
@@ -124,6 +157,10 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
+    def setUp(self):
+        super(Test_OPJ_JP2Transformer, self).setUp()
+        self.ident = self.test_jp2_color_id
+
     def test_can_edit_embedded_color_profile(self):
         # By default, LorisTest uses the Kakadu transformer.  Switch to the
         # OPENJPEG transformer before we get the reference image.
@@ -137,7 +174,13 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
         )
 
 
-class Test_PILTransformer(loris_t.LorisTest, ColorConversionMixin):
+class Test_PILTransformer(loris_t.LorisTest,
+                          ColorConversionMixin,
+                          _ResizingTestMixin):
+
+    def setUp(self):
+        super(Test_PILTransformer, self).setUp()
+        self.ident = self.test_jpeg_id
 
     def test_png_rotate_has_alpha_transparency(self):
         ident = 'test.png'
@@ -202,6 +245,77 @@ class Test_PILTransformer(loris_t.LorisTest, ColorConversionMixin):
 
         # Now fetch the image, and check that it remains unmodified.
         self.assertEqual(image_orig.histogram(), image_converted.histogram())
+
+    def test_cropping_image_top_left_corner(self):
+        ident = self.test_jpeg_grid_id
+        request_path = '/%s/pct:0,0,45,45/full/0/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+
+        # If we select just the top left-hand corner, we expect that all
+        # the pixels will be black.
+        assert image.getcolors() == [(2916, (0, 0, 0))]
+
+    def test_cropping_image_top_right_corner(self):
+        ident = self.test_jpeg_grid_id
+        request_path = '/%s/pct:55,0,50,50/full/0/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+
+        # If we select just the top right-hand corner, we expect that all
+        # the pixels will be white.  Note that we select slightly beyond
+        # halfway to avoid getting JPEG artefacts mixed in here.
+        assert image.getcolors() == [(3240, (255, 255, 255))]
+
+    def test_rotation_and_mirroring(self):
+        ident = self.test_jpeg_grid_id
+
+        # If we request the image without rotation, we expect to see a
+        # black pixel in the top left-hand corner.
+        request_path = '/%s/full/full/0/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (0, 0, 0)
+
+        # Now if we rotate the image through 90 degrees, we'll see a
+        # white pixel.
+        request_path = '/%s/full/full/90/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (255, 255, 255)
+
+        # Rotation through 180 degrees gets us a red pixel
+        request_path = '/%s/full/full/180/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (254, 0, 0)
+
+        # Rotation through 180 degrees with mirroring gets us a white pixel
+        request_path = '/%s/full/full/!180/default.jpg' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.getpixel((0, 0)) == (255, 255, 255)
+
+    def test_can_request_gif_format(self):
+        ident = self.test_jpeg_id
+        request_path = '/%s/full/full/0/default.gif' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.format == 'GIF'
+
+    def test_can_request_webp_format(self):
+        ident = self.test_jpeg_id
+        request_path = '/%s/full/full/0/default.webp' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.format == 'WEBP'
+
+    def test_convert_to_bitonal_with_rotation_is_mode_LA(self):
+        request_path = '/%s/full/full/45/bitonal.png' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.mode == 'LA'
+
+    def test_convert_to_gray_with_rotation_is_mode_LA(self):
+        request_path = '/%s/full/full/45/gray.png' % self.ident
+        image = self.request_image_from_client(request_path)
+        assert image.mode == 'LA'
+
+    def test_convert_to_gray_with_no_alpha_is_mode_L(self):
+        request_path = '/%s/full/full/0/gray.jpg' % self.test_jpeg_id
+        image = self.request_image_from_client(request_path)
+        assert image.mode == 'L'
 
 
 def suite():
