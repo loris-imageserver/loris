@@ -25,19 +25,19 @@ from configobj import ConfigObj
 from werkzeug.http import parse_date, http_date
 
 from werkzeug.wrappers import (
-	Request, Response, BaseResponse, CommonResponseDescriptorsMixin
+    Request, Response, BaseResponse, CommonResponseDescriptorsMixin
 )
 
 from loris import constants, img, transforms
 from loris.img_info import ImageInfo, InfoCache
 from loris.loris_exception import (
-	ConfigError,
-	ImageException,
-	ImageInfoException,
-	RequestException,
-	ResolverException,
-	SyntaxException,
-	TransformException,
+    ConfigError,
+    ImageException,
+    ImageInfoException,
+    RequestException,
+    ResolverException,
+    SyntaxException,
+    TransformException,
 )
 
 
@@ -82,7 +82,7 @@ def get_debug_config(debug_jp2_transformer):
 
     config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
     config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
-    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="     
+    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
     config['authorizer']['roles_key'] = 'roles'
     config['authorizer']['id_key'] = 'sub'
 
@@ -372,7 +372,7 @@ class Loris(object):
         except:
             return None
         AuthorizerClass = self._import_class(impl)
-        return AuthorizerClass(self.app_configs['authorizer'])                
+        return AuthorizerClass(self.app_configs['authorizer'])
 
     def _import_class(self, qname):
         '''Imports a class AND returns it (the class, not an instance).
@@ -422,7 +422,7 @@ class Loris(object):
                 r = LorisResponse()
                 r.set_acao(request)
                 r.status_code = 200
-                return r                
+                return r
 
             return self.get_info(request, ident, base_uri)
 
@@ -481,7 +481,7 @@ class Loris(object):
         last_mod = parse_date(http_date(last_mod)) # see note under get_img
 
         if self.authorizer and self.authorizer.is_protected(info):
-            authed = self.authorizer.is_authorized(info, request)            
+            authed = self.authorizer.is_authorized(info, request)
             if authed['status'] == 'deny':
                 r.status_code = 401
                 # trash If-Mod-Since to ensure no 304
@@ -567,7 +567,7 @@ class Loris(object):
             in_cache = False
 
         try:
-            # We need the info to check authorization, 
+            # We need the info to check authorization,
             # ... still cheaper than always resolving as likely to be cached
             info = self._get_info(ident, request, base_uri)[0]
         except ResolverException as re:
