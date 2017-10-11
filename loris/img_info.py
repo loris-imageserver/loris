@@ -315,7 +315,7 @@ class ImageInfo(object):
         return int(ceil(dim_len * 1.0/scale))
 
     def _get_iiif_info(self):
-        #returns only IIIF info (not Loris-specific info like src_format)
+        """returns only IIIF info (not Loris-specific info like src_format)"""
         d = {}
         d['@context'] = CONTEXT
         d['@id'] = self.ident
@@ -342,6 +342,7 @@ class ImageInfo(object):
         return json.dumps(d)
 
     def to_full_info_json(self):
+        """creates the info JSON that gets cached in the InfoCache"""
         d = self._get_iiif_info()
         d['_src_img_fp'] = self.src_img_fp
         d['_src_format'] = self.src_format

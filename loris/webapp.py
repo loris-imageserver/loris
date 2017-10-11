@@ -518,8 +518,10 @@ class Loris(object):
             in_cache = False
 
         #Checking for src_format in ImageInfo signals that it's not old cache data:
-        #   src_format should be in the cache now.
-        #   TODO: remove in Loris 4.0.
+        #   src_format didn't used to be in the Info cache, but now it is.
+        #   If we don't see src_format, that means it's old cache data, so just
+        #   ignore it and cache new ImageInfo.
+        #   TODO: remove src_format check in Loris 4.0.
         if in_cache and self.info_cache[request][0].src_format:
             return self.info_cache[request]
         else:
