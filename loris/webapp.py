@@ -500,7 +500,7 @@ class Loris(object):
             callback = request.args.get('callback', None)
             if callback:
                 r.mimetype = 'application/javascript'
-                r.data = '%s(%s);' % (callback, info.to_json())
+                r.data = '%s(%s);' % (callback, info.to_iiif_json())
             else:
                 if request.headers.get('accept') == 'application/ld+json':
                     r.content_type = 'application/ld+json'
@@ -508,7 +508,7 @@ class Loris(object):
                     r.content_type = 'application/json'
                     l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                     r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                r.data = info.to_json()
+                r.data = info.to_iiif_json()
         return r
 
     def _get_info(self,ident,request,base_uri):
@@ -517,7 +517,12 @@ class Loris(object):
         else:
             in_cache = False
 
-        if in_cache:
+        #Checking for src_format in ImageInfo signals that it's not old cache data:
+        #   src_format didn't used to be in the Info cache, but now it is.
+        #   If we don't see src_format, that means it's old cache data, so just
+        #   ignore it and cache new ImageInfo.
+        #   TODO: remove src_format check in Loris 4.0.
+        if in_cache and self.info_cache[request][0].src_format:
             return self.info_cache[request]
         else:
 
