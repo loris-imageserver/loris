@@ -289,6 +289,25 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.protocol, PROTOCOL)
 
+    def test_extrainfo_appears_in_iiif_json(self):
+        info = ImageInfo(
+            src_img_fp=self.test_jpeg_fp,
+            src_format=self.test_jpeg_fmt,
+            extra={'extraInfo': {
+                'license': 'CC-BY',
+                'logo': 'logo.png',
+                'service': {'@id': 'my_service'},
+                'attribution': 'Author unknown',
+            }}
+        )
+        info.from_image_file()
+
+        iiif_json = json.loads(info.to_iiif_json())
+        assert iiif_json['license'] == 'CC-BY'
+        assert iiif_json['logo'] == 'logo.png'
+        assert iiif_json['service'] == {'@id': 'my_service'}
+        assert iiif_json['attribution'] == 'Author unknown'
+
 
 class TestImageInfo(object):
 
