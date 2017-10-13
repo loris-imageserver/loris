@@ -16,8 +16,14 @@ addons:
 
 language: python
 
-python:
- - "2.7"
+matrix:
+  include:
+    - python: 2.7
+
+  allow_failures:
+    - python: 3.4
+    - python: 3.5
+    - python: 3.6
 
 install:
  - pip install -r requirements_test.txt
