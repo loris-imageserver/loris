@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 
+import os
 from os import path
 import json
 
@@ -371,7 +372,22 @@ class InfoFunctional(loris_t.LorisTest):
         self.assertTrue(''.join(lh.split()) in link_header)
 
 
-class InfoCache(loris_t.LorisTest):
+class TestInfoCache(loris_t.LorisTest):
+
+    def _cache_with_request(self):
+        """
+        Returns a tuple: an ``InfoCache`` with a single entry, and the key.
+        """
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
+
+        path = self.test_jp2_color_fp
+        req = webapp_t._get_werkzeug_request(path=path)
+
+        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri,
+            self.test_jp2_color_fp, self.test_jp2_color_fmt)
+
+        cache[req] = info
+        return (cache, req)
 
     def test_info_goes_to_http_fs_cache(self):
         # there isn't a way to do a fake HTTPS request, but this at least
@@ -386,24 +402,26 @@ class InfoCache(loris_t.LorisTest):
         self.assertTrue(path.exists(expected_path))
 
     def test_can_delete_items_from_infocache(self):
-        '''
-        Test for InfoCache.__delitem__.
-        '''
-        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
-
-        path = self.test_jp2_color_fp
-        req = webapp_t._get_werkzeug_request(path=path)
-        # app = MockApp()
-
-        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri, 
-            self.test_jp2_color_fp, self.test_jp2_color_fmt)
-
-        cache[req] = info
+        cache, req = self._cache_with_request()
         del cache[req]
 
     def test_empty_cache_has_zero_size(self):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
         assert len(cache) == 0
+
+    def test_deleting_cache_item_removes_color_profile_fp(self):
+        # First assemble the cache
+        cache, req = self._cache_with_request()
+
+        # Then create a file where the cached color profile would be
+        color_profile_fp = cache._get_color_profile_fp(req)
+        open(color_profile_fp, 'w')
+        assert os.path.exists(color_profile_fp)
+
+        # Finally, delete the cache entry, and check the color profile fp
+        # was deleted.
+        del cache[req]
+        assert not os.path.exists(color_profile_fp)
 
 
 def suite():
