@@ -296,9 +296,13 @@ class TestImageInfo(object):
         info = ImageInfo(extra={'extraInfo': {
             'license': 'CC-BY',
             'logo': 'logo.png',
+            'service': {'@id': 'my_service'},
+            'attribution': 'Author unknown',
         }})
         assert info.license == 'CC-BY'
         assert info.logo == 'logo.png'
+        assert info.service == {'@id': 'my_service'}
+        assert info.attribution == 'Author unknown'
 
     def test_invalid_extra_info_is_imageinfoexception(self):
         with pytest.raises(ImageInfoException) as exc:
