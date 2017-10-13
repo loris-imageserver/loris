@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import os
 from os import path
 import json
+import tempfile
 
 try:
     from urllib.parse import unquote
@@ -422,6 +423,14 @@ class TestInfoCache(loris_t.LorisTest):
         # was deleted.
         del cache[req]
         assert not os.path.exists(color_profile_fp)
+
+    def test_looking_up_missing_item_is_keyerror(self):
+        cache = img_info.InfoCache(root=tempfile.mkdtemp())
+        path = self.test_jp2_color_fp
+        req = webapp_t._get_werkzeug_request(path=path)
+
+        with pytest.raises(KeyError):
+            cache[req]
 
 
 def suite():
