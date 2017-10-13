@@ -78,8 +78,18 @@ class ImageInfo(object):
         self.license = None
         self.service = {}
         self.auth_rules = extra
-        for (k,v) in extra.get('extraInfo', {}).items():
-            setattr(self, k, v)
+
+        # The extraInfo parameter can be used to override specific attributes.
+        # If there are extra attributes, drop an error.
+        bad_attrs = []
+        for (k, v) in extra.get('extraInfo', {}).items():
+            try:
+                setattr(self, k, v)
+            except AttributeError:
+                bad_attrs.append(k)
+        if bad_attrs:
+            message = "Invalid parameters in extraInfo: %s" % ', '.join(bad_attrs)
+            raise ImageInfoException(http_status=500, message=message)
 
         # If constructed from JSON, the pixel info will already be processed
         if app:

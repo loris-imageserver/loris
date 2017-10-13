@@ -11,10 +11,13 @@ try:
 except ImportError:  # Python 2
     from urllib import unquote
 
+import pytest
 from werkzeug.datastructures import Headers
 
 from loris import img_info, loris_exception
 from loris.constants import PROTOCOL
+from loris.img_info import ImageInfo
+from loris.loris_exception import ImageInfoException
 from tests import loris_t, webapp_t
 
 
@@ -283,6 +286,28 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.ident, self.test_jp2_color_uri)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.protocol, PROTOCOL)
+
+
+class TestImageInfo(object):
+
+    def test_extrainfo_can_override_attributes(self):
+        info = ImageInfo(extra={'extraInfo': {
+            'license': 'CC-BY',
+            'logo': 'logo.png',
+        }})
+        assert info.license == 'CC-BY'
+        assert info.logo == 'logo.png'
+
+    def test_invalid_extra_info_is_imageinfoexception(self):
+        with pytest.raises(ImageInfoException) as exc:
+            ImageInfo(extra={'extraInfo': {'foo': 'bar', 'baz': 'bat'}})
+        assert 'Invalid parameters in extraInfo' in exc.value.message
+
+    @pytest.mark.parametrize('src_format', ['', None, 'imgX'])
+    def test_invalid_src_format_is_error(self, src_format):
+        info = ImageInfo(src_format=src_format)
+        with pytest.raises(ImageInfoException) as exc:
+            info.from_image_file()
 
 
 class InfoFunctional(loris_t.LorisTest):
