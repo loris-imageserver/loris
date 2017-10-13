@@ -3,8 +3,10 @@
 
 from __future__ import absolute_import
 
+import os
 from os import path
 import json
+import tempfile
 
 try:
     from urllib.parse import unquote
@@ -287,6 +289,25 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.protocol, PROTOCOL)
 
+    def test_extrainfo_appears_in_iiif_json(self):
+        info = ImageInfo(
+            src_img_fp=self.test_jpeg_fp,
+            src_format=self.test_jpeg_fmt,
+            extra={'extraInfo': {
+                'license': 'CC-BY',
+                'logo': 'logo.png',
+                'service': {'@id': 'my_service'},
+                'attribution': 'Author unknown',
+            }}
+        )
+        info.from_image_file()
+
+        iiif_json = json.loads(info.to_iiif_json())
+        assert iiif_json['license'] == 'CC-BY'
+        assert iiif_json['logo'] == 'logo.png'
+        assert iiif_json['service'] == {'@id': 'my_service'}
+        assert iiif_json['attribution'] == 'Author unknown'
+
 
 class TestImageInfo(object):
 
@@ -294,9 +315,13 @@ class TestImageInfo(object):
         info = ImageInfo(extra={'extraInfo': {
             'license': 'CC-BY',
             'logo': 'logo.png',
+            'service': {'@id': 'my_service'},
+            'attribution': 'Author unknown',
         }})
         assert info.license == 'CC-BY'
         assert info.logo == 'logo.png'
+        assert info.service == {'@id': 'my_service'}
+        assert info.attribution == 'Author unknown'
 
     def test_invalid_extra_info_is_imageinfoexception(self):
         with pytest.raises(ImageInfoException) as exc:
@@ -371,7 +396,22 @@ class InfoFunctional(loris_t.LorisTest):
         self.assertTrue(''.join(lh.split()) in link_header)
 
 
-class InfoCache(loris_t.LorisTest):
+class TestInfoCache(loris_t.LorisTest):
+
+    def _cache_with_request(self):
+        """
+        Returns a tuple: an ``InfoCache`` with a single entry, and the key.
+        """
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
+
+        path = self.test_jp2_color_fp
+        req = webapp_t._get_werkzeug_request(path=path)
+
+        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri,
+            self.test_jp2_color_fp, self.test_jp2_color_fmt)
+
+        cache[req] = info
+        return (cache, req)
 
     def test_info_goes_to_http_fs_cache(self):
         # there isn't a way to do a fake HTTPS request, but this at least
@@ -386,24 +426,34 @@ class InfoCache(loris_t.LorisTest):
         self.assertTrue(path.exists(expected_path))
 
     def test_can_delete_items_from_infocache(self):
-        '''
-        Test for InfoCache.__delitem__.
-        '''
-        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
-
-        path = self.test_jp2_color_fp
-        req = webapp_t._get_werkzeug_request(path=path)
-        # app = MockApp()
-
-        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri, 
-            self.test_jp2_color_fp, self.test_jp2_color_fmt)
-
-        cache[req] = info
+        cache, req = self._cache_with_request()
         del cache[req]
 
     def test_empty_cache_has_zero_size(self):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
         assert len(cache) == 0
+
+    def test_deleting_cache_item_removes_color_profile_fp(self):
+        # First assemble the cache
+        cache, req = self._cache_with_request()
+
+        # Then create a file where the cached color profile would be
+        color_profile_fp = cache._get_color_profile_fp(req)
+        open(color_profile_fp, 'w')
+        assert os.path.exists(color_profile_fp)
+
+        # Finally, delete the cache entry, and check the color profile fp
+        # was deleted.
+        del cache[req]
+        assert not os.path.exists(color_profile_fp)
+
+    def test_looking_up_missing_item_is_keyerror(self):
+        cache = img_info.InfoCache(root=tempfile.mkdtemp())
+        path = self.test_jp2_color_fp
+        req = webapp_t._get_werkzeug_request(path=path)
+
+        with pytest.raises(KeyError):
+            cache[req]
 
 
 def suite():
