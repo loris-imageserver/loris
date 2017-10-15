@@ -1,6 +1,8 @@
 # -*- encoding: utf-8 -*-
 
 import logging
+from logging import StreamHandler
+from logging.handlers import RotatingFileHandler
 
 import pytest
 
@@ -72,7 +74,10 @@ class TestLoggingConfig(object):
             'log_level': 'INFO',
             'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
         }
-        configure_logging(config=config)
+        logger = configure_logging(config=config)
+
+        assert len(logger.handlers) == 2
+        assert all(isinstance(h, StreamHandler) for h in logger.handlers)
 
     def test_valid_file_config_is_okay(self):
         config = {
@@ -83,4 +88,7 @@ class TestLoggingConfig(object):
             'max_size': 100000,
             'max_backups': 5,
         }
-        configure_logging(config=config)
+        logger = configure_logging(config=config)
+
+        assert len(logger.handlers) == 1
+        assert isinstance(logger.handlers[0], RotatingFileHandler)
