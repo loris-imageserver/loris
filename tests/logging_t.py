@@ -10,6 +10,22 @@ from loris.loris_exception import ConfigError
 from loris.webapp import configure_logging
 
 
+valid_console_config = {
+    'log_to': 'console',
+    'log_level': 'INFO',
+    'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
+}
+
+valid_file_config = {
+    'log_to': 'file',
+    'log_level': 'INFO',
+    'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
+    'log_dir': '/var/log/loris',
+    'max_size': 100000,
+    'max_backups': 5,
+}
+
+
 class TestLoggingConfig(object):
 
     @pytest.mark.parametrize('log_to', ['notafile', '', 'disk'])
@@ -25,27 +41,14 @@ class TestLoggingConfig(object):
 
     @pytest.mark.parametrize('key', ['log_to', 'log_level', 'format'])
     def test_missing_mandatory_key_is_error(self, key):
-        config = {
-            'log_to': 'console',
-            'log_level': 'INFO',
-            'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
-        }
-        del config[key]
+        config = {k: v for k, v in valid_console_config.items() if k != key}
         with pytest.raises(ConfigError) as err:
             configure_logging(config=config)
         assert 'Missing mandatory logging parameters' in err.value.message
 
     @pytest.mark.parametrize('key', ['log_dir', 'max_size', 'max_backups'])
     def test_missing_mandatory_key_with_log_to_file_is_error(self, key):
-        config = {
-            'log_to': 'file',
-            'log_level': 'INFO',
-            'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
-            'log_dir': '/var/log/loris',
-            'max_size': 100000,
-            'max_backups': 5,
-        }
-        del config[key]
+        config = {k: v for k, v in valid_file_config.items() if k != key}
         with pytest.raises(ConfigError) as err:
             configure_logging(config=config)
         assert 'When log_to=file, the following parameters are required' in err.value.message
@@ -69,26 +72,13 @@ class TestLoggingConfig(object):
         assert logger.level == expected_level
 
     def test_valid_console_config_is_okay(self, reset_logger):
-        config = {
-            'log_to': 'console',
-            'log_level': 'INFO',
-            'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
-        }
-        logger = configure_logging(config=config)
+        logger = configure_logging(config=valid_console_config)
 
         assert len(logger.handlers) == 2
         assert all(isinstance(h, StreamHandler) for h in logger.handlers)
 
     def test_valid_file_config_is_okay(self, reset_logger):
-        config = {
-            'log_to': 'file',
-            'log_level': 'INFO',
-            'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
-            'log_dir': '/var/log/loris',
-            'max_size': 100000,
-            'max_backups': 5,
-        }
-        logger = configure_logging(config=config)
+        logger = configure_logging(config=valid_file_config)
 
         assert len(logger.handlers) == 1
         assert isinstance(logger.handlers[0], RotatingFileHandler)
