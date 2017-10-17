@@ -1,6 +1,7 @@
 
 from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
     NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
+from loris.loris_exception import ConfigError
 from loris.img_info import ImageInfo
 
 import unittest
@@ -283,3 +284,29 @@ class Test_RulesAuthorizer(unittest.TestCase):
             }}
         svcs = self.authorizer.get_services_info(self.badInfo)
         self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
+
+    def test_missing_cookie_secret_is_configerror(self):
+        config = {
+            'cookie_service': 'cookie.example.com',
+            'token_service': 'token.example.com',
+            'token_secret': 't0k3ns3kr1t'
+        }
+        with pytest.raises(ConfigError) as err:
+            RulesAuthorizer(config)
+        assert (
+            'Missing mandatory parameters for RulesAuthorizer: cookie_secret' ==
+            err.value.message
+        )
+
+    def test_missing_token_secret_is_configerror(self):
+        config = {
+            'cookie_service': 'cookie.example.com',
+            'token_service': 'token.example.com',
+            'cookie_secret': 'c00ki3sekr1t',
+        }
+        with pytest.raises(ConfigError) as err:
+            RulesAuthorizer(config)
+        assert (
+            'Missing mandatory parameters for RulesAuthorizer: token_secret' ==
+            err.value.message
+        )

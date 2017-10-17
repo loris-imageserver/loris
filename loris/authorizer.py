@@ -5,7 +5,7 @@
 """
 
 from logging import getLogger
-from loris_exception import AuthorizerException
+from loris_exception import AuthorizerException, ConfigError
 import requests
 
 from urlparse import urlparse
@@ -179,12 +179,10 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def __init__(self, config):
         super(RulesAuthorizer, self).__init__(config)
+        self._validate_config(config)
+
         self.cookie_service = config.get('cookie_service', "")
         self.token_service = config.get('token_service', "")
-        if not 'cookie_secret' in config:
-            raise AuthorizerException("Rules Authorizer needs cookie_secret config")
-        if not 'token_secret' in config:
-            raise AuthorizerException("Rules Authorizer needs token_secret config")
         self.cookie_secret = config['cookie_secret']
         self.token_secret = config['token_secret']
 
@@ -196,6 +194,15 @@ class RulesAuthorizer(_AbstractAuthorizer):
         self.roles_key = config.get('roles_key', 'roles')
         self.id_key = config.get('id_key', 'sub')
 
+    def _validate_config(self, config):
+        mandatory_keys = ['cookie_secret', 'token_secret']
+        missing_keys = [key for key in mandatory_keys if key not in config]
+
+        if missing_keys:
+            raise ConfigError(
+                'Missing mandatory parameters for %s: %s' %
+                (type(self).__name__, ','.join(missing_keys))
+            )
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
