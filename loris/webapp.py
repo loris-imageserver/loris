@@ -115,10 +115,7 @@ def _validate_logging_config(config):
     Validate the logging config before setting up a logger.
     """
     mandatory_keys = ['log_to', 'log_level', 'format']
-    missing_keys = []
-    for key in mandatory_keys:
-        if key not in config:
-            missing_keys.append(key)
+    missing_keys = [key for key in mandatory_keys if key not in config]
 
     if missing_keys:
         raise ConfigError(

@@ -5,7 +5,7 @@
 """
 
 from logging import getLogger
-from loris_exception import AuthorizerException
+from loris_exception import AuthorizerException, ConfigError
 import requests
 
 from urlparse import urlparse
@@ -179,23 +179,33 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def __init__(self, config):
         super(RulesAuthorizer, self).__init__(config)
+        self._validate_config(config)
+
         self.cookie_service = config.get('cookie_service', "")
         self.token_service = config.get('token_service', "")
-        if not 'cookie_secret' in config:
-            raise AuthorizerException("Rules Authorizer needs cookie_secret config")
-        if not 'token_secret' in config:
-            raise AuthorizerException("Rules Authorizer needs token_secret config")
         self.cookie_secret = config['cookie_secret']
         self.token_secret = config['token_secret']
 
         self.use_jwt = config.get('use_jwt', True)
-        if not self.use_jwt:
-            if not 'salt' in config:
-                raise AuthorizerException("Rules Authorizer needs salt config")
         self.salt = config.get('salt', '')
         self.roles_key = config.get('roles_key', 'roles')
         self.id_key = config.get('id_key', 'sub')
 
+    def _validate_config(self, config):
+        mandatory_keys = ['cookie_secret', 'token_secret']
+        missing_keys = [key for key in mandatory_keys if key not in config]
+
+        if missing_keys:
+            raise ConfigError(
+                'Missing mandatory parameters for %s: %s' %
+                (type(self).__name__, ','.join(missing_keys))
+            )
+
+        if not config.get('use_jwt', True) and ('salt' not in config):
+            raise ConfigError(
+                'If use_jwt=%r, you must supply the "salt" config parameter' %
+                config['use_jwt']
+            )
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
@@ -269,8 +279,6 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 value = jwt.decode(cval, secret, verify=False)                
                 logger.debug(value)
                 raise AuthorizerException(message="invalidCredentials: expired")
-            except:
-                raise
         else:
             cval = cval.encode('utf-8')
             key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
