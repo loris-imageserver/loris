@@ -187,9 +187,6 @@ class RulesAuthorizer(_AbstractAuthorizer):
         self.token_secret = config['token_secret']
 
         self.use_jwt = config.get('use_jwt', True)
-        if not self.use_jwt:
-            if not 'salt' in config:
-                raise AuthorizerException("Rules Authorizer needs salt config")
         self.salt = config.get('salt', '')
         self.roles_key = config.get('roles_key', 'roles')
         self.id_key = config.get('id_key', 'sub')
@@ -202,6 +199,12 @@ class RulesAuthorizer(_AbstractAuthorizer):
             raise ConfigError(
                 'Missing mandatory parameters for %s: %s' %
                 (type(self).__name__, ','.join(missing_keys))
+            )
+
+        if not config.get('use_jwt', True) and ('salt' not in config):
+            raise ConfigError(
+                'If use_jwt=%r, you must supply the "salt" config parameter' %
+                config['use_jwt']
             )
 
     def kdf(self):

@@ -310,3 +310,18 @@ class Test_RulesAuthorizer(unittest.TestCase):
             'Missing mandatory parameters for RulesAuthorizer: token_secret' ==
             err.value.message
         )
+
+    def test_false_use_jwt_without_salt_is_configerror(self):
+        config = {
+            'cookie_service': 'cookie.example.com',
+            'token_service': 'token.example.com',
+            'cookie_secret': 'c00ki3sekr1t',
+            'token_secret': 't0k3ns3kr1t',
+            'use_jwt': False,
+        }
+        with pytest.raises(ConfigError) as err:
+            RulesAuthorizer(config)
+        assert (
+            'If use_jwt=False, you must supply the "salt" config parameter' ==
+            err.value.message
+        )
