@@ -8,7 +8,7 @@ from __future__ import absolute_import
 
 from logging import getLogger
 from os.path import join, exists, dirname, split
-from os import makedirs, rename, remove
+from os import rename, remove
 from shutil import copy
 import tempfile
 from contextlib import closing

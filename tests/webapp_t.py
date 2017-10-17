@@ -15,7 +15,7 @@ from werkzeug.http import http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
-from loris import img_info, loris_exception, webapp
+from loris import img_info, webapp
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
 from tests import loris_t

@@ -5,7 +5,6 @@ import timeit
 import subprocess
 from PIL import Image
 from PIL.ImageFile import Parser
-import subprocess
 import sys
 
 def mk_tile_with_PIL():
