@@ -5,3 +5,5 @@ include =
 
 [report]
 show_missing = True
+exclude_lines =
+    assert False, "Should not be reachable"
