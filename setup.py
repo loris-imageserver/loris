@@ -5,7 +5,7 @@ from grp import getgrnam
 from pwd import getpwnam
 from setuptools import setup
 from setuptools.command.install import install
-from sys import stderr, stdout, exit, version_info
+from sys import stderr, stdout, exit
 import loris
 import os
 import shutil

@@ -2,7 +2,6 @@ from bottle import request, response, abort, redirect
 from bottle import auth_basic, parse_auth, Bottle, run
 from bottle import debug as set_debug
 import json
-import sys
 
 try:
     from urllib import urlencode
@@ -21,7 +20,6 @@ except ImportError:
     pass
 
 import base64
-import os
 
 import jwt
 import datetime

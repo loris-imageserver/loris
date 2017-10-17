@@ -7,12 +7,10 @@ import multiprocessing
 from logging import getLogger
 from math import ceil, log
 from os import path, unlink, devnull
-import cStringIO
 import platform
 import random
 import string
 import subprocess
-import sys
 
 try:
     from cStringIO import BytesIO

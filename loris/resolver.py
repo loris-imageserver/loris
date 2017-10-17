@@ -8,7 +8,7 @@ from __future__ import absolute_import
 
 from logging import getLogger
 from os.path import join, exists, dirname, split
-from os import makedirs, rename, remove
+from os import rename, remove
 from shutil import copy
 import tempfile
 from contextlib import closing
@@ -384,9 +384,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             if resp.status_code == 200:
                 local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
                 if not exists(local_rules_fp):
-                    fh = open(local_rules_fp, 'w')
-                    fh.write(r.text)
-                    fh.close()
+                    with open(local_rules_fp, 'w') as fh:
+                        fh.write(resp.text)
         except:
             # No connection available
             pass

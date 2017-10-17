@@ -3,7 +3,6 @@
 
 from PIL import Image
 from PIL.ImageFile import Parser
-from os import makedirs, path, unlink
 import subprocess
 import sys
 

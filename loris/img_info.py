@@ -300,9 +300,10 @@ class ImageInfo(object):
                         except StopIteration:
                             self.tiles.append({'width':w, 'scaleFactors':[pow(2, level)]})
 
-        self.sizes = []
-        [self.sizes.append( { 'width' : w, 'height' : h } )
-            for w,h in self.sizes_for_scales(scaleFactors)]
+        self.sizes = [
+            {'width': width, 'height': height}
+            for width, height in self.sizes_for_scales(scaleFactors)
+        ]
         self.sizes.sort(key=lambda size: max([size['width'], size['height']]))
 
     def assign_color_profile(self, jp2):
