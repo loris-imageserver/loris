@@ -166,7 +166,7 @@ def configure_logging(config):
                 delay=True)
             handler.setFormatter(formatter)
             logger.addHandler(handler)
-        else:
+        elif config['log_to'] == 'console':
             from sys import __stderr__, __stdout__
             # STDERR
             err_handler = logging.StreamHandler(__stderr__)
@@ -179,8 +179,11 @@ def configure_logging(config):
             out_handler.addFilter(StdOutFilter())
             out_handler.setFormatter(formatter)
             logger.addHandler(out_handler)
+        else:
+            # This should be protected by ``_validate_logging_config()``.
+            assert False, "Should not be reachable"
 
-            logger.handler_set = True
+        logger.handler_set = True
     return logger
 
 
