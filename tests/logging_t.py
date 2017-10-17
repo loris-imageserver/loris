@@ -82,3 +82,19 @@ class TestLoggingConfig(object):
 
         assert len(logger.handlers) == 1
         assert isinstance(logger.handlers[0], RotatingFileHandler)
+
+    @pytest.mark.parametrize('config', [
+        valid_console_config, valid_file_config
+    ])
+    def test_logging_config_is_idempotent(self, config, reset_logger):
+        """
+        If we call ``configure_logging()`` more than once, we don't get
+        extra handlers or filters created.
+        """
+        logger = configure_logging(config=config)
+        handler_count = len(logger.handlers)
+        filter_count = len(logger.filters)
+
+        configure_logging(config=config)
+        assert len(logger.handlers) == handler_count
+        assert len(logger.filters) == filter_count
