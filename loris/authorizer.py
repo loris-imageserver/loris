@@ -279,8 +279,6 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 value = jwt.decode(cval, secret, verify=False)                
                 logger.debug(value)
                 raise AuthorizerException(message="invalidCredentials: expired")
-            except:
-                raise
         else:
             cval = cval.encode('utf-8')
             key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
