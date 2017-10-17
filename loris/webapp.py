@@ -180,7 +180,7 @@ def configure_logging(config):
             out_handler.setFormatter(formatter)
             logger.addHandler(out_handler)
 
-            logger.handler_set = True
+        logger.handler_set = True
     return logger
 
 

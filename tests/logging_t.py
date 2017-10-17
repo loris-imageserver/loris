@@ -76,12 +76,14 @@ class TestLoggingConfig(object):
 
         assert len(logger.handlers) == 2
         assert all(isinstance(h, StreamHandler) for h in logger.handlers)
+        assert logger.handler_set
 
     def test_valid_file_config_is_okay(self, reset_logger):
         logger = configure_logging(config=valid_file_config)
 
         assert len(logger.handlers) == 1
         assert isinstance(logger.handlers[0], RotatingFileHandler)
+        assert logger.handler_set
 
     @pytest.mark.parametrize('config', [
         valid_console_config, valid_file_config
