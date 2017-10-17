@@ -59,7 +59,7 @@ class TestLoggingConfig(object):
         ('debug', logging.DEBUG),
         ('slow loris', logging.DEBUG),
     ])
-    def test_log_level_is_configured_correctly(self, log_config, expected_level):
+    def test_log_level_is_configured_correctly(self, log_config, expected_level, reset_logger):
         config = {
             'log_to': 'console',
             'log_level': log_config,
@@ -68,7 +68,7 @@ class TestLoggingConfig(object):
         logger = configure_logging(config=config)
         assert logger.level == expected_level
 
-    def test_valid_console_config_is_okay(self):
+    def test_valid_console_config_is_okay(self, reset_logger):
         config = {
             'log_to': 'console',
             'log_level': 'INFO',
@@ -79,7 +79,7 @@ class TestLoggingConfig(object):
         assert len(logger.handlers) == 2
         assert all(isinstance(h, StreamHandler) for h in logger.handlers)
 
-    def test_valid_file_config_is_okay(self):
+    def test_valid_file_config_is_okay(self, reset_logger):
         config = {
             'log_to': 'file',
             'log_level': 'INFO',
