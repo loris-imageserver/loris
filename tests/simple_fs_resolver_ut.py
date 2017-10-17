@@ -47,21 +47,3 @@ class MultiSourceSimpleFSResolverTest(SimpleFSResolverTest):
             'src_img_roots': [img_dir2, img_dir]
         }
         self.resolver = resolver.SimpleFSResolver(multiple_config)
-
-
-def suite():
-    test_suites = []
-    test_suites.append(
-            unittest.makeSuite(SimpleFSResolverTest, 'test')
-    )
-    test_suites.append(
-            unittest.makeSuite(ExtensionNormalizingFSResolverTest, 'test')
-    )
-    test_suites.append(
-            unittest.makeSuite(MultiSourceSimpleFSResolverTest, 'test')
-    )
-    return unittest.TestSuite(test_suites)
-
-
-if __name__ == '__main__':
-        unittest.main()

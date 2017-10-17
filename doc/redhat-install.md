@@ -132,11 +132,6 @@ Now you're ready to install Loris proper. This is usually a matter of `git clone
 this repo, adding the loris user, and running `setup.py`. The only
 caveat here is that you must be sure to install using Python 2.7.
 
-Note that if you run `test.py` that things will probably fail since it tries to
-use the bundled Kakadu libraries by default. You can fix this by removing the
-relevant libraries inside of your cloned git repo and copying the binary/libray
-you downloaded above into the correct places.
-
 ```
 useradd -d /var/www/loris -s /sbin/false loris
 git clone https://github.com/pulibrary/loris.git

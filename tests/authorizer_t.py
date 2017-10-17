@@ -283,15 +283,3 @@ class Test_RulesAuthorizer(unittest.TestCase):
             }}
         svcs = self.authorizer.get_services_info(self.badInfo)
         self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
-
-
-def suite():
-    import unittest
-    test_suites = []
-    test_suites.append(unittest.makeSuite(Test_AbstractAuthorizer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_NullAuthorizer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_NooneAuthorizer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_SingleDegradingAuthorizer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_RulesAuthorizer, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite

@@ -202,18 +202,3 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
         self.assertEqual(resolver.uri_resolvable, True)
         self.assertEqual(resolver.user, None)
         self.assertEqual(resolver.pw, None)
-
-
-def suite():
-    test_suites = []
-    test_suites.append(
-            unittest.makeSuite(SimpleHTTPResolverConfigTest, 'test')
-    )
-    test_suites.append(
-            unittest.makeSuite(SimpleHTTPResolverTest, 'test')
-    )
-    return unittest.TestSuite(test_suites)
-
-
-if __name__ == '__main__':
-        unittest.main()
