@@ -461,6 +461,6 @@ def suite():
     test_suites = []
     test_suites.append(unittest.makeSuite(InfoUnit, 'test'))
     test_suites.append(unittest.makeSuite(InfoFunctional, 'test'))
-    test_suites.append(unittest.makeSuite(InfoCache, 'test'))
+    test_suites.append(unittest.makeSuite(TestInfoCache, 'test'))
     test_suite = unittest.TestSuite(test_suites)
     return test_suite
