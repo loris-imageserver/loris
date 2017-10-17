@@ -12,18 +12,11 @@ import pytest
 from loris import img_info
 from loris.loris_exception import RequestException, SyntaxException
 from loris.parameters import (
-    DECIMAL_ONE, FULL_MODE, PCT_MODE, PIXEL_MODE,
+    FULL_MODE, PCT_MODE, PIXEL_MODE,
     RegionParameter, RotationParameter, SizeParameter,
 )
 from tests import loris_t
 
-"""
-Parameter object tests. To run this test on its own, do:
-
-$ python -m unittest -v tests.parameters_t
-
-from the `/loris` (not `/loris/loris`) directory.
-"""
 
 def build_image_info(width=100, height=100):
     """Produces an ``ImageInfo`` object of the given dimensions."""
@@ -479,13 +472,3 @@ class TestRotationParameter(_ParameterTest):
 
         rp = RotationParameter('!180.10')
         self.assertEquals(rp.canonical_uri_value, '!180.1')
-
-
-def suite():
-    import unittest
-    test_suites = []
-    test_suites.append(unittest.makeSuite(TestRegionParameter, 'test'))
-    test_suites.append(unittest.makeSuite(TestSizeParameter, 'test'))
-    test_suites.append(unittest.makeSuite(TestRotationParameter, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite

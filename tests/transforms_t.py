@@ -11,16 +11,6 @@ from loris.loris_exception import ConfigError
 from loris.webapp import get_debug_config
 from tests import loris_t
 
-"""
-Transformer tests. These right now these work with the kakadu and PIL
-transformers. More should be added when different libraries/scenarios are added.
-
-To run this test on its own, do:
-
-$ python -m unittest tests.transforms_t
-
-from the `/loris` (not `/loris/loris`) directory.
-"""
 
 class ColorConversionMixin:
     """
@@ -316,13 +306,3 @@ class Test_PILTransformer(loris_t.LorisTest,
         request_path = '/%s/full/full/0/gray.jpg' % self.test_jpeg_id
         image = self.request_image_from_client(request_path)
         assert image.mode == 'L'
-
-
-def suite():
-    test_suites = []
-    test_suites.append(unittest.makeSuite(Test_AbstractTransformer, 'test'))
-    test_suites.append(unittest.makeSuite(UnitTest_KakaduJP2Transformer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_KakaduJP2Transformer, 'test'))
-    test_suites.append(unittest.makeSuite(Test_PILTransformer, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite

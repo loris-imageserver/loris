@@ -29,7 +29,7 @@ from werkzeug.wrappers import (
 )
 
 from loris import constants, img, transforms
-from loris.img_info import ImageInfo, InfoCache
+from loris.img_info import InfoCache
 from loris.loris_exception import (
     ConfigError,
     ImageException,

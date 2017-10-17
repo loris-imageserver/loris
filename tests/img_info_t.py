@@ -23,14 +23,6 @@ from loris.loris_exception import ImageInfoException
 from tests import loris_t, webapp_t
 
 
-"""
-Info unit and function tests. To run this test on its own, do:
-
-$ python -m unittest -v tests.img_info_t
-
-from the `/loris` (not `/loris/loris`) directory.
-"""
-
 class MockApp(object):
     transformers = {}
     max_size_above_full = 200
@@ -454,13 +446,3 @@ class TestInfoCache(loris_t.LorisTest):
 
         with pytest.raises(KeyError):
             cache[req]
-
-
-def suite():
-    import unittest
-    test_suites = []
-    test_suites.append(unittest.makeSuite(InfoUnit, 'test'))
-    test_suites.append(unittest.makeSuite(InfoFunctional, 'test'))
-    test_suites.append(unittest.makeSuite(InfoCache, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite

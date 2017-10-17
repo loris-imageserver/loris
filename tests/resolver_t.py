@@ -29,15 +29,6 @@ from loris.resolver import (
 from tests import loris_t
 
 
-"""
-Resolver tests. This may need to be modified if you change the resolver
-implementation. To run this test on its own, do:
-
-$ python -m unittest tests.resolver_t
-
-from the `/loris` (not `/loris/loris`) directory.
-"""
-
 check_options_test_cases = [
     ({'cert': '/home/cert.pem'}, {'verify': True}),
     ({'cert': '/home/cert.pem', 'key': '/home/key.pem'},
@@ -395,15 +386,3 @@ class Test_TemplateHTTPResolver(object):
         resolver = TemplateHTTPResolver(new_config)
         _, options = resolver._web_request_url('a:id1.jpg')
         assert options == expected_options
-
-
-def suite():
-    import unittest
-    test_suites = []
-    test_suites.append(unittest.makeSuite(Test_AbstractResolver, 'test'))
-    test_suites.append(unittest.makeSuite(Test_SimpleFSResolver, 'test'))
-    test_suites.append(unittest.makeSuite(Test_SourceImageCachingResolver, 'test'))
-    test_suites.append(unittest.makeSuite(Test_SimpleHTTPResolver, 'test'))
-    test_suites.append(unittest.makeSuite(Test_TemplateHTTPResolver, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite

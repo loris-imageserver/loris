@@ -4,9 +4,7 @@ from __future__ import absolute_import
 
 from os.path import exists
 from os.path import islink
-from os.path import isfile
 from os.path import join
-import unittest
 
 import mock
 import pytest
@@ -20,15 +18,6 @@ from loris import img, img_info
 from loris.loris_exception import ImageException
 from tests import loris_t
 
-
-"""
-Image and ImageCache tests. This may need to be modified if you change the resolver
-implementation. To run this test on its own, do:
-
-$ python -m unittest tests.img_t
-
-from the `/loris` (not `/loris/loris`) directory.
-"""
 
 class TestImageRequest(object):
 
@@ -150,12 +139,3 @@ class Test_ImageCache(loris_t.LorisTest):
         cache = img.ImageCache(cache_root='/tmp')
         request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
         del cache[request]
-
-
-def suite():
-    import unittest
-    test_suites = []
-    test_suites.append(unittest.makeSuite(Test_ImageCache, 'test'))
-    test_suites.append(unittest.makeSuite(TestImageRequest, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite

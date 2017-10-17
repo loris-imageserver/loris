@@ -15,19 +15,12 @@ from werkzeug.http import http_date
 from werkzeug.test import EnvironBuilder
 from werkzeug.wrappers import Request
 
-from loris import img_info, loris_exception, webapp
+from loris import img_info, webapp
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
 from tests import loris_t
 
 
-"""
-Webapp tests. To run this test on its own, do:
-
-$ python -m unittest -v tests.webapp_t
-
-from the `/loris` (not `/loris/loris`) directory.
-"""
 def _get_werkzeug_request(path):
     builder = EnvironBuilder(path=path)
     env = builder.get_environ()
@@ -592,14 +585,3 @@ class SizeRestriction(loris_t.LorisTest):
         request_path = '/%s/full/pct:120/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
-
-
-def suite():
-    import unittest
-    test_suites = []
-    test_suites.append(unittest.makeSuite(TestLorisRequest, 'test'))
-    test_suites.append(unittest.makeSuite(TestGetInfo, 'test'))
-    test_suites.append(unittest.makeSuite(WebappIntegration, 'test'))
-    test_suites.append(unittest.makeSuite(SizeRestriction, 'test'))
-    test_suite = unittest.TestSuite(test_suites)
-    return test_suite
