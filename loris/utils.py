@@ -44,7 +44,7 @@ def symlink(src, dst, force=True):
     os.symlink(src, dst)
 
 
-def rename(src, dst):
+def safe_rename(src, dst):
     """Rename a file from ``src`` to ``dst``.
 
     We use a custom version rather than the standard library because we

@@ -51,13 +51,13 @@ def dst(tmpdir):
     return str(tmpdir.join('dst.txt'))
 
 
-class TestRename:
+class TestSafeRename:
 
     def test_renames_file_correctly(self, src, dst):
         assert os.path.exists(src)
         assert not os.path.exists(dst)
 
-        utils.rename(src, dst)
+        utils.safe_rename(src, dst)
 
         assert not os.path.exists(src)
         assert os.path.exists(dst)
@@ -83,7 +83,7 @@ class TestRename:
 
         m = mock.Mock(side_effect=side_effect)
         with mock.patch('loris.utils.os.rename', m):
-            utils.rename(src, dst)
+            utils.safe_rename(src, dst)
 
         assert os.path.exists(dst)
         assert open(dst, 'rb').read() == b'hello world'
@@ -97,7 +97,7 @@ class TestRename:
         m = mock.Mock(side_effect=OSError(-1, message))
         with mock.patch('loris.utils.os.rename', m):
             with pytest.raises(OSError):
-                utils.rename(src, dst)
+                utils.safe_rename(src, dst)
 
 
 @pytest.fixture
