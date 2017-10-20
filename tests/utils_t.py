@@ -52,6 +52,13 @@ def dst(tmpdir):
 
 
 class TestSafeRename:
+    """Tests for ``utils.safe_rename()``.
+
+    Note: one key characteristic of ``safe_rename()`` is that copies are
+    atomic.  That's not tested here, because I couldn't think of a way to
+    easily test that file moves are atomic in Python.
+
+    """
 
     def test_renames_file_correctly(self, src, dst):
         assert os.path.exists(src)
