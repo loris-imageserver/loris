@@ -2,6 +2,7 @@
 
 import errno
 import os
+import shutil
 
 import mock
 import pytest
@@ -64,10 +65,23 @@ class TestRename:
 
     def test_renames_file_across_filesystems_correctly(self, src, dst):
         # For any given test setup, we can't guarantee where filesystem
-        # boundaries lie, so we patch os.makedirs to throw an error that
+        # boundaries lie, so we patch ``os.rename`` to throw an error that
         # looks like it's copying across a filesystem.
         message = "Exception thrown in utils_t.py for TestRename"
-        m = mock.Mock(side_effect=OSError(errno.EXDEV, message))
+
+        copy_of_rename = os.rename
+
+        def side_effect(s, d):
+            """This raises an errno.EXDEV if it detects a rename between
+            the ``src`` and ``dst`` used in the test, but otherwise proceeds
+            as normal.
+            """
+            if s == src and d == dst:
+                raise OSError(errno.EXDEV, message)
+            else:
+                copy_of_rename(s, d)
+
+        m = mock.Mock(side_effect=side_effect)
         with mock.patch('loris.utils.os.rename', m):
             utils.rename(src, dst)
 
