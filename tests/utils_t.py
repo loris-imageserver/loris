@@ -2,7 +2,6 @@
 
 import errno
 import os
-import shutil
 
 import mock
 import pytest
