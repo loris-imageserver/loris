@@ -1,5 +1,6 @@
 # -*- encoding: utf-8
 
+import errno
 import os
 
 import mock
@@ -35,6 +36,54 @@ class TestMkdirP:
         with mock.patch('loris.utils.os.makedirs', m):
             with pytest.raises(OSError):
                 utils.mkdir_p(path)
+
+
+@pytest.fixture
+def src(tmpdir):
+    path = str(tmpdir.join('src.txt'))
+    open(path, 'wb').write(b'hello world')
+    return path
+
+
+@pytest.fixture
+def dst(tmpdir):
+    return str(tmpdir.join('dst.txt'))
+
+
+class TestRename:
+
+    def test_renames_file_correctly(self, src, dst):
+        assert os.path.exists(src)
+        assert not os.path.exists(dst)
+
+        utils.rename(src, dst)
+
+        assert not os.path.exists(src)
+        assert os.path.exists(dst)
+        assert open(dst, 'rb').read() == b'hello world'
+
+    def test_renames_file_across_filesystems_correctly(self, src, dst):
+        # For any given test setup, we can't guarantee where filesystem
+        # boundaries lie, so we patch os.makedirs to throw an error that
+        # looks like it's copying across a filesystem.
+        message = "Exception thrown in utils_t.py for TestRename"
+        m = mock.Mock(side_effect=OSError(errno.EXDEV, message))
+        with mock.patch('loris.utils.os.rename', m):
+            utils.rename(src, dst)
+
+        assert os.path.exists(dst)
+        assert open(dst, 'rb').read() == b'hello world'
+
+    def test_if_error_is_unexpected_then_is_raised(self, src, dst):
+        """
+        If the error from ``os.rename()`` isn't because we're trying to copy
+        across a filesystem boundary, we get an error
+        """
+        message = "Exception thrown in utils_t.py for TestRename"
+        m = mock.Mock(side_effect=OSError(-1, message))
+        with mock.patch('loris.utils.os.rename', m):
+            with pytest.raises(OSError):
+                utils.rename(src, dst)
 
 
 @pytest.fixture
