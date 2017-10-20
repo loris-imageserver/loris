@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import errno
 import logging
 import os
+import shutil
 
 
 logger = logging.getLogger(__name__)
@@ -58,4 +59,14 @@ def rename(src, dst):
     So we try ``os.rename()``, but if we detect a cross-filesystem copy, we
     switch to ``shutil.move()`` with some wrappers to make it atomic.
     """
-    os.rename(src, dst)
+    try:
+        os.rename(src, dst)
+    except OSError as err:
+        if err.errno == errno.EXDEV:
+            # First we move it across the filesystem to a temporary file
+            # in a non-atomic way, then move it to the final location
+            # atomically.
+            shutil.move(src, dst + '.tmp')
+            os.rename(dst + '.tmp', dst)
+        else:
+            raise
