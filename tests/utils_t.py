@@ -92,6 +92,7 @@ class TestSafeRename:
         with mock.patch('loris.utils.os.rename', m):
             utils.safe_rename(src, dst)
 
+        assert not os.path.exists(src)
         assert os.path.exists(dst)
         assert open(dst, 'rb').read() == b'hello world'
 
