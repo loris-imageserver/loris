@@ -55,6 +55,8 @@ USER_HELP = 'User that will own the application and has permission to write to c
 GROUP_DEFAULT = 'loris'
 GROUP_HELP = 'Group that will own the application and has permission to write to caches. [Default: %s]' % (USER_DEFAULT,)
 
+OVERRIDE_DEPENDENCIES = bool(os.environ.get('OVERRIDE_LORIS_DEPENDENCIES', False))
+
 DEPENDENCIES = [
     # (package, version, module)
     ('werkzeug', '>=0.8.3', 'werkzeug'),
@@ -219,11 +221,13 @@ application = create_app(config_file_path='%s')
         config.write()
 
 install_requires = []
-for d in DEPENDENCIES:
-    try:
-        __import__(d[2], fromlist=[''])
-    except ImportError:
-        install_requires.append(''.join(d[0:2]))
+
+if not OVERRIDE_DEPENDENCIES:
+    for d in DEPENDENCIES:
+        try:
+            __import__(d[2], fromlist=[''])
+        except ImportError:
+            install_requires.append(''.join(d[0:2]))
 
 def _read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
