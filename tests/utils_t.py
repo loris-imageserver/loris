@@ -69,32 +69,6 @@ class TestSafeRename:
         assert os.path.exists(dst)
         assert open(dst, 'rb').read() == b'hello world'
 
-    def test_renames_file_across_filesystems_correctly(self, src, dst):
-        # For any given test setup, we can't guarantee where filesystem
-        # boundaries lie, so we patch ``os.rename`` to throw an error that
-        # looks like it's copying across a filesystem.
-        message = "Exception thrown in utils_t.py for TestRename"
-
-        copy_of_rename = os.rename
-
-        def side_effect(s, d):
-            """This raises an errno.EXDEV if it detects a rename between
-            the ``src`` and ``dst`` used in the test, but otherwise proceeds
-            as normal.
-            """
-            if s == src and d == dst:
-                raise OSError(errno.EXDEV, message)
-            else:
-                copy_of_rename(s, d)
-
-        m = mock.Mock(side_effect=side_effect)
-        with mock.patch('loris.utils.os.rename', m):
-            utils.safe_rename(src, dst)
-
-        assert not os.path.exists(src)
-        assert os.path.exists(dst)
-        assert open(dst, 'rb').read() == b'hello world'
-
     def test_if_error_is_unexpected_then_is_raised(self, src, dst):
         """
         If the error from ``os.rename()`` isn't because we're trying to copy
