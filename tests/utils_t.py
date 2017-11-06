@@ -38,6 +38,49 @@ class TestMkdirP:
 
 
 @pytest.fixture
+def src(tmpdir):
+    path = str(tmpdir.join('src.txt'))
+    open(path, 'wb').write(b'hello world')
+    return path
+
+
+@pytest.fixture
+def dst(tmpdir):
+    return str(tmpdir.join('dst.txt'))
+
+
+class TestSafeRename:
+    """Tests for ``utils.safe_rename()``.
+
+    Note: one key characteristic of ``safe_rename()`` is that copies are
+    atomic.  That's not tested here, because I couldn't think of a way to
+    easily test that file moves are atomic in Python.
+
+    """
+
+    def test_renames_file_correctly(self, src, dst):
+        assert os.path.exists(src)
+        assert not os.path.exists(dst)
+
+        utils.safe_rename(src, dst)
+
+        assert not os.path.exists(src)
+        assert os.path.exists(dst)
+        assert open(dst, 'rb').read() == b'hello world'
+
+    def test_if_error_is_unexpected_then_is_raised(self, src, dst):
+        """
+        If the error from ``os.rename()`` isn't because we're trying to copy
+        across a filesystem boundary, we get an error
+        """
+        message = "Exception thrown in utils_t.py for TestRename"
+        m = mock.Mock(side_effect=OSError(-1, message))
+        with mock.patch('loris.utils.os.rename', m):
+            with pytest.raises(OSError):
+                utils.safe_rename(src, dst)
+
+
+@pytest.fixture
 def symlink_src(tmpdir):
     path = str(tmpdir.join('symlink_src'))
     open(path, 'wb').write(b'I am a symlink')

@@ -8,7 +8,7 @@ from __future__ import absolute_import
 
 from logging import getLogger
 from os.path import join, exists, dirname, split
-from os import rename, remove
+from os import remove
 from shutil import copy
 import tempfile
 from contextlib import closing
@@ -26,7 +26,7 @@ import requests
 
 from loris import constants
 from loris.loris_exception import ResolverException
-from loris.utils import mkdir_p
+from loris.utils import mkdir_p, safe_rename
 from loris.img_info import ImageInfo
 
 
@@ -368,7 +368,7 @@ class SimpleHTTPResolver(_AbstractResolver):
                 logger.info('another process downloaded src image %s', local_fp)
                 remove(tmp_file.name)
             else:
-                rename(tmp_file.name, local_fp)
+                safe_rename(tmp_file.name, local_fp)
                 logger.info("Copied %s to %s", source_url, local_fp)
 
         # Check for rules file associated with image file

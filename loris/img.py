@@ -6,7 +6,7 @@ from __future__ import absolute_import
 from datetime import datetime
 import errno
 from logging import getLogger
-from os import path, rename
+from os import path
 
 try:
     from urllib.parse import quote_plus, unquote
@@ -15,7 +15,7 @@ except ImportError:  # Python 2
 
 from loris.loris_exception import ImageException
 from loris.parameters import RegionParameter, RotationParameter, SizeParameter
-from loris.utils import mkdir_p, symlink
+from loris.utils import mkdir_p, safe_rename, symlink
 
 logger = getLogger(__name__)
 
@@ -274,5 +274,5 @@ class ImageCache(dict):
 
     def upsert(self, image_request, temp_fp):
         target_fp = self.create_dir_and_return_file_path(image_request)
-        rename(temp_fp, target_fp)
+        safe_rename(temp_fp, target_fp)
         return target_fp
