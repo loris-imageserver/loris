@@ -82,55 +82,19 @@ def safe_rename(src, dst):
         os.rename(src, dst)
     except OSError as err:
         logger.debug('Calling os.rename(%r, %r) failed with %r', src, dst, err)
+
         if err.errno == errno.EXDEV:
-
-            # This is based on the safe, atomic file copying algorithm
-            # described in https://stackoverflow.com/a/28090883/1558022.
-            #
-            # We're assuming that ``src`` is a temporary file in a unique
-            # location.  Multiple threads may try to write the same file
-            # to ``dst``, but we're the only thread that may be interacting
-            # with ``src``.  So we don't need to worry about it disappearing
-            # under our feet.
-
-            # First, generate a unique ID, and copy `<src>` to the target
-            # directory with a temporary name `<dst>.<ID>.tmp`.  Because we're
-            # copying across a filesystem boundary, this may not be atomic.
+            # Generate a unique ID, and copy `<src>` to the target directory
+            # with a temporary name `<dst>.<ID>.tmp`.  Because we're copying
+            # across a filesystem boundary, this initial copy may not be
+            # atomic.  We intersperse a random UUID so if different processes
+            # are copying into `<dst>`, they don't overlap in their tmp copies.
             mole_id = uuid.uuid4()
             tmp_dst = shutil.copyfile(src, '%s.%s.tmp' % (dst, mole_id))
 
-            # Now we rename the copy (atomically) to `<dst>.<ID>.mole.tmp`.
-            # Files within the same directory should be on the same filesystem.
-            mole_dst = '%s.%s.mole.tmp' % (dst, mole_id)
-            os.rename(tmp_dst, mole_dst)
-
-            # At this point, any files name `<dst>.<ID>.mole.tmp` are complete
-            # copies of the source file.  Pick the lowest mole.  If that's
-            # not the one we just created, delete ours.
-            matching = sorted(glob.glob('dst.*.mole.tmp'))
-            if mole_dst != matching[0]:
-                remove_f(mole_dst)
-
-            mole_dst = matching[0]
-
-            # If ``dst`` exists, another process has beaten us.  Clean up
-            # our mole and the source file.
-            if os.path.exists(dst):
-                remove_f(mole_dst)
-                os.unlink(src)
-                return
-
-            # Otherwise, rename the temporary file to its final name.  Don't
-            # worry if it's already gone -- it just means another process
-            # did it first.
-            try:
-                os.rename(mole_dst, dst)
-            except OSError as err:
-                if err.errno == errno.ENOENT:
-                    pass
-                else:
-                    raise
-
+            # Then do an atomic rename onto the new name, and clean up the
+            # source image.
+            os.rename(tmp_dst, dst)
             os.unlink(src)
         else:
             raise
