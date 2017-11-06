@@ -46,17 +46,6 @@ def symlink(src, dst, force=True):
     os.symlink(src, dst)
 
 
-def remove_f(path):
-    """Remove a file at ``path``, but don't error if it doesn't exist."""
-    try:
-        os.remove(path)
-    except OSError as err:
-        if err.errno == errno.ENOENT:
-            pass
-        else:
-            raise
-
-
 def safe_rename(src, dst):
     """Rename a file from ``src`` to ``dst``.
 
