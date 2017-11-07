@@ -55,17 +55,10 @@ USER_HELP = 'User that will own the application and has permission to write to c
 GROUP_DEFAULT = 'loris'
 GROUP_HELP = 'Group that will own the application and has permission to write to caches. [Default: %s]' % (USER_DEFAULT,)
 
-OVERRIDE_DEPENDENCIES = bool(os.environ.get('OVERRIDE_LORIS_DEPENDENCIES', False))
 
-DEPENDENCIES = [
-    # (package, version, module)
-    ('werkzeug', '>=0.8.3', 'werkzeug'),
-    ('pillow', '>=2.4.0', 'PIL'),
-    ('configobj', '>=4.7.2,<=5.0.0', 'configobj'),
-    ('requests', '>=2.12.0', 'requests'),
-    ('mock', '==1.0.1', 'mock'),
-    ('responses', '==0.3.0', 'responses')
-]
+with open('requirements.txt') as f:
+    DEPENDENCIES = f.read().splitlines()
+
 if version_info[1] < 7:
     DEPENDENCIES.append(('ordereddict','>=1.1','ordereddict'))
 
@@ -220,14 +213,6 @@ application = create_app(config_file_path='%s')
         config.filename = config_file_target
         config.write()
 
-install_requires = []
-
-if not OVERRIDE_DEPENDENCIES:
-    for d in DEPENDENCIES:
-        try:
-            __import__(d[2], fromlist=[''])
-        except ImportError:
-            install_requires.append(''.join(d[0:2]))
 
 def _read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
@@ -243,7 +228,7 @@ setup(
     license='Simplified BSD',
     version=VERSION,
     packages=['loris'],
-    install_requires=install_requires
+    install_requires=DEPENDENCIES
 )
 
 
