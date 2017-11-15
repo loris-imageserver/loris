@@ -223,6 +223,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             logger.error(message)
             raise ResolverException(500, message)
 
+        self.sess = requests.Session()
+
     def request_options(self):
         # parameters to pass to all head and get requests;
         options = {}
@@ -248,11 +250,11 @@ class SimpleHTTPResolver(_AbstractResolver):
             (url, options) = self._web_request_url(ident)
 
             if self.head_resolvable:
-                response = requests.head(url, **options)
+                response = self.sess.head(url, **options)
                 if response.ok:
                     return True
             else:
-                with closing(requests.get(url, stream=True, **options)) as response:
+                with closing(self.sess.get(url, stream=True, **options)) as response:
                     if response.ok:
                         return True
         return False
@@ -347,7 +349,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         cache_dir = self.cache_dir_path(ident)
         mkdir_p(cache_dir)
 
-        with closing(requests.get(source_url, stream=True, **options)) as response:
+        with closing(self.sess.get(source_url, stream=True, **options)) as response:
             if not response.ok:
                 public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
                 log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
@@ -380,7 +382,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         fn = bits[1].rsplit('.')[0] + "." + self.auth_rules_ext
         rules_url = bits[0] + '/' + fn
         try:
-            resp = requests.get(rules_url)            
+            resp = self.sess.get(rules_url)
             if resp.status_code == 200:
                 local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
                 if not exists(local_rules_fp):
