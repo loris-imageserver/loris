@@ -348,30 +348,32 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         cache_dir = self.cache_dir_path(ident)
         mkdir_p(cache_dir)
+        local_fp = join(cache_dir, "loris_cache." + extension)
 
-        with closing(self.sess.get(source_url, stream=True, **options)) as response:
-            if not response.ok:
-                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
-                log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
-                logger.warn(log_message)
-                raise ResolverException(404, public_message)
+        if not exists(local_fp):
+            with closing(self.sess.get(source_url, stream=True, **options)) as response:
+                if not response.ok:
+                    public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
+                    log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
+                    logger.warn(log_message)
+                    raise ResolverException(404, public_message)
 
-            extension = self.cache_file_extension(ident, response)
-            local_fp = join(cache_dir, "loris_cache." + extension)
+                extension = self.cache_file_extension(ident, response)
 
-            with tempfile.NamedTemporaryFile(dir=cache_dir, delete=False) as tmp_file:
-                for chunk in response.iter_content(2048):
-                    tmp_file.write(chunk)
-                tmp_file.flush()
+                with tempfile.NamedTemporaryFile(dir=cache_dir, delete=False) as tmp_file:
+                    for chunk in response.iter_content(2048):
+                        tmp_file.write(chunk)
+                    tmp_file.flush()
 
-            #now rename the tmp file to the desired file name if it still doesn't exist
-            #   (another process could have created it)
-            if exists(local_fp):
-                logger.info('another process downloaded src image %s', local_fp)
-                remove(tmp_file.name)
-            else:
-                safe_rename(tmp_file.name, local_fp)
-                logger.info("Copied %s to %s", source_url, local_fp)
+                # Then rename the tmp file to the desired filename if it doesn't
+                # already exist (another process could have created it at the
+                # same time as us)
+                if exists(local_fp):
+                    logger.info('Another process downloaded src image %s', local_fp)
+                    remove(tmp_file.name)
+                else:
+                    safe_rename(tmp_file.name, local_fp)
+                    logger.info("Copied %s to %s", source_url, local_fp)
 
         # Check for rules file associated with image file
         # These files are < 2k in size, so fetch in one go.
