@@ -348,9 +348,11 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         cache_dir = self.cache_dir_path(ident)
         mkdir_p(cache_dir)
-        local_fp = join(cache_dir, "loris_cache." + extension)
 
-        if not exists(local_fp):
+
+        local_fp_guess = self.cached_file_for_ident(ident)
+
+        if (local_fp_guess is not None) and (not exists(local_fp)):
             with closing(self.sess.get(source_url, stream=True, **options)) as response:
                 if not response.ok:
                     public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
@@ -358,12 +360,13 @@ class SimpleHTTPResolver(_AbstractResolver):
                     logger.warn(log_message)
                     raise ResolverException(404, public_message)
 
-                extension = self.cache_file_extension(ident, response)
-
                 with tempfile.NamedTemporaryFile(dir=cache_dir, delete=False) as tmp_file:
                     for chunk in response.iter_content(2048):
                         tmp_file.write(chunk)
                     tmp_file.flush()
+
+                extension = self.cache_file_extension(ident, response)
+                local_fp = join(cache_dir, "loris_cache." + extension)
 
                 # Then rename the tmp file to the desired filename if it doesn't
                 # already exist (another process could have created it at the
