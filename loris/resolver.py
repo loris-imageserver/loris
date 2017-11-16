@@ -349,10 +349,9 @@ class SimpleHTTPResolver(_AbstractResolver):
         cache_dir = self.cache_dir_path(ident)
         mkdir_p(cache_dir)
 
-
         local_fp_guess = self.cached_file_for_ident(ident)
 
-        if (local_fp_guess is not None) and (not exists(local_fp)):
+        if (local_fp_guess is None) or (not exists(local_fp_guess)):
             with closing(self.sess.get(source_url, stream=True, **options)) as response:
                 if not response.ok:
                     public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
