@@ -351,6 +351,9 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         local_fp_guess = self.cached_file_for_ident(ident)
 
+        if local_fp_guess is not None and exists(local_fp_guess):
+            return local_fp_guess
+
         if (local_fp_guess is None) or (not exists(local_fp_guess)):
             with closing(self.sess.get(source_url, stream=True, **options)) as response:
                 if not response.ok:
