@@ -87,6 +87,22 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         ii2 = self.app.resolver.resolve(self.app, self.test_altpng_id, "")
         self.assertEqual(self.test_altpng_fp, ii2.src_img_fp)
 
+    def test_present_ident_is_resolvable(self):
+        ident = self.test_png_id
+        config = {
+            'src_img_roots' : [self.test_img_dir]
+        }
+        resolver = SimpleFSResolver(config=config)
+        assert resolver.is_resolvable(ident=ident)
+
+    def test_absent_ident_is_unresolvable(self):
+        config = {
+            'src_img_roots' : ['/var/loris/img']
+        }
+        resolver = SimpleFSResolver(config=config)
+        assert not resolver.is_resolvable(ident='doesnotexist.jpg')
+
+
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
     def test_source_image_caching_resolver(self):
@@ -107,29 +123,83 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
         self.assertEqual(ii.src_format, 'jp2')
         self.assertTrue(isfile(ii.src_img_fp))
 
+    def test_present_ident_is_resolvable(self):
+        ident = self.test_png_id
+        config = {
+            'source_root' : join(dirname(realpath(__file__)), 'img'),
+            'cache_root' : self.app.img_cache.cache_root
+        }
+        resolver = SourceImageCachingResolver(config=config)
+        assert resolver.is_resolvable(ident=ident)
+
+    def test_absent_ident_is_unresolvable(self):
+        config = {
+            'source_root' : '/var/loris/src',
+            'cache_root' : '/var/loris/cache'
+        }
+        resolver = SourceImageCachingResolver(config=config)
+        assert not resolver.is_resolvable(ident='doesnotexist.jp2')
+
+
+@pytest.fixture
+def mock_responses():
+    with open('tests/img/01/04/0001.tif', 'rb') as f:
+        responses.add(
+            responses.GET, 'http://sample.sample/0001',
+            body=f.read(),
+            status=200,
+            content_type='image/tiff'
+        )
+
+    responses.add(
+        responses.HEAD, 'http://sample.sample/0001',
+        status=200,
+        content_type='image/tiff'
+    )
+
+    with open('tests/img/01/04/0001.tif', 'rb') as f:
+        responses.add(
+            responses.GET, 'http://sample.sample/0002',
+            body=f.read(),
+            status=200
+        )
+
+    body = (
+        'II*\x00\x0c\x00\x00\x00\x80\x00  \x0e\x00\x00\x01\x03\x00\x01\x00\x00'
+        '\x00\x01\x00\x00\x00\x01\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00'
+        '\x02\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x03\x01\x03\x00\x01'
+        '\x00\x00\x00\x05\x00\x00\x00\x06\x01\x03\x00\x01\x00\x00\x00\x03\x00'
+        '\x00\x00\x11\x01\x04\x00\x01\x00\x00\x00\x08\x00\x00\x00\x15\x01\x03'
+        '\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x01\x03\x00\x01\x00\x00\x00'
+        '\x08\x00\x00\x00\x17\x01\x04\x00\x01\x00\x00\x00\x04\x00\x00\x00\x1a'
+        '\x01\x05\x00\x01\x00\x00\x00\xba\x00\x00\x00\x1b\x01\x05\x00\x01\x00'
+        '\x00\x00\xc2\x00\x00\x00\x1c\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00'
+        '\x00(\x01\x03\x00\x01\x00\x00\x00\x02\x00\x00\x00@\x01\x03\x00\x00'
+        '\x03\x00\x00\xca\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00H\x00\x00\x00'
+        '\x01\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00\xff`\xe6q\x19\x08\x00'
+        '\x00\x80\t\x00\x00\x80\n\x00\x00\x80\x0b\x00\x00\x80\x0c\x00\x00\x80'
+        '\r'
+    )
+
+    responses.add(
+        responses.GET, 'http://sample.sample/0003',
+        body=body,
+        status=200,
+        content_type='image/invalidformat'
+    )
+
+    responses.add(
+        responses.GET, 'http://sample.sample/DOESNOTEXIST',
+        body='Does Not Exist',
+        status=404,
+        content_type='application/html'
+    )
+
+
 class Test_SimpleHTTPResolver(loris_t.LorisTest):
 
     def _mock_urls(self):
-        with open('tests/img/01/04/0001.tif', 'rb') as f:
-            responses.add(responses.GET, 'http://sample.sample/0001',
-                      body=f.read(),
-                      status=200,
-                      content_type='image/tiff')
-
-        with open('tests/img/01/04/0001.tif', 'rb') as f:
-            responses.add(responses.GET, 'http://sample.sample/0002',
-                      body=f.read(),
-                      status=200)
-
-        responses.add(responses.GET, 'http://sample.sample/0003',
-                      body='II*\x00\x0c\x00\x00\x00\x80\x00  \x0e\x00\x00\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x02\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x03\x01\x03\x00\x01\x00\x00\x00\x05\x00\x00\x00\x06\x01\x03\x00\x01\x00\x00\x00\x03\x00\x00\x00\x11\x01\x04\x00\x01\x00\x00\x00\x08\x00\x00\x00\x15\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00\x16\x01\x03\x00\x01\x00\x00\x00\x08\x00\x00\x00\x17\x01\x04\x00\x01\x00\x00\x00\x04\x00\x00\x00\x1a\x01\x05\x00\x01\x00\x00\x00\xba\x00\x00\x00\x1b\x01\x05\x00\x01\x00\x00\x00\xc2\x00\x00\x00\x1c\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00(\x01\x03\x00\x01\x00\x00\x00\x02\x00\x00\x00@\x01\x03\x00\x00\x03\x00\x00\xca\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00H\x00\x00\x00\x01\x00\x00\x00\xff`\xe6q\x19\x08\x00\x00\x80\t\x00\x00\x80\n\x00\x00\x80\x0b\x00\x00\x80\x0c\x00\x00\x80\r',
-                      status=200,
-                      content_type='image/invalidformat')
-
-        responses.add(responses.GET, 'http://sample.sample/DOESNOTEXIST',
-                      body='Does Not Exist',
-                      status=404,
-                      content_type='application/html')
+        mock_responses()
 
     @responses.activate
     def test_simple_http_resolver(self):
@@ -292,12 +362,30 @@ class TestSimpleHTTPResolver(object):
         resolver = SimpleHTTPResolver(config)
         assert resolver.request_options() == expected_options
 
+    @responses.activate
+    @pytest.mark.parametrize('head_resolvable', [True, False])
+    @pytest.mark.parametrize('ident, expected_resolvable', [
+        ('0001', True),
+        ('0004', False),
+        ('doesnotexist.png', False),
+    ])
+    def test_is_resolvable(self, mock_responses,
+                           head_resolvable, ident, expected_resolvable):
+        config = {
+            'cache_root': '/var/cache/loris',
+            'source_prefix': 'http://sample.sample/',
+            'uri_resolvable': True,
+            'head_resolvable': head_resolvable,
+        }
+        resolver = SimpleHTTPResolver(config=config)
+        assert resolver.is_resolvable(ident=ident) == expected_resolvable
+
 
 class Test_TemplateHTTPResolver(object):
 
     config = {
         'cache_root' : '/var/cache/loris',
-        'templates': 'a, b, c, d',
+        'templates': 'a, b, c, d, sample',
         'a': {
             'url': 'http://mysite.com/images/%s'
         },
@@ -306,6 +394,9 @@ class Test_TemplateHTTPResolver(object):
         },
         'c': {
             'url': 'http://othersite.co/img/%s'
+        },
+        'sample': {
+            'url': 'http://sample.sample/%s'
         }
     }
 
@@ -386,3 +477,13 @@ class Test_TemplateHTTPResolver(object):
         resolver = TemplateHTTPResolver(new_config)
         _, options = resolver._web_request_url('a:id1.jpg')
         assert options == expected_options
+
+    @responses.activate
+    @pytest.mark.parametrize('ident, expected_resolvable', [
+        ('sample:0001', True),
+        ('sample:0004', False),
+        ('doesnotmatchatemplate', False),
+    ])
+    def test_is_resolvable(self, mock_responses, ident, expected_resolvable):
+        resolver = TemplateHTTPResolver(self.config)
+        assert resolver.is_resolvable(ident=ident) == expected_resolvable
