@@ -158,7 +158,7 @@ class ImageInfo(object):
         else:
             raise ImageInfoException(
                 "Didn't get a source format, or at least one we recognize (%r)." %
-                src_format
+                self.src_format
             )
         # in case of ii = ImageInfo().from_image_file()
         return self
