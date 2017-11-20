@@ -161,7 +161,7 @@ class InfoUnit(loris_t.LorisTest):
         fmt = 'invalid_format'
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
-        error_message = 'Didn\'t get a source format, or at least one we recognize ("invalid_format")'
+        error_message = "Didn\'t get a source format, or at least one we recognize ('invalid_format')"
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
             img_info.ImageInfo(self.app, uri, fp, fmt)
         self.assertEqual(cm.exception.message, error_message)
