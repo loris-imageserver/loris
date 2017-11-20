@@ -445,7 +445,6 @@ class Test_TemplateHTTPResolver(object):
         resolver = TemplateHTTPResolver(self.config)
         with pytest.raises(ResolverException) as exc:
             resolver._web_request_url(bad_ident)
-        assert exc.value.http_status == 404
         assert 'Bad URL request' in exc.value.message
 
     delimited_config = {
@@ -477,7 +476,6 @@ class Test_TemplateHTTPResolver(object):
         resolver = TemplateHTTPResolver(self.delimited_config)
         with pytest.raises(ResolverException) as exc:
             resolver._web_request_url(bad_ident)
-        assert exc.value.http_status == 404
         assert 'Bad URL request' in exc.value.message
 
     @pytest.mark.parametrize('config, expected_options',

@@ -187,7 +187,7 @@ class ImageRequest(object):
     def info(self):
         if self._info is None:
             # For dev purposes only. This should never happen.
-            raise ImageException(http_status=500, message='Image.info not set!')
+            raise ImageException('Image.info not set!')
         else:
             return self._info
 

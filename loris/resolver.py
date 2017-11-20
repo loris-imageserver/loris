@@ -105,8 +105,9 @@ class _AbstractResolver(object):
             if len(extension) < 5:
                 extension = extension.lower()
                 return constants.EXTENSION_MAP.get(extension, extension)
-        message = 'Format could not be determined for: %s.' % (ident)
-        raise ResolverException(404, message)
+        raise ResolverException(
+            "Format could not be determined for %r." % ident
+        )
 
 
 class SimpleFSResolver(_AbstractResolver):
@@ -126,7 +127,7 @@ class SimpleFSResolver(_AbstractResolver):
     def raise_404_for_ident(self, ident):
         message = 'Source image not found for identifier: %s.' % (ident,)
         logger.warn(message)
-        raise ResolverException(404, message)
+        raise ResolverException(message)
 
     def source_file_path(self, ident):
         ident = unquote(ident)
@@ -215,13 +216,13 @@ class SimpleHTTPResolver(_AbstractResolver):
         else:
             message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
             logger.error(message)
-            raise ResolverException(500, message)
+            raise ResolverException(message)
 
         if not self.uri_resolvable and self.source_prefix == '':
             message = 'Server Side Error: Configuration incomplete and cannot resolve. Must either set uri_resolvable' \
                       ' or source_prefix settings.'
             logger.error(message)
-            raise ResolverException(500, message)
+            raise ResolverException(message)
 
     def request_options(self):
         # parameters to pass to all head and get requests;
@@ -249,10 +250,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             try:
                 (url, options) = self._web_request_url(ident)
             except ResolverException as exc:
-                if exc.http_status == 404:
-                    return False
-                else:
-                    raise
+                return False
 
             try:
                 if self.head_resolvable:
@@ -281,8 +279,9 @@ class SimpleHTTPResolver(_AbstractResolver):
             url = self.source_prefix + ident + self.source_suffix
         if not url.startswith(('http://', 'https://')):
             logger.warn('Bad URL request at %s for identifier: %s.', url, ident)
-            public_message = 'Bad URL request made for identifier: %s.' % (ident,)
-            raise ResolverException(404, public_message)
+            raise ResolverException(
+                "Bad URL request made for identifier: %r." % ident
+            )
         return (url, self.request_options())
 
     # Get a subdirectory structure for the cache_subroot through hashing.
@@ -322,8 +321,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         )
 
     def raise_404_for_ident(self, ident):
-        message = 'Image not found for identifier: %s.' % (ident)
-        raise ResolverException(404, message)
+        raise ResolverException("Image not found for identifier: %r." % ident)
 
     def cached_file_for_ident(self, ident):
         cache_dir = self.cache_dir_path(ident)
@@ -358,10 +356,15 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         with closing(requests.get(source_url, stream=True, **options)) as response:
             if not response.ok:
-                public_message = 'Source image not found for identifier: %s. Status code returned: %s' % (ident,response.status_code)
-                log_message = 'Source image not found at %s for identifier: %s. Status code returned: %s' % (source_url,ident,response.status_code)
-                logger.warn(log_message)
-                raise ResolverException(404, public_message)
+                logger.warn(
+                    "Source image not found at %s for identifier: %s. "
+                    "Status code returned: %s.",
+                    source_url, ident, response.status_code
+                )
+                raise ResolverException(
+                    "Source image not found for identifier: %s. "
+                    "Status code returned: %s." % (ident, response.status_code)
+                )
 
             extension = self.cache_file_extension(ident, response)
             local_fp = join(cache_dir, "loris_cache." + extension)
@@ -491,8 +494,9 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # ignore other requests (e.g. favicon)
         if ':' not in ident:
             logger.warn('Bad URL request for identifier: %r.', ident)
-            public_message = 'Bad URL request made for identifier: %r.' % ident
-            raise ResolverException(404, public_message)
+            raise ResolverException(
+                "Bad URL request made for identifier: %r." % ident
+            )
 
         prefix, ident_parts = ident.split(':', 1)
 
@@ -500,8 +504,9 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             url_template = self.templates[prefix]['url']
         except KeyError:
             logger.warn('No template found for identifier: %r.', ident)
-            public_message = 'Bad URL request made for identifier: %r.' % ident
-            raise ResolverException(404, public_message)
+            raise ResolverException(
+                "Bad URL request made for identifier: %r." % ident
+            )
 
         try:
             url = url_template % tuple(ident_parts.split(self.config['delimiter']))
@@ -511,8 +516,9 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             # Raised if there are more parts in the ident than spaces in
             # the template, e.g. '%s' % (1, 2).
             logger.warn('TypeError raised when processing identifier: %r (%r).', (ident, e))
-            public_message = 'Bad URL request made for identifier: %r.' % ident
-            raise ResolverException(404, public_message)
+            raise ResolverException(
+                "Bad URL request made for identifier: %r." % ident
+            )
 
         # Get the generic options
         options = self.request_options()
@@ -570,10 +576,13 @@ class SourceImageCachingResolver(_AbstractResolver):
 
     def raise_404_for_ident(self, ident):
         source_fp = self.source_file_path(ident)
-        public_message = 'Source image not found for identifier: %s.' % (ident,)
-        log_message = 'Source image not found at %s for identifier: %s.' % (source_fp,ident)
-        logger.warn(log_message)
-        raise ResolverException(404, public_message)
+        logger.warn(
+            "Source image not found at %s for identifier: %s.",
+            source_fp, ident
+        )
+        raise ResolverException(
+            "Source image not found for identifier: %s." % ident
+        )
 
     def resolve(self, app, ident, base_uri):
         if not self.is_resolvable(ident):

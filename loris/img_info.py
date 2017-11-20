@@ -88,16 +88,19 @@ class ImageInfo(object):
             except AttributeError:
                 bad_attrs.append(k)
         if bad_attrs:
-            message = "Invalid parameters in extraInfo: %s" % ', '.join(bad_attrs)
-            raise ImageInfoException(http_status=500, message=message)
+            raise ImageInfoException(
+                "Invalid parameters in extraInfo: %s." % ', '.join(bad_attrs)
+            )
 
         # If constructed from JSON, the pixel info will already be processed
         if app:
             try:
                 formats = app.transformers[src_format].target_formats
             except KeyError:
-                m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % src_format
-                raise ImageInfoException(500, m)
+                raise ImageInfoException(
+                    "Didn't get a source format, or at least one we recognize (%r)." %
+                    src_format
+                )
             # Finish setting up the info from the image file
             self.from_image_file(formats, app.max_size_above_full)
 
@@ -124,7 +127,7 @@ class ImageInfo(object):
         new_inst.sizes = j.get(u'sizes')
         new_inst.profile = j.get(u'profile')
         new_inst.service = j.get('service', {})
-        
+
         # Also add src_img_fp if available
         new_inst.src_img_fp = j.get('_src_img_fp', '')
         new_inst.src_format = j.get('_src_format', '')
@@ -153,8 +156,10 @@ class ImageInfo(object):
         elif self.src_format  in ('jpg','tif','png'):
             self._extract_with_pillow(self.src_img_fp)
         else:
-            m = 'Didn\'t get a source format, or at least one we recognize ("%s")' % self.src_format
-            raise ImageInfoException(http_status=500, message=m)
+            raise ImageInfoException(
+                "Didn't get a source format, or at least one we recognize (%r)." %
+                self.src_format
+            )
         # in case of ii = ImageInfo().from_image_file()
         return self
 
@@ -182,7 +187,7 @@ class ImageInfo(object):
             if (not initial_bytes[:12] == '\x00\x00\x00\x0cjP  \r\n\x87\n') or \
                 (not initial_bytes[16:] == 'ftypjp2 '):
                 logger.warning('Invalid JP2 file at %s', fp)
-                raise ImageInfoException(http_status=500, message='Invalid JP2 file')
+                raise ImageInfoException('Invalid JP2 file')
 
             #grab width and height
             window = deque([], 4)
