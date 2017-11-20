@@ -88,8 +88,9 @@ class ImageInfo(object):
             except AttributeError:
                 bad_attrs.append(k)
         if bad_attrs:
-            message = "Invalid parameters in extraInfo: %s" % ', '.join(bad_attrs)
-            raise ImageInfoException(message)
+            raise ImageInfoException(
+                "Invalid parameters in extraInfo: %s." % ', '.join(bad_attrs)
+            )
 
         # If constructed from JSON, the pixel info will already be processed
         if app:
@@ -97,7 +98,7 @@ class ImageInfo(object):
                 formats = app.transformers[src_format].target_formats
             except KeyError:
                 raise ImageInfoException(
-                    'Didn\'t get a source format, or at least one we recognize ("%s")' %
+                    "Didn't get a source format, or at least one we recognize (%r)." %
                     src_format
                 )
             # Finish setting up the info from the image file
@@ -156,7 +157,8 @@ class ImageInfo(object):
             self._extract_with_pillow(self.src_img_fp)
         else:
             raise ImageInfoException(
-                'Didn\'t get a source format, or at least one we recognize ("%s")' % self.src_format
+                "Didn't get a source format, or at least one we recognize (%r)." %
+                src_format
             )
         # in case of ii = ImageInfo().from_image_file()
         return self

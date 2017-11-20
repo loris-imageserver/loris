@@ -117,16 +117,20 @@ class RegionParameter(object):
 
     def _check_for_oob_errors(self):
         if any(axis < 0 for axis in (self.pixel_x, self.pixel_y)):
-            msg = 'x and y region parameters must be 0 or greater (%s)' % (self.uri_value,)
-            raise RequestException(msg)
+            raise RequestException(
+                "x and y region parameters must be 0 or greater (%s)." %
+                self.uri_value
+            )
         if self.decimal_x >= DECIMAL_ONE:
-            msg = 'Region x parameter is greater than the width of the image.\n'
-            msg +='Image width is %d' % (self.img_info.width,)
-            raise RequestException(msg)
+            raise RequestException(
+                "Region x parameter is greater than the width of the image. "
+                "Image width is %d" % self.img_info.width
+            )
         if self.decimal_y >= DECIMAL_ONE:
-            msg = 'Region y parameter is greater than the height of the image.\n'
-            msg +='Image height is %d' % (self.img_info.height,)
-            raise RequestException(msg)
+            raise RequestException(
+                "Region y parameter is greater than the height of the image. "
+                "Image height is %d" % self.img_info.height
+            )
 
     def _populate_slots_for_full(self):
         self.canonical_uri_value = FULL_MODE
@@ -149,14 +153,15 @@ class RegionParameter(object):
         dimensions = map(float, self.uri_value.split(':')[1].split(','))
 
         if len(dimensions) != 4:
-            msg = 'Exactly (4) coordinates must be supplied'
-            raise SyntaxException(msg)
+            raise SyntaxException("Exactly (4) coordinates must be supplied.")
         if any(n > 100.0 for n in dimensions):
-            msg = 'Region percentages must be less than or equal to 100.'
-            raise RequestException(msg)
+            raise RequestException(
+                "Region percentages must be less than or equal to 100."
+            )
         if any((n <= 0) for n in dimensions[2:]):
-            msg = 'Width and Height Percentages must be greater than 0.'
-            raise RequestException(msg)
+            raise RequestException(
+                "Width and Height Percentages must be greater than 0."
+            )
 
         # decimals
         self.decimal_x, self.decimal_y, self.decimal_w, \
@@ -185,11 +190,9 @@ class RegionParameter(object):
     def _pixel_dims_to_ints(self):
         dimensions = map(int, self.uri_value.split(','))
         if any(n <= 0 for n in dimensions[2:]):
-            msg = 'Width and height must be greater than 0'
-            raise RequestException(msg)
+            raise RequestException("Width and height must be greater than 0.")
         if len(dimensions) != 4:
-            msg = 'Exactly (4) coordinates must be supplied'
-            raise SyntaxException(msg)
+            raise SyntaxException("Exactly (4) coordinates must be supplied.")
         return dimensions
 
     def _populate_slots_from_pixels(self, dimensions):
@@ -232,8 +235,9 @@ class RegionParameter(object):
             elif region_segment.split(':')[0] == 'pct':
                 return PCT_MODE
             else:
-                msg = 'Region syntax "%s" is not valid' % (region_segment,)
-                raise SyntaxException(msg)
+                raise SyntaxException(
+                    "Region syntax %r is not valid." % region_segment
+                )
 
     @staticmethod
     def _pct_to_decimal(n):
@@ -302,8 +306,9 @@ class SizeParameter(object):
             logger.debug('w %s', self.w)
             logger.debug('h %s', self.h)
             if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
-                msg = 'Width and height must both be positive numbers'
-                raise RequestException(msg)
+                raise RequestException(
+                    "Width and height must both be positive numbers."
+                )
 
     def _populate_slots_from_pct(self,region_parameter):
         m = SizeParameter.PCT_MODE_REGEX.match(self.uri_value)
@@ -315,8 +320,9 @@ class SizeParameter(object):
         logger.debug('pct_decimal: %s', pct_decimal)
 
         if pct_decimal <= Decimal('0'):
-            msg = 'Percentage supplied is less than 0 (%s).' % (self.uri_value,)
-            raise RequestException(msg)
+            raise RequestException(
+                "Percentage supplied is less than 0 (%r)." % self.uri_value
+            )
 
         w_decimal = region_parameter.pixel_w * pct_decimal
         h_decimal = region_parameter.pixel_h * pct_decimal
@@ -406,8 +412,7 @@ class SizeParameter(object):
             ):
                 return PIXEL_MODE
 
-        message = 'Size syntax %r is not valid' % size_segment
-        raise SyntaxException(message)
+        raise SyntaxException("Size syntax %r is not valid." % size_segment)
 
     def __str__(self):
         return self.uri_value
@@ -445,8 +450,9 @@ class RotationParameter(object):
         match = RotationParameter.ROTATION_REGEX.match(uri_value)
 
         if not match:
-            msg = 'Rotation parameter %r is not a number' % (uri_value,)
-            raise SyntaxException(msg)
+            raise SyntaxException(
+                "Rotation parameter %r is not a number" % uri_value
+            )
 
         self.mirror = bool(match.group('mirror'))
         self.rotation = match.group('rotation')
@@ -454,14 +460,17 @@ class RotationParameter(object):
         try:
             self.canonical_uri_value = '%g' % (float(self.rotation),)
         except ValueError:
-            msg = 'Rotation parameter %r is not a floating point number' % (uri_value,)
-            raise SyntaxException(msg)
+            raise SyntaxException(
+                "Rotation parameter %r is not a floating point number." %
+                uri_value
+            )
 
         if self.mirror:
             self.canonical_uri_value = '!%s' % self.canonical_uri_value
 
         if not 0.0 <= float(self.rotation) <= 360.0:
-            msg = 'Rotation parameter %r is not between 0 and 360' % (uri_value,)
-            raise SyntaxException(msg)
+            raise SyntaxException(
+                "Rotation parameter %r is not between 0 and 360." % uri_value
+            )
 
         logger.debug('Canonical rotation parameter is %s', self.canonical_uri_value)
