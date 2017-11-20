@@ -528,21 +528,6 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
             options['verify'] = conf['ssl_check']
         return (url, options)
 
-    def is_resolvable(self, ident):
-        # We can raise a ``ResolverException`` in ``_web_request_url()`` if
-        # somebody tries to look up a URL that doesn't match any of the
-        # templates.  In turn, this causes ``is_resolvable()`` to rethrow
-        # that exception and return a 500 to the user.
-        #
-        # In this case, we should catch the exception and return a boolean.
-        try:
-            return super(TemplateHTTPResolver, self).is_resolvable(ident)
-        except ResolverException as exc:
-            if exc.http_status == 404:
-                return False
-            else:
-                raise
-
 
 class SourceImageCachingResolver(_AbstractResolver):
     '''
