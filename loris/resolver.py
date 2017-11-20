@@ -65,7 +65,7 @@ class _AbstractResolver(object):
             ident (str):
                 The identifier for the image.
         Returns:
-            ImageInfo: Partially constructed ImageInfo object 
+            ImageInfo: Partially constructed ImageInfo object
         Raises:
             ResolverException when something goes wrong...
         """
@@ -236,6 +236,7 @@ class SimpleHTTPResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         ident = unquote(ident)
 
+        # TODO: Add some tests around this as well
         if self.ident_regex:
             regex = re.compile(self.ident_regex)
             if not regex.match(ident):
@@ -245,16 +246,24 @@ class SimpleHTTPResolver(_AbstractResolver):
         if exists(fp):
             return True
         else:
-            (url, options) = self._web_request_url(ident)
+            try:
+                (url, options) = self._web_request_url(ident)
+            except ResolverException as exc:
+                if exc.http_status == 404:
+                    return False
+                else:
+                    raise
 
-            if self.head_resolvable:
-                response = requests.head(url, **options)
-                if response.ok:
-                    return True
-            else:
-                with closing(requests.get(url, stream=True, **options)) as response:
-                    if response.ok:
-                        return True
+            try:
+                if self.head_resolvable:
+                    response = requests.head(url, **options)
+                    return response.ok
+                else:
+                    with closing(requests.get(url, stream=True, **options)) as response:
+                        return response.ok
+            except requests.ConnectionError:
+                return False
+
         return False
 
     def get_format(self, ident, potential_format):
@@ -266,11 +275,11 @@ class SimpleHTTPResolver(_AbstractResolver):
             return self.format_from_ident(ident)
 
     def _web_request_url(self, ident):
-        if (ident.startswith('http://') or ident.startswith('https://')) and self.uri_resolvable:
+        if ident.startswith(('http://', 'https://')) and self.uri_resolvable:
             url = ident
         else:
             url = self.source_prefix + ident + self.source_suffix
-        if not (url.startswith('http://') or url.startswith('https://')):
+        if not url.startswith(('http://', 'https://')):
             logger.warn('Bad URL request at %s for identifier: %s.', url, ident)
             public_message = 'Bad URL request made for identifier: %s.' % (ident,)
             raise ResolverException(404, public_message)
@@ -380,7 +389,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         fn = bits[1].rsplit('.')[0] + "." + self.auth_rules_ext
         rules_url = bits[0] + '/' + fn
         try:
-            resp = requests.get(rules_url)            
+            resp = requests.get(rules_url)
             if resp.status_code == 200:
                 local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
                 if not exists(local_rules_fp):
