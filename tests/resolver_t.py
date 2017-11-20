@@ -380,6 +380,17 @@ class TestSimpleHTTPResolver(object):
         resolver = SimpleHTTPResolver(config=config)
         assert resolver.is_resolvable(ident=ident) == expected_resolvable
 
+    @pytest.mark.parametrize('head_resolvable', [True, False])
+    def test_non_http_rejected_as_not_resolvable(self, head_resolvable):
+        config = {
+            'cache_root': '/var/cache/loris',
+            'source_prefix': 'irc://example.irc/loris/',
+            'uri_resolvable': True,
+            'head_resolvable': head_resolvable,
+        }
+        resolver = SimpleHTTPResolver(config=config)
+        assert not resolver.is_resolvable(ident='example.png')
+
 
 class Test_TemplateHTTPResolver(object):
 

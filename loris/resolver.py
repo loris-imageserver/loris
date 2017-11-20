@@ -246,7 +246,13 @@ class SimpleHTTPResolver(_AbstractResolver):
         if exists(fp):
             return True
         else:
-            (url, options) = self._web_request_url(ident)
+            try:
+                (url, options) = self._web_request_url(ident)
+            except ResolverException as exc:
+                if exc.http_status == 404:
+                    return False
+                else:
+                    raise
 
             try:
                 if self.head_resolvable:
