@@ -380,11 +380,24 @@ class ExternalAuthorizer(_AbstractAuthorizer):
     def is_protected(self, info):
         # http://somewhere.org/path/to/service
         # using POST to ensure data doesn't end up in logs
-        r = requests.post(self.protected_url, data={"id":info.ident, "fp":info.src_img_fp})
+        data = {
+            'id': info.ident,
+            'fp': info.src_img_fp,
+        }
+        requests.post(self.protected_url, data=data)
 
     def is_authorized(self, info, cookie="", token=""):
-        r = requests.post(self.authorized_url, data={"id":info.ident, 
-            "fp":info.src_img_fp, "cookie":cookie, "token": token})
+        data = {
+            'id': info.ident,
+            'fp': info.src_img_fp,
+            'cookie': cookie,
+            'token': token,
+        }
+        requests.post(self.authorized_url, data=data)
 
     def get_services_info(self, info):
-        r = requests.post(self.services_url, data={"id":info.ident, "fp":info.src_img_fp})
+        data = {
+            'id': info.ident,
+            'fp': info.src_img_fp,
+        }
+        requests.post(self.services_url, data=data)

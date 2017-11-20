@@ -249,7 +249,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         else:
             try:
                 (url, options) = self._web_request_url(ident)
-            except ResolverException as exc:
+            except ResolverException:
                 return False
 
             try:

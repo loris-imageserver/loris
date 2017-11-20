@@ -399,7 +399,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                     p.feed(s)
                 im = p.close() # a PIL.Image
         finally:
-            stdoutdata, stderrdata = kdu_expand_proc.communicate()
+            _, stderrdata = kdu_expand_proc.communicate()
             kdu_exit = kdu_expand_proc.returncode
             if kdu_exit != 0:
                 map(logger.error, stderrdata)
