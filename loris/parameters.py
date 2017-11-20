@@ -118,15 +118,15 @@ class RegionParameter(object):
     def _check_for_oob_errors(self):
         if any(axis < 0 for axis in (self.pixel_x, self.pixel_y)):
             msg = 'x and y region parameters must be 0 or greater (%s)' % (self.uri_value,)
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
         if self.decimal_x >= DECIMAL_ONE:
             msg = 'Region x parameter is greater than the width of the image.\n'
             msg +='Image width is %d' % (self.img_info.width,)
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
         if self.decimal_y >= DECIMAL_ONE:
             msg = 'Region y parameter is greater than the height of the image.\n'
             msg +='Image height is %d' % (self.img_info.height,)
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
 
     def _populate_slots_for_full(self):
         self.canonical_uri_value = FULL_MODE
@@ -150,13 +150,13 @@ class RegionParameter(object):
 
         if len(dimensions) != 4:
             msg = 'Exactly (4) coordinates must be supplied'
-            raise SyntaxException(http_status=400, message=msg)
+            raise SyntaxException(msg)
         if any(n > 100.0 for n in dimensions):
             msg = 'Region percentages must be less than or equal to 100.'
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
         if any((n <= 0) for n in dimensions[2:]):
             msg = 'Width and Height Percentages must be greater than 0.'
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
 
         # decimals
         self.decimal_x, self.decimal_y, self.decimal_w, \
@@ -186,10 +186,10 @@ class RegionParameter(object):
         dimensions = map(int, self.uri_value.split(','))
         if any(n <= 0 for n in dimensions[2:]):
             msg = 'Width and height must be greater than 0'
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
         if len(dimensions) != 4:
             msg = 'Exactly (4) coordinates must be supplied'
-            raise SyntaxException(http_status=400, message=msg)
+            raise SyntaxException(msg)
         return dimensions
 
     def _populate_slots_from_pixels(self, dimensions):
@@ -233,7 +233,7 @@ class RegionParameter(object):
                 return PCT_MODE
             else:
                 msg = 'Region syntax "%s" is not valid' % (region_segment,)
-                raise SyntaxException(http_status=400, message=msg)
+                raise SyntaxException(msg)
 
     @staticmethod
     def _pct_to_decimal(n):
@@ -303,7 +303,7 @@ class SizeParameter(object):
             logger.debug('h %s', self.h)
             if any((dim <= 0 and dim != None) for dim in (self.w, self.h)):
                 msg = 'Width and height must both be positive numbers'
-                raise RequestException(http_status=400, message=msg)
+                raise RequestException(msg)
 
     def _populate_slots_from_pct(self,region_parameter):
         m = SizeParameter.PCT_MODE_REGEX.match(self.uri_value)
@@ -316,7 +316,7 @@ class SizeParameter(object):
 
         if pct_decimal <= Decimal('0'):
             msg = 'Percentage supplied is less than 0 (%s).' % (self.uri_value,)
-            raise RequestException(http_status=400, message=msg)
+            raise RequestException(msg)
 
         w_decimal = region_parameter.pixel_w * pct_decimal
         h_decimal = region_parameter.pixel_h * pct_decimal
@@ -407,7 +407,7 @@ class SizeParameter(object):
                 return PIXEL_MODE
 
         message = 'Size syntax %r is not valid' % size_segment
-        raise SyntaxException(http_status=400, message=message)
+        raise SyntaxException(message)
 
     def __str__(self):
         return self.uri_value
@@ -446,7 +446,7 @@ class RotationParameter(object):
 
         if not match:
             msg = 'Rotation parameter %r is not a number' % (uri_value,)
-            raise SyntaxException(http_status=400, message=msg)
+            raise SyntaxException(msg)
 
         self.mirror = bool(match.group('mirror'))
         self.rotation = match.group('rotation')
@@ -455,13 +455,13 @@ class RotationParameter(object):
             self.canonical_uri_value = '%g' % (float(self.rotation),)
         except ValueError:
             msg = 'Rotation parameter %r is not a floating point number' % (uri_value,)
-            raise SyntaxException(http_status=400, message=msg)
+            raise SyntaxException(msg)
 
         if self.mirror:
             self.canonical_uri_value = '!%s' % self.canonical_uri_value
 
         if not 0.0 <= float(self.rotation) <= 360.0:
             msg = 'Rotation parameter %r is not between 0 and 360' % (uri_value,)
-            raise SyntaxException(http_status=400, message=msg)
+            raise SyntaxException(msg)
 
         logger.debug('Canonical rotation parameter is %s', self.canonical_uri_value)
