@@ -257,12 +257,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             try:
                 if self.head_resolvable:
                     response = requests.head(url, **options)
-                    if response.ok:
-                        return True
+                    return response.ok
                 else:
                     with closing(requests.get(url, stream=True, **options)) as response:
-                        if response.ok:
-                            return True
+                        return response.ok
             except requests.ConnectionError:
                 return False
 
@@ -277,11 +275,11 @@ class SimpleHTTPResolver(_AbstractResolver):
             return self.format_from_ident(ident)
 
     def _web_request_url(self, ident):
-        if (ident.startswith('http://') or ident.startswith('https://')) and self.uri_resolvable:
+        if ident.startswith(('http://', 'https://')) and self.uri_resolvable:
             url = ident
         else:
             url = self.source_prefix + ident + self.source_suffix
-        if not (url.startswith('http://') or url.startswith('https://')):
+        if not url.startswith(('http://', 'https://')):
             logger.warn('Bad URL request at %s for identifier: %s.', url, ident)
             public_message = 'Bad URL request made for identifier: %s.' % (ident,)
             raise ResolverException(404, public_message)
