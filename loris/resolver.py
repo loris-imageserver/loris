@@ -494,7 +494,6 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # ignore other requests (e.g. favicon)
         if ':' not in ident:
             logger.warn('Bad URL request for identifier: %r.', ident)
-            public_message =
             raise ResolverException(
                 "Bad URL request made for identifier: %r." % ident
             )
