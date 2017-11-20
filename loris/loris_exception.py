@@ -5,49 +5,31 @@ class LorisException(Exception):
     pass
 
 
-class HTTPException(Exception):
-    """Base class for exceptions that are returned as an HTTP response
-    to the user.
-
-    See http://iiif.io/api/image/2.1/#error-conditions.
-
-    :param http_status: The HTTP status that should be sent with the
-        associated HTTP response.
-    :type http_status: int
-    :param message: Information about the error.
-    :type msg: str
-
-    """
-    def __init__(self, http_status, message):
-        super(HTTPException, self).__init__(message)
-        self.http_status = http_status
-
-
-class SyntaxException(LorisException, HTTPException):
+class SyntaxException(LorisException):
     pass
 
 
-class RequestException(LorisException, HTTPException):
+class RequestException(LorisException):
     pass
 
 
-class ImageException(LorisException, HTTPException):
+class ImageException(LorisException):
     pass
 
 
-class ImageInfoException(LorisException, HTTPException):
+class ImageInfoException(LorisException):
     pass
 
 
-class ResolverException(LorisException, HTTPException):
+class ResolverException(LorisException):
     pass
 
 
-class TransformException(LorisException, HTTPException):
+class TransformException(LorisException):
     pass
 
 
-class AuthorizerException(LorisException, HTTPException):
+class AuthorizerException(LorisException):
     pass
 
 
