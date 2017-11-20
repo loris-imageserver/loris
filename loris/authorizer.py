@@ -100,10 +100,6 @@ class NullAuthorizer(_AbstractAuthorizer):
     """
     Everything is permissible
     """
-
-    def __init__(self, config):
-        super(NullAuthorizer, self).__init__(config)
- 
     def is_protected(self, info):
         return False
 
@@ -119,10 +115,6 @@ class NooneAuthorizer(_AbstractAuthorizer):
     """
     Everything is forbidden
     """
-
-    def __init__(self, config):
-        super(NooneAuthorizer, self).__init__(config)
- 
     def is_protected(self, info):
         return True
 
