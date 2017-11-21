@@ -23,7 +23,7 @@ def mkdir_p(path):
             raise
 
 
-def symlink(src, dst, force=True):
+def symlink(src, dst):
     """Create a symlink from ``src`` to ``dst``.
 
     Creates any required intermediate directories, and overrides any existing

@@ -179,21 +179,22 @@ class _AbstractTransformer(object):
 
 
 class _PillowTransformer(_AbstractTransformer):
-    def __init__(self, config):
-        super(_PillowTransformer, self).__init__(config)
-
     def transform(self, src_fp, target_fp, image_request):
         im = Image.open(src_fp)
         self._derive_with_pil(im, target_fp, image_request)
 
+
 class JPG_Transformer(_PillowTransformer):
-    def __init__(self, config): super(JPG_Transformer, self).__init__(config)
+    pass
+
 
 class TIF_Transformer(_PillowTransformer):
-    def __init__(self, config): super(TIF_Transformer, self).__init__(config)
+    pass
+
 
 class PNG_Transformer(_PillowTransformer):
-    def __init__(self, config): super(PNG_Transformer, self).__init__(config)
+    pass
+
 
 class _AbstractJP2Transformer(_AbstractTransformer):
     '''
@@ -399,7 +400,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                     p.feed(s)
                 im = p.close() # a PIL.Image
         finally:
-            stdoutdata, stderrdata = kdu_expand_proc.communicate()
+            _, stderrdata = kdu_expand_proc.communicate()
             kdu_exit = kdu_expand_proc.returncode
             if kdu_exit != 0:
                 map(logger.error, stderrdata)
