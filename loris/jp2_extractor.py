@@ -14,7 +14,7 @@ class JP2ExtractionError(LorisException):
     pass
 
 
-class JP2ExtractorMixin:
+class JP2ExtractorMixin(object):
     """
     Contains logic for parsing a JPEG2000 images.
 
@@ -24,6 +24,7 @@ class JP2ExtractorMixin:
     This class is meant to be used as a mixin on ImageInfo, but is kept
     separately for easier testing.
     """
+    __slots__ = ()
 
     def extract_jp2(self, jp2):
         """
