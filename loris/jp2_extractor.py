@@ -14,7 +14,26 @@ class JP2ExtractionError(LorisException):
     pass
 
 
-class JP2ExtractorMixin(object):
+def _parse_length(jp2, box_name):
+    """
+    Internally, a JP2 is a series of boxes.  Within each box,
+    the first 4 bytes are a length field, measuring the size of the box
+    (including the length field itself).
+
+    If ``jp2`` is at the start of a box, return the length of the next box.
+
+    """
+    length_field = jp2.read(4)
+    try:
+        return struct.unpack('>I', length_field)[0]
+    except struct.error as err:
+        raise JP2ExtractionError(
+            "Error reading the length field on the %s box: %r" %
+            (box_name, err)
+        )
+
+
+class JP2Extractor(object):
     """
     Contains logic for parsing a JPEG2000 images.
 
@@ -25,6 +44,53 @@ class JP2ExtractorMixin(object):
     separately for easier testing.
     """
     __slots__ = ()
+
+    def _check_signature_box(self, jp2):
+        """
+        The first 12 bytes of a JP2 file are the "JPEG 2000 Signature box".
+        Quoting ISO/IEC 15444-1:2000(E) § I.5.1:
+
+            For file verification purposes, this box can be considered a
+            fixed-length 12-byte string which shall have the value:
+            0x0000 000C 6A50 2020 0D0A 870A.
+
+        """
+        signature = jp2.read(12)
+        if signature != b'\x00\x00\x00\x0c\x6a\x50\x20\x20\x0d\x0a\x87\x0a':
+            raise JP2ExtractionError("Bad signature box: %r" % signature)
+
+    def _check_file_type_box(self, jp2):
+        """
+        After the Signature box is the "File Type box" (see § I.5.2).
+        This is a variable length box, laid out as follows:
+
+            0 - 3   Length
+            4 - 7   Type, which must be 'ftyp' (0x6674 7970)
+            8 - 11  Brand, the only allowed value of which is 'jp2\040'
+            12+     Minor version of the JP2 spec; compatibility list for other
+                    standards.  This is a variable length field which we don't
+                    need to worry about.
+
+        """
+        # We should probably check the length is valid; in practice we don't
+        # right now.
+        file_type_box_length = _parse_length(jp2, 'File Type')
+
+        file_type = jp2.read(4)
+        if file_type != b'ftyp':
+            raise JP2ExtractionError(
+                "Bad type in File Type box: %r" % file_type
+            )
+
+        file_brand = jp2.read(4)
+        if file_brand != b'jp2\040':
+            raise JP2ExtractionError(
+                "Bad brand in File Type box: %r" % file_brand
+            )
+
+        # We've already consumed 12 bytes of the box reading the length, type,
+        # and brand fields.  Consume and discard the remaining bytes.
+        jp2.read(file_type_box_length - 12)
 
     def extract_jp2(self, jp2):
         """
