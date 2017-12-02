@@ -28,7 +28,7 @@ def _parse_length(jp2, box_name):
         return struct.unpack('>I', length_field)[0]
     except struct.error as err:
         raise JP2ExtractionError(
-            "Error reading the length field on the %s box: %r" %
+            "Error reading the length field in the %s box: %r" %
             (box_name, err)
         )
 
@@ -79,13 +79,13 @@ class JP2Extractor(object):
         file_type = jp2.read(4)
         if file_type != b'ftyp':
             raise JP2ExtractionError(
-                "Bad type in File Type box: %r" % file_type
+                "Bad type in the File Type box: %r" % file_type
             )
 
         file_brand = jp2.read(4)
         if file_brand != b'jp2\040':
             raise JP2ExtractionError(
-                "Bad brand in File Type box: %r" % file_brand
+                "Bad brand in the File Type box: %r" % file_brand
             )
 
         # We've already consumed 12 bytes of the box reading the length, type,
