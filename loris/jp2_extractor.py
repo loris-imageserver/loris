@@ -1,4 +1,13 @@
 # -*- encoding: utf-8
+"""
+Implements a parser for JPEG2000 images.
+
+We don't use Pillow for JPEG2000, because it doesn't expose advanced
+features such as tiles or color profiles.
+
+Where appropriate, references are to ISO/IEC 15444-1:2000(E).
+
+"""
 
 from collections import deque
 import logging
@@ -22,6 +31,8 @@ def _parse_length(jp2, box_name):
 
     If ``jp2`` is at the start of a box, return the length of the next box.
 
+    See § I.4.
+
     """
     length_field = jp2.read(4)
     try:
@@ -36,9 +47,6 @@ def _parse_length(jp2, box_name):
 class JP2Extractor(object):
     """
     Contains logic for parsing a JPEG2000 images.
-
-    We don't use Pillow for JPEG2000, because it doesn't expose advanced
-    features such as tiles or color profiles.
 
     This class is meant to be used as a mixin on ImageInfo, but is kept
     separately for easier testing.
@@ -98,13 +106,12 @@ class JP2Extractor(object):
         to parse the JP2 data and store width, height and other attributes
         on the instance.
         """
-        scaleFactors = []
+        # Check that the first two boxes (the Signature box and the File Type
+        # box) are both correct.
+        self._check_signature_box(jp2)
+        self._check_file_type_box(jp2)
 
-        #check that this is a jp2 file
-        initial_bytes = jp2.read(24)
-        if (not initial_bytes[:12] == '\x00\x00\x00\x0cjP  \r\n\x87\n') or \
-            (not initial_bytes[16:] == 'ftypjp2 '):
-            raise JP2ExtractionError("Invalid JP2 file")
+        scaleFactors = []
 
         #grab width and height
         window = deque([], 4)
