@@ -234,13 +234,13 @@ class TestLorisRequest(TestCase):
         #image request
         path = u'/%s/full/full/0/default.jpg' % identifier
         req = _get_werkzeug_request(path)
-        loris_request = webapp.LorisRequest(req, False, None)
+        loris_request = webapp.LorisRequest(req, redirect_id_slash_to_info=False, proxy_path=None)
         self.assertEqual(loris_request.request_type, u'image')
         self.assertEqual(loris_request.ident, encoded_identifier)
         #info request
         path = u'/%s/info.json' % identifier
         req = _get_werkzeug_request(path)
-        loris_request = webapp.LorisRequest(req, False, None)
+        loris_request = webapp.LorisRequest(req, redirect_id_slash_to_info=False, proxy_path=None)
         self.assertEqual(loris_request.request_type, u'info')
         self.assertEqual(loris_request.ident, encoded_identifier)
 
