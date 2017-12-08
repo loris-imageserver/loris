@@ -104,4 +104,3 @@ class TestJP2Extractor(object):
             extractor._check_file_type_box(BytesIO(file_type_box))
         except JP2ExtractionError as err:
             assert 'File Type box' in err.message
-
