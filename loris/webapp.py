@@ -240,7 +240,7 @@ class ServerSideErrorResponse(LorisResponse):
 
 class LorisRequest(object):
 
-    def __init__(self, request, redirect_id_slash_to_info, proxy_path):
+    def __init__(self, request, redirect_id_slash_to_info=True, proxy_path=None):
         #make sure path is unquoted, so we know what we're working with
         self._path = unquote(request.path)
         self._request = request
