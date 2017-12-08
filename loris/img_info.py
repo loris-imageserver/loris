@@ -19,7 +19,7 @@ except ImportError:  # Python 2
 from PIL import Image
 
 from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
-from loris.jp2_extractor import JP2ExtractorMixin, JP2ExtractionError
+from loris.jp2_extractor import JP2Extractor, JP2ExtractionError
 from loris.loris_exception import ImageInfoException
 from loris.utils import mkdir_p
 
@@ -42,7 +42,7 @@ PIL_MODES_TO_QUALITIES = {
     'F': ['default','color','gray','bitonal']
 }
 
-class ImageInfo(JP2ExtractorMixin, object):
+class ImageInfo(JP2Extractor, object):
     '''Info about the image.
     See: <http://iiif.io/api/image/>
 

@@ -1,7 +1,18 @@
 # -*- encoding: utf-8
+"""
+Implements a parser for JPEG2000 images.
 
+We don't use Pillow for JPEG2000, because it doesn't expose advanced
+features such as tiles or color profiles.
+
+Where appropriate, references are to ISO/IEC 15444-1:2000(E).
+
+"""
+
+import collections
 from collections import deque
 import logging
+import os
 import struct
 
 from loris.loris_exception import LorisException
@@ -14,17 +25,102 @@ class JP2ExtractionError(LorisException):
     pass
 
 
-class JP2ExtractorMixin(object):
+def _parse_length(jp2, box_name):
+    """
+    Internally, a JP2 is a series of boxes.  Within each box,
+    the first 4 bytes are a length field, measuring the size of the box
+    (including the length field itself).
+
+    If ``jp2`` is at the start of a box, return the length of the next box.
+
+    See § I.4.
+
+    """
+    length_field = jp2.read(4)
+    try:
+        return struct.unpack('>I', length_field)[0]
+    except struct.error as err:
+        raise JP2ExtractionError(
+            "Error reading the length field in the %s box: %r" %
+            (box_name, err)
+        )
+
+
+def _read_jp2_until_match(jp2, match):
+    """
+    Continue to read bytes from ``jp2`` until ``match`` is encountered,
+    at which point rewind so the stream starts just before ``match``.
+    """
+    window = collections.deque([], len(match))
+    while b''.join(window) != match:
+        b = jp2.read(1)
+        c = struct.unpack('c', b)[0]
+        window.append(c)
+
+    jp2.seek(-len(match), os.SEEK_CUR)
+
+
+class JP2Extractor(object):
     """
     Contains logic for parsing a JPEG2000 images.
-
-    We don't use Pillow for JPEG2000, because it doesn't expose advanced
-    features such as tiles or color profiles.
 
     This class is meant to be used as a mixin on ImageInfo, but is kept
     separately for easier testing.
     """
     __slots__ = ()
+
+    def _check_signature_box(self, jp2):
+        """
+        The first 12 bytes of a JP2 file are the "JPEG 2000 Signature box".
+        Quoting ISO/IEC 15444-1:2000(E) § I.5.1:
+
+            For file verification purposes, this box can be considered a
+            fixed-length 12-byte string which shall have the value:
+            0x0000 000C 6A50 2020 0D0A 870A.
+
+        """
+        signature = jp2.read(12)
+        if signature != b'\x00\x00\x00\x0c\x6a\x50\x20\x20\x0d\x0a\x87\x0a':
+            raise JP2ExtractionError("Bad signature box: %r" % signature)
+
+    def _check_file_type_box(self, jp2):
+        """
+        After the Signature box is the "File Type box" (see § I.5.2).
+        This is a variable length box, laid out as follows:
+
+            0 - 3   Length
+            4 - 7   Type, which must be 'ftyp' (0x6674 7970)
+            8 - 11  Brand, the only allowed value of which is 'jp2\040'
+            12+     Minor version of the JP2 spec; compatibility list for other
+                    standards.  This is a variable length field which we don't
+                    need to worry about.
+
+        """
+        # We should probably check the length is valid; in practice we don't
+        # right now.
+        file_type_box_length = _parse_length(jp2, 'File Type')
+
+        file_type = jp2.read(4)
+        if file_type != b'ftyp':
+            raise JP2ExtractionError(
+                "Bad type in the File Type box: %r" % file_type
+            )
+
+        file_brand = jp2.read(4)
+        if file_brand != b'jp2\040':
+            raise JP2ExtractionError(
+                "Bad brand in the File Type box: %r" % file_brand
+            )
+
+        # We've already consumed 12 bytes of the box reading the length, type,
+        # and brand fields.  Consume and discard the remaining bytes.
+        # Note: length may be 0 if the length of the box wasn't known when
+        # the box was written (see § I.4), so in that case we page forward
+        # until we see 'ihdr', which is the start of the next box.
+        if file_type_box_length > 0:
+            jp2.read(max(file_type_box_length - 12, 0))
+        else:
+            _read_jp2_until_match(jp2, b'ihdr')
 
     def extract_jp2(self, jp2):
         """
@@ -32,13 +128,12 @@ class JP2ExtractorMixin(object):
         to parse the JP2 data and store width, height and other attributes
         on the instance.
         """
-        scaleFactors = []
+        # Check that the first two boxes (the Signature box and the File Type
+        # box) are both correct.
+        self._check_signature_box(jp2)
+        self._check_file_type_box(jp2)
 
-        #check that this is a jp2 file
-        initial_bytes = jp2.read(24)
-        if (not initial_bytes[:12] == '\x00\x00\x00\x0cjP  \r\n\x87\n') or \
-            (not initial_bytes[16:] == 'ftypjp2 '):
-            raise JP2ExtractionError("Invalid JP2 file")
+        scaleFactors = []
 
         #grab width and height
         window = deque([], 4)
