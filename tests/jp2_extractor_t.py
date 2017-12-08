@@ -70,8 +70,8 @@ class TestJP2Extractor(object):
         # of the string.
         b'\x00\x00\x00\x10ftypjp2\040XXXXYYYY',
 
-        # Here we have length 0, so we don't read any extra bytes.
-        b'\x00\x00\x00\x10ftypjp2\040YYYY',
+        # Here we have length 12, so we don't read any extra bytes.
+        b'\x00\x00\x00\x0bftypjp2\040YYYY',
 
         # Here we have length 8 (too short!), make sure we don't do anything
         # silly to read extra bytes.
