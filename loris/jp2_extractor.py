@@ -134,7 +134,16 @@ class JP2Extractor(object):
         self._check_signature_box(jp2)
         self._check_file_type_box(jp2)
 
-        scaleFactors = []
+        # After the File Type box comes the JP2 header box.  Quoting § I.5.3:
+        #
+        #   The JP2 Header box may be located anywhere within the file after
+        #   the File Type box but before the Contiguous Codestream box.
+        #
+        # This is a superbox containing other boxes which contain (among other
+        # things) information about the dimensions and color space of
+        # the image.  The type of this box is 'jp2h'.
+        _read_jp2_until_match(jp2, b'jp2h')
+        jp2.read(4)
 
         #grab width and height
         window = deque([], 4)
@@ -147,6 +156,8 @@ class JP2Extractor(object):
         self.width = int(struct.unpack(">I", jp2.read(4))[0]) # width
         logger.debug("width: %s", self.width)
         logger.debug("height: %s", self.height)
+
+        scaleFactors = []
 
         # Figure out color or grayscale.
         # Depending color profiles; there's probably a better way (or more than
