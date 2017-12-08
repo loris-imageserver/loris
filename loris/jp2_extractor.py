@@ -123,6 +123,51 @@ class JP2Extractor(object):
         if file_type_box_length > 0:
             jp2.read(max(file_type_box_length - 16, 0))
 
+    def _get_dimensions_from_image_header_box(self, jp2):
+        """
+        The Image Header box contains "fixed length generic information
+        about the image".  It is 22 bytes long, laid out as follows:
+
+            0 - 3   Length (which is always 22)
+            4 - 7   Type, which must be 'ihdr' (0x6968 6472)
+            8 - 11  Image area height, stored as a 4-byte big endian uint
+            12 - 15 Image area width, stored as a 4-byte big endian uint
+            16 - 21 Other fields we don't care about
+
+        Starting at the beginning of the Image Header box, this method parses
+        the header and returns a tuple (height, width).
+        """
+        header_box_length = _parse_length(jp2, 'Image Header')
+        if header_box_length != 22:
+            raise JP2ExtractionError(
+                "Incorrect length in the Image Header box: %r" %
+                header_box_length
+            )
+
+        header_box_type = jp2.read(4)
+        if header_box_type != b'ihdr':
+            raise JP2ExtractionError(
+                "Bad type in the Image Header box: %r" % header_box_type
+            )
+
+        height_bytes = jp2.read(4)
+        width_bytes = jp2.read(4)
+
+        try:
+            height = struct.unpack('>I', height_bytes)[0]
+            width = struct.unpack('>I', width_bytes)[0]
+        except struct.error as err:
+            raise JP2ExtractionError(
+                "Error parsing dimensions in the Image Header box: %s (%r, %r)"
+                % (err, height_bytes, width_bytes)
+            )
+
+        # We've already consumed 16 bytes of the box reading the length, type,
+        # height and width.  Consume the rest of the box before returning.
+        jp2.read(22 - 16)
+
+        return (height, width)
+
     def extract_jp2(self, jp2):
         """
         Given a file-like object that contains a JP2 image, attempt
@@ -145,17 +190,13 @@ class JP2Extractor(object):
         _read_jp2_until_match(jp2, b'jp2h')
         jp2.read(4)
 
-        #grab width and height
-        window = deque([], 4)
-        b = jp2.read(1)
-        while ''.join(window) != 'ihdr':
-            b = jp2.read(1)
-            c = struct.unpack('c', b)[0]
-            window.append(c)
-        self.height = int(struct.unpack(">I", jp2.read(4))[0]) # height (pg. 136)
-        self.width = int(struct.unpack(">I", jp2.read(4))[0]) # width
-        logger.debug("width: %s", self.width)
-        logger.debug("height: %s", self.height)
+        # The first box is the Image Header box, which is *always* the first
+        # box in the JP2 Header box (see § I.5.3).  In particular, it gives
+        # us the height and the width.
+        dimensions = self._get_dimensions_from_image_header_box(jp2)
+        self.height, self.width = dimensions
+        logger.debug("width:  %d", self.width)
+        logger.debug("height: %d", self.height)
 
         scaleFactors = []
 
@@ -208,6 +249,7 @@ class JP2Extractor(object):
         logger.debug('qualities: %s', self.profile[1]['qualities'])
 
         window =  deque(jp2.read(2), 2)
+        # start of codestream
         while map(ord, window) != [0xFF, 0x4F]: # (SOC - required, see pg 14)
             window.append(jp2.read(1))
         while map(ord, window) != [0xFF, 0x51]:  # (SIZ  - required, see pg 14)

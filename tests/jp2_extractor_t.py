@@ -103,3 +103,59 @@ class TestJP2Extractor(object):
             extractor._check_file_type_box(BytesIO(file_type_box))
         except JP2ExtractionError as err:
             assert 'File Type box' in err.message
+
+    @pytest.mark.parametrize('header_box_bytes, expected_dimensions', [
+        (b'\x00\x00\x00\x01\x00\x00\x00\x01', (1, 1)),
+        (b'\x00\x00\x00\x11\x00\x00\x00\x00', (17, 0)),
+        (b'\x00\x00\x00\x00\x00\x00\x00\x11', (0, 17)),
+        (b'\x01\x01\x01\x01\x02\x02\x02\x02', (16843009, 33686018)),
+    ])
+    def test_reading_dimensions_from_headr_box(
+        self, extractor, header_box_bytes, expected_dimensions
+    ):
+        b = BytesIO(b'\x00\x00\x00\x16ihdr' + header_box_bytes)
+        dimensions = extractor._get_dimensions_from_image_header_box(b)
+        assert dimensions == expected_dimensions
+
+    @pytest.mark.parametrize('image_header_box, exception_message', [
+        # The first four bytes are the length field
+        (b'', 'Error reading the length field in the Image Header box'),
+        (b'\x00', 'Error reading the length field in the Image Header box'),
+
+        # The length of the Image Header field should always be 22
+        (b'\x00\x00\x00\x00', 'Incorrect length in the Image Header box'),
+        (b'\x00\x00\x01\x01', 'Incorrect length in the Image Header box'),
+        (b'\xff\xff\xff\xff', 'Incorrect length in the Image Header box'),
+
+        # After the length header, it looks for 'ihdr'
+        (b'\x00\x00\x00\x16IHDR', 'Bad type in the Image Header box'),
+        (b'\x00\x00\x00\x16____', 'Bad type in the Image Header box'),
+
+        # After the length and type, not enough data for dimensions
+        (b'\x00\x00\x00\x16ihdr\x00',
+         'Error parsing dimensions in the Image Header box'),
+        (b'\x00\x00\x00\x16ihdr\x00\x00\x00\x00\x01\x01',
+         'Error parsing dimensions in the Image Header box'),
+    ])
+    def test_bad_image_header_box_is_rejected(
+        self, extractor, image_header_box, exception_message
+    ):
+        with pytest.raises(JP2ExtractionError) as err:
+            b = BytesIO(image_header_box)
+            extractor._get_dimensions_from_image_header_box(b)
+        assert exception_message in err.value.message
+
+    @given(image_header_box=binary())
+    def test_image_header_box_is_okay_or_error(
+        self, extractor, image_header_box
+    ):
+        try:
+            dimensions = extractor._get_dimensions_from_image_header_box(
+                BytesIO(image_header_box)
+            )
+        except JP2ExtractionError as err:
+            assert 'Image Header box' in err.message
+        else:
+            assert isinstance(dimensions, tuple)
+            assert len(dimensions) == 2
+            assert all(isinstance(i, int) for i in tuple)
