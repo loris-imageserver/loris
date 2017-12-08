@@ -9,8 +9,10 @@ Where appropriate, references are to ISO/IEC 15444-1:2000(E).
 
 """
 
+import collections
 from collections import deque
 import logging
+import os
 import struct
 
 from loris.loris_exception import LorisException
@@ -42,6 +44,20 @@ def _parse_length(jp2, box_name):
             "Error reading the length field in the %s box: %r" %
             (box_name, err)
         )
+
+
+def _read_jp2_until_match(jp2, match):
+    """
+    Continue to read bytes from ``jp2`` until ``match`` is encountered,
+    at which point rewind so the stream starts just before ``match``.
+    """
+    window = collections.deque([], len(match))
+    while b''.join(window) != match:
+        b = jp2.read(1)
+        c = struct.unpack('c', b)[0]
+        window.append(c)
+
+    jp2.seek(offset=-len(match), whence=os.SEEK_CUR)
 
 
 class JP2Extractor(object):
@@ -98,7 +114,13 @@ class JP2Extractor(object):
 
         # We've already consumed 12 bytes of the box reading the length, type,
         # and brand fields.  Consume and discard the remaining bytes.
-        jp2.read(file_type_box_length - 12)
+        # Note: length may be 0 if the length of the box wasn't known when
+        # the box was written (see § I.4), so in that case we page forward
+        # until we see 'ihdr', which is the start of the next box.
+        if file_type_box_length > 0:
+            jp2.read(file_type_box_length - 12)
+        else:
+            _read_jp2_until_match(jp2, b'ihdr')
 
     def extract_jp2(self, jp2):
         """
