@@ -136,6 +136,8 @@ class JP2Extractor(object):
 
         Starting at the beginning of the Image Header box, this method parses
         the header and returns a tuple (height, width).
+
+        See § I.5.3.1 for details.
         """
         header_box_length = _parse_length(jp2, 'Image Header')
         if header_box_length != 22:
@@ -204,6 +206,7 @@ class JP2Extractor(object):
         # Depending color profiles; there's probably a better way (or more than
         # one, anyway.)
         # see: JP2 I.5.3.3 Colour Specification box
+        window = collections.deque([], 4)
         while ''.join(window) != 'colr':
             b = jp2.read(1)
             c = struct.unpack('c', b)[0]
