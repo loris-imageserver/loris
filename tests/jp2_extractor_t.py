@@ -66,16 +66,16 @@ class TestJP2Extractor(object):
         assert exception_message in err.value.message
 
     @pytest.mark.parametrize('file_type_box', [
-        # Here we have length 16, so we read four extra bytes from the endf
+        # Here we have length 20, so we read four extra bytes from the endf
         # of the string.
-        b'\x00\x00\x00\x10ftypjp2\040XXXXYYYY',
+        b'\x00\x00\x00\x14ftypjp2\040\x00\x00\x00\x00XXXXYYYY',
 
-        # Here we have length 12, so we don't read any extra bytes.
-        b'\x00\x00\x00\x0bftypjp2\040YYYY',
+        # Here we have length 16, so we don't read any extra bytes.
+        b'\x00\x00\x00\x10ftypjp2\040\x00\x00\x00\x00YYYY',
 
         # Here we have length 8 (too short!), make sure we don't do anything
         # silly to read extra bytes.
-        b'\x00\x00\x00\x08ftypjp2\040YYYY',
+        b'\x00\x00\x00\x08ftypjp2\040\x00\x00\x00\x00YYYY',
     ])
     def test_reads_to_end_of_file_type_box_with_length(
         self, extractor, file_type_box
@@ -89,14 +89,13 @@ class TestJP2Extractor(object):
 
         assert b.read(4) == b'YYYY'
 
-    def test_reads_to_end_of_file_type_box_without_length(self, extractor):
-        # If the file type box doesn't have a known length, we read until the
-        # start of the next box, which we know starts with 'ihdr'.  Check we
-        # read to the end of the box, and then rewind to 'ihdr'.
-        b = BytesIO(b'\x00\x00\x00\x00ftypjp2\040XXXXXXXXihdrYYYY')
+    def test_skips_end_of_file_type_box_without_length(self, extractor):
+        # If the file type box doesn't have a known length, we don't read
+        # beyond the bytes we know are part of the box.
+        b = BytesIO(b'\x00\x00\x00\x00ftypjp2\040\x00\x00\x00\x00XXXX')
         extractor._check_file_type_box(b)
 
-        assert b.read(4) == b'ihdr'
+        assert b.read(4) == b'XXXX'
 
     @given(file_type_box=binary())
     def test_file_type_box_is_ok_or_error(self, extractor, file_type_box):

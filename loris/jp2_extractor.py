@@ -112,15 +112,16 @@ class JP2Extractor(object):
                 "Bad brand in the File Type box: %r" % file_brand
             )
 
-        # We've already consumed 12 bytes of the box reading the length, type,
-        # and brand fields.  Consume and discard the remaining bytes.
-        # Note: length may be 0 if the length of the box wasn't known when
-        # the box was written (see § I.4), so in that case we page forward
-        # until we see 'ihdr', which is the start of the next box.
+        # After the brand comes the minor version.  We don't care about the
+        # value of this field (it should always be zero, and the spec says to
+        # carry on even if it's not), so just discard those bytes at once.
+        jp2.read(4)
+
+        # We've already consumed 16 bytes of the box reading the length, type,
+        # and brand fields.  If we know the length, we consume any remaining
+        # bytes in this box before returning.
         if file_type_box_length > 0:
-            jp2.read(max(file_type_box_length - 12, 0))
-        else:
-            _read_jp2_until_match(jp2, b'ihdr')
+            jp2.read(max(file_type_box_length - 16, 0))
 
     def extract_jp2(self, jp2):
         """
