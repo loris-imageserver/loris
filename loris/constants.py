@@ -37,7 +37,7 @@ EXTENSION_MAP = {
         'tiff': 'tif',
     }
 
-_IDENT = r'(?P<ident>[\w:\-\*\.\%\/]+)'
+_IDENT = r'(?P<ident>[|\w:\-\*\.\%\/]+)'
 _REGION = r'(?P<region>[\w:\.\,]+)'
 _SIZE = r'(?P<size>\!?[\w:\.\,]+)'
 _ROTATION = r'(?P<rotation>\!?\d+\.?\d*)'

@@ -228,6 +228,22 @@ class TestLorisRequest(TestCase):
         self.assertEqual(loris_request.request_type, u'info')
         self.assertEqual(loris_request.ident, encoded_identifier)
 
+    def test_template_delimiter_request(self):
+        identifier = u'a:foo|bar'
+        encoded_identifier = u'a%3Afoo%7Cbar'
+        #image request
+        path = u'/%s/full/full/0/default.jpg' % identifier
+        req = _get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req)
+        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.ident, encoded_identifier)
+        #info request
+        path = u'/%s/info.json' % identifier
+        req = _get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req)
+        self.assertEqual(loris_request.request_type, u'info')
+        self.assertEqual(loris_request.ident, encoded_identifier)
+
 
 class TestGetInfo(loris_t.LorisTest):
 
