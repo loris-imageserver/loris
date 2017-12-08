@@ -89,15 +89,6 @@ class TestJP2Extractor(object):
 
         assert b.read(4) == b'YYYY'
 
-    def test_reads_to_end_of_file_type_box_with_length(self, extractor):
-        # If a valid length is supplied for the file type box, we correctly
-        # read to the end of it before returning.  Here we have length 16,
-        # so we read four extra bytes from the end of the string.
-        b = BytesIO(b'\x00\x00\x00\x10ftypjp2\040XXXXYYYY')
-        extractor._check_file_type_box(b)
-
-        assert b.read(4) == b'YYYY'
-
     def test_reads_to_end_of_file_type_box_without_length(self, extractor):
         # If the file type box doesn't have a known length, we read until the
         # start of the next box, which we know starts with 'ihdr'.  Check we
