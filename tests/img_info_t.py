@@ -69,7 +69,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.ident, uri)
@@ -141,7 +142,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jp2_gray_dims[0])
         self.assertEqual(info.height, self.test_jp2_gray_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_gray_tiles)
         self.assertEqual(info.sizes, self.test_jp2_gray_sizes)
         self.assertEqual(info.ident, uri)
@@ -190,7 +192,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jpeg_dims[0])
         self.assertEqual(info.height, self.test_jpeg_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_jpeg_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
@@ -219,7 +222,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_png_dims[0])
         self.assertEqual(info.height, self.test_png_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_png_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
@@ -250,7 +254,8 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.width, self.test_tiff_dims[0])
         self.assertEqual(info.height, self.test_tiff_dims[1])
         self.assertEqual(info.sizes, self.test_tiff_sizes)
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
