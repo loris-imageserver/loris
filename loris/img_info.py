@@ -105,8 +105,8 @@ class ImageInfo(JP2Extractor, object):
             # Finish setting up the info from the image file
             self.from_image_file(formats, app.max_size_above_full)
 
-    @staticmethod
-    def from_json_fp(path):
+    @classmethod
+    def from_json_fp(cls, path):
         """Contruct an instance from an existing file.
 
         Args:
@@ -117,7 +117,7 @@ class ImageInfo(JP2Extractor, object):
         """
         with open(path, 'r') as f:
             j = json.load(f)
-        return self.from_json(j)
+        return cls.from_json(j)
 
     @staticmethod
     def from_json(j):
