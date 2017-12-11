@@ -116,11 +116,10 @@ class ImageInfo(JP2Extractor, object):
             Exception
         """
         with open(path, 'r') as f:
-            j = json.load(f)
-        return cls.from_json(j)
+            return cls.from_json(f.read())
 
     @staticmethod
-    def from_json(j):
+    def from_json(json_string):
         """Construct an instance from a JSON string.
 
         Args:
@@ -128,6 +127,7 @@ class ImageInfo(JP2Extractor, object):
 
         """
         new_inst = ImageInfo()
+        j = json.loads(json_string)
 
         new_inst.ident = j.get(u'@id')
         new_inst.width = j.get(u'width')
