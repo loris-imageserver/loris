@@ -149,7 +149,10 @@ class ImageInfo(JP2Extractor, object):
         # we load from the filesystem
         new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
-        new_inst.profile = j.get(u'profile')
+
+        profile_args = tuple(j.get(u'profile', []))
+        new_inst.profile = Profile(*profile_args)
+
         new_inst.service = j.get('service', {})
 
         # Also add src_img_fp if available
