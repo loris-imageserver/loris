@@ -159,3 +159,98 @@ class TestJP2Extractor(object):
             assert isinstance(dimensions, tuple)
             assert len(dimensions) == 2
             assert all(isinstance(i, int) for i in tuple)
+
+    @pytest.mark.parametrize('colour_specification_box, exception_message', [
+        # The first four bytes are the length field
+        (b'', 'Error reading the length field in the Colour Specification box'),
+        (b'\x00', 'Error reading the length field in the Colour Specification box'),
+
+        # After the length header, it looks for 'colr'
+        (b'\x00\x00\x00\x16COLR', 'Bad type in the Colour Specification box'),
+        (b'\x00\x00\x00\x16____', 'Bad type in the Colour Specification box'),
+    ])
+    def test_bad_colour_specification_box_is_rejected(
+        self, extractor, colour_specification_box, exception_message
+    ):
+        with pytest.raises(JP2ExtractionError) as err:
+            b = BytesIO(colour_specification_box)
+            extractor._parse_colour_specification_box(b)
+        assert exception_message in err.value.message
+
+    @pytest.mark.parametrize('colour_specification_box, expected_result', [
+        # METH = 1 and EnumCS = 16
+        (b'\x00\x00\x00\x16colr\x01\x00\x00\x00\x00\x00\x10',
+         (['gray', 'color'], None)),
+
+        # METH = 1 and EnumCS = 17
+        (b'\x00\x00\x00\x16colr\x01\x00\x00\x00\x00\x00\x11',
+         (['gray'], None)),
+
+        # METH = 1 and EnumCS = 18
+        (b'\x00\x00\x00\x16colr\x01\x00\x00\x00\x00\x00\x12',
+         ([], None)),
+
+        # METH = 2, with an eight-byte ICC profile
+        (b'\x00\x00\x00\x16colr\x02\x00\x00\x00\x00\x00\x08\x01\x02\x03\x03',
+         (['gray', 'color'], b'\x00\x00\x00\x08\x01\x02\x03\x03')),
+    ])
+    def test_parsing_color_specification_box(
+        self, extractor, colour_specification_box, expected_result
+    ):
+        b = BytesIO(colour_specification_box)
+        assert extractor._parse_colour_specification_box(b) == expected_result
+
+    @pytest.mark.parametrize('meth_value', [b'\x00', b'\xff'])
+    def test_illegal_meth_is_not_error(self, extractor, meth_value):
+        """
+        The only legal values of METH are 1 and 2; if that's not correct,
+        check we don't throw an exception.
+        """
+        b = BytesIO('\x00\x00\x00\x16colr' + meth_value)
+        assert extractor._parse_colour_specification_box(b) == ([], None)
+
+    @pytest.mark.parametrize('prec_value', [b'\x00', b'\x01', b'\xff'])
+    @pytest.mark.parametrize('approx_value', [b'\x00', b'\x01', b'\xff'])
+    def test_illegal_prec_approx_is_not_error(
+        self, extractor, prec_value, approx_value
+    ):
+        """
+        The spec says that both PREC and APPROX should be zero, but we
+        should ignore these fields.  Check we don't throw an exception on
+        non-zero values.
+        """
+        b = BytesIO(
+            '\x00\x00\x00\x16colr\x01' +
+            prec_value + approx_value + '\x00\x00\x00\x10')
+        extractor._parse_colour_specification_box(b)
+
+    @pytest.mark.parametrize('enumcs_value', [
+        b'\x00\x00\x00\x00',
+        b'\x00\x00\x00\x13',
+        b'\xff\xff\xff\xff',
+    ])
+    def test_illegal_enumcs_is_not_error(self, extractor, enumcs_value):
+        """
+        The spec tells us that there are three legal values for EnumCS:
+        16, 17 and 18.  Check we don't throw an exception if we get an
+        unrecognised value.
+        """
+        b = BytesIO('\x00\x00\x00\x16colr\x01\x00\x00' + enumcs_value)
+        assert extractor._parse_colour_specification_box(b) == ([], None)
+
+    @given(colour_specification_box=binary())
+    def test_parse_colour_specification_box_is_okay_or_error(
+        self, extractor, colour_specification_box
+    ):
+        try:
+            result = extractor._parse_colour_specification_box(
+                BytesIO(colour_specification_box)
+            )
+        except JP2ExtractionError as err:
+            assert 'Colour Specification box' in err.message
+        else:
+            assert isinstance(result, tuple)
+            assert len(result) == 2
+            qualities, profile_bytes = result
+            assert isinstance(qualities, list)
+            assert isinstance(profile_bytes, bytes)

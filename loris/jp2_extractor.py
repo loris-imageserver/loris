@@ -201,7 +201,7 @@ class JP2Extractor(object):
         colour_box_length = _parse_length(jp2, 'Colour Specification')
 
         colour_box_type = jp2.read(4)
-        if header_box_type != b'colr':
+        if colour_box_type != b'colr':
             raise JP2ExtractionError(
                 "Bad type in the Colour Specification box: %r" %
                 colour_box_type
@@ -220,7 +220,7 @@ class JP2Extractor(object):
         logger.debug('colr METH:   %d', meth)
 
         if meth not in (1, 2):
-            return
+            return ([], None)
 
         # Then read PREC and APPROX.  For both fields, the spec says the
         # value should be zero, and "conforming readers shall ignore
@@ -274,6 +274,10 @@ class JP2Extractor(object):
             # We're assuming that if you have an embedded colour profile,
             # you're working with colour images.
             return (['gray', 'color'], profile_bytes)
+
+        # This should be unreachable; we include it for completeness.
+        else:
+            assert False, meth
 
     def extract_jp2(self, jp2):
         """
