@@ -18,7 +18,7 @@ from werkzeug.datastructures import Headers
 
 from loris import img_info, loris_exception
 from loris.constants import PROTOCOL
-from loris.img_info import ImageInfo
+from loris.img_info import ImageInfo, Profile
 from loris.loris_exception import ImageInfoException
 from tests import loris_t, webapp_t
 
@@ -325,6 +325,32 @@ class TestImageInfo(object):
         info = ImageInfo(src_format=src_format)
         with pytest.raises(ImageInfoException) as exc:
             info.from_image_file()
+
+
+class TestProfile(object):
+
+    def test_construct_no_args(self):
+        p = Profile()
+        assert p.compliance_uri == ''
+        assert p.description == {}
+
+    def test_construct_one_args(self):
+        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+        p = Profile(compliance_uri)
+        assert p.compliance_uri == compliance_uri
+        assert p.description == {}
+
+    def test_construct_two_args(self):
+        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+        description = {
+            'formats': ['gif', 'pdf'],
+            'qualities': ['color', 'gray'],
+            'maxWidth': 2000,
+            'supports': ['canonicalLinkHeader', 'rotationArbitrary']
+        }
+        p = Profile(compliance_uri, description)
+        assert p.compliance_uri == compliance_uri
+        assert p.description == description
 
 
 class InfoFunctional(loris_t.LorisTest):
