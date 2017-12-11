@@ -54,6 +54,13 @@ class Profile(object):
     description = attr.ib(default=attr.Factory(dict))
 
 
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Profile):
+            return [obj.compliance_uri, obj.description]
+        return obj
+
+
 class ImageInfo(JP2Extractor, object):
     '''Info about the image.
     See: <http://iiif.io/api/image/>
@@ -266,7 +273,7 @@ class ImageInfo(JP2Extractor, object):
 
     def to_iiif_json(self):
         d = self._get_iiif_info()
-        return json.dumps(d)
+        return json.dumps(d, cls=EnhancedJSONEncoder)
 
     def to_full_info_json(self):
         """creates the info JSON that gets cached in the InfoCache"""
@@ -274,7 +281,7 @@ class ImageInfo(JP2Extractor, object):
         d['_src_img_fp'] = self.src_img_fp
         d['_src_format'] = self.src_format
         d['_auth_rules'] = self.auth_rules
-        return json.dumps(d)
+        return json.dumps(d, cls=EnhancedJSONEncoder)
 
 
 class InfoCache(object):
