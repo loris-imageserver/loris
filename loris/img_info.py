@@ -57,7 +57,12 @@ class Profile(object):
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Profile):
-            return [obj.compliance_uri, obj.description]
+            # We only include the description in the JSON output if it's
+            # non-empty.
+            if obj.description:
+                return [obj.compliance_uri, obj.description]
+            else:
+                return [obj.compliance_uri]
         return obj
 
 

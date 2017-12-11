@@ -374,28 +374,44 @@ class TestImageInfo(object):
 
 class TestProfile(object):
 
+    compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+    description = {
+        'formats': ['gif', 'pdf'],
+        'qualities': ['color', 'gray'],
+        'maxWidth': 2000,
+        'supports': ['canonicalLinkHeader', 'rotationArbitrary']
+    }
+
     def test_construct_no_args(self):
         p = Profile()
         assert p.compliance_uri == ''
         assert p.description == {}
 
     def test_construct_one_args(self):
-        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
-        p = Profile(compliance_uri)
-        assert p.compliance_uri == compliance_uri
+        p = Profile(self.compliance_uri)
+        assert p.compliance_uri == self.compliance_uri
         assert p.description == {}
 
     def test_construct_two_args(self):
-        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
-        description = {
-            'formats': ['gif', 'pdf'],
-            'qualities': ['color', 'gray'],
-            'maxWidth': 2000,
-            'supports': ['canonicalLinkHeader', 'rotationArbitrary']
-        }
-        p = Profile(compliance_uri, description)
-        assert p.compliance_uri == compliance_uri
-        assert p.description == description
+        p = Profile(self.compliance_uri, self.description)
+        assert p.compliance_uri == self.compliance_uri
+        assert p.description == self.description
+
+    def test_json_encoding_with_no_description(self):
+        p = Profile(self.compliance_uri)
+        json_string = json.dumps(
+            {'profile': p}, cls=img_info.EnhancedJSONEncoder
+        )
+        assert json.loads(json_string)['profile'] == [self.compliance_uri]
+
+    def test_json_encoding_with_description(self):
+        p = Profile(self.compliance_uri, self.description)
+        json_string = json.dumps(
+            {'profile': p}, cls=img_info.EnhancedJSONEncoder
+        )
+        assert json.loads(json_string)['profile'] == [
+            self.compliance_uri, self.description
+        ]
 
 
 class InfoFunctional(loris_t.LorisTest):
