@@ -332,6 +332,45 @@ class TestImageInfo(object):
         with pytest.raises(ImageInfoException) as exc:
             info.from_image_file()
 
+    def test_profile_from_json_no_profile(self):
+        existing_info = {}
+        info = ImageInfo.from_json(json.dumps(existing_info))
+
+        assert info.profile.compliance_uri == ''
+        assert info.profile.description == {}
+
+    def test_profile_from_json_one_arg_profile(self):
+        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+        existing_info = {
+            'profile': [compliance_uri]
+        }
+        info = ImageInfo.from_json(json.dumps(existing_info))
+
+        assert info.profile.compliance_uri == compliance_uri
+        assert info.profile.description == {}
+
+    def test_profile_from_json_two_arg_profile(self):
+        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+        description = {
+            'formats': ['jpg', 'png', 'gif', 'webp'],
+            'qualities': ['default', 'bitonal', 'gray', 'color'],
+            'supports': [
+                'canonicalLinkHeader',
+                'profileLinkHeader',
+                'mirroring',
+                'rotationArbitrary',
+                'sizeAboveFull',
+                'regionSquare'
+            ]
+        }
+        existing_info = {
+            'profile': [compliance_uri, description]
+        }
+        info = ImageInfo.from_json(json.dumps(existing_info))
+
+        assert info.profile.compliance_uri == compliance_uri
+        assert info.profile.description == description
+
 
 class TestProfile(object):
 
