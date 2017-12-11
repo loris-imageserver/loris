@@ -45,7 +45,7 @@ PIL_MODES_TO_QUALITIES = {
 }
 
 
-@attr.s
+@attr.s(slots=True)
 class Profile(object):
     """
     Represents a profile, as descriped in § 5.3 of the IIIF Image API spec.
