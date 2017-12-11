@@ -106,7 +106,7 @@ class ImageInfo(JP2Extractor, object):
             self.from_image_file(formats, app.max_size_above_full)
 
     @staticmethod
-    def from_json(path):
+    def from_json_fp(path):
         """Contruct an instance from an existing file.
 
         Args:
@@ -115,9 +115,19 @@ class ImageInfo(JP2Extractor, object):
         Raises:
             Exception
         """
-        new_inst = ImageInfo()
         with open(path, 'r') as f:
             j = json.load(f)
+        return self.from_json(j)
+
+    @staticmethod
+    def from_json(j):
+        """Construct an instance from a JSON string.
+
+        Args:
+            j (str): A valid JSON string.
+
+        """
+        new_inst = ImageInfo()
 
         new_inst.ident = j.get(u'@id')
         new_inst.width = j.get(u'width')
@@ -313,7 +323,7 @@ class InfoCache(object):
             info_fp = self._get_info_fp(request)
             if os.path.exists(info_fp):
                 # from fs
-                info = ImageInfo.from_json(info_fp)
+                info = ImageInfo.from_json_fp(info_fp)
 
                 icc_fp = self._get_color_profile_fp(request)
                 if os.path.exists(icc_fp):

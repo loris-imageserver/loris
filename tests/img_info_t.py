@@ -257,7 +257,7 @@ class InfoUnit(loris_t.LorisTest):
     def test_info_from_json(self):
         json_fp = self.test_jp2_color_info_fp
 
-        info = img_info.ImageInfo.from_json(json_fp)
+        info = img_info.ImageInfo.from_json_fp(json_fp)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
@@ -352,7 +352,7 @@ class InfoFunctional(loris_t.LorisTest):
             }
         ]
 
-        info = img_info.ImageInfo.from_json(tmp_fp)
+        info = img_info.ImageInfo.from_json_fp(tmp_fp)
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
         self.assertEqual(info.profile, profile)
