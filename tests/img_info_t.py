@@ -18,7 +18,7 @@ from werkzeug.datastructures import Headers
 
 from loris import img_info, loris_exception
 from loris.constants import PROTOCOL
-from loris.img_info import ImageInfo
+from loris.img_info import ImageInfo, Profile
 from loris.loris_exception import ImageInfoException
 from tests import loris_t, webapp_t
 
@@ -69,7 +69,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.ident, uri)
@@ -77,7 +78,7 @@ class InfoUnit(loris_t.LorisTest):
 
         self.app.max_size_above_full = 0
         info = img_info.ImageInfo(self.app, uri, fp, fmt)
-        self.assertTrue('sizeAboveFull' in info.profile[1]['supports'])
+        self.assertTrue('sizeAboveFull' in info.profile.description['supports'])
         self.app.max_size_above_full = 200
 
 
@@ -141,7 +142,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jp2_gray_dims[0])
         self.assertEqual(info.height, self.test_jp2_gray_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_gray_tiles)
         self.assertEqual(info.sizes, self.test_jp2_gray_sizes)
         self.assertEqual(info.ident, uri)
@@ -190,7 +192,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jpeg_dims[0])
         self.assertEqual(info.height, self.test_jpeg_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_jpeg_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
@@ -219,7 +222,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_png_dims[0])
         self.assertEqual(info.height, self.test_png_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_png_sizes)
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
@@ -250,14 +254,15 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.width, self.test_tiff_dims[0])
         self.assertEqual(info.height, self.test_tiff_dims[1])
         self.assertEqual(info.sizes, self.test_tiff_sizes)
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.ident, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
     def test_info_from_json(self):
         json_fp = self.test_jp2_color_info_fp
 
-        info = img_info.ImageInfo.from_json(json_fp)
+        info = img_info.ImageInfo.from_json_fp(json_fp)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
@@ -275,7 +280,8 @@ class InfoUnit(loris_t.LorisTest):
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.ident, self.test_jp2_color_uri)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
@@ -326,6 +332,87 @@ class TestImageInfo(object):
         with pytest.raises(ImageInfoException) as exc:
             info.from_image_file()
 
+    def test_profile_from_json_no_profile(self):
+        existing_info = {}
+        info = ImageInfo.from_json(json.dumps(existing_info))
+
+        assert info.profile.compliance_uri == ''
+        assert info.profile.description == {}
+
+    def test_profile_from_json_one_arg_profile(self):
+        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+        existing_info = {
+            'profile': [compliance_uri]
+        }
+        info = ImageInfo.from_json(json.dumps(existing_info))
+
+        assert info.profile.compliance_uri == compliance_uri
+        assert info.profile.description == {}
+
+    def test_profile_from_json_two_arg_profile(self):
+        compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+        description = {
+            'formats': ['jpg', 'png', 'gif', 'webp'],
+            'qualities': ['default', 'bitonal', 'gray', 'color'],
+            'supports': [
+                'canonicalLinkHeader',
+                'profileLinkHeader',
+                'mirroring',
+                'rotationArbitrary',
+                'sizeAboveFull',
+                'regionSquare'
+            ]
+        }
+        existing_info = {
+            'profile': [compliance_uri, description]
+        }
+        info = ImageInfo.from_json(json.dumps(existing_info))
+
+        assert info.profile.compliance_uri == compliance_uri
+        assert info.profile.description == description
+
+
+class TestProfile(object):
+
+    compliance_uri = 'http://iiif.io/api/image/2/level2.json'
+    description = {
+        'formats': ['gif', 'pdf'],
+        'qualities': ['color', 'gray'],
+        'maxWidth': 2000,
+        'supports': ['canonicalLinkHeader', 'rotationArbitrary']
+    }
+
+    def test_construct_no_args(self):
+        p = Profile()
+        assert p.compliance_uri == ''
+        assert p.description == {}
+
+    def test_construct_one_args(self):
+        p = Profile(self.compliance_uri)
+        assert p.compliance_uri == self.compliance_uri
+        assert p.description == {}
+
+    def test_construct_two_args(self):
+        p = Profile(self.compliance_uri, self.description)
+        assert p.compliance_uri == self.compliance_uri
+        assert p.description == self.description
+
+    def test_json_encoding_with_no_description(self):
+        p = Profile(self.compliance_uri)
+        json_string = json.dumps(
+            {'profile': p}, cls=img_info.EnhancedJSONEncoder
+        )
+        assert json.loads(json_string)['profile'] == [self.compliance_uri]
+
+    def test_json_encoding_with_description(self):
+        p = Profile(self.compliance_uri, self.description)
+        json_string = json.dumps(
+            {'profile': p}, cls=img_info.EnhancedJSONEncoder
+        )
+        assert json.loads(json_string)['profile'] == [
+            self.compliance_uri, self.description
+        ]
+
 
 class InfoFunctional(loris_t.LorisTest):
     'Simulate working with the API over HTTP.'
@@ -352,10 +439,11 @@ class InfoFunctional(loris_t.LorisTest):
             }
         ]
 
-        info = img_info.ImageInfo.from_json(tmp_fp)
+        info = img_info.ImageInfo.from_json_fp(tmp_fp)
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
-        self.assertEqual(info.profile, profile)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.ident, self.test_jp2_color_uri)
 

@@ -227,9 +227,9 @@ class JP2Extractor(object):
             logger.debug('Image contains an enumerated colourspace: %d', enum_cs)
             logger.debug('Enumerated colourspace: %d', enum_cs)
             if enum_cs == 16: # sRGB
-                self.profile[1]['qualities'] += ['gray', 'color']
+                self.profile.description['qualities'] += ['gray', 'color']
             elif enum_cs == 17: # grayscale
-                self.profile[1]['qualities'] += ['gray']
+                self.profile.description['qualities'] += ['gray']
             elif enum_cs == 18: # sYCC
                 pass
             else:
@@ -249,7 +249,7 @@ class JP2Extractor(object):
             if colr_meth <= 4 and -128 <= colr_prec <= 127 and 1 <= colr_approx <= 4:
                 self.assign_color_profile(jp2)
 
-        logger.debug('qualities: %s', self.profile[1]['qualities'])
+        logger.debug('qualities: %s', self.profile.description['qualities'])
 
         window =  deque(jp2.read(2), 2)
         # start of codestream

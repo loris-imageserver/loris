@@ -353,7 +353,7 @@ class WebappIntegration(loris_t.LorisTest):
         with open(tmp_fp, 'wb') as f:
             f.write(resp.data)
 
-        info = img_info.ImageInfo.from_json(tmp_fp)
+        info = img_info.ImageInfo.from_json_fp(tmp_fp)
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
 
     def test_info_without_dot_json_404(self):

@@ -1,4 +1,5 @@
 # img_info.py
+# -*- encoding: utf-8
 
 from __future__ import absolute_import
 
@@ -16,6 +17,7 @@ try:
 except ImportError:  # Python 2
     from urllib import unquote
 
+import attr
 from PIL import Image
 
 from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
@@ -42,6 +44,28 @@ PIL_MODES_TO_QUALITIES = {
     'F': ['default','color','gray','bitonal']
 }
 
+
+@attr.s(slots=True)
+class Profile(object):
+    """
+    Represents a profile, as descriped in § 5.3 of the IIIF Image API spec.
+    """
+    compliance_uri = attr.ib(default='')
+    description = attr.ib(default=attr.Factory(dict))
+
+
+class EnhancedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Profile):
+            # We only include the description in the JSON output if it's
+            # non-empty.
+            if obj.description:
+                return [obj.compliance_uri, obj.description]
+            else:
+                return [obj.compliance_uri]
+        return obj
+
+
 class ImageInfo(JP2Extractor, object):
     '''Info about the image.
     See: <http://iiif.io/api/image/>
@@ -55,7 +79,8 @@ class ImageInfo(JP2Extractor, object):
         tiles: [{}]
         protocol (str): the protocol URI (constant)
         service (dict): services associated with the image
-        profile []: Features supported by the server/available for this image
+        profile (Profile): Features supported by the server/available for
+            this image
 
         src_img_fp (str): the absolute path on the file system [non IIIF]
         src_format (str): the format of the source image file [non IIIF]
@@ -105,8 +130,8 @@ class ImageInfo(JP2Extractor, object):
             # Finish setting up the info from the image file
             self.from_image_file(formats, app.max_size_above_full)
 
-    @staticmethod
-    def from_json(path):
+    @classmethod
+    def from_json_fp(cls, path):
         """Contruct an instance from an existing file.
 
         Args:
@@ -115,9 +140,19 @@ class ImageInfo(JP2Extractor, object):
         Raises:
             Exception
         """
-        new_inst = ImageInfo()
         with open(path, 'r') as f:
-            j = json.load(f)
+            return cls.from_json(f.read())
+
+    @staticmethod
+    def from_json(json_string):
+        """Construct an instance from a JSON string.
+
+        Args:
+            j (str): A valid JSON string.
+
+        """
+        new_inst = ImageInfo()
+        j = json.loads(json_string)
 
         new_inst.ident = j.get(u'@id')
         new_inst.width = j.get(u'width')
@@ -126,7 +161,10 @@ class ImageInfo(JP2Extractor, object):
         # we load from the filesystem
         new_inst.tiles = j.get(u'tiles')
         new_inst.sizes = j.get(u'sizes')
-        new_inst.profile = j.get(u'profile')
+
+        profile_args = tuple(j.get(u'profile', []))
+        new_inst.profile = Profile(*profile_args)
+
         new_inst.service = j.get('service', {})
 
         # Also add src_img_fp if available
@@ -147,10 +185,18 @@ class ImageInfo(JP2Extractor, object):
         self.tiles = []
         self.sizes = None
         self.scaleFactors = None
-        local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES[:]}
-        if max_size_above_full == 0 or max_size_above_full > 100:
-            local_profile['supports'].append('sizeAboveFull')
-        self.profile = [ COMPLIANCE, local_profile ]
+
+        profile_description = {
+            'formats': formats,
+            'supports': OPTIONAL_FEATURES[:],
+        }
+        if (max_size_above_full == 0) or (max_size_above_full > 100):
+            profile_description['supports'].append('sizeAboveFull')
+
+        self.profile = Profile(
+            compliance_uri=COMPLIANCE,
+            description=profile_description
+        )
 
         if self.src_format == 'jp2':
             self._from_jp2(self.src_img_fp)
@@ -170,14 +216,14 @@ class ImageInfo(JP2Extractor, object):
         self.width, self.height = im.size
         self.tiles = []
         self.color_profile_bytes = None
-        self.profile[1]['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
+        self.profile.description['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
         self.sizes = []
 
     def _from_jp2(self, fp):
         '''Get info about a JP2.
         '''
         logger.debug('Extracting info from JP2 file: %s' % fp)
-        self.profile[1]['qualities'] = ['default', 'bitonal']
+        self.profile.description['qualities'] = ['default', 'bitonal']
 
         with open(fp, 'rb') as jp2:
             try:
@@ -197,7 +243,7 @@ class ImageInfo(JP2Extractor, object):
 
         # This is an assumption for now (i.e. that if you have a colour profile
         # embedded, you're probably working with color images.
-        self.profile[1]['qualities'] += ['gray', 'color']
+        self.profile.description['qualities'] += ['gray', 'color']
 
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
@@ -232,7 +278,7 @@ class ImageInfo(JP2Extractor, object):
 
     def to_iiif_json(self):
         d = self._get_iiif_info()
-        return json.dumps(d)
+        return json.dumps(d, cls=EnhancedJSONEncoder)
 
     def to_full_info_json(self):
         """creates the info JSON that gets cached in the InfoCache"""
@@ -240,7 +286,7 @@ class ImageInfo(JP2Extractor, object):
         d['_src_img_fp'] = self.src_img_fp
         d['_src_format'] = self.src_format
         d['_auth_rules'] = self.auth_rules
-        return json.dumps(d)
+        return json.dumps(d, cls=EnhancedJSONEncoder)
 
 
 class InfoCache(object):
@@ -313,7 +359,7 @@ class InfoCache(object):
             info_fp = self._get_info_fp(request)
             if os.path.exists(info_fp):
                 # from fs
-                info = ImageInfo.from_json(info_fp)
+                info = ImageInfo.from_json_fp(info_fp)
 
                 icc_fp = self._get_color_profile_fp(request)
                 if os.path.exists(icc_fp):
