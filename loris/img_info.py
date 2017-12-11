@@ -16,6 +16,7 @@ try:
 except ImportError:  # Python 2
     from urllib import unquote
 
+import attr
 from PIL import Image
 
 from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
@@ -42,6 +43,16 @@ PIL_MODES_TO_QUALITIES = {
     'F': ['default','color','gray','bitonal']
 }
 
+
+@attr.s
+class Profile(object):
+    """
+    Represents a profile, as descriped in § 5.3 of the IIIF Image API spec.
+    """
+    compliance_uri = attr.ib(default='')
+    description = attr.ib(default=attr.Factory(dict))
+
+
 class ImageInfo(JP2Extractor, object):
     '''Info about the image.
     See: <http://iiif.io/api/image/>
@@ -55,7 +66,8 @@ class ImageInfo(JP2Extractor, object):
         tiles: [{}]
         protocol (str): the protocol URI (constant)
         service (dict): services associated with the image
-        profile []: Features supported by the server/available for this image
+        profile (Profile): Features supported by the server/available for
+            this image
 
         src_img_fp (str): the absolute path on the file system [non IIIF]
         src_format (str): the format of the source image file [non IIIF]
