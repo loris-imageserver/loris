@@ -77,7 +77,7 @@ class InfoUnit(loris_t.LorisTest):
 
         self.app.max_size_above_full = 0
         info = img_info.ImageInfo(self.app, uri, fp, fmt)
-        self.assertTrue('sizeAboveFull' in info.profile[1]['supports'])
+        self.assertTrue('sizeAboveFull' in info.profile.description['supports'])
         self.app.max_size_above_full = 200
 
 

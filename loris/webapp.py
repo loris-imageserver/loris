@@ -623,7 +623,7 @@ class Loris(object):
                 image_request.info = info
 
                 # 3. Check that we can make the quality requested
-                if image_request.quality not in info.profile[1]['qualities']:
+                if image_request.quality not in info.profile.description['qualities']:
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
                 # 4. Check if requested size is allowed

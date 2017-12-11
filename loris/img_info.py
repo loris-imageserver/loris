@@ -173,10 +173,18 @@ class ImageInfo(JP2Extractor, object):
         self.tiles = []
         self.sizes = None
         self.scaleFactors = None
-        local_profile = {'formats' : formats, 'supports' : OPTIONAL_FEATURES[:]}
-        if max_size_above_full == 0 or max_size_above_full > 100:
-            local_profile['supports'].append('sizeAboveFull')
-        self.profile = [ COMPLIANCE, local_profile ]
+
+        profile_description = {
+            'formats': formats,
+            'supports': OPTIONAL_FEATURES[:],
+        }
+        if (max_size_above_full == 0) or (max_size_above_full > 100):
+            profile_description['supports'].append('sizeAboveFull')
+
+        self.profile = Profile(
+            compliance_uri=COMPLIANCE,
+            description=profile_description
+        )
 
         if self.src_format == 'jp2':
             self._from_jp2(self.src_img_fp)
@@ -196,14 +204,14 @@ class ImageInfo(JP2Extractor, object):
         self.width, self.height = im.size
         self.tiles = []
         self.color_profile_bytes = None
-        self.profile[1]['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
+        self.profile.description['qualities'] = PIL_MODES_TO_QUALITIES[im.mode]
         self.sizes = []
 
     def _from_jp2(self, fp):
         '''Get info about a JP2.
         '''
         logger.debug('Extracting info from JP2 file: %s' % fp)
-        self.profile[1]['qualities'] = ['default', 'bitonal']
+        self.profile.description['qualities'] = ['default', 'bitonal']
 
         with open(fp, 'rb') as jp2:
             try:
@@ -223,7 +231,7 @@ class ImageInfo(JP2Extractor, object):
 
         # This is an assumption for now (i.e. that if you have a colour profile
         # embedded, you're probably working with color images.
-        self.profile[1]['qualities'] += ['gray', 'color']
+        self.profile.description['qualities'] += ['gray', 'color']
 
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
