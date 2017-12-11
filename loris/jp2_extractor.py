@@ -170,6 +170,111 @@ class JP2Extractor(object):
 
         return (height, width)
 
+    def _parse_colour_specification_box(self, jp2):
+        """
+        A Colour Specification box gives "the colourspace of the
+        decompressed image".  It is laid out as follows:
+
+            0 - 3   Length
+            4 - 7   Type, which must be 'colr' (0x636F 6C72)
+            8       METH, specification method.  The colour space of the
+                    decompressed image; a 1-byte unsigned int.
+            9       PREC, precedence.  1-byte signed int.
+            10      APPROX, colourspace approximation.  1-byte unsigned int.
+
+        The presence of the remaining two fields depends on the value of METH:
+
+                    EnumCS, enumerated colourspace, stored as a 4-byte big
+                    endian unsigned int.  Omitted if METH == 2.
+
+                    PROFILE, bytes of a valid ICC color profile.
+                    Omitted if METH == 1.
+
+        In either case, these are the final fields in the box.
+
+        It returns a tuple (qualities, profile_bytes), where ``qualities``
+        is a list of qualities this image supports, and ``profile_bytes`` is
+        the bytes of the ICC profile (if applicable).
+
+        See § I.5.3.3 for details.
+        """
+        colour_box_length = _parse_length(jp2, 'Colour Specification')
+
+        colour_box_type = jp2.read(4)
+        if header_box_type != b'colr':
+            raise JP2ExtractionError(
+                "Bad type in the Colour Specification box: %r" %
+                colour_box_type
+            )
+
+        # First read METH.  Table I-9 tells us this has two legal values:
+        #
+        #   1   Enumerated Colourspace.  The box has an EnumCS field which
+        #       has the enumerated value of the image's colour space.
+        #   2   Restricted ICC profile.  The box has a PROFILE field which
+        #       contains an ICC profile.
+        #
+        # Other values are reserved for ISO use; in this case we should ignore
+        # the entire box.
+        meth = struct.unpack('B', jp2.read(1))[0]
+        logger.debug('colr METH:   %d', meth)
+
+        if meth not in (1, 2):
+            return
+
+        # Then read PREC and APPROX.  For both fields, the spec says the
+        # value should be zero, and "conforming readers shall ignore
+        # the value of this field", so we simply log the value and carry on.
+        prec = struct.unpack('b', jp2.read(1))[0]
+        approx = struct.unpack('B', jp2.read(1))[0]
+        logger.debug('colr PREC:   %d', prec)
+        logger.debug('colr APPROX: %d', prec)
+
+        # Enumerated Colourspace.  We have an EnumCS field and then the end
+        # of the box.  Table I-10 tells us this has two legal values:
+        #
+        #   16  sRGB as defined by IEC 61966-2-1
+        #   17  greyscale
+        #
+        # Additionally, there's an amendment (reference missing) that adds
+        # a third value:
+        #
+        #   18  sYCC
+        #
+        if meth == 1:
+            enum_cs = struct.unpack('>I', jp2.read(4))[0]
+            logger.debug('colr EnumCS: %d', enum_cs)
+
+            if enum_cs == 16:
+                return (['gray', 'color'], None)
+            elif enum_cs == 17:
+                return (['gray'], None)
+            elif enum_cs == 18:
+                return ([], None)
+            else:
+                logger.warn('EnumCS is not a recognised value: %d', enum_cs)
+                return ([], None)
+
+        # Restricted ICC profile.  We have a PROFILE field and then the end
+        # of the box.  This field contains a valid ICC profile.
+        #
+        # Reading ICC Profile Format Specification § 6.1 tells us the format
+        # of an ICC profile.  In particular, the first four bytes are a
+        # big endian unsigned int representing the size of the profile, so
+        # we read the size, then just return the remaining bytes as an
+        # opaque blob of binary data.
+        elif meth == 2:
+            profile_size_bytes = jp2.read(4)
+            profile_size = struct.unpack('>I', profile_size_bytes)[0]
+            logger.debug('ICC profile size: %d', profile_size)
+
+            # We've already read four bytes for the size.
+            profile_bytes = profile_size_bytes + jp2.read(profile_size - 4)
+
+            # We're assuming that if you have an embedded colour profile,
+            # you're working with colour images.
+            return (['gray', 'color'], profile_bytes)
+
     def extract_jp2(self, jp2):
         """
         Given a file-like object that contains a JP2 image, attempt
@@ -200,56 +305,25 @@ class JP2Extractor(object):
         logger.debug("width:  %d", self.width)
         logger.debug("height: %d", self.height)
 
-        scaleFactors = []
+        # After the Image Header box, there are a number of other boxes inside
+        # the JP2 Header box, which can potentially appear in any order.
+        # We're only interested in a Colour Specification box, which has
+        # type 'colr', so skip forward until we find that.  ()
+        #
+        # Note: a JP2 Header box may contain more than one colr box; for now
+        # we only use the first and ignore the rest.
+        _read_jp2_until_match(jp2, b'colr')
 
-        # Figure out color or grayscale.
-        # Depending color profiles; there's probably a better way (or more than
-        # one, anyway.)
-        # see: JP2 I.5.3.3 Colour Specification box
-        window = collections.deque([], 4)
-        while ''.join(window) != 'colr':
-            b = jp2.read(1)
-            c = struct.unpack('c', b)[0]
-            window.append(c)
+        # Then step back so we're at the start of the box, before the
+        # 4-byte lenth.
+        jp2.seek(-4, os.SEEK_CUR)
 
-        colr_meth = struct.unpack('B', jp2.read(1))[0]
-        logger.debug('colr METH: %d', colr_meth)
-
-        # PREC and APPROX, 1 byte each
-        colr_prec = struct.unpack('b', jp2.read(1))[0]
-        colr_approx = struct.unpack('B', jp2.read(1))[0]
-        logger.debug('colr PREC: %d', colr_prec)
-        logger.debug('colr APPROX: %d', colr_approx)
-
-        if colr_meth == 1: # Enumerated Colourspace
-            self.color_profile_bytes = None
-            enum_cs = int(struct.unpack(">HH", jp2.read(4))[1])
-            logger.debug('Image contains an enumerated colourspace: %d', enum_cs)
-            logger.debug('Enumerated colourspace: %d', enum_cs)
-            if enum_cs == 16: # sRGB
-                self.profile.description['qualities'] += ['gray', 'color']
-            elif enum_cs == 17: # grayscale
-                self.profile.description['qualities'] += ['gray']
-            elif enum_cs == 18: # sYCC
-                pass
-            else:
-                msg =  'Enumerated colourspace is neither "16", "17", or "18". '
-                msg += 'See jp2 spec pg. 139.'
-                logger.warn(msg)
-        elif colr_meth == 2:
-            # (Restricted ICC profile).
-            logger.debug('Image contains a restricted, embedded colour profile')
-            # see http://www.color.org/icc-1_1998-09.pdf, page 18.
-            self.assign_color_profile(jp2)
-        else:
-            logger.warn('colr METH is neither "1" or "2". See jp2 spec pg. 139.')
-
-            # colr METH 3 = Any ICC method, colr METH 4 = Vendor Colour method
-            # See jp2 spec pg. 182 -  Table M.24 (Color spec box legal values)
-            if colr_meth <= 4 and -128 <= colr_prec <= 127 and 1 <= colr_approx <= 4:
-                self.assign_color_profile(jp2)
-
+        qualities, profile_bytes = self._parse_colour_specification_box(jp2)
+        self.profile.description['qualities'] += qualities
+        self.color_profile_bytes = profile_bytes
         logger.debug('qualities: %s', self.profile.description['qualities'])
+
+        scaleFactors = []
 
         window =  deque(jp2.read(2), 2)
         # start of codestream
