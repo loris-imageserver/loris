@@ -372,16 +372,19 @@ class SimpleHTTPResolver(_AbstractResolver):
             with tempfile.NamedTemporaryFile(dir=cache_dir, delete=False) as tmp_file:
                 for chunk in response.iter_content(2048):
                     tmp_file.write(chunk)
-                tmp_file.flush()
 
-            #now rename the tmp file to the desired file name if it still doesn't exist
-            #   (another process could have created it)
-            if exists(local_fp):
-                logger.info('another process downloaded src image %s', local_fp)
-                remove(tmp_file.name)
-            else:
-                safe_rename(tmp_file.name, local_fp)
-                logger.info("Copied %s to %s", source_url, local_fp)
+        # Now rename the temp file to the desired file name if it still
+        # doesn't exist (another process could have created it).
+        #
+        # Note: This is purely an optimisation; if the file springs into
+        # existence between the existence check and the copy, it will be
+        # overridden.
+        if exists(local_fp):
+            logger.info('Another process downloaded src image %s', local_fp)
+            remove(tmp_file.name)
+        else:
+            safe_rename(tmp_file.name, local_fp)
+            logger.info("Copied %s to %s", source_url, local_fp)
 
         # Check for rules file associated with image file
         # These files are < 2k in size, so fetch in one go.
