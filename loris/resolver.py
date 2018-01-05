@@ -23,6 +23,7 @@ except ImportError:  # Python 2
     from urllib import quote_plus, unquote
 
 import requests
+from tenacity import retry, stop_after_attempt
 
 from loris import constants
 from loris.loris_exception import ResolverException
@@ -344,6 +345,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.get_format(ident, None)
         return extension
 
+    @retry(stop=stop_after_attempt(2))
     def copy_to_cache(self, ident):
         ident = unquote(ident)
 
