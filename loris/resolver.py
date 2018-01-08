@@ -23,6 +23,7 @@ except ImportError:  # Python 2
     from urllib import quote_plus, unquote
 
 import requests
+from requests.exceptions import ChunkedEncodingError
 from tenacity import retry, stop_after_attempt
 
 from loris import constants
@@ -345,7 +346,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             extension = self.get_format(ident, None)
         return extension
 
-    @retry(stop=stop_after_attempt(2))
+    @retry(
+        stop=stop_after_attempt(2),
+        retry=retry_if_exception_type(ChunkedEncodingError)
+    )
     def copy_to_cache(self, ident):
         ident = unquote(ident)
 
