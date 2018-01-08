@@ -24,7 +24,7 @@ except ImportError:  # Python 2
 
 import requests
 from requests.exceptions import ChunkedEncodingError
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 from loris import constants
 from loris.loris_exception import ResolverException
