@@ -78,7 +78,8 @@ def safe_rename(src, dst):
             # atomic.  We intersperse a random UUID so if different processes
             # are copying into `<dst>`, they don't overlap in their tmp copies.
             mole_id = uuid.uuid4()
-            tmp_dst = shutil.copyfile(src, '%s.%s.tmp' % (dst, mole_id))
+            tmp_dst = '%s.%s.tmp' % (dst, mole_id)
+            shutil.copyfile(src, tmp_dst)
 
             # Then do an atomic rename onto the new name, and clean up the
             # source image.
