@@ -23,7 +23,7 @@ except ImportError:  # Python 2
     from urllib import quote_plus, unquote
 
 import requests
-from requests.exceptions import ChunkedEncodingError, ConnectionError
+from requests.exceptions import RequestException
 from tenacity import retry, retry_if_exception_type, stop_after_attempt
 
 from loris import constants
@@ -348,7 +348,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     @retry(
         stop=stop_after_attempt(2),
-        retry=retry_if_exception_type(ChunkedEncodingError, ConnectionError)
+        retry=(retry_if_exception_type(RequestException)
     )
     def copy_to_cache(self, ident):
         ident = unquote(ident)
