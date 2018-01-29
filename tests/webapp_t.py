@@ -380,6 +380,14 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get, follow_redirects=False)
         self.assertEqual(resp.status_code, 200)
 
+    def test_image_proxy_path_canonical_link(self):
+        self.app.proxy_path = 'https://proxy_example.org/image/'
+        to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get, follow_redirects=False)
+        self.assertEqual(resp.status_code, 200)
+        link = '<http://iiif.io/api/image/2/level2.json>;rel="profile",<https://proxy_example.org/image/01%2F02%2F0001.jp2/full/full/0/default.jpg>;rel="canonical"'
+        self.assertEqual(resp.headers['Link'], link)
+
     def test_img_sends_304(self):
         to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
 
