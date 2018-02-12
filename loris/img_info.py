@@ -411,7 +411,7 @@ class InfoCache(object):
         # into mem
         lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
         with self._lock:
-            while len(self._dict) >= self.size:
+            while len(self._dict) > self.size:
                 self._dict.popitem(last=False)
             self._dict[request.url] = (info,lastmod)
 
