@@ -408,11 +408,12 @@ class InfoCache(object):
             logger.debug('Created %s', icc_fp)
 
         # into mem
-        lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
-        with self._lock:
-            self._dict[request.url] = (info,lastmod)
-            while len(self._dict) > self.size:
-                self._dict.popitem(last=False)
+        if self.size > 0:
+            lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
+            with self._lock:
+                self._dict[request.url] = (info,lastmod)
+                while len(self._dict) > self.size:
+                    self._dict.popitem(last=False)
 
     def __delitem__(self, request):
         with self._lock:
