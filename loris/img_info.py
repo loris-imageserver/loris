@@ -372,8 +372,7 @@ class InfoCache(object):
                 info_and_lastmod = (info, lastmod)
                 logger.debug('Info for %s read from file system', request)
                 # into mem:
-                self._dict[request.url] = info_and_lastmod
-
+                self.__setitem__(request, info)
         return info_and_lastmod
 
     def has_key(self, request):
@@ -411,9 +410,9 @@ class InfoCache(object):
         # into mem
         lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
         with self._lock:
+            self._dict[request.url] = (info,lastmod)
             while len(self._dict) > self.size:
                 self._dict.popitem(last=False)
-            self._dict[request.url] = (info,lastmod)
 
     def __delitem__(self, request):
         with self._lock:

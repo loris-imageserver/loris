@@ -513,6 +513,30 @@ class TestInfoCache(loris_t.LorisTest):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
         assert len(cache) == 0
 
+    def test_cache_limit(self):
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=2)
+        self.app.info_cache = cache
+        request_uris = [
+            '/%s/%s' % (self.test_jp2_color_id,'info.json'),
+            '/%s/%s' % (self.test_jpeg_id,'info.json'),
+            '/%s/%s' % (self.test_png_id,'info.json'),
+            '/%s/%s' % (self.test_jp2_gray_id,'info.json')
+        ]
+        for x in request_uris:
+            resp = self.client.get(x)
+
+        # Check we only cache two
+        assert len(self.app.info_cache) == 2
+
+    def test_no_cache(self):
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=0)
+        self.app.info_cache = cache
+        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        resp = self.client.get(request_uri)
+        print(self.app.info_cache._dict)
+
+        assert len(self.app.info_cache) == 0
+
     def test_deleting_cache_item_removes_color_profile_fp(self):
         # First assemble the cache
         cache, req = self._cache_with_request()
