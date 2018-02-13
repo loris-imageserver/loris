@@ -372,8 +372,7 @@ class InfoCache(object):
                 info_and_lastmod = (info, lastmod)
                 logger.debug('Info for %s read from file system', request)
                 # into mem:
-                self._dict[request.url] = info_and_lastmod
-
+                self.__setitem__(request, info, _to_fs=False)
         return info_and_lastmod
 
     def has_key(self, request):
@@ -389,31 +388,37 @@ class InfoCache(object):
         else:
             return info_lastmod
 
-    def __setitem__(self, request, info):
-        # to fs
-        logger.debug('request passed to __setitem__: %s', request)
+    def __setitem__(self, request, info, _to_fs=True):
         info_fp = self._get_info_fp(request)
-        dp = os.path.dirname(info_fp)
-        mkdir_p(dp)
-        logger.debug('Created %s', dp)
+        if _to_fs:
+            # to fs
+            logger.debug('request passed to __setitem__: %s', request)
+            dp = os.path.dirname(info_fp)
+            mkdir_p(dp)
+            logger.debug('Created %s', dp)
 
-        with open(info_fp, 'w') as f:
-            f.write(info.to_full_info_json())
-        logger.debug('Created %s', info_fp)
+            with open(info_fp, 'w') as f:
+                f.write(info.to_full_info_json())
+            logger.debug('Created %s', info_fp)
 
 
-        if info.color_profile_bytes:
-            icc_fp = self._get_color_profile_fp(request)
-            with open(icc_fp, 'wb') as f:
-                f.write(info.color_profile_bytes)
-            logger.debug('Created %s', icc_fp)
+            if info.color_profile_bytes:
+                icc_fp = self._get_color_profile_fp(request)
+                with open(icc_fp, 'wb') as f:
+                    f.write(info.color_profile_bytes)
+                logger.debug('Created %s', icc_fp)
 
         # into mem
-        lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
-        with self._lock:
-            while len(self._dict) >= self.size:
-                self._dict.popitem(last=False)
-            self._dict[request.url] = (info,lastmod)
+        # The info file cache on disk must already exist before
+        # this is called - it's where the mtime gets drawn from.
+        # aka, nothing outside of this class should be using
+        # to_fs=False
+        if self.size > 0:
+            lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
+            with self._lock:
+                self._dict[request.url] = (info,lastmod)
+                while len(self._dict) > self.size:
+                    self._dict.popitem(last=False)
 
     def __delitem__(self, request):
         with self._lock:

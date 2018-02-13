@@ -7,6 +7,7 @@ import os
 from os import path
 import json
 import tempfile
+from datetime import datetime
 
 try:
     from urllib.parse import unquote
@@ -505,6 +506,29 @@ class TestInfoCache(loris_t.LorisTest):
         )
         self.assertTrue(path.exists(expected_path))
 
+    def test_just_ram_cache_update(self):
+        # Cache size of one, so it's easy to manipulate
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=1)
+        self.app.info_cache = cache
+        # First request
+        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        resp = self.client.get(request_uri)
+        expected_path = path.join(
+            self.app.info_cache.http_root,
+            unquote(self.test_jp2_color_id),
+            'info.json'
+        )
+        fs_first_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
+        # Push this entry out of the RAM cache with another
+        push_request_uri = '/%s/%s' % (self.test_jp2_gray_id,'info.json')
+        resp = self.client.get(push_request_uri)
+        # Request the first file again
+        # It should now exist on disk, but not in RAM, so it shouldn't
+        # have been rewritten by the second get.
+        resp = self.client.get(request_uri)
+        fs_second_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
+        self.assertTrue(fs_first_time == fs_second_time)
+
     def test_can_delete_items_from_infocache(self):
         cache, req = self._cache_with_request()
         del cache[req]
@@ -512,6 +536,29 @@ class TestInfoCache(loris_t.LorisTest):
     def test_empty_cache_has_zero_size(self):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
         assert len(cache) == 0
+
+    def test_cache_limit(self):
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=2)
+        self.app.info_cache = cache
+        request_uris = [
+            '/%s/%s' % (self.test_jp2_color_id,'info.json'),
+            '/%s/%s' % (self.test_jpeg_id,'info.json'),
+            '/%s/%s' % (self.test_png_id,'info.json'),
+            '/%s/%s' % (self.test_jp2_gray_id,'info.json')
+        ]
+        for x in request_uris:
+            resp = self.client.get(x)
+
+        # Check we only cache two
+        assert len(self.app.info_cache) == 2
+
+    def test_no_cache(self):
+        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=0)
+        self.app.info_cache = cache
+        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        resp = self.client.get(request_uri)
+
+        assert len(self.app.info_cache) == 0
 
     def test_deleting_cache_item_removes_color_profile_fp(self):
         # First assemble the cache
