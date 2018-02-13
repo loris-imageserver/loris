@@ -3,12 +3,15 @@
 `authorizer` -- Handle authorization of access to content
 =========================================================
 """
+from __future__ import absolute_import
 
 from logging import getLogger
-from loris_exception import AuthorizerException, ConfigError
 import requests
 
-from urlparse import urlparse
+try:
+    from urllib.parse import urlparse
+except ImportError:  # Python 2
+    from urlparse import urlparse
 
 import jwt
 
@@ -19,6 +22,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from .loris_exception import AuthorizerException, ConfigError
 
 logger = getLogger(__name__)
 

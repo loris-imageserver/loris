@@ -16,7 +16,10 @@ from os import path, unlink
 import re
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-from urllib import unquote, quote_plus
+try:
+    from urllib.parse import unquote, quote_plus
+except ImportError:  # Python 2
+    from urllib import unquote, quote_plus
 
 import sys
 sys.path.append('.')
