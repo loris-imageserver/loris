@@ -306,7 +306,6 @@ class WebappIntegration(loris_t.LorisTest):
     def test_access_control_allow_origin_on_info_requests(self):
         uri = '/%s/info.json' % (self.test_jp2_color_id,)
         resp = self.client.get(uri)
-        print resp.headers['access-control-allow-origin']
         self.assertEqual(resp.headers['access-control-allow-origin'], '*')
 
     def test_access_control_allow_origin_on_img_request(self):
