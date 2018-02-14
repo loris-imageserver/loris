@@ -1,14 +1,15 @@
+import unittest
+import base64
+
+from cryptography.fernet import Fernet
+import jwt
+import pytest
+import responses
 
 from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
     NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer, ExternalAuthorizer
 from loris.loris_exception import ConfigError
 from loris.img_info import ImageInfo
-
-import unittest
-import base64
-from cryptography.fernet import Fernet
-import jwt
-import pytest
 
 
 class MockRequest(object):
@@ -340,4 +341,34 @@ class TestExternalAuthorizer(unittest.TestCase):
             'Missing mandatory parameters for ExternalAuthorizer: authorized_url,protected_url,services_url' ==
             err.value.message
         )
+
+    @responses.activate
+    def test_is_protected_false(self):
+        responses.add(responses.POST, 'https://localhost/protected/',
+                      body='',
+                      status=200,
+                    )
+        config = {
+                'authorized_url': 'https://localhost/authorized/',
+                'protected_url': 'https://localhost/protected/',
+                'services_url': 'https://localhost/services/'
+            }
+        info = ImageInfo(None, 'public_item', '/tmp/public_item.jpg', 'jpeg')
+        authorizer = ExternalAuthorizer(config)
+        self.assertFalse(authorizer.is_protected(info))
+
+    @responses.activate
+    def test_is_protected_true(self):
+        responses.add(responses.POST, 'https://localhost/protected/',
+                      body='',
+                      status=200,
+                    )
+        config = {
+                'authorized_url': 'https://localhost/authorized/',
+                'protected_url': 'https://localhost/protected/',
+                'services_url': 'https://localhost/services/'
+            }
+        info = ImageInfo(None, 'private_item', '/tmp/private_item.jpg', 'jpeg')
+        authorizer = ExternalAuthorizer(config)
+        self.assertTrue(authorizer.is_protected(info))
 
