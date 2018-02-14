@@ -100,6 +100,7 @@ class _AbstractAuthorizer(object):
         cn = self.__class__.__name__
         raise NotImplementedError('is_authorized() not implemented for %s' % (cn,))
 
+
 class NullAuthorizer(_AbstractAuthorizer):
     """
     Everything is permissible
@@ -114,6 +115,7 @@ class NullAuthorizer(_AbstractAuthorizer):
     def get_services_info(self, info):
         # No services needed, return empty dict
         return {}
+
 
 class NooneAuthorizer(_AbstractAuthorizer):
     """
@@ -138,6 +140,7 @@ class NooneAuthorizer(_AbstractAuthorizer):
         self._strip_empty_fields(token)
         tmpl['service'] = [token]
         return {"service": tmpl}
+
 
 class SingleDegradingAuthorizer(_AbstractAuthorizer):
     """
@@ -238,7 +241,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
             # JWT
             roles = value.get(self.roles_key, [])
             if not roles:
-                return self._get_roles_for_identity(value.get(self.id_key, ''))
+                roles = self._get_roles_for_identity(value.get(self.id_key, ''))
             return roles
         else:
             # assume that our value is an identity not a role
@@ -369,9 +372,21 @@ class ExternalAuthorizer(_AbstractAuthorizer):
 
     def __init__(self, config):
         super(ExternalAuthorizer, self).__init__(config)
+        self._validate_config(config)
+
         self.authorized_url = config.get('authorized_url', '')
         self.protected_url = config.get('protected_url', '')
         self.services_url = config.get('services_url', '')
+
+    def _validate_config(self, config):
+        mandatory_keys = ['authorized_url', 'protected_url', 'services_url']
+        missing_keys = [key for key in mandatory_keys if key not in config]
+
+        if missing_keys:
+            raise ConfigError(
+                'Missing mandatory parameters for %s: %s' %
+                (type(self).__name__, ','.join(missing_keys))
+            )
 
     def is_protected(self, info):
         # http://somewhere.org/path/to/service
@@ -397,3 +412,4 @@ class ExternalAuthorizer(_AbstractAuthorizer):
             'fp': info.src_img_fp,
         }
         requests.post(self.services_url, data=data)
+

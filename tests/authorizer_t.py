@@ -1,6 +1,6 @@
 
 from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
-    NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
+    NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer, ExternalAuthorizer
 from loris.loris_exception import ConfigError
 from loris.img_info import ImageInfo
 
@@ -10,12 +10,14 @@ from cryptography.fernet import Fernet
 import jwt
 import pytest
 
+
 class MockRequest(object):
 
     def __init__(self, hdrs={}, cooks={}):
         self.headers = hdrs
         self.cookies = cooks
         self.path = "bla/info.json"
+
 
 class Test_AbstractAuthorizer(unittest.TestCase):
 
@@ -83,6 +85,7 @@ class Test_NooneAuthorizer(unittest.TestCase):
     def test_get_services_info(self):
         svcs = self.authorizer.get_services_info(self.info)
         self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
+
 
 # This is ever-so-slightly less pointless
 class Test_SingleDegradingAuthorizer(unittest.TestCase):
@@ -325,3 +328,16 @@ class Test_RulesAuthorizer(unittest.TestCase):
             'If use_jwt=False, you must supply the "salt" config parameter' ==
             err.value.message
         )
+
+
+class TestExternalAuthorizer(unittest.TestCase):
+
+    def test_config_has_required_urls(self):
+        config = {}
+        with pytest.raises(ConfigError) as err:
+            ExternalAuthorizer(config)
+        assert (
+            'Missing mandatory parameters for ExternalAuthorizer: authorized_url,protected_url,services_url' ==
+            err.value.message
+        )
+
