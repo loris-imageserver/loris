@@ -37,21 +37,21 @@ class TestLoggingConfig(object):
         }
         with pytest.raises(ConfigError) as err:
             configure_logging(config=config)
-        assert 'expected one of file/console' in err.value.message
+        assert 'expected one of file/console' in str(err.value)
 
     @pytest.mark.parametrize('key', ['log_to', 'log_level', 'format'])
     def test_missing_mandatory_key_is_error(self, key):
         config = {k: v for k, v in valid_console_config.items() if k != key}
         with pytest.raises(ConfigError) as err:
             configure_logging(config=config)
-        assert 'Missing mandatory logging parameters' in err.value.message
+        assert 'Missing mandatory logging parameters' in str(err.value)
 
     @pytest.mark.parametrize('key', ['log_dir', 'max_size', 'max_backups'])
     def test_missing_mandatory_key_with_log_to_file_is_error(self, key):
         config = {k: v for k, v in valid_file_config.items() if k != key}
         with pytest.raises(ConfigError) as err:
             configure_logging(config=config)
-        assert 'When log_to=file, the following parameters are required' in err.value.message
+        assert 'When log_to=file, the following parameters are required' in str(err.value)
 
     @pytest.mark.parametrize('log_config, expected_level', [
         ('CRITICAL', logging.CRITICAL),

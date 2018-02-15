@@ -208,7 +208,7 @@ class Test_PILTransformer(loris_t.LorisTest,
             return None # no alpha channel, presumably
 
         alpha_getter= operator.itemgetter(alpha_index)
-        return itertools.imap(alpha_getter, image.getdata())
+        return map(alpha_getter, image.getdata())
 
     def test_can_edit_embedded_color_profile(self):
         self._assert_can_edit_embedded_color_profile(
