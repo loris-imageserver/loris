@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 import unittest
-import operator, itertools
+import operator
 
 import pytest
 
@@ -178,7 +178,6 @@ class Test_PILTransformer(loris_t.LorisTest,
         request_path = '/%s/full/full/%s/default.png' % (ident,rotate)
         image = self.request_image_from_client(request_path)
 
-        # Get the alpha channel as an itertools.imap
         alpha = self.get_alpha_channel(image)
 
         # Instantiate transparency as False
