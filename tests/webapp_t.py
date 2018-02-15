@@ -41,7 +41,7 @@ class TestDebugConfig(object):
     def test_unrecognized_debug_config_is_configerror(self):
         with pytest.raises(ConfigError) as err:
             webapp.get_debug_config('no_such_jp2_transformer')
-        assert 'Unrecognized debug JP2 transformer' in err.value.message
+        assert 'Unrecognized debug JP2 transformer' in str(err.value)
 
 
 class TestLorisRequest(TestCase):
@@ -278,7 +278,7 @@ class WebappIntegration(loris_t.LorisTest):
     def test_index(self):
         resp = self.client.get('/')
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.data.startswith('This is Loris, '))
+        self.assertTrue(resp.data.decode('utf8').startswith('This is Loris, '))
 
     def test_favicon(self):
         resp = self.client.get('/favicon.ico')
@@ -429,7 +429,7 @@ class WebappIntegration(loris_t.LorisTest):
         to_get = '/01%2F03%2Ffake.jp2/info.json'
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 500)
-        self.assertEqual(resp.data, 'Server Side Error: Invalid JP2 file (500)')
+        self.assertEqual(resp.data.decode('utf8'), 'Server Side Error: Invalid JP2 file (500)')
 
     def test_info_sends_304(self):
         to_get = '/%s/info.json' % (self.test_jp2_color_id,)
@@ -455,13 +455,13 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get)
         assert resp.status_code == 200
 
-        assert re.match(r'^mycallback\(.*\);$', resp.data)
+        assert re.match(r'^mycallback\(.*\);$', resp.data.decode('utf8'))
 
     def test_info_as_options(self):
         to_opt = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
         resp = self.client.options(to_opt)
         assert resp.status_code == 200
-        assert b'Access-Control-Allow-Methods' in resp.headers
+        assert resp.headers.get('Access-Control-Allow-Methods') == 'GET, OPTIONS'
 
     def test_bad_format_returns_400(self):
         to_get = '/%s/full/full/0/default.hey' % (self.test_jp2_color_id,)
@@ -533,7 +533,7 @@ class SizeRestriction(loris_t.LorisTest):
         request_path = '/%s/info.json' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
-        self.assertFalse('sizeAboveFull' in resp.data)
+        self.assertFalse('sizeAboveFull' in resp.data.decode('utf8'))
 
     def _test_json_has_size_above_full(self):
         '''Does sizeAboveFull remain in info.json if size > 100?'''
@@ -541,7 +541,7 @@ class SizeRestriction(loris_t.LorisTest):
         request_path = '/%s/info.json' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue('sizeAboveFull' in resp.data)
+        self.assertTrue('sizeAboveFull' in resp.data.decode('utf8'))
 
 
     def test_full_full(self):
