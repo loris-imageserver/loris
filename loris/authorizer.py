@@ -265,12 +265,12 @@ class RulesAuthorizer(_AbstractAuthorizer):
             cval = token.strip()
             if not cval:
                 return []
-            secret = b"%s-%s" % (self.token_secret, origin.encode('utf8'))
+            secret = b'-'.join([self.token_secret, origin.encode('utf8')])
         else:
             cval = request.cookies.get(self.cookie_name)
             if not cval:
                 return []
-            secret = b"%s-%s" % (self.cookie_secret, origin.encode('utf8'))
+            secret = b'-'.join([self.cookie_secret, origin.encode('utf8')])
 
         if not isinstance(cval, bytes):
             cval = cval.encode('utf8')
