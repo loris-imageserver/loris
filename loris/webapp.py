@@ -353,7 +353,7 @@ class Loris(object):
         transformers = {}
         for sf in source_formats:
             # merge [transforms] options and [transforms][source_format]] options
-            config = dict(self.app_configs['transforms'][sf].items() + global_tranform_options.items())
+            config = dict(list(self.app_configs['transforms'][sf].items()) + list(global_tranform_options.items()))
             transformers[sf] = self._load_transformer(config)
         return transformers
 

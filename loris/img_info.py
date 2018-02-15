@@ -230,7 +230,7 @@ class ImageInfo(JP2Extractor, object):
                 self.extract_jp2(jp2)
             except JP2ExtractionError as err:
                 logger.warning(
-                    "Error extracting JP2 %s: %r", fp, err.message
+                    "Error extracting JP2 %s: %r", fp, str(err)
                 )
                 raise ImageInfoException("Invalid JP2 file")
 
