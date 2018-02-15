@@ -53,8 +53,8 @@ class _AbstractAuthorizer(object):
 
     def _strip_empty_fields(self, svc):
         # dicts are modified in place
-        for (k, v) in svc.items():
-            if not v:
+        for k in list(svc.keys()):
+            if not svc[k]:
                 del svc[k]
         # but return it just in case
         return svc
@@ -184,6 +184,8 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
         self.use_jwt = config.get('use_jwt', True)
         self.salt = config.get('salt', '')
+        if not isinstance(self.salt, bytes):
+            self.salt = self.salt.encode('utf8')
         self.roles_key = config.get('roles_key', 'roles')
         self.id_key = config.get('id_key', 'sub')
 
@@ -257,16 +259,21 @@ class RulesAuthorizer(_AbstractAuthorizer):
         
         if request.path.endswith("info.json"):
             token = request.headers.get('Authorization', '')        
-            token = token.replace("Bearer", '')
+            if not isinstance(token, bytes):
+                token = token.encode('utf8')
+            token = token.replace(b"Bearer", b'')
             cval = token.strip()
             if not cval:
                 return []
-            secret = "%s-%s" % (self.token_secret, origin)
+            secret = b"%s-%s" % (self.token_secret, origin.encode('utf8'))
         else:
             cval = request.cookies.get(self.cookie_name)
             if not cval:
                 return []
-            secret = "%s-%s" % (self.cookie_secret, origin)
+            secret = b"%s-%s" % (self.cookie_secret, origin.encode('utf8'))
+
+        if not isinstance(cval, bytes):
+            cval = cval.encode('utf8')
 
         if self.use_jwt:
             try:
@@ -276,16 +283,17 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 logger.debug(value)
                 raise AuthorizerException(message="invalidCredentials: expired")
         else:
-            cval = cval.encode('utf-8')
-            key = base64.urlsafe_b64encode(self.kdf().derive(secret.encode('utf-8')))
+            key = base64.urlsafe_b64encode(self.kdf().derive(secret))
             fern = Fernet(key)
             value = fern.decrypt(cval)
-            if not value.startswith(origin):
+            if not value.startswith(origin.encode('utf8')):
                 # Cookie/Token theft
                 return []
             else:
-                value = value[len(origin)+1:]
+                value = value[len(origin.encode('utf8'))+1:]
 
+        if isinstance(value, bytes):
+            value = value.decode('utf8')
         roles = self._roles_from_value(value)
         return roles
 

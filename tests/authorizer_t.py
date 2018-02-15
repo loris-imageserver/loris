@@ -120,9 +120,9 @@ class Test_RulesAuthorizer(unittest.TestCase):
         fmt = "png"
 
         self.authorizer = RulesAuthorizer(
-            {"cookie_secret": "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
-            "token_secret": "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
-            "salt": "4rakTQJD4lC1B4lu"})
+            {"cookie_secret": b"4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
+            "token_secret": b"hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
+            "salt": b"4rakTQJD4lC1B4lu"})
         self.badInfo = ImageInfo(None, ident, fp, fmt)
         self.okayInfo = ImageInfo(None, "67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
             "img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
@@ -132,25 +132,25 @@ class Test_RulesAuthorizer(unittest.TestCase):
         # en/decryption defaults to return the plain text
         self.emptyRequest = MockRequest()
 
-        secret = "%s-%s" % (self.authorizer.token_secret, self.origin)
+        secret = b"%s-%s" % (self.authorizer.token_secret, self.origin.encode('utf8'))
         key = base64.urlsafe_b64encode(self.authorizer.kdf().derive(secret))
         self.token_fernet = Fernet(key)
-        tv = self.token_fernet.encrypt("localhost|test")
-        jwt_tv = jwt.encode({"sub": "test"}, secret, algorithm='HS256')
-        jwt_tv_roles = jwt.encode({"roles": ['test']}, secret, algorithm='HS256')
+        tv = self.token_fernet.encrypt(b"localhost|test")
+        jwt_tv = jwt.encode({u"sub": u"test"}, secret, algorithm='HS256')
+        jwt_tv_roles = jwt.encode({u"roles": [u'test']}, secret, algorithm='HS256')
 
-        secret = "%s-%s" % (self.authorizer.cookie_secret, self.origin)
+        secret = b"%s-%s" % (self.authorizer.cookie_secret, self.origin.encode('utf8'))
         key = base64.urlsafe_b64encode(self.authorizer.kdf().derive(secret))
         self.cookie_fernet = Fernet(key)
-        cv = self.cookie_fernet.encrypt("localhost|test")
+        cv = self.cookie_fernet.encrypt(b"localhost|test")
         jwt_cv = jwt.encode({"sub": "test"}, secret, algorithm='HS256')
         jwt_cv_roles = jwt.encode({"roles": ['test']}, secret, algorithm='HS256')
 
-        self.tokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % tv, "origin": self.origin})
+        self.tokenRequest = MockRequest(hdrs={"Authorization": b"Bearer %s" % tv, "origin": self.origin})
         self.cookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': cv})
         self.cookieRequest.path = ".../default.jpg"
 
-        self.jwtTokenRequest = MockRequest(hdrs={"Authorization": "Bearer %s" % jwt_tv, "origin": self.origin})
+        self.jwtTokenRequest = MockRequest(hdrs={"Authorization": b"Bearer %s" % jwt_tv, "origin": self.origin})
         self.jwtCookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': jwt_cv})
         self.jwtCookieRequest.path = ".../default.jpg"
 
@@ -295,7 +295,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
             RulesAuthorizer(config)
         assert (
             'Missing mandatory parameters for RulesAuthorizer: cookie_secret' ==
-            err.value.message
+            str(err.value)
         )
 
     def test_missing_token_secret_is_configerror(self):
@@ -308,7 +308,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
             RulesAuthorizer(config)
         assert (
             'Missing mandatory parameters for RulesAuthorizer: token_secret' ==
-            err.value.message
+            str(err.value)
         )
 
     def test_false_use_jwt_without_salt_is_configerror(self):
@@ -323,5 +323,5 @@ class Test_RulesAuthorizer(unittest.TestCase):
             RulesAuthorizer(config)
         assert (
             'If use_jwt=False, you must supply the "salt" config parameter' ==
-            err.value.message
+            str(err.value)
         )
