@@ -98,7 +98,7 @@ class RegionParameter(object):
         # all adjustments have been made.
         if self.mode != FULL_MODE:
             px = (self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h)
-            self.canonical_uri_value = ','.join(map(str, px))
+            self.canonical_uri_value = ','.join([str(p) for p in px])
         else:
             self.canonical_uri_value = FULL_MODE
         logger.debug('canonical uri_value for region %s', self.canonical_uri_value)
@@ -150,7 +150,7 @@ class RegionParameter(object):
             RequestException
         '''
         # we convert these to pixels and update uri_value
-        dimensions = map(float, self.uri_value.split(':')[1].split(','))
+        dimensions = [float(x) for x in self.uri_value.split(':')[1].split(',')]
 
         if len(dimensions) != 4:
             raise SyntaxException("Exactly (4) coordinates must be supplied.")
@@ -165,7 +165,7 @@ class RegionParameter(object):
 
         # decimals
         self.decimal_x, self.decimal_y, self.decimal_w, \
-            self.decimal_h = map(RegionParameter._pct_to_decimal, dimensions)
+            self.decimal_h = [RegionParameter._pct_to_decimal(d) for d in dimensions]
 
         # pixels
         self.pixel_x = int(floor(self.decimal_x * self.img_info.width))
@@ -179,16 +179,17 @@ class RegionParameter(object):
             RequestException
             SyntaxException
         '''
+        #dimensions must be ints, for passing to _populate_slots_from_pixels
         if self.img_info.width > self.img_info.height:
-            offset = (self.img_info.width - self.img_info.height) / 2
+            offset = (self.img_info.width - self.img_info.height) // 2
             dimensions = (offset, 0, self.img_info.height, self.img_info.height)
         else:
-            offset = (self.img_info.height - self.img_info.width) / 2
+            offset = (self.img_info.height - self.img_info.width) // 2
             dimensions = (0, offset, self.img_info.width, self.img_info.width)
         return self._populate_slots_from_pixels(dimensions)
 
     def _pixel_dims_to_ints(self):
-        dimensions = map(int, self.uri_value.split(','))
+        dimensions = [int(d) for d in self.uri_value.split(',')]
         if any(n <= 0 for n in dimensions[2:]):
             raise RequestException("Width and height must be greater than 0.")
         if len(dimensions) != 4:
@@ -199,10 +200,10 @@ class RegionParameter(object):
         # pixels
         self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h = dimensions
         # decimals
-        self.decimal_x = self.pixel_x / Decimal(str(self.img_info.width))
-        self.decimal_y = self.pixel_y / Decimal(str(self.img_info.height))
-        self.decimal_w = self.pixel_w / Decimal(str(self.img_info.width))
-        self.decimal_h = self.pixel_h / Decimal(str(self.img_info.height))
+        self.decimal_x = Decimal(self.pixel_x) / Decimal(str(self.img_info.width))
+        self.decimal_y = Decimal(self.pixel_y) / Decimal(str(self.img_info.height))
+        self.decimal_w = Decimal(self.pixel_w) / Decimal(str(self.img_info.width))
+        self.decimal_h = Decimal(self.pixel_h) / Decimal(str(self.img_info.height))
 
     @staticmethod
     def _mode_from_region_segment(region_segment, img_info):
@@ -242,6 +243,7 @@ class RegionParameter(object):
     @staticmethod
     def _pct_to_decimal(n):
         return Decimal(str(n)) / Decimal('100.0')
+
 
 class SizeParameter(object):
     '''Internal representation of the size slice of an IIIF image URI.
@@ -348,13 +350,13 @@ class SizeParameter(object):
 
         if (not best_fit) and request_w and (not request_h):
             self.force_aspect = False
-            self.w = request_w
+            self.w = Decimal(request_w)
             reduce_by = Decimal(request_w) / region_parameter.pixel_w
             self.h = region_parameter.pixel_h * reduce_by
 
         elif (not best_fit) and (not request_w) and request_h:
             self.force_aspect = False
-            self.h = request_h
+            self.h = Decimal(request_h)
             reduce_by = Decimal(request_h) / region_parameter.pixel_h
             self.w = region_parameter.pixel_w * reduce_by
 
@@ -369,17 +371,17 @@ class SizeParameter(object):
 
         elif request_w and request_h:
             self.force_aspect = True
-            self.w = request_w
-            self.h = request_h
+            self.w = Decimal(request_w)
+            self.h = Decimal(request_h)
 
         else:  # pragma: no cover
             assert False, "Incomplete size data in URI: %r" % self.uri_value
 
-        if self.h < 1:
+        if 0 < self.h < DECIMAL_ONE:
             self.h = 1
         else:
             self.h = int(self.h)
-        if self.w < 1:
+        if 0 < self.w < DECIMAL_ONE:
             self.w = 1
         else:
             self.w = int(self.w)
