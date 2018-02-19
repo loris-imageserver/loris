@@ -183,9 +183,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
         self.token_secret = config['token_secret']
 
         self.use_jwt = config.get('use_jwt', True)
-        self.salt = config.get('salt', '')
-        if not isinstance(self.salt, bytes):
-            self.salt = self.salt.encode('utf8')
+        self.salt = config.get('salt', b'')
         self.roles_key = config.get('roles_key', 'roles')
         self.id_key = config.get('id_key', 'sub')
 
@@ -204,6 +202,9 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 'If use_jwt=%r, you must supply the "salt" config parameter' %
                 config['use_jwt']
             )
+
+        if ('salt' in config) and (not isinstance(config['salt'], bytes)):
+            raise ConfigError('"salt" config parameter must be bytes')
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
@@ -253,7 +254,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
         origin = request.headers.get('origin', '')
         if not origin:
             origin = request.headers.get('referer', '*')
-        origin = self.basic_origin(origin)
+        origin = self.basic_origin(origin).encode('utf8')
 
         logger.debug("Got basic origin: %s" % origin)
         
@@ -265,12 +266,12 @@ class RulesAuthorizer(_AbstractAuthorizer):
             cval = token.strip()
             if not cval:
                 return []
-            secret = b'-'.join([self.token_secret, origin.encode('utf8')])
+            secret = b'-'.join([self.token_secret, origin])
         else:
             cval = request.cookies.get(self.cookie_name)
             if not cval:
                 return []
-            secret = b'-'.join([self.cookie_secret, origin.encode('utf8')])
+            secret = b'-'.join([self.cookie_secret, origin])
 
         if not isinstance(cval, bytes):
             cval = cval.encode('utf8')
@@ -286,14 +287,16 @@ class RulesAuthorizer(_AbstractAuthorizer):
             key = base64.urlsafe_b64encode(self.kdf().derive(secret))
             fern = Fernet(key)
             value = fern.decrypt(cval)
-            if not value.startswith(origin.encode('utf8')):
+            if not value.startswith(origin):
                 # Cookie/Token theft
                 return []
             else:
-                value = value[len(origin.encode('utf8'))+1:]
+                value = value[len(origin)+1:]
 
-        if isinstance(value, bytes):
+        try:
             value = value.decode('utf8')
+        except AttributeError:
+            pass
         roles = self._roles_from_value(value)
         return roles
 

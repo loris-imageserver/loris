@@ -325,3 +325,20 @@ class Test_RulesAuthorizer(unittest.TestCase):
             'If use_jwt=False, you must supply the "salt" config parameter' ==
             str(err.value)
         )
+
+    def test_salt_must_be_bytes(self):
+        config = {
+            'cookie_service': 'cookie.example.com',
+            'token_service': 'token.example.com',
+            'cookie_secret': 'c00ki3sekr1t',
+            'token_secret': 't0k3ns3kr1t',
+            'use_jwt': False,
+            'salt': u'salt',
+        }
+        with pytest.raises(ConfigError) as err:
+            RulesAuthorizer(config)
+        assert (
+            '"salt" config parameter must be bytes' ==
+            str(err.value)
+        )
+
