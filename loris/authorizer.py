@@ -256,13 +256,14 @@ class RulesAuthorizer(_AbstractAuthorizer):
             origin = request.headers.get('referer', '*')
         origin = self.basic_origin(origin).encode('utf8')
 
-        logger.debug("Got basic origin: %s" % origin)
+        logger.debug('Got basic origin: %s' % origin)
         
-        if request.path.endswith("info.json"):
+        if request.path.endswith('info.json'):
             token = request.headers.get('Authorization', '')        
             if not isinstance(token, bytes):
+                logger.warning('encoding Authorization header as utf8')
                 token = token.encode('utf8')
-            token = token.replace(b"Bearer", b'')
+            token = token.replace(b'Bearer', b'')
             cval = token.strip()
             if not cval:
                 return []
