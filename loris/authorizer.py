@@ -204,7 +204,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
             )
 
         if ('salt' in config) and (not isinstance(config['salt'], bytes)):
-            raise ConfigError('"salt" config parameter must be bytes')
+            raise ConfigError('"salt" config parameter must be bytes; got %r (%s)' % (config['salt'], type(config['salt'])))
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,

@@ -338,7 +338,6 @@ class Test_RulesAuthorizer(unittest.TestCase):
         with pytest.raises(ConfigError) as err:
             RulesAuthorizer(config)
         assert (
-            '"salt" config parameter must be bytes' ==
-            str(err.value)
+            str(err.value).startswith('"salt" config parameter must be bytes;')
         )
 
