@@ -53,11 +53,9 @@ class _AbstractAuthorizer(object):
 
     def _strip_empty_fields(self, svc):
         # dicts are modified in place
-        for k in list(svc.keys()):
-            if not svc[k]:
+        for k, v in list(svc.items()):
+            if not v:
                 del svc[k]
-        # but return it just in case
-        return svc
 
     def is_protected(self, info):
         """
@@ -256,7 +254,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
             origin = request.headers.get('referer', '*')
         origin = self.basic_origin(origin).encode('utf8')
 
-        logger.debug('Got basic origin: %s' % origin)
+        logger.debug('Got basic origin: %s', origin)
         
         if request.path.endswith('info.json'):
             token = request.headers.get('Authorization', '')        

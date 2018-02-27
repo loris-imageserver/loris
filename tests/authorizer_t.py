@@ -21,7 +21,9 @@ class Test_AbstractAuthorizer(unittest.TestCase):
 
     def test_strip_empty_fields(self):
         aa = _AbstractAuthorizer({})
-        self.assertEqual(aa._strip_empty_fields({"a": "", "b": 0, "c": False}), {})
+        d = {"a": "", "b": 0, "c": False}
+        aa._strip_empty_fields(d)
+        self.assertEqual(d, {})
 
     def test_is_protected_is_notimplementederror(self):
         aa = _AbstractAuthorizer({})
