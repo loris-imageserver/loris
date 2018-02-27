@@ -33,14 +33,14 @@ class TestJP2Extractor(object):
     def test_invalid_signature_box_is_rejected(self, extractor, signature_box):
         with pytest.raises(JP2ExtractionError) as err:
             extractor._check_signature_box(BytesIO(signature_box))
-        assert 'Bad signature box' in err.value.message
+        assert 'Bad signature box' in str(err.value)
 
     @given(signature_box=binary())
     def test_check_sig_box_is_ok_or_error(self, extractor, signature_box):
         try:
             extractor._check_signature_box(BytesIO(signature_box))
         except JP2ExtractionError as err:
-            assert 'Bad signature box' in err.message
+            assert 'Bad signature box' in str(err)
 
     def test_valid_file_type_box_is_accepted(self, extractor):
         extractor._check_file_type_box(BytesIO(b'\x00\x00\x00\x0cftypjp2\040'))
@@ -63,7 +63,7 @@ class TestJP2Extractor(object):
     ):
         with pytest.raises(JP2ExtractionError) as err:
             extractor._check_file_type_box(BytesIO(file_type_box))
-        assert exception_message in err.value.message
+        assert exception_message in str(err.value)
 
     @pytest.mark.parametrize('file_type_box', [
         # Here we have length 20, so we read four extra bytes from the endf
@@ -102,7 +102,7 @@ class TestJP2Extractor(object):
         try:
             extractor._check_file_type_box(BytesIO(file_type_box))
         except JP2ExtractionError as err:
-            assert 'File Type box' in err.message
+            assert 'File Type box' in str(err)
 
     @pytest.mark.parametrize('header_box_bytes, expected_dimensions', [
         (b'\x00\x00\x00\x01\x00\x00\x00\x01', (1, 1)),
@@ -143,7 +143,7 @@ class TestJP2Extractor(object):
         with pytest.raises(JP2ExtractionError) as err:
             b = BytesIO(image_header_box)
             extractor._get_dimensions_from_image_header_box(b)
-        assert exception_message in err.value.message
+        assert exception_message in str(err.value)
 
     @given(image_header_box=binary())
     def test_image_header_box_is_okay_or_error(
@@ -154,7 +154,7 @@ class TestJP2Extractor(object):
                 BytesIO(image_header_box)
             )
         except JP2ExtractionError as err:
-            assert 'Image Header box' in err.message
+            assert 'Image Header box' in str(err)
         else:
             assert isinstance(dimensions, tuple)
             assert len(dimensions) == 2
@@ -175,7 +175,7 @@ class TestJP2Extractor(object):
         with pytest.raises(JP2ExtractionError) as err:
             b = BytesIO(colour_specification_box)
             extractor._parse_colour_specification_box(b)
-        assert exception_message in err.value.message
+        assert exception_message in str(err.value)
 
     @pytest.mark.parametrize('colour_specification_box, expected_result', [
         # METH = 1 and EnumCS = 16
@@ -206,7 +206,7 @@ class TestJP2Extractor(object):
         The only legal values of METH are 1 and 2; if that's not correct,
         check we don't throw an exception.
         """
-        b = BytesIO('\x00\x00\x00\x16colr' + meth_value)
+        b = BytesIO(b'\x00\x00\x00\x16colr' + meth_value)
         assert extractor._parse_colour_specification_box(b) == ([], None)
 
     @pytest.mark.parametrize('prec_value', [b'\x00', b'\x01', b'\xff'])
@@ -220,8 +220,8 @@ class TestJP2Extractor(object):
         non-zero values.
         """
         b = BytesIO(
-            '\x00\x00\x00\x16colr\x01' +
-            prec_value + approx_value + '\x00\x00\x00\x10')
+            b'\x00\x00\x00\x16colr\x01' +
+            prec_value + approx_value + b'\x00\x00\x00\x10')
         extractor._parse_colour_specification_box(b)
 
     @pytest.mark.parametrize('enumcs_value', [
@@ -235,7 +235,7 @@ class TestJP2Extractor(object):
         16, 17 and 18.  Check we don't throw an exception if we get an
         unrecognised value.
         """
-        b = BytesIO('\x00\x00\x00\x16colr\x01\x00\x00' + enumcs_value)
+        b = BytesIO(b'\x00\x00\x00\x16colr\x01\x00\x00' + enumcs_value)
         assert extractor._parse_colour_specification_box(b) == ([], None)
 
     @given(colour_specification_box=binary())
@@ -247,7 +247,7 @@ class TestJP2Extractor(object):
                 BytesIO(colour_specification_box)
             )
         except JP2ExtractionError as err:
-            assert 'Colour Specification box' in err.message
+            assert 'Colour Specification box' in str(err)
         else:
             assert isinstance(result, tuple)
             assert len(result) == 2

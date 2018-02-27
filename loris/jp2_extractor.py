@@ -329,11 +329,11 @@ class JP2Extractor(object):
 
         scaleFactors = []
 
-        window =  deque(jp2.read(2), 2)
+        window = deque(jp2.read(2), 2)
         # start of codestream
-        while map(ord, window) != [0xFF, 0x4F]: # (SOC - required, see pg 14)
+        while ((window[0] != b'\xFF') or (window[1] != b'\x4F')): # (SOC - required, see pg 14)
             window.append(jp2.read(1))
-        while map(ord, window) != [0xFF, 0x51]:  # (SIZ  - required, see pg 14)
+        while ((window[0] != b'\xFF') or (window[1] != b'\x51')):  # (SIZ  - required, see pg 14)
             window.append(jp2.read(1))
         jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
         tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
@@ -345,10 +345,8 @@ class JP2Extractor(object):
             self.tiles[0]['height'] = tile_height
         jp2.read(10) # XTOsiz (32), YTOsiz (32), Csiz (16)
 
-        window =  deque(jp2.read(2), 2)
-        # while (ord(b) != 0xFF): b = jp2.read(1)
-        # b = jp2.read(1) # 0x52: The COD marker segment
-        while map(ord, window) != [0xFF, 0x52]:  # (COD - required, see pg 14)
+        window = deque(jp2.read(2), 2)
+        while ((window[0] != b'\xFF') or (window[1] != b'\x52')):  # (COD - required, see pg 14)
             window.append(jp2.read(1))
 
         jp2.read(7) # through Lcod (16), Scod (8), SGcod (32)

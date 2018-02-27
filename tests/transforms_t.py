@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 import unittest
-import operator, itertools
+import operator
 
 import pytest
 
@@ -81,7 +81,7 @@ class Test_AbstractTransformer(object):
         })
         with pytest.raises(NotImplementedError) as err:
             e.transform(src_fp=None, target_fp=None, image_request=None)
-        assert err.value.message == 'transform() not implemented for ExampleTransformer'
+        assert str(err.value) == 'transform() not implemented for ExampleTransformer'
 
     @pytest.mark.parametrize('config', [
         {'map_profile_to_srgb': True},
@@ -91,7 +91,7 @@ class Test_AbstractTransformer(object):
     def test_bad_srgb_profile_fp_is_configerror(self, config):
         with pytest.raises(ConfigError) as err:
             ExampleTransformer(config=config)
-        assert 'you need to give the path to an sRGB color profile' in err.value.message
+        assert 'you need to give the path to an sRGB color profile' in str(err.value)
 
     def test_missing_littlecms_with_srgb_conversion_is_configerror(self):
         try:
@@ -103,7 +103,7 @@ class Test_AbstractTransformer(object):
                 })
         finally:
             transforms.has_imagecms = True
-        assert 'you need to install Pillow with LittleCMS support' in err.value.message
+        assert 'you need to install Pillow with LittleCMS support' in str(err.value)
 
 
 class UnitTest_KakaduJP2Transformer(unittest.TestCase):
@@ -178,7 +178,6 @@ class Test_PILTransformer(loris_t.LorisTest,
         request_path = '/%s/full/full/%s/default.png' % (ident,rotate)
         image = self.request_image_from_client(request_path)
 
-        # Get the alpha channel as an itertools.imap
         alpha = self.get_alpha_channel(image)
 
         # Instantiate transparency as False
@@ -208,7 +207,7 @@ class Test_PILTransformer(loris_t.LorisTest,
             return None # no alpha channel, presumably
 
         alpha_getter= operator.itemgetter(alpha_index)
-        return itertools.imap(alpha_getter, image.getdata())
+        return map(alpha_getter, image.getdata())
 
     def test_can_edit_embedded_color_profile(self):
         self._assert_can_edit_embedded_color_profile(

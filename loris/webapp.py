@@ -353,7 +353,7 @@ class Loris(object):
         transformers = {}
         for sf in source_formats:
             # merge [transforms] options and [transforms][source_format]] options
-            config = dict(self.app_configs['transforms'][sf].items() + global_tranform_options.items())
+            config = dict(list(self.app_configs['transforms'][sf].items()) + list(global_tranform_options.items()))
             transformers[sf] = self._load_transformer(config)
         return transformers
 
@@ -451,7 +451,7 @@ class Loris(object):
         '''
         Just so there's something at /.
         '''
-        f = file(path.join(self.www_dp, 'index.txt'))
+        f = open(path.join(self.www_dp, 'index.txt'), 'rb')
         r = Response(f, content_type='text/plain')
         if self.enable_caching:
             r.add_etag()
@@ -460,7 +460,7 @@ class Loris(object):
 
     def get_favicon(self, request):
         f = path.join(self.www_dp, 'icons', 'loris-icon.png')
-        r = Response(file(f), content_type='image/x-icon')
+        r = Response(open(f, 'rb'), content_type='image/x-icon')
         if self.enable_caching:
             r.add_etag()
             r.make_conditional(request)
@@ -470,9 +470,9 @@ class Loris(object):
         try:
             info, last_mod = self._get_info(ident,request,base_uri)
         except ResolverException as re:
-            return NotFoundResponse(re.message)
+            return NotFoundResponse(str(re))
         except ImageInfoException as ie:
-            return ServerSideErrorResponse(ie.message)
+            return ServerSideErrorResponse(str(ie))
         except IOError as e:
             msg = '%s \n(This is likely a permissions problem)' % e
             return ServerSideErrorResponse(msg)
@@ -586,7 +586,7 @@ class Loris(object):
             # ... still cheaper than always resolving as likely to be cached
             info = self._get_info(ident, request, base_uri)[0]
         except ResolverException as re:
-            return NotFoundResponse(re.message)
+            return NotFoundResponse(str(re))
 
         if self.authorizer and self.authorizer.is_protected(info):
             authed = self.authorizer.is_authorized(info, request)
@@ -615,7 +615,7 @@ class Loris(object):
                 r.status_code = 200
                 r.last_modified = img_last_mod
                 r.headers['Content-Length'] = path.getsize(fp)
-                r.response = file(fp)
+                r.response = open(fp, 'rb')
 
                 # hand the Image object its info
                 info = self._get_info(ident, request, base_uri)[0]
@@ -651,11 +651,11 @@ class Loris(object):
                 fp = self._make_image(image_request, info.src_img_fp, info.src_format)
 
             except ResolverException as re:
-                return NotFoundResponse(re.message)
+                return NotFoundResponse(str(re))
             except TransformException as te:
                 return ServerSideErrorResponse(te)
             except (RequestException, SyntaxException) as e:
-                return BadRequestResponse(e.message)
+                return BadRequestResponse(str(e))
             except (ImageException,ImageInfoException) as ie:
                 # 500s!
                 # ImageException is only raised in when ImageRequest.info
@@ -679,7 +679,7 @@ possible that there was a problem with the source file
         r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
         r.headers['Content-Length'] = path.getsize(fp)
         self._set_canonical_link(request, image_request, r)
-        r.response = file(fp)
+        r.response = open(fp, 'rb')
 
         if not self.enable_caching:
             r.call_on_close(lambda: unlink(fp))

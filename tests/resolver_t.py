@@ -445,7 +445,7 @@ class Test_TemplateHTTPResolver(object):
         resolver = TemplateHTTPResolver(self.config)
         with pytest.raises(ResolverException) as exc:
             resolver._web_request_url(bad_ident)
-        assert 'Bad URL request' in exc.value.message
+        assert 'Bad URL request' in str(exc.value)
 
     delimited_config = {
         'cache_root' : '/var/cache/loris',
@@ -476,7 +476,7 @@ class Test_TemplateHTTPResolver(object):
         resolver = TemplateHTTPResolver(self.delimited_config)
         with pytest.raises(ResolverException) as exc:
             resolver._web_request_url(bad_ident)
-        assert 'Bad URL request' in exc.value.message
+        assert 'Bad URL request' in str(exc.value)
 
     @pytest.mark.parametrize('config, expected_options',
                              check_options_test_cases)

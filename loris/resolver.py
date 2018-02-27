@@ -304,7 +304,7 @@ class SimpleHTTPResolver(_AbstractResolver):
     @staticmethod
     def _ident_file_structure(ident):
         file_structure = ''
-        ident_hash = hashlib.md5(quote_plus(ident)).hexdigest()
+        ident_hash = hashlib.md5(quote_plus(ident).encode('utf8')).hexdigest()
         # First level 2 digit directory then do three digits...
         file_structure_list = [ident_hash[0:2]] + [ident_hash[i:i+3] for i in range(2, len(ident_hash), 3)]
 

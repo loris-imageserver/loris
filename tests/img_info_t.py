@@ -157,7 +157,7 @@ class InfoUnit(loris_t.LorisTest):
         uri = '%s/%s' % (self.URI_BASE, ident)
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
             img_info.ImageInfo(self.app, uri, fp, fmt)
-        self.assertEqual(cm.exception.message, 'Invalid JP2 file')
+        self.assertEqual(str(cm.exception), 'Invalid JP2 file')
 
     def test_info_from_invalid_src_format(self):
         fp = path.join(self.test_img_dir, '01', '03', '0001.jpg')
@@ -167,7 +167,7 @@ class InfoUnit(loris_t.LorisTest):
         error_message = "Didn\'t get a source format, or at least one we recognize ('invalid_format')."
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
             img_info.ImageInfo(self.app, uri, fp, fmt)
-        self.assertEqual(cm.exception.message, error_message)
+        self.assertEqual(str(cm.exception), error_message)
 
     def test_jpeg_info_from_image(self):
         fp = self.test_jpeg_fp
@@ -325,7 +325,7 @@ class TestImageInfo(object):
     def test_invalid_extra_info_is_imageinfoexception(self):
         with pytest.raises(ImageInfoException) as exc:
             ImageInfo(extra={'extraInfo': {'foo': 'bar', 'baz': 'bat'}})
-        assert 'Invalid parameters in extraInfo' in exc.value.message
+        assert 'Invalid parameters in extraInfo' in str(exc.value)
 
     @pytest.mark.parametrize('src_format', ['', None, 'imgX'])
     def test_invalid_src_format_is_error(self, src_format):
