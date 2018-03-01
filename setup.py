@@ -11,6 +11,9 @@ import os
 import shutil
 import stat
 
+from pip.download import PipSession
+from pip.req import parse_requirements
+
 VERSION = loris.__version__
 
 EX_NOUSER = 67
@@ -55,13 +58,10 @@ USER_HELP = 'User that will own the application and has permission to write to c
 GROUP_DEFAULT = 'loris'
 GROUP_HELP = 'Group that will own the application and has permission to write to caches. [Default: %s]' % (USER_DEFAULT,)
 
-DEPENDENCIES = [
-    # (package, version, module)
-    ('werkzeug', '>=0.8.3', 'werkzeug'),
-    ('pillow', '>=2.4.0', 'PIL'),
-    ('configobj', '>=4.7.2,<=5.0.0', 'configobj'),
-    ('requests', '>=2.12.0', 'requests'),
-]
+
+def local_file(name):
+    return os.path.relpath(os.path.join(os.path.dirname(__file__), name))
+
 
 class LorisInstallCommand(install):
     description = 'Installs Loris image server'
@@ -214,15 +214,15 @@ application = create_app(config_file_path='%s')
         config.filename = config_file_target
         config.write()
 
-install_requires = []
-for d in DEPENDENCIES:
-    try:
-        __import__(d[2], fromlist=[''])
-    except ImportError:
-        install_requires.append(''.join(d[0:2]))
+
+install_requires = parse_requirements(
+    local_file('requirements.txt'), session=PipSession()
+)
+
 
 def _read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+    return open(local_file(fname)).read()
+
 
 setup(
     cmdclass={ 'install' : LorisInstallCommand },
