@@ -305,3 +305,12 @@ class Test_PILTransformer(loris_t.LorisTest,
         request_path = '/%s/full/full/0/gray.jpg' % self.test_jpeg_id
         image = self.request_image_from_client(request_path)
         assert image.mode == 'L'
+
+    def test_jpeg_encoded_tif_can_be_retrieved(self):
+        # This checks an issue with Pillow where attempting to load
+        # JPEG-compressed TIFFs.  The test file is taken from the test case
+        # described in https://github.com/python-pillow/Pillow/issues/2926.
+        #
+        # See https://github.com/loris-imageserver/loris/issues/405
+        request_path = '/ycbcr-jpeg.tiff/full/full/0/default.jpg'
+        image = self.request_image_from_client(request_path)
