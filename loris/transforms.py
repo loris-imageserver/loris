@@ -86,7 +86,7 @@ class _AbstractTransformer(object):
     def _map_im_profile_to_srgb(self, im, input_profile):
         return profileToProfile(im, input_profile, self.srgb_profile_fp)
 
-    def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
+    def _derive_with_pil(self, im, target_fp, img_request, img_info, rotate=True, crop=True):
         '''
         Once you have a PIL.Image, this can be used to do the IIIF operations.
 
@@ -104,15 +104,16 @@ class _AbstractTransformer(object):
             void (puts an image at target_fp)
 
         '''
+        region_param = img_request.region_param(img_info=img_info)
 
-        if crop and image_request.region_param.canonical_uri_value != 'full':
+        if crop and region_param.canonical_uri_value != 'full':
             # For PIL: "The box is a 4-tuple defining the left, upper, right,
             # and lower pixel coordinate."
             box = (
-                image_request.region_param.pixel_x,
-                image_request.region_param.pixel_y,
-                image_request.region_param.pixel_x+image_request.region_param.pixel_w,
-                image_request.region_param.pixel_y+image_request.region_param.pixel_h
+                region_param.pixel_x,
+                region_param.pixel_y,
+                region_param.pixel_x + region_param.pixel_w,
+                region_param.pixel_y + region_param.pixel_h
             )
             logger.debug('cropping to: %r', box)
             im = im.crop(box)
@@ -181,7 +182,12 @@ class _AbstractTransformer(object):
 class _PillowTransformer(_AbstractTransformer):
     def transform(self, src_fp, target_fp, image_request):
         im = Image.open(src_fp)
-        self._derive_with_pil(im, target_fp, image_request)
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            img_request=img_request,
+            img_info=img_info
+        )
 
 
 class JPG_Transformer(_PillowTransformer):
@@ -341,7 +347,13 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            img_request=image_request,
+            img_info=img_info,
+            crop=False
+        )
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
 
@@ -413,7 +425,13 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            img_request=image_request,
+            img_info=img_info,
+            crop=False
+        )
 
     def transform(self, src_fp, target_fp, image_request):
         fifo_fp = self._make_tmp_fp()
