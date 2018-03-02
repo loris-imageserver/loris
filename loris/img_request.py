@@ -22,40 +22,27 @@ class ImageRequest(object):
     quality = attr.ib()
     fmt = attr.ib()
 
-    # These are lazily computed, and only set upon first access.
-    _canonical_cache_path = attr.ib(init=False, default=None)
-    _canonical_request_path = attr.ib(init=False, default=None)
-    _cache_path = attr.ib(init=False, default=None)
-    _request_path = attr.ib(init=False, default=None)
-    _is_canonical = attr.ib(init=False, default=None)
-    _rotation_param = attr.ib(init=False, default=None)
-    _size_param = attr.ib(init=False, default=None)
-
     @property
     def cache_path(self):
-        if self._cache_path is None:
-            p = os.path.join(
-                self.ident,
-                self.region_value,
-                self.size_value,
-                self.rotation_value,
-                self.quality
-            )
-            self._cache_path = '%s.%s' % (p, self.fmt)
-        return self._cache_path
+        path = os.path.join(
+            self.ident,
+            self.region_value,
+            self.size_value,
+            self.rotation_value,
+            self.quality
+        )
+        return '%s.%s' % (path, self.fmt)
 
     @property
     def request_path(self):
-        if self._request_path is None:
-            p = '/'.join((
-                quote_plus(self.ident),
-                self.region_value,
-                self.size_value,
-                self.rotation_value,
-                self.quality
-            ))
-            self._request_path = '%s.%s' % (p, self.fmt)
-        return self._request_path
+        path = os.path.join(
+            quote_plus(self.ident),
+            self.region_value,
+            self.size_value,
+            self.rotation_value,
+            self.quality
+        )
+        return '%s.%s' % (path, self.fmt)
 
     def region_param(self, img_info):
         return RegionParameter(
