@@ -268,13 +268,13 @@ class ImageCache(dict):
         canonical_fp = image_request.canonical_cache_path(img_info=img_info)
         return path.realpath(path.join(self.cache_root, unquote(canonical_fp)))
 
-    def create_dir_and_return_file_path(self, image_request):
-        target_fp = self.get_canonical_cache_path(image_request)
+    def create_dir_and_return_file_path(self, image_request, img_info):
+        target_fp = self.get_canonical_cache_path(image_request, img_info)
         target_dp = path.dirname(target_fp)
         mkdir_p(target_dp)
         return target_fp
 
-    def upsert(self, image_request, temp_fp):
-        target_fp = self.create_dir_and_return_file_path(image_request)
+    def upsert(self, image_request, temp_fp, img_info):
+        target_fp = self.create_dir_and_return_file_path(image_request, img_info)
         safe_rename(temp_fp, target_fp)
         return target_fp
