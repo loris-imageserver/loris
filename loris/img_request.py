@@ -12,7 +12,7 @@ import attr
 from loris.parameters import RegionParameter, RotationParameter, SizeParameter
 
 
-@attr.s(slots=True)
+@attr.s(slots=True, frozen=True)
 class ImageRequest(object):
     """Stores information about a request for an image."""
     ident = attr.ib(converter=unquote)
