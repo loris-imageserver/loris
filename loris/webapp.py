@@ -549,12 +549,12 @@ class Loris(object):
 
             return (info,last_mod)
 
-    def _set_canonical_link(self, request, image_request, response):
+    def _set_canonical_link(self, request, image_request, response, img_info):
         if self.proxy_path:
             root = self.proxy_path
         else:
             root = request.url_root
-        canonical_uri = '%s%s' % (root, image_request.canonical_request_path)
+        canonical_uri = '%s%s' % (root, image_request.canonical_request_path(img_info))
         response.headers['Link'] = '%s,<%s>;rel="canonical"' % (response.headers['Link'], canonical_uri,)
 
     def get_img(self, request, ident, region, size, rotation, quality, target_fmt, base_uri):
@@ -619,10 +619,8 @@ class Loris(object):
 
                 # hand the Image object its info
                 info = self._get_info(ident, request, base_uri)[0]
-                image_request.info = info
-                # we need to do the above to set the canonical link header
 
-                self._set_canonical_link(request, image_request, r)
+                self._set_canonical_link(request, image_request, r, img_info=info)
                 return r
         else:
             try:
@@ -679,7 +677,7 @@ possible that there was a problem with the source file
         r.status_code = 200
         r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
         r.headers['Content-Length'] = path.getsize(fp)
-        self._set_canonical_link(request, image_request, r)
+        self._set_canonical_link(request, image_request, r, img_info=info)
         r.response = open(fp, 'rb')
 
         if not self.enable_caching:

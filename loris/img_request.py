@@ -57,6 +57,16 @@ class ImageRequest(object):
         )
         return '%s.%s' % (path, self.fmt)
 
+    def canonical_request_path(self, img_info):
+        path = os.path.join(
+            quote_plus(self.ident),
+            self.region_param(img_info).canonical_uri_value,
+            self.size_param(img_info).canonical_uri_value,
+            self.rotation_param().canonical_uri_value,
+            self.quality
+        )
+        return '%s.%s' % (path, self.fmt)
+
     def region_param(self, img_info):
         return RegionParameter(
             uri_value=self.region_value,
