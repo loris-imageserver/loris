@@ -696,7 +696,11 @@ possible that there was a problem with the source file
         Returns:
             (str) the fp of the new image
         '''
-        temp_file = NamedTemporaryFile(dir=self.tmp_dp, suffix='.%s' % image_request.format, delete=False)
+        temp_file = NamedTemporaryFile(
+            dir=self.tmp_dp,
+            suffix='.%s' % image_request.fmt,
+            delete=False
+        )
         temp_fp = temp_file.name
 
         transformer = self.transformers[src_format]
