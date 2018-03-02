@@ -2,6 +2,7 @@
 
 import pytest
 
+from loris.img_info import ImageInfo
 from loris.img_request import ImageRequest
 
 
@@ -26,7 +27,7 @@ class TestImageRequest(object):
         (('id4', 'full', '!80,20', '30', 'default', 'jpg'), False),
     ])
     def test_is_canonical(self, args, is_canonical):
-        info = img_info.ImageInfo(None)
+        info = ImageInfo(None)
         info.width = 100
         info.height = 100
         request = ImageRequest(*args)
