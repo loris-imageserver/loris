@@ -27,7 +27,7 @@ class ImageRequest(object):
     size_value = attr.ib(converter=unquote)
     rotation_value = attr.ib()
     quality = attr.ib()
-    fmt = attr.ib()
+    format = attr.ib()
 
     @property
     def cache_path(self):
@@ -38,7 +38,7 @@ class ImageRequest(object):
             self.rotation_value,
             self.quality
         )
-        return '%s.%s' % (path, self.fmt)
+        return '%s.%s' % (path, self.format)
 
     def canonical_cache_path(self, img_info):
         path = os.path.join(
@@ -48,7 +48,7 @@ class ImageRequest(object):
             self.rotation_param().canonical_uri_value,
             self.quality
         )
-        return '%s.%s' % (path, self.fmt)
+        return '%s.%s' % (path, self.format)
 
     def is_canonical(self, img_info):
         return self.cache_path == self.canonical_cache_path(img_info)
@@ -62,7 +62,7 @@ class ImageRequest(object):
             self.rotation_value,
             self.quality
         )
-        return '%s.%s' % (path, self.fmt)
+        return '%s.%s' % (path, self.format)
 
     def canonical_request_path(self, img_info):
         path = os.path.join(
@@ -72,7 +72,7 @@ class ImageRequest(object):
             self.rotation_param().canonical_uri_value,
             self.quality
         )
-        return '%s.%s' % (path, self.fmt)
+        return '%s.%s' % (path, self.format)
 
     def region_param(self, img_info):
         return RegionParameter(

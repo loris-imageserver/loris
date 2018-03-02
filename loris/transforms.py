@@ -145,7 +145,7 @@ class _AbstractTransformer(object):
             # transparent background (A == Alpha layer)
             if (
                 float(rotation_param.rotation) % 90 != 0.0 and
-                img_request.fmt == 'png'
+                img_request.format == 'png'
             ):
                 if img_request.quality in ('gray', 'bitonal'):
                     im = im.convert('LA')
@@ -166,19 +166,19 @@ class _AbstractTransformer(object):
                 dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
                 im = im.convert('1', dither=dither)
 
-        if img_request.fmt == 'jpg':
+        if img_request.format == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
 
-        elif img_request.fmt == 'png':
+        elif img_request.format == 'png':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
             im.save(target_fp, optimize=True, bits=256)
 
-        elif img_request.fmt == 'gif':
+        elif img_request.format == 'gif':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
             im.save(target_fp)
 
-        elif img_request.fmt == 'webp':
+        elif img_request.format == 'webp':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
             im.save(target_fp, quality=90)
 

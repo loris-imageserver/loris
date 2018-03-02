@@ -694,7 +694,7 @@ possible that there was a problem with the source file
         """
         temp_file = NamedTemporaryFile(
             dir=self.tmp_dp,
-            suffix='.%s' % img_request.fmt,
+            suffix='.%s' % img_request.format,
             delete=False
         )
         temp_fp = temp_file.name
