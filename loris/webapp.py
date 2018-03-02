@@ -714,7 +714,7 @@ possible that there was a problem with the source file
         if self.enable_caching:
             temp_fp = self.img_cache.upsert(img_request, temp_fp, img_info=img_info)
             # TODO: not sure how the non-canonical use case works
-            self.img_cache[img_request] = temp_fp
+            self.img_cache.store(img_request, img_info, temp_fp)
 
         return temp_fp
 

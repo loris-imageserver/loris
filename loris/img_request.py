@@ -43,6 +43,9 @@ class ImageRequest(object):
         )
         return '%s.%s' % (path, self.fmt)
 
+    def is_canonical(self, img_info):
+        return self.cache_path == self.canonical_cache_path(img_info)
+
     @property
     def request_path(self):
         path = os.path.join(

@@ -228,7 +228,7 @@ class ImageCache(dict):
             else:
                 raise
 
-    def __setitem__(self, image_request, canonical_fp):
+    def store(self, image_request, img_info, canonical_fp):
         # Because we're working with files, it's more practical to put derived
         # images where the cache expects them when they are created (i.e. by
         # Loris#_make_image()), so __setitem__, as defined by the dict API
@@ -243,7 +243,7 @@ class ImageCache(dict):
         # So: when Loris#_make_image is called, it gets a path from
         # ImageCache#get_canonical_cache_path and passes that to the
         # transformer.
-        if not image_request.is_canonical:
+        if not image_request.is_canonical(img_info):
             requested_fp = self.get_request_cache_path(image_request)
             symlink(src=canonical_fp, dst=requested_fp)
 
