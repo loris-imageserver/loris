@@ -243,17 +243,17 @@ class _AbstractJP2Transformer(_AbstractTransformer):
                 if self._scale_dim(full_w,s) >= req_w and \
                     self._scale_dim(full_h,s) >= req_h])
 
-    def _scales_to_reduce_arg(self, image_request):
+    def _scales_to_reduce_arg(self, image_request, img_info):
         # Scales from JP2 levels, so even though these are from the tiles
         # info.json, it's easier than using the sizes from info.json
-        scales = [s for t in image_request.info.tiles for s in t['scaleFactors']]
-        is_full_region = image_request.region_param.mode == FULL_MODE
+        scales = [s for t in img_info.tiles for s in t['scaleFactors']]
+        is_full_region = image_request.region_param(img_info).mode == FULL_MODE
         arg = None
         if scales and is_full_region:
-            full_w = image_request.info.width
-            full_h = image_request.info.height
-            req_w = image_request.size_param.w
-            req_h = image_request.size_param.h
+            full_w = img_info.width
+            full_h = img_info.height
+            req_w = image_request.size_param(img_info).w
+            req_h = image_request.size_param(img_info).h
             closest_scale = self._get_closest_scale(req_w, req_h, full_w, full_h, scales)
             reduce_arg = int(log(closest_scale, 2))
             arg = str(reduce_arg)
@@ -312,9 +312,9 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         # opj_decompress command
         i = '-i "%s"' % (img_info.src_img_fp,)
         o = '-o %s' % (fifo_fp,)
-        region_arg = self._region_to_opj_arg(image_request.region_param)
+        region_arg = self._region_to_opj_arg(img_request.region_param(img_info))
         reg = '-d %s' % (region_arg,) if region_arg else ''
-        reduce_arg = self._scales_to_reduce_arg(image_request)
+        reduce_arg = self._scales_to_reduce_arg(img_request, img_info)
         red = '-r %s' % (reduce_arg,) if reduce_arg else ''
 
         opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
@@ -447,7 +447,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         t = '-num_threads %s' % self.num_threads
         i = '-i "%s"' % img_info.src_img_fp
         o = '-o %s' % fifo_fp
-        reduce_arg = self._scales_to_reduce_arg(img_request)
+        reduce_arg = self._scales_to_reduce_arg(img_request, img_info)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
         region_arg = self._region_to_kdu_arg(img_request.region_param)
         reg = '-region %s' % (region_arg,) if region_arg else ''
