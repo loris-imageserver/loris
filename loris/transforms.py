@@ -126,7 +126,9 @@ class _AbstractTransformer(object):
             logger.debug('Resizing to: %r', wh)
             im = im.resize(wh, resample=Image.ANTIALIAS)
 
-        if img_request.rotation_param().mirror:
+        rotation_param = img_request.rotation_param()
+
+        if rotation_param.mirror:
             im = mirror(im)
 
         try:
@@ -136,15 +138,16 @@ class _AbstractTransformer(object):
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
-        if image_request.rotation_param.rotation != '0' and rotate:
-            r = 0-float(image_request.rotation_param.rotation)
+        if rotation_param.rotation != '0' and rotate:
+            r = 0 - float(rotation_param.rotation)
 
             # We need to convert pngs here and not below if we want a
             # transparent background (A == Alpha layer)
-            if float(image_request.rotation_param.rotation) % 90 != 0.0 and \
-                image_request.format == 'png':
-
-                if image_request.quality in ('gray', 'bitonal'):
+            if (
+                float(rotation_param.rotation) % 90 != 0.0 and
+                img_request.fmt == 'png'
+            ):
+                if img_request.quality in ('gray', 'bitonal'):
                     im = im.convert('LA')
                 else:
                     im = im.convert('RGBA')
@@ -152,30 +155,30 @@ class _AbstractTransformer(object):
             im = im.rotate(r, expand=True)
 
         if not im.mode.endswith('A'):
-            if im.mode != "RGB" and not image_request.quality in ('gray', 'bitonal'):
+            if im.mode != "RGB" and img_request.quality not in ('gray', 'bitonal'):
                 im = im.convert("RGB")
 
-            elif image_request.quality == 'gray':
+            elif img_request.quality == 'gray':
                 im = im.convert('L')
 
-            elif image_request.quality == 'bitonal':
+            elif img_request.quality == 'bitonal':
                 # not 1-bit w. JPG
                 dither = Image.FLOYDSTEINBERG if self.dither_bitonal_images else Image.NONE
                 im = im.convert('1', dither=dither)
 
-        if image_request.format == 'jpg':
+        if img_request.fmt == 'jpg':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#jpeg
             im.save(target_fp, quality=90)
 
-        elif image_request.format == 'png':
+        elif img_request.fmt == 'png':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#png
             im.save(target_fp, optimize=True, bits=256)
 
-        elif image_request.format == 'gif':
+        elif img_request.fmt == 'gif':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#gif
             im.save(target_fp)
 
-        elif image_request.format == 'webp':
+        elif img_request.fmt == 'webp':
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
             im.save(target_fp, quality=90)
 
