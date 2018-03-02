@@ -264,8 +264,8 @@ class ImageCache(dict):
         request_fp = image_request.cache_path
         return path.realpath(path.join(self.cache_root, unquote(request_fp)))
 
-    def get_canonical_cache_path(self, image_request):
-        canonical_fp = image_request.canonical_as_path
+    def get_canonical_cache_path(self, image_request, img_info):
+        canonical_fp = image_request.canonical_cache_path(img_info=img_info)
         return path.realpath(path.join(self.cache_root, unquote(canonical_fp)))
 
     def create_dir_and_return_file_path(self, image_request):

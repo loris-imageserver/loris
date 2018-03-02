@@ -33,6 +33,16 @@ class ImageRequest(object):
         )
         return '%s.%s' % (path, self.fmt)
 
+    def canonical_cache_path(self, img_info):
+        path = os.path.join(
+            self.ident,
+            self.region_param(img_info).canonical_uri_value,
+            self.size_param(img_info).canonical_uri_value,
+            self.rotation_param(img_info).canonical_uri_value,
+            self.quality
+        )
+        return '%s.%s' % (path, self.fmt)
+
     @property
     def request_path(self):
         path = os.path.join(
