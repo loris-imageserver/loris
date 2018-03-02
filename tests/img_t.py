@@ -15,7 +15,6 @@ except ImportError:  # Python 2
     from urllib import unquote
 
 from loris import img, img_info
-from loris.loris_exception import ImageException
 from tests import loris_t
 
 

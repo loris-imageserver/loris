@@ -33,9 +33,9 @@ from werkzeug.wrappers import (
 
 from loris import constants, img, transforms
 from loris.img_info import InfoCache
+from loris.img_request import ImageRequest
 from loris.loris_exception import (
     ConfigError,
-    ImageException,
     ImageInfoException,
     RequestException,
     ResolverException,
@@ -571,7 +571,7 @@ class Loris(object):
         # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are
         # decorated with @property and not constructed until they are first
         # accessed, which mean we don't have to catch any exceptions here.
-        image_request = img.ImageRequest(ident, region, size, rotation,
+        image_request = ImageRequest(ident, region, size, rotation,
                                          quality, target_fmt)
 
         self.logger.debug('Image Request Path: %s', image_request.request_path)
@@ -655,11 +655,8 @@ class Loris(object):
                 return ServerSideErrorResponse(te)
             except (RequestException, SyntaxException) as e:
                 return BadRequestResponse(str(e))
-            except (ImageException,ImageInfoException) as ie:
+            except ImageInfoException as ie:
                 # 500s!
-                # ImageException is only raised in when ImageRequest.info
-                # isn't set and is a developer error. It should never happen!
-                #
                 # ImageInfoException is only raised when
                 # ImageInfo.from_image_file() can't  determine the format of the
                 # source image. It results in a 500, but isn't necessarily a
