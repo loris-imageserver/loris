@@ -649,7 +649,7 @@ class Loris(object):
                         return r
 
                 # 5. Make an image
-                fp = self._make_image(image_request, info.src_img_fp, info.src_format)
+                fp = self._make_image(img_request=image_request, img_info=info)
 
             except ResolverException as re:
                 return NotFoundResponse(str(re))
@@ -687,29 +687,34 @@ possible that there was a problem with the source file
 
         return r
 
-    def _make_image(self, image_request, src_fp, src_format):
-        '''
+    def _make_image(self, img_request, img_info):
+        """Call the appropriate transformer to create the image.
+
         Args:
-            image_request (img.ImageRequest)
-            src_fp (str)
-            src_format (str)
+            img_request (ImageRequest)
+            img_info (ImageInfo)
         Returns:
-            (str) the fp of the new image
-        '''
+            (str) the file path of the new image
+
+        """
         temp_file = NamedTemporaryFile(
             dir=self.tmp_dp,
-            suffix='.%s' % image_request.fmt,
+            suffix='.%s' % img_request.fmt,
             delete=False
         )
         temp_fp = temp_file.name
 
-        transformer = self.transformers[src_format]
-        transformer.transform(src_fp, temp_fp, image_request)
+        transformer = self.transformers[img_info.src_format]
+        transformer.transform(
+            src_fp=img_info.src_img_fp,
+            target_fp=temp_fp,
+            image_request=img_request
+        )
 
         if self.enable_caching:
-            temp_fp = self.img_cache.upsert(image_request, temp_fp)
+            temp_fp = self.img_cache.upsert(img_request, temp_fp)
             # TODO: not sure how the non-canonical use case works
-            self.img_cache[image_request] = temp_fp
+            self.img_cache[img_request] = temp_fp
 
         return temp_fp
 
