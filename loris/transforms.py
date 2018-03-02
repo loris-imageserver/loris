@@ -449,7 +449,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         o = '-o %s' % fifo_fp
         reduce_arg = self._scales_to_reduce_arg(img_request, img_info)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
-        region_arg = self._region_to_kdu_arg(img_request.region_param)
+        region_arg = self._region_to_kdu_arg(img_request.region_param(img_info))
         reg = '-region %s' % (region_arg,) if region_arg else ''
         kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
 
