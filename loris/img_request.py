@@ -38,7 +38,7 @@ class ImageRequest(object):
             self.ident,
             self.region_param(img_info).canonical_uri_value,
             self.size_param(img_info).canonical_uri_value,
-            self.rotation_param(img_info).canonical_uri_value,
+            self.rotation_param().canonical_uri_value,
             self.quality
         )
         return '%s.%s' % (path, self.fmt)
