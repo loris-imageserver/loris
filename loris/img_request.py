@@ -1,5 +1,10 @@
 # -*- encoding: utf-8
 
+try:
+    from urllib.parse import unquote
+except ImportError:  # Python 2
+    from urllib import unquote
+
 import attr
 
 
