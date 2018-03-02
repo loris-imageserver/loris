@@ -1,9 +1,9 @@
 # -*- encoding: utf-8
 
 try:
-    from urllib.parse import unquote
+    from urllib.parse import quote_plus, unquote
 except ImportError:  # Python 2
-    from urllib import unquote
+    from urllib import quote_plus, unquote
 
 import attr
 
@@ -27,3 +27,16 @@ class ImageRequest(object):
     _region_param = attr.ib(init=False, default=None)
     _rotation_param = attr.ib(init=False, default=None)
     _size_param = attr.ib(init=False, default=None)
+
+    @property
+    def request_path(self):
+        if self._request_path is None:
+            p = '/'.join((
+                quote_plus(self.ident),
+                self.region_value,
+                self.size_value,
+                self.rotation_value,
+                self.quality
+            ))
+            self._request_path = '%s.%s' % (p, self.fmt)
+        return self._request_path
