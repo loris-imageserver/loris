@@ -119,11 +119,12 @@ class _AbstractTransformer(object):
             im = im.crop(box)
 
         # resize
-        if image_request.size_param.canonical_uri_value != 'full':
-            wh = [int(image_request.size_param.w),int(image_request.size_param.h)]
+        size_param = img_request.size_param(img_info=img_info)
+
+        if size_param.canonical_uri_value != 'full':
+            wh = [int(size_param.w), int(size_param.h)]
             logger.debug('Resizing to: %r', wh)
             im = im.resize(wh, resample=Image.ANTIALIAS)
-
 
         if image_request.rotation_param.mirror:
             im = mirror(im)
