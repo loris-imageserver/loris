@@ -14,7 +14,14 @@ from loris.parameters import RegionParameter, RotationParameter, SizeParameter
 
 @attr.s(slots=True, frozen=True)
 class ImageRequest(object):
-    """Stores information about a request for an image."""
+    """Stores information about a user's request for an image.
+
+    Specifically, it holds a slightly more convenient representation of the
+    request encoded in a IIIF URL:
+
+        /{identifier}/{region}/{size}/{rotation}/{quality}.{format}
+
+    """
     ident = attr.ib(converter=unquote)
     region_value = attr.ib(converter=unquote)
     size_value = attr.ib(converter=unquote)
