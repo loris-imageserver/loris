@@ -706,9 +706,9 @@ possible that there was a problem with the source file
 
         transformer = self.transformers[img_info.src_format]
         transformer.transform(
-            src_fp=img_info.src_img_fp,
             target_fp=temp_fp,
-            image_request=img_request
+            img_request=img_request,
+            img_info=img_info
         )
 
         if self.enable_caching:
