@@ -33,7 +33,7 @@ from werkzeug.wrappers import (
 
 from loris import constants, img, transforms
 from loris.img_info import InfoCache
-from loris.img_request import ImageRequest
+from loris.img import ImageRequest
 from loris.loris_exception import (
     ConfigError,
     ImageInfoException,
