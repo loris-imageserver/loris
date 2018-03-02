@@ -1,5 +1,7 @@
 # -*- encoding: utf-8
 
+import os
+
 try:
     from urllib.parse import quote_plus, unquote
 except ImportError:  # Python 2
@@ -27,6 +29,19 @@ class ImageRequest(object):
     _region_param = attr.ib(init=False, default=None)
     _rotation_param = attr.ib(init=False, default=None)
     _size_param = attr.ib(init=False, default=None)
+
+    @property
+    def cache_path(self):
+        if self._cache_path is None:
+            p = os.path.join(
+                self.ident,
+                self.region_value,
+                self.size_value,
+                self.rotation_value,
+                self.quality
+            )
+            self._cache_path = '%s.%s' % (p, self.fmt)
+        return self._cache_path
 
     @property
     def request_path(self):

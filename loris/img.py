@@ -261,7 +261,7 @@ class ImageCache(dict):
             return None
 
     def get_request_cache_path(self, image_request):
-        request_fp = image_request.as_path
+        request_fp = image_request.cache_path
         return path.realpath(path.join(self.cache_root, unquote(request_fp)))
 
     def get_canonical_cache_path(self, image_request):
