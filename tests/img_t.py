@@ -52,11 +52,8 @@ class TestImageRequest(object):
         info.width = 100
         info.height = 100
         request = img.ImageRequest(*args)
-        request.info = info
 
-        # Called twice for caching behaviour
-        assert request.is_canonical == is_canonical
-        assert request.is_canonical == is_canonical
+        assert request.is_canonical(info) == is_canonical
 
 
 class Test_ImageCache(loris_t.LorisTest):
@@ -104,11 +101,10 @@ class Test_ImageCache(loris_t.LorisTest):
         image_info.width = 100
         image_info.height = 100
         image_request = img.ImageRequest(ident, 'full', 'full', '0', 'default', 'jpg')
-        image_request.info = image_info
-        self.app.img_cache.create_dir_and_return_file_path(image_request)
+        self.app.img_cache.create_dir_and_return_file_path(image_request, image_info)
         #call request again, so cache directory should already be there
         # throws an exception if we don't handle that existence properly
-        self.app.img_cache.create_dir_and_return_file_path(image_request)
+        self.app.img_cache.create_dir_and_return_file_path(image_request, image_info)
 
     def test_missing_entry_is_keyerror(self):
         cache = img.ImageCache(cache_root='/tmp')
