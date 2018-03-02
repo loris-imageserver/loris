@@ -640,7 +640,7 @@ class Loris(object):
 
                 # 4. Redirect if appropriate
                 if self.redirect_canonical_image_request:
-                    if not image_request.is_canonical:
+                    if not image_request.is_canonical(info):
                         self.logger.debug('Attempting redirect to %s', image_request.canonical_request_path,)
                         r.headers['Location'] = image_request.canonical_request_path
                         r.status_code = 301
