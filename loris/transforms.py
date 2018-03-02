@@ -243,17 +243,17 @@ class _AbstractJP2Transformer(_AbstractTransformer):
                 if self._scale_dim(full_w,s) >= req_w and \
                     self._scale_dim(full_h,s) >= req_h])
 
-    def _scales_to_reduce_arg(self, image_request, img_info):
+    def _scales_to_reduce_arg(self, image_request, image_info):
         # Scales from JP2 levels, so even though these are from the tiles
         # info.json, it's easier than using the sizes from info.json
-        scales = [s for t in img_info.tiles for s in t['scaleFactors']]
-        is_full_region = image_request.region_param(img_info).mode == FULL_MODE
+        scales = [s for t in image_info.tiles for s in t['scaleFactors']]
+        is_full_region = image_request.region_param(image_info).mode == FULL_MODE
         arg = None
         if scales and is_full_region:
-            full_w = img_info.width
-            full_h = img_info.height
-            req_w = image_request.size_param(img_info).w
-            req_h = image_request.size_param(img_info).h
+            full_w = image_info.width
+            full_h = image_info.height
+            req_w = image_request.size_param(image_info).w
+            req_h = image_request.size_param(image_info).h
             closest_scale = self._get_closest_scale(req_w, req_h, full_w, full_h, scales)
             reduce_arg = int(log(closest_scale, 2))
             arg = str(reduce_arg)
