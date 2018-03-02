@@ -345,8 +345,8 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         unlink(fifo_fp)
 
         try:
-            if self.map_profile_to_srgb and img_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = BytesIO(img_request.info.color_profile_bytes)
+            if self.map_profile_to_srgb and img_info.color_profile_bytes:
+                emb_profile = BytesIO(img_info.color_profile_bytes)
                 im = self._map_im_profile_to_srgb(im, emb_profile)
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
@@ -423,8 +423,8 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             unlink(fifo_fp)
 
         try:
-            if self.map_profile_to_srgb and img_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = BytesIO(img_request.info.color_profile_bytes)
+            if self.map_profile_to_srgb and img_info.color_profile_bytes:
+                emb_profile = BytesIO(img_info.color_profile_bytes)
                 im = self._map_im_profile_to_srgb(im, emb_profile)
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
