@@ -28,7 +28,6 @@ class ImageRequest(object):
     _cache_path = attr.ib(init=False, default=None)
     _request_path = attr.ib(init=False, default=None)
     _is_canonical = attr.ib(init=False, default=None)
-    _region_param = attr.ib(init=False, default=None)
     _rotation_param = attr.ib(init=False, default=None)
     _size_param = attr.ib(init=False, default=None)
 
@@ -58,14 +57,17 @@ class ImageRequest(object):
             self._request_path = '%s.%s' % (p, self.fmt)
         return self._request_path
 
+    def region_param(self, img_info):
+        return RegionParameter(
+            uri_value=self.region_value,
+            img_info=img_info
+        )
+
     def request_resolution_too_large(self, max_size_above_full, img_info):
         if max_size_above_full == 0:
             return False
 
-        region_param = RegionParameter(
-            uri_value=self.region_value,
-            img_info=img_info
-        )
+        region_param = self.region_param(img_info=img_info)
         size_param = SizeParameter(
             uri_value=self.size_value,
             region_parameter=region_param
