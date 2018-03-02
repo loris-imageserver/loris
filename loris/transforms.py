@@ -126,7 +126,7 @@ class _AbstractTransformer(object):
             logger.debug('Resizing to: %r', wh)
             im = im.resize(wh, resample=Image.ANTIALIAS)
 
-        if image_request.rotation_param.mirror:
+        if img_request.rotation_param().mirror:
             im = mirror(im)
 
         try:

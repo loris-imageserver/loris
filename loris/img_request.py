@@ -9,7 +9,7 @@ except ImportError:  # Python 2
 
 import attr
 
-from loris.parameters import RegionParameter, SizeParameter
+from loris.parameters import RegionParameter, RotationParameter, SizeParameter
 
 
 @attr.s(slots=True)
@@ -68,6 +68,9 @@ class ImageRequest(object):
             uri_value=self.size_value,
             region_parameter=self.region_param(img_info)
         )
+
+    def rotation_param(self):
+        return RotationParameter(uri_value=self.rotation_value)
 
     def request_resolution_too_large(self, max_size_above_full, img_info):
         if max_size_above_full == 0:
