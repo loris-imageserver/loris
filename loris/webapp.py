@@ -634,7 +634,10 @@ class Loris(object):
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
                 # 3. Check if requested size is allowed
-                if image_request.request_resolution_too_large(self.max_size_above_full):
+                if image_request.request_resolution_too_large(
+                    max_size_above_full=self.max_size_above_full,
+                    img_info=info
+                ):
                     return NotFoundResponse('Resolution not available')
 
                 # 4. Redirect if appropriate
