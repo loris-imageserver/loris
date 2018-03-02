@@ -65,12 +65,12 @@ class _AbstractTransformer(object):
         self.dither_bitonal_images = config['dither_bitonal_images']
         logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
 
-    def transform(self, src_fp, target_fp, image_request):
+    def transform(self, target_fp, img_request, img_info):
         '''
         Args:
-            src_fp (str)
             target_fp (str)
-            image (ImageRequest)
+            img_request (ImageRequest)
+            img_info (ImageInfo)
         '''
         cn = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
@@ -180,8 +180,8 @@ class _AbstractTransformer(object):
 
 
 class _PillowTransformer(_AbstractTransformer):
-    def transform(self, src_fp, target_fp, image_request):
-        im = Image.open(src_fp)
+    def transform(self, target_fp, img_request, img_info):
+        im = Image.open(img_info.src_img_fp)
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
@@ -293,7 +293,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         logger.debug('opj region parameter: %s', arg)
         return arg
 
-    def transform(self, src_fp, target_fp, image_request):
+    def transform(self, target_fp, img_request, img_info):
         # opj writes to this:
         fifo_fp = self._make_tmp_fp()
 
@@ -306,7 +306,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         # how to handle CalledProcessError; would have to be a 500?
 
         # opj_decompress command
-        i = '-i "%s"' % (src_fp,)
+        i = '-i "%s"' % (img_info.src_img_fp,)
         o = '-o %s' % (fifo_fp,)
         region_arg = self._region_to_opj_arg(image_request.region_param)
         reg = '-d %s' % (region_arg,) if region_arg else ''
@@ -341,8 +341,8 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         unlink(fifo_fp)
 
         try:
-            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+            if self.map_profile_to_srgb and img_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = BytesIO(img_request.info.color_profile_bytes)
                 im = self._map_im_profile_to_srgb(im, emb_profile)
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
@@ -350,7 +350,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
-            img_request=image_request,
+            img_request=img_request,
             img_info=img_info,
             crop=False
         )
@@ -397,7 +397,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         logger.debug('kdu region parameter: %s', arg)
         return arg
 
-    def _run_transform(self, target_fp, image_request, kdu_cmd, fifo_fp):
+    def _run_transform(self, target_fp, img_request, img_info, kdu_cmd, fifo_fp):
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
             kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
@@ -419,8 +419,8 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             unlink(fifo_fp)
 
         try:
-            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+            if self.map_profile_to_srgb and img_request.info.color_profile_bytes:  # i.e. is not None
+                emb_profile = BytesIO(img_request.info.color_profile_bytes)
                 im = self._map_im_profile_to_srgb(im, emb_profile)
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
@@ -428,12 +428,12 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
-            img_request=image_request,
+            img_request=img_request,
             img_info=img_info,
             crop=False
         )
 
-    def transform(self, src_fp, target_fp, image_request):
+    def transform(self, target_fp, img_request, img_info):
         fifo_fp = self._make_tmp_fp()
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
         subprocess.check_call(mkfifo_call, shell=True)
@@ -441,20 +441,29 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         # kdu command
         q = '-quiet'
         t = '-num_threads %s' % self.num_threads
-        i = '-i "%s"' % src_fp
+        i = '-i "%s"' % img_info.src_img_fp
         o = '-o %s' % fifo_fp
-        reduce_arg = self._scales_to_reduce_arg(image_request)
+        reduce_arg = self._scales_to_reduce_arg(img_request)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
-        region_arg = self._region_to_kdu_arg(image_request.region_param)
+        region_arg = self._region_to_kdu_arg(img_request.region_param)
         reg = '-region %s' % (region_arg,) if region_arg else ''
         kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
 
-        process = multiprocessing.Process(target=self._run_transform,
-                                          args=(target_fp, image_request, kdu_cmd, fifo_fp))
+        process = multiprocessing.Process(
+            target=self._run_transform,
+            kwargs={
+                'target_fp': target_fp,
+                'img_request': img_request,
+                'img_info': img_info,
+                'kdu_cmd': kdu_cmd,
+                'fifo_fp': fifo_fp
+            }
+        )
         process.start()
         process.join(self.transform_timeout)
         if process.is_alive():
-            logger.info('terminating process for %s, %s', src_fp, target_fp)
+            logger.info('terminating process for %s, %s',
+                img_info.src_img_fp, target_fp)
             process.terminate()
             if path.exists(fifo_fp):
                 unlink(fifo_fp)
