@@ -21,11 +21,6 @@ from tests import loris_t
 
 class TestImageRequest(object):
 
-    def test_missing_info_attribute_is_error(self):
-        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
-        with pytest.raises(ImageException):
-            request.info
-
     @pytest.mark.parametrize('args, request_path', [
         (('id1', 'full', 'full', '0', 'default', 'jpg'),
          'id1/full/full/0/default.jpg'),
@@ -35,8 +30,6 @@ class TestImageRequest(object):
     def test_request_path(self, args, request_path):
         request = img.ImageRequest(*args)
 
-        # Called twice for caching behaviour
-        assert request.request_path == request_path
         assert request.request_path == request_path
 
     @pytest.mark.parametrize('args, is_canonical', [
