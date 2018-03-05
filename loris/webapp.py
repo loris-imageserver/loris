@@ -32,8 +32,7 @@ from werkzeug.wrappers import (
 )
 
 from loris import constants, img, transforms
-from loris.image_info import InfoCache
-from loris.img import ImageRequest
+from loris.img_info import InfoCache
 from loris.loris_exception import (
     ConfigError,
     ImageInfoException,
@@ -577,7 +576,7 @@ class Loris(object):
         # ImageRequest's Parameter attributes, i.e. RegionParameter etc. are
         # decorated with @property and not constructed until they are first
         # accessed, which mean we don't have to catch any exceptions here.
-        image_request = ImageRequest(ident, region, size, rotation,
+        image_request = img.ImageRequest(ident, region, size, rotation,
                                          quality, target_fmt)
 
         self.logger.debug('Image Request Path: %s', image_request.request_path)
