@@ -50,18 +50,18 @@ class ImageRequest(object):
         )
         return '%s.%s' % (path, self.format)
 
-    def canonical_cache_path(self, img_info):
+    def canonical_cache_path(self, image_info):
         path = os.path.join(
             self.ident,
-            self.region_param(img_info).canonical_uri_value,
-            self.size_param(img_info).canonical_uri_value,
+            self.region_param(image_info).canonical_uri_value,
+            self.size_param(image_info).canonical_uri_value,
             self.rotation_param().canonical_uri_value,
             self.quality
         )
         return '%s.%s' % (path, self.format)
 
-    def is_canonical(self, img_info):
-        return self.cache_path == self.canonical_cache_path(img_info)
+    def is_canonical(self, image_info):
+        return self.cache_path == self.canonical_cache_path(image_info)
 
     @property
     def request_path(self):
@@ -74,37 +74,37 @@ class ImageRequest(object):
         )
         return '%s.%s' % (path, self.format)
 
-    def canonical_request_path(self, img_info):
+    def canonical_request_path(self, image_info):
         path = os.path.join(
             quote_plus(self.ident),
-            self.region_param(img_info).canonical_uri_value,
-            self.size_param(img_info).canonical_uri_value,
+            self.region_param(image_info).canonical_uri_value,
+            self.size_param(image_info).canonical_uri_value,
             self.rotation_param().canonical_uri_value,
             self.quality
         )
         return '%s.%s' % (path, self.format)
 
-    def region_param(self, img_info):
+    def region_param(self, image_info):
         return RegionParameter(
             uri_value=self.region_value,
-            img_info=img_info
+            image_info=image_info
         )
 
-    def size_param(self, img_info):
+    def size_param(self, image_info):
         return SizeParameter(
             uri_value=self.size_value,
-            region_parameter=self.region_param(img_info)
+            region_parameter=self.region_param(image_info)
         )
 
     def rotation_param(self):
         return RotationParameter(uri_value=self.rotation_value)
 
-    def request_resolution_too_large(self, max_size_above_full, img_info):
+    def request_resolution_too_large(self, max_size_above_full, image_info):
         if max_size_above_full == 0:
             return False
 
-        region_param = self.region_param(img_info=img_info)
-        size_param = self.size_param(img_info=img_info)
+        region_param = self.region_param(image_info=image_info)
+        size_param = self.size_param(image_info=image_info)
 
         max_width = region_param.pixel_w * max_size_above_full / 100
         max_height = region_param.pixel_h * max_size_above_full / 100
@@ -132,7 +132,7 @@ class ImageCache(dict):
             else:
                 raise
 
-    def store(self, image_request, img_info, canonical_fp):
+    def store(self, image_request, image_info, canonical_fp):
         # Because we're working with files, it's more practical to put derived
         # images where the cache expects them when they are created (i.e. by
         # Loris#_make_image()), so __setitem__, as defined by the dict API
@@ -147,7 +147,7 @@ class ImageCache(dict):
         # So: when Loris#_make_image is called, it gets a path from
         # ImageCache#get_canonical_cache_path and passes that to the
         # transformer.
-        if not image_request.is_canonical(img_info):
+        if not image_request.is_canonical(image_info):
             requested_fp = self.get_request_cache_path(image_request)
             symlink(src=canonical_fp, dst=requested_fp)
 
@@ -168,17 +168,20 @@ class ImageCache(dict):
         request_fp = image_request.cache_path
         return path.realpath(path.join(self.cache_root, unquote(request_fp)))
 
-    def get_canonical_cache_path(self, image_request, img_info):
-        canonical_fp = image_request.canonical_cache_path(img_info=img_info)
+    def get_canonical_cache_path(self, image_request, image_info):
+        canonical_fp = image_request.canonical_cache_path(image_info=image_info)
         return path.realpath(path.join(self.cache_root, unquote(canonical_fp)))
 
-    def create_dir_and_return_file_path(self, image_request, img_info):
-        target_fp = self.get_canonical_cache_path(image_request, img_info)
+    def create_dir_and_return_file_path(self, image_request, image_info):
+        target_fp = self.get_canonical_cache_path(image_request, image_info)
         target_dp = path.dirname(target_fp)
         mkdir_p(target_dp)
         return target_fp
 
-    def upsert(self, image_request, temp_fp, img_info):
-        target_fp = self.create_dir_and_return_file_path(image_request, img_info)
+    def upsert(self, image_request, temp_fp, image_info):
+        target_fp = self.create_dir_and_return_file_path(
+            image_request=image_request,
+            image_info=image_info
+        )
         safe_rename(temp_fp, target_fp)
         return target_fp

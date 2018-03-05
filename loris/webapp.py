@@ -32,7 +32,7 @@ from werkzeug.wrappers import (
 )
 
 from loris import constants, img, transforms
-from loris.img_info import InfoCache
+from loris.image_info import InfoCache
 from loris.img import ImageRequest
 from loris.loris_exception import (
     ConfigError,
@@ -63,7 +63,7 @@ def get_debug_config(debug_jp2_transformer):
     config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
-    config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
+    config['image_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     if debug_jp2_transformer == 'opj':
@@ -339,7 +339,7 @@ class Loris(object):
         self.max_size_above_full = _loris_config.get('max_size_above_full', 200)
 
         if self.enable_caching:
-            self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
+            self.info_cache = InfoCache(self.app_configs['image_info.InfoCache']['cache_dp'])
             cache_dp = self.app_configs['img.ImageCache']['cache_dp']
             self.img_cache = img.ImageCache(cache_dp)
 
@@ -645,7 +645,7 @@ class Loris(object):
                 # 3. Check if requested size is allowed
                 if image_request.request_resolution_too_large(
                     max_size_above_full=self.max_size_above_full,
-                    img_info=info
+                    image_info=info
                 ):
                     return NotFoundResponse('Resolution not available')
 
@@ -658,7 +658,10 @@ class Loris(object):
                         return r
 
                 # 5. Make an image
-                fp = self._make_image(img_request=image_request, img_info=info)
+                fp = self._make_image(
+                    image_request=image_request,
+                    image_info=info
+                )
 
             except ResolverException as re:
                 return NotFoundResponse(str(re))
@@ -698,34 +701,42 @@ possible that there was a problem with the source file
 
         return r
 
-    def _make_image(self, img_request, img_info):
+    def _make_image(self, image_request, image_info):
         """Call the appropriate transformer to create the image.
 
         Args:
-            img_request (ImageRequest)
-            img_info (ImageInfo)
+            image_request (ImageRequest)
+            image_info (ImageInfo)
         Returns:
             (str) the file path of the new image
 
         """
         temp_file = NamedTemporaryFile(
             dir=self.tmp_dp,
-            suffix='.%s' % img_request.format,
+            suffix='.%s' % image_request.format,
             delete=False
         )
         temp_fp = temp_file.name
 
-        transformer = self.transformers[img_info.src_format]
+        transformer = self.transformers[image_info.src_format]
         transformer.transform(
             target_fp=temp_fp,
-            image_request=img_request,
-            image_info=img_info
+            image_request=image_request,
+            image_info=image_info
         )
 
         if self.enable_caching:
-            temp_fp = self.img_cache.upsert(img_request, temp_fp, img_info=img_info)
+            temp_fp = self.img_cache.upsert(
+                image_request=image_request,
+                temp_fp=temp_fp,
+                image_info=image_info
+            )
             # TODO: not sure how the non-canonical use case works
-            self.img_cache.store(img_request, img_info, temp_fp)
+            self.img_cache.store(
+                image_request=image_request,
+                image_info=image_info,
+                canonical_fp=temp_fp
+            )
 
         return temp_fp
 
