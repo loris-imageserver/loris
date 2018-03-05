@@ -718,7 +718,7 @@ possible that there was a problem with the source file
         transformer = self.transformers[img_info.src_format]
         transformer.transform(
             target_fp=temp_fp,
-            img_request=img_request,
+            image_request=img_request,
             img_info=img_info
         )
 

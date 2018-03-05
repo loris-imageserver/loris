@@ -80,7 +80,7 @@ class Test_AbstractTransformer(object):
             'dither_bitonal_images': '',
         })
         with pytest.raises(NotImplementedError) as err:
-            e.transform(target_fp=None, img_request=None, img_info=None)
+            e.transform(target_fp=None, image_request=None, img_info=None)
         assert str(err.value) == 'transform() not implemented for ExampleTransformer'
 
     @pytest.mark.parametrize('config', [

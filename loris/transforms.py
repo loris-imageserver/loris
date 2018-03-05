@@ -65,11 +65,11 @@ class _AbstractTransformer(object):
         self.dither_bitonal_images = config['dither_bitonal_images']
         logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
 
-    def transform(self, target_fp, img_request, img_info):
+    def transform(self, target_fp, image_request, img_info):
         '''
         Args:
             target_fp (str)
-            img_request (ImageRequest)
+            image_request (ImageRequest)
             img_info (ImageInfo)
         '''
         cn = self.__class__.__name__
@@ -184,12 +184,12 @@ class _AbstractTransformer(object):
 
 
 class _PillowTransformer(_AbstractTransformer):
-    def transform(self, target_fp, img_request, img_info):
+    def transform(self, target_fp, image_request, img_info):
         im = Image.open(img_info.src_img_fp)
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
-            img_request=img_request,
+            img_request=image_request,
             img_info=img_info
         )
 
@@ -297,7 +297,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         logger.debug('opj region parameter: %s', arg)
         return arg
 
-    def transform(self, target_fp, img_request, img_info):
+    def transform(self, target_fp, image_request, img_info):
         # opj writes to this:
         fifo_fp = self._make_tmp_fp()
 
@@ -312,9 +312,9 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         # opj_decompress command
         i = '-i "%s"' % (img_info.src_img_fp,)
         o = '-o %s' % (fifo_fp,)
-        region_arg = self._region_to_opj_arg(img_request.region_param(img_info))
+        region_arg = self._region_to_opj_arg(image_request.region_param(img_info))
         reg = '-d %s' % (region_arg,) if region_arg else ''
-        reduce_arg = self._scales_to_reduce_arg(img_request, img_info)
+        reduce_arg = self._scales_to_reduce_arg(image_request, img_info)
         red = '-r %s' % (reduce_arg,) if reduce_arg else ''
 
         opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
@@ -354,7 +354,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
-            img_request=img_request,
+            img_request=image_request,
             img_info=img_info,
             crop=False
         )
@@ -401,7 +401,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         logger.debug('kdu region parameter: %s', arg)
         return arg
 
-    def _run_transform(self, target_fp, img_request, img_info, kdu_cmd, fifo_fp):
+    def _run_transform(self, target_fp, image_request, img_info, kdu_cmd, fifo_fp):
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
             kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
@@ -432,12 +432,12 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
-            img_request=img_request,
+            img_request=image_request,
             img_info=img_info,
             crop=False
         )
 
-    def transform(self, target_fp, img_request, img_info):
+    def transform(self, target_fp, image_request, img_info):
         fifo_fp = self._make_tmp_fp()
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
         subprocess.check_call(mkfifo_call, shell=True)
@@ -447,9 +447,9 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         t = '-num_threads %s' % self.num_threads
         i = '-i "%s"' % img_info.src_img_fp
         o = '-o %s' % fifo_fp
-        reduce_arg = self._scales_to_reduce_arg(img_request, img_info)
+        reduce_arg = self._scales_to_reduce_arg(image_request, img_info)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
-        region_arg = self._region_to_kdu_arg(img_request.region_param(img_info))
+        region_arg = self._region_to_kdu_arg(image_request.region_param(img_info))
         reg = '-region %s' % (region_arg,) if region_arg else ''
         kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
 
@@ -457,7 +457,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             target=self._run_transform,
             kwargs={
                 'target_fp': target_fp,
-                'img_request': img_request,
+                'image_request': image_request,
                 'img_info': img_info,
                 'kdu_cmd': kdu_cmd,
                 'fifo_fp': fifo_fp
