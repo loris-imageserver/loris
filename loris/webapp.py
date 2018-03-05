@@ -63,7 +63,7 @@ def get_debug_config(debug_jp2_transformer):
     config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
-    config['image_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
+    config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     if debug_jp2_transformer == 'opj':
@@ -339,7 +339,7 @@ class Loris(object):
         self.max_size_above_full = _loris_config.get('max_size_above_full', 200)
 
         if self.enable_caching:
-            self.info_cache = InfoCache(self.app_configs['image_info.InfoCache']['cache_dp'])
+            self.info_cache = InfoCache(self.app_configs['img_info.InfoCache']['cache_dp'])
             cache_dp = self.app_configs['img.ImageCache']['cache_dp']
             self.img_cache = img.ImageCache(cache_dp)
 

@@ -94,6 +94,7 @@ class _AbstractTransformer(object):
             im (PIL.Image)
             target_fp (str)
             image_request (ImageRequest)
+            image_info (ImageInfo)
             rotate (bool):
                 True by default; can be set to False in case the rotation was
                 done further upstream.
@@ -155,7 +156,10 @@ class _AbstractTransformer(object):
             im = im.rotate(r, expand=True)
 
         if not im.mode.endswith('A'):
-            if im.mode != "RGB" and image_request.quality not in ('gray', 'bitonal'):
+            if (
+                im.mode != "RGB" and
+                image_request.quality not in ('gray', 'bitonal')
+            ):
                 im = im.convert("RGB")
 
             elif image_request.quality == 'gray':
