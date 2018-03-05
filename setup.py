@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # setup.py
+
+from __future__ import print_function
+
 from grp import getgrnam
 from pwd import getpwnam
 from setuptools import setup
@@ -149,10 +152,12 @@ Please create this user, e.g.:
         # ownership aren't sufficient.
         if not os.path.exists(d):
             os.makedirs(d)
-            stdout.write('Created %s\n' % (d,))
+            print('Created %s' % d)
             os.chown(d, self.loris_owner_id, self.loris_group_id)
-            stdout.write('Changed ownership of %s to %s:%s\n' %
-                (d,self.loris_owner,self.loris_group))
+            print(
+                'Changed ownership of %s to %s:%s' %
+                (d, self.loris_owner, self.loris_group)
+            )
 
         s = os.stat(d)
         permissions = oct(stat.S_IMODE(s.st_mode))
