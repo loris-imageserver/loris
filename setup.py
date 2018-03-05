@@ -235,7 +235,7 @@ setup(
     license='Simplified BSD',
     version=VERSION,
     packages=['loris'],
-    install_requires=install_requires
+    install_requires=[str(ir.req) for ir in install_requires]
 )
 
 
