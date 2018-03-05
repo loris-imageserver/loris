@@ -91,7 +91,7 @@ class Test_ImageCache(loris_t.LorisTest):
         image_info = img_info.ImageInfo(None)
         image_info.width = 100
         image_info.height = 100
-        image_request = ImageRequest(ident, 'full', 'full', '0', 'default', 'jpg')
+        image_request = img.ImageRequest(ident, 'full', 'full', '0', 'default', 'jpg')
         self.app.img_cache.create_dir_and_return_file_path(image_request, image_info)
         #call request again, so cache directory should already be there
         # throws an exception if we don't handle that existence properly
