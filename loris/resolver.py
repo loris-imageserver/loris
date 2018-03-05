@@ -348,7 +348,7 @@ class SimpleHTTPResolver(_AbstractResolver):
 
     @retry(
         stop=stop_after_attempt(2),
-        retry=(retry_if_exception_type(RequestException)
+        retry=retry_if_exception_type(RequestException)
     )
     def copy_to_cache(self, ident):
         ident = unquote(ident)
