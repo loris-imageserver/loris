@@ -156,8 +156,8 @@ Please create this user, e.g.:
 
         s = os.stat(d)
         permissions = oct(stat.S_IMODE(s.st_mode))
-        if permissions != oct(0755):
-            os.chmod(d, 0755)
+        if permissions != oct(0o755):
+            os.chmod(d, 0o755)
             stdout.write('Set permissions for %s to 0755\n' % (d,))
 
     def __write_wsgi(self):
@@ -172,7 +172,7 @@ application = create_app(config_file_path='%s')
 ''' % (config_file_path,)
         with open(wsgi_file_path, 'w') as f:
             f.write(content)
-        os.chmod(wsgi_file_path, 0755)
+        os.chmod(wsgi_file_path, 0o755)
         os.chown(wsgi_file_path, self.loris_owner_id, self.loris_group_id)
     @property
     def __here(self):
@@ -189,7 +189,7 @@ application = create_app(config_file_path='%s')
         shutil.copyfile(index_src, index_target)
         shutil.copyfile(favicon_src, favicon_target)
         for f in (index_target, favicon_target):
-            os.chmod(f, 0644)
+            os.chmod(f, 0o644)
             os.chown(f, self.loris_owner_id, self.loris_group_id)
 
     def __update_and_deploy_config(self):
