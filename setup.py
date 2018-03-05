@@ -145,7 +145,8 @@ Please create this user, e.g.:
             self.log_dir,
             self.config_dir
         ]
-        map(self.__init_dir, loris_directories)
+        for d in loris_directories:
+            self.__init_dir(d)
 
     def __init_dir(self, d):
         # Could do something here to warn if dir exists but permissions or
@@ -175,9 +176,6 @@ from loris.webapp import create_app
 # site.addsitedir('/path/to/my/virtualenv/lib/python2.x/site-packages')
 application = create_app(config_file_path='%s')
 ''' % (config_file_path,)
-
-        from loris.utils import mkdir_p
-        mkdir_p(self.www_dir)
 
         with open(wsgi_file_path, 'w') as f:
             f.write(content)
