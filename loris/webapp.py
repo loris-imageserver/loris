@@ -719,7 +719,7 @@ possible that there was a problem with the source file
         transformer.transform(
             target_fp=temp_fp,
             image_request=img_request,
-            img_info=img_info
+            image_info=img_info
         )
 
         if self.enable_caching:
