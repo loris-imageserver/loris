@@ -35,7 +35,7 @@ class RegionParameter(object):
             The normalized (pixel-based, in-bounds) region slice of the URI.
         mode (str):
             One of 'full', 'square', 'pct', or 'pixel'
-        img_info (ImageInfo)
+        image_info (ImageInfo)
         pixel_x (int)
         decimal_x (Decimal)
         pixel_y (int)
@@ -47,26 +47,26 @@ class RegionParameter(object):
     '''
     __slots__ = ('uri_value','canonical_uri_value','pixel_x','decimal_x',
         'pixel_y','decimal_y','pixel_w','decimal_w','pixel_h','decimal_h',
-        'mode','img_info')
+        'mode','image_info')
 
     def __str__(self):
         return self.uri_value
 
-    def __init__(self, uri_value, img_info):
+    def __init__(self, uri_value, image_info):
         '''Parse the uri_value into the object.
 
         Args:
             uri_value (str): The region slice of an IIIF image request URI.
-            img_info (ImgInfo)
+            image_info (ImgInfo)
 
         Raises:
             SyntaxException
             RequestException
         '''
         self.uri_value = uri_value
-        self.img_info = img_info
+        self.image_info = image_info
 
-        self.mode = RegionParameter._mode_from_region_segment(self.uri_value, self.img_info)
+        self.mode = RegionParameter._mode_from_region_segment(self.uri_value, self.image_info)
 
         logger.debug('Region mode is "%s" (from "%s")', self.mode, uri_value)
 
@@ -106,12 +106,12 @@ class RegionParameter(object):
     def _adjust_to_in_bounds(self):
         if (self.decimal_x + self.decimal_w) > DECIMAL_ONE:
             self.decimal_w = DECIMAL_ONE - self.decimal_x
-            self.pixel_w = self.img_info.width - self.pixel_x
+            self.pixel_w = self.image_info.width - self.pixel_x
             logger.info('decimal_w adjusted to: %s', self.decimal_w)
             logger.info('pixel_w adjusted to: %d', self.pixel_w)
         if (self.decimal_y + self.decimal_h) > DECIMAL_ONE:
             self.decimal_h = DECIMAL_ONE - self.decimal_y
-            self.pixel_h = self.img_info.height - self.pixel_y
+            self.pixel_h = self.image_info.height - self.pixel_y
             logger.info('decimal_h adjusted to: %s', self.decimal_h)
             logger.debug('pixel_h adjusted to: %s', self.pixel_h)
 
@@ -124,12 +124,12 @@ class RegionParameter(object):
         if self.decimal_x >= DECIMAL_ONE:
             raise RequestException(
                 "Region x parameter is greater than the width of the image. "
-                "Image width is %d" % self.img_info.width
+                "Image width is %d" % self.image_info.width
             )
         if self.decimal_y >= DECIMAL_ONE:
             raise RequestException(
                 "Region y parameter is greater than the height of the image. "
-                "Image height is %d" % self.img_info.height
+                "Image height is %d" % self.image_info.height
             )
 
     def _populate_slots_for_full(self):
@@ -138,9 +138,9 @@ class RegionParameter(object):
         self.decimal_x = 0
         self.pixel_y = 0
         self.decimal_y = 0
-        self.pixel_w = self.img_info.width
+        self.pixel_w = self.image_info.width
         self.decimal_w = DECIMAL_ONE
-        self.pixel_h = self.img_info.height
+        self.pixel_h = self.image_info.height
         self.decimal_h = DECIMAL_ONE
 
     def _populate_slots_from_pct(self):
@@ -168,10 +168,10 @@ class RegionParameter(object):
             self.decimal_h = [RegionParameter._pct_to_decimal(d) for d in dimensions]
 
         # pixels
-        self.pixel_x = int(floor(self.decimal_x * self.img_info.width))
-        self.pixel_y = int(floor(self.decimal_y * self.img_info.height))
-        self.pixel_w = int(floor(self.decimal_w * self.img_info.width))
-        self.pixel_h = int(floor(self.decimal_h * self.img_info.height))
+        self.pixel_x = int(floor(self.decimal_x * self.image_info.width))
+        self.pixel_y = int(floor(self.decimal_y * self.image_info.height))
+        self.pixel_w = int(floor(self.decimal_w * self.image_info.width))
+        self.pixel_h = int(floor(self.decimal_h * self.image_info.height))
 
     def _populate_slots_for_square(self):
         '''
@@ -180,12 +180,12 @@ class RegionParameter(object):
             SyntaxException
         '''
         #dimensions must be ints, for passing to _populate_slots_from_pixels
-        if self.img_info.width > self.img_info.height:
-            offset = (self.img_info.width - self.img_info.height) // 2
-            dimensions = (offset, 0, self.img_info.height, self.img_info.height)
+        if self.image_info.width > self.image_info.height:
+            offset = (self.image_info.width - self.image_info.height) // 2
+            dimensions = (offset, 0, self.image_info.height, self.image_info.height)
         else:
-            offset = (self.img_info.height - self.img_info.width) // 2
-            dimensions = (0, offset, self.img_info.width, self.img_info.width)
+            offset = (self.image_info.height - self.image_info.width) // 2
+            dimensions = (0, offset, self.image_info.width, self.image_info.width)
         return self._populate_slots_from_pixels(dimensions)
 
     def _pixel_dims_to_ints(self):
@@ -200,13 +200,13 @@ class RegionParameter(object):
         # pixels
         self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h = dimensions
         # decimals
-        self.decimal_x = Decimal(self.pixel_x) / Decimal(str(self.img_info.width))
-        self.decimal_y = Decimal(self.pixel_y) / Decimal(str(self.img_info.height))
-        self.decimal_w = Decimal(self.pixel_w) / Decimal(str(self.img_info.width))
-        self.decimal_h = Decimal(self.pixel_h) / Decimal(str(self.img_info.height))
+        self.decimal_x = Decimal(self.pixel_x) / Decimal(str(self.image_info.width))
+        self.decimal_y = Decimal(self.pixel_y) / Decimal(str(self.image_info.height))
+        self.decimal_w = Decimal(self.pixel_w) / Decimal(str(self.image_info.width))
+        self.decimal_h = Decimal(self.pixel_h) / Decimal(str(self.image_info.height))
 
     @staticmethod
-    def _mode_from_region_segment(region_segment, img_info):
+    def _mode_from_region_segment(region_segment, image_info):
         '''
         Get the mode of the request from the region segment.
 
@@ -227,8 +227,8 @@ class RegionParameter(object):
             if len(comma_segments) == 4 and all([
                     comma_segments[0] == '0',
                     comma_segments[1] == '0',
-                    comma_segments[2] == str(img_info.width),
-                    comma_segments[3] == str(img_info.height)
+                    comma_segments[2] == str(image_info.width),
+                    comma_segments[3] == str(image_info.height)
                 ]):
                 return FULL_MODE
             elif all([n.isdigit() for n in comma_segments]):
