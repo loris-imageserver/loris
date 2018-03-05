@@ -170,6 +170,10 @@ from loris.webapp import create_app
 # site.addsitedir('/path/to/my/virtualenv/lib/python2.x/site-packages')
 application = create_app(config_file_path='%s')
 ''' % (config_file_path,)
+
+        from loris.utils import mkdir_p
+        mkdir_p(self.www_dir)
+
         with open(wsgi_file_path, 'w') as f:
             f.write(content)
         os.chmod(wsgi_file_path, 0o755)
