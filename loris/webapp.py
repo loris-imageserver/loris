@@ -557,7 +557,7 @@ class Loris(object):
             root = request.url_root
 
         canonical_path = image_request.canonical_request_path(image_info)
-        canonical_uri = '%s%s' % (root, )
+        canonical_uri = '%s%s' % (root, canonical_path)
         response.headers['Link'] = '%s,<%s>;rel="canonical"' % (
             response.headers['Link'], canonical_uri
         )
