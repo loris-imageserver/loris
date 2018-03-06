@@ -65,12 +65,12 @@ class _AbstractTransformer(object):
         self.dither_bitonal_images = config['dither_bitonal_images']
         logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
 
-    def transform(self, src_fp, target_fp, image_request):
+    def transform(self, target_fp, image_request, image_info):
         '''
         Args:
-            src_fp (str)
             target_fp (str)
-            image (ImageRequest)
+            image_request (ImageRequest)
+            image_info (ImageInfo)
         '''
         cn = self.__class__.__name__
         raise NotImplementedError('transform() not implemented for %s' % (cn,))
@@ -86,7 +86,7 @@ class _AbstractTransformer(object):
     def _map_im_profile_to_srgb(self, im, input_profile):
         return profileToProfile(im, input_profile, self.srgb_profile_fp)
 
-    def _derive_with_pil(self, im, target_fp, image_request, rotate=True, crop=True):
+    def _derive_with_pil(self, im, target_fp, image_request, image_info, rotate=True, crop=True):
         '''
         Once you have a PIL.Image, this can be used to do the IIIF operations.
 
@@ -94,6 +94,7 @@ class _AbstractTransformer(object):
             im (PIL.Image)
             target_fp (str)
             image_request (ImageRequest)
+            image_info (ImageInfo)
             rotate (bool):
                 True by default; can be set to False in case the rotation was
                 done further upstream.
@@ -104,27 +105,31 @@ class _AbstractTransformer(object):
             void (puts an image at target_fp)
 
         '''
+        region_param = image_request.region_param(image_info=image_info)
 
-        if crop and image_request.region_param.canonical_uri_value != 'full':
+        if crop and region_param.canonical_uri_value != 'full':
             # For PIL: "The box is a 4-tuple defining the left, upper, right,
             # and lower pixel coordinate."
             box = (
-                image_request.region_param.pixel_x,
-                image_request.region_param.pixel_y,
-                image_request.region_param.pixel_x+image_request.region_param.pixel_w,
-                image_request.region_param.pixel_y+image_request.region_param.pixel_h
+                region_param.pixel_x,
+                region_param.pixel_y,
+                region_param.pixel_x + region_param.pixel_w,
+                region_param.pixel_y + region_param.pixel_h
             )
             logger.debug('cropping to: %r', box)
             im = im.crop(box)
 
         # resize
-        if image_request.size_param.canonical_uri_value != 'full':
-            wh = [int(image_request.size_param.w),int(image_request.size_param.h)]
+        size_param = image_request.size_param(image_info=image_info)
+
+        if size_param.canonical_uri_value != 'full':
+            wh = [int(size_param.w), int(size_param.h)]
             logger.debug('Resizing to: %r', wh)
             im = im.resize(wh, resample=Image.ANTIALIAS)
 
+        rotation_param = image_request.rotation_param()
 
-        if image_request.rotation_param.mirror:
+        if rotation_param.mirror:
             im = mirror(im)
 
         try:
@@ -134,14 +139,15 @@ class _AbstractTransformer(object):
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
-        if image_request.rotation_param.rotation != '0' and rotate:
-            r = 0-float(image_request.rotation_param.rotation)
+        if rotation_param.rotation != '0' and rotate:
+            r = 0 - float(rotation_param.rotation)
 
             # We need to convert pngs here and not below if we want a
             # transparent background (A == Alpha layer)
-            if float(image_request.rotation_param.rotation) % 90 != 0.0 and \
-                image_request.format == 'png':
-
+            if (
+                float(rotation_param.rotation) % 90 != 0.0 and
+                image_request.format == 'png'
+            ):
                 if image_request.quality in ('gray', 'bitonal'):
                     im = im.convert('LA')
                 else:
@@ -150,7 +156,10 @@ class _AbstractTransformer(object):
             im = im.rotate(r, expand=True)
 
         if not im.mode.endswith('A'):
-            if im.mode != "RGB" and not image_request.quality in ('gray', 'bitonal'):
+            if (
+                im.mode != "RGB" and
+                image_request.quality not in ('gray', 'bitonal')
+            ):
                 im = im.convert("RGB")
 
             elif image_request.quality == 'gray':
@@ -179,9 +188,14 @@ class _AbstractTransformer(object):
 
 
 class _PillowTransformer(_AbstractTransformer):
-    def transform(self, src_fp, target_fp, image_request):
-        im = Image.open(src_fp)
-        self._derive_with_pil(im, target_fp, image_request)
+    def transform(self, target_fp, image_request, image_info):
+        im = Image.open(image_info.src_img_fp)
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            image_request=image_request,
+            image_info=image_info
+        )
 
 
 class JPG_Transformer(_PillowTransformer):
@@ -233,17 +247,17 @@ class _AbstractJP2Transformer(_AbstractTransformer):
                 if self._scale_dim(full_w,s) >= req_w and \
                     self._scale_dim(full_h,s) >= req_h])
 
-    def _scales_to_reduce_arg(self, image_request):
+    def _scales_to_reduce_arg(self, image_request, image_info):
         # Scales from JP2 levels, so even though these are from the tiles
         # info.json, it's easier than using the sizes from info.json
-        scales = [s for t in image_request.info.tiles for s in t['scaleFactors']]
-        is_full_region = image_request.region_param.mode == FULL_MODE
+        scales = [s for t in image_info.tiles for s in t['scaleFactors']]
+        is_full_region = image_request.region_param(image_info).mode == FULL_MODE
         arg = None
         if scales and is_full_region:
-            full_w = image_request.info.width
-            full_h = image_request.info.height
-            req_w = image_request.size_param.w
-            req_h = image_request.size_param.h
+            full_w = image_info.width
+            full_h = image_info.height
+            req_w = image_request.size_param(image_info).w
+            req_h = image_request.size_param(image_info).h
             closest_scale = self._get_closest_scale(req_w, req_h, full_w, full_h, scales)
             reduce_arg = int(log(closest_scale, 2))
             arg = str(reduce_arg)
@@ -287,7 +301,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         logger.debug('opj region parameter: %s', arg)
         return arg
 
-    def transform(self, src_fp, target_fp, image_request):
+    def transform(self, target_fp, image_request, image_info):
         # opj writes to this:
         fifo_fp = self._make_tmp_fp()
 
@@ -300,11 +314,11 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         # how to handle CalledProcessError; would have to be a 500?
 
         # opj_decompress command
-        i = '-i "%s"' % (src_fp,)
+        i = '-i "%s"' % (image_info.src_img_fp,)
         o = '-o %s' % (fifo_fp,)
-        region_arg = self._region_to_opj_arg(image_request.region_param)
+        region_arg = self._region_to_opj_arg(image_request.region_param(image_info))
         reg = '-d %s' % (region_arg,) if region_arg else ''
-        reduce_arg = self._scales_to_reduce_arg(image_request)
+        reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
         red = '-r %s' % (reduce_arg,) if reduce_arg else ''
 
         opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
@@ -335,13 +349,19 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         unlink(fifo_fp)
 
         try:
-            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+            if self.map_profile_to_srgb and image_info.color_profile_bytes:
+                emb_profile = BytesIO(image_info.color_profile_bytes)
                 im = self._map_im_profile_to_srgb(im, emb_profile)
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            image_request=image_request,
+            image_info=image_info,
+            crop=False
+        )
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
 
@@ -385,7 +405,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         logger.debug('kdu region parameter: %s', arg)
         return arg
 
-    def _run_transform(self, target_fp, image_request, kdu_cmd, fifo_fp):
+    def _run_transform(self, target_fp, image_request, image_info, kdu_cmd, fifo_fp):
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
             kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
@@ -407,15 +427,21 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             unlink(fifo_fp)
 
         try:
-            if self.map_profile_to_srgb and image_request.info.color_profile_bytes:  # i.e. is not None
-                emb_profile = BytesIO(image_request.info.color_profile_bytes)
+            if self.map_profile_to_srgb and image_info.color_profile_bytes:
+                emb_profile = BytesIO(image_info.color_profile_bytes)
                 im = self._map_im_profile_to_srgb(im, emb_profile)
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
-        self._derive_with_pil(im, target_fp, image_request, crop=False)
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            image_request=image_request,
+            image_info=image_info,
+            crop=False
+        )
 
-    def transform(self, src_fp, target_fp, image_request):
+    def transform(self, target_fp, image_request, image_info):
         fifo_fp = self._make_tmp_fp()
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
         subprocess.check_call(mkfifo_call, shell=True)
@@ -423,20 +449,29 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         # kdu command
         q = '-quiet'
         t = '-num_threads %s' % self.num_threads
-        i = '-i "%s"' % src_fp
+        i = '-i "%s"' % image_info.src_img_fp
         o = '-o %s' % fifo_fp
-        reduce_arg = self._scales_to_reduce_arg(image_request)
+        reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
-        region_arg = self._region_to_kdu_arg(image_request.region_param)
+        region_arg = self._region_to_kdu_arg(image_request.region_param(image_info))
         reg = '-region %s' % (region_arg,) if region_arg else ''
         kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
 
-        process = multiprocessing.Process(target=self._run_transform,
-                                          args=(target_fp, image_request, kdu_cmd, fifo_fp))
+        process = multiprocessing.Process(
+            target=self._run_transform,
+            kwargs={
+                'target_fp': target_fp,
+                'image_request': image_request,
+                'image_info': image_info,
+                'kdu_cmd': kdu_cmd,
+                'fifo_fp': fifo_fp
+            }
+        )
         process.start()
         process.join(self.transform_timeout)
         if process.is_alive():
-            logger.info('terminating process for %s, %s', src_fp, target_fp)
+            logger.info('terminating process for %s, %s',
+                image_info.src_img_fp, target_fp)
             process.terminate()
             if path.exists(fifo_fp):
                 unlink(fifo_fp)

@@ -35,7 +35,6 @@ from loris import constants, img, transforms
 from loris.img_info import InfoCache
 from loris.loris_exception import (
     ConfigError,
-    ImageException,
     ImageInfoException,
     RequestException,
     ResolverException,
@@ -549,13 +548,19 @@ class Loris(object):
 
             return (info,last_mod)
 
-    def _set_canonical_link(self, request, image_request, response):
+    def _set_canonical_link(
+        self, request, response, image_request, image_info
+    ):
         if self.proxy_path:
             root = self.proxy_path
         else:
             root = request.url_root
-        canonical_uri = '%s%s' % (root, image_request.canonical_request_path)
-        response.headers['Link'] = '%s,<%s>;rel="canonical"' % (response.headers['Link'], canonical_uri,)
+
+        canonical_path = image_request.canonical_request_path(image_info)
+        canonical_uri = '%s%s' % (root, canonical_path)
+        response.headers['Link'] = '%s,<%s>;rel="canonical"' % (
+            response.headers['Link'], canonical_uri
+        )
 
     def get_img(self, request, ident, region, size, rotation, quality, target_fmt, base_uri):
         '''Get an Image.
@@ -619,36 +624,43 @@ class Loris(object):
 
                 # hand the Image object its info
                 info = self._get_info(ident, request, base_uri)[0]
-                image_request.info = info
-                # we need to do the above to set the canonical link header
 
-                self._set_canonical_link(request, image_request, r)
+                self._set_canonical_link(
+                    request=request,
+                    response=r,
+                    image_request=image_request,
+                    image_info=info
+                )
                 return r
         else:
             try:
                 # 1. Get the info
                 info = self._get_info(ident, request, base_uri)[0]
-                # 2. Give the image its info
-                image_request.info = info
 
-                # 3. Check that we can make the quality requested
+                # 2. Check that we can make the quality requested
                 if image_request.quality not in info.profile.description['qualities']:
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
-                # 4. Check if requested size is allowed
-                if image_request.request_resolution_too_large(self.max_size_above_full):
+                # 3. Check if requested size is allowed
+                if image_request.request_resolution_too_large(
+                    max_size_above_full=self.max_size_above_full,
+                    image_info=info
+                ):
                     return NotFoundResponse('Resolution not available')
 
-                # 5. Redirect if appropriate
+                # 4. Redirect if appropriate
                 if self.redirect_canonical_image_request:
-                    if not image_request.is_canonical:
+                    if not image_request.is_canonical(info):
                         self.logger.debug('Attempting redirect to %s', image_request.canonical_request_path,)
                         r.headers['Location'] = image_request.canonical_request_path
                         r.status_code = 301
                         return r
 
-                # 6. Make an image
-                fp = self._make_image(image_request, info.src_img_fp, info.src_format)
+                # 5. Make an image
+                fp = self._make_image(
+                    image_request=image_request,
+                    image_info=info
+                )
 
             except ResolverException as re:
                 return NotFoundResponse(str(re))
@@ -656,11 +668,8 @@ class Loris(object):
                 return ServerSideErrorResponse(te)
             except (RequestException, SyntaxException) as e:
                 return BadRequestResponse(str(e))
-            except (ImageException,ImageInfoException) as ie:
+            except ImageInfoException as ie:
                 # 500s!
-                # ImageException is only raised in when ImageRequest.info
-                # isn't set and is a developer error. It should never happen!
-                #
                 # ImageInfoException is only raised when
                 # ImageInfo.from_image_file() can't  determine the format of the
                 # source image. It results in a 500, but isn't necessarily a
@@ -678,7 +687,12 @@ possible that there was a problem with the source file
         r.status_code = 200
         r.last_modified = datetime.utcfromtimestamp(path.getctime(fp))
         r.headers['Content-Length'] = path.getsize(fp)
-        self._set_canonical_link(request, image_request, r)
+        self._set_canonical_link(
+            request=request,
+            response=r,
+            image_request=image_request,
+            image_info=info
+        )
         r.response = open(fp, 'rb')
 
         if not self.enable_caching:
@@ -686,25 +700,42 @@ possible that there was a problem with the source file
 
         return r
 
-    def _make_image(self, image_request, src_fp, src_format):
-        '''
+    def _make_image(self, image_request, image_info):
+        """Call the appropriate transformer to create the image.
+
         Args:
-            image_request (img.ImageRequest)
-            src_fp (str)
-            src_format (str)
+            image_request (ImageRequest)
+            image_info (ImageInfo)
         Returns:
-            (str) the fp of the new image
-        '''
-        temp_file = NamedTemporaryFile(dir=self.tmp_dp, suffix='.%s' % image_request.format, delete=False)
+            (str) the file path of the new image
+
+        """
+        temp_file = NamedTemporaryFile(
+            dir=self.tmp_dp,
+            suffix='.%s' % image_request.format,
+            delete=False
+        )
         temp_fp = temp_file.name
 
-        transformer = self.transformers[src_format]
-        transformer.transform(src_fp, temp_fp, image_request)
+        transformer = self.transformers[image_info.src_format]
+        transformer.transform(
+            target_fp=temp_fp,
+            image_request=image_request,
+            image_info=image_info
+        )
 
         if self.enable_caching:
-            temp_fp = self.img_cache.upsert(image_request, temp_fp)
+            temp_fp = self.img_cache.upsert(
+                image_request=image_request,
+                temp_fp=temp_fp,
+                image_info=image_info
+            )
             # TODO: not sure how the non-canonical use case works
-            self.img_cache[image_request] = temp_fp
+            self.img_cache.store(
+                image_request=image_request,
+                image_info=image_info,
+                canonical_fp=temp_fp
+            )
 
         return temp_fp
 

@@ -13,10 +13,6 @@ class RequestException(LorisException):
     pass
 
 
-class ImageException(LorisException):
-    pass
-
-
 class ImageInfoException(LorisException):
     pass
 
