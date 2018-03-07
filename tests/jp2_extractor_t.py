@@ -273,3 +273,28 @@ class TestJP2Extractor(object):
         with pytest.raises(JP2ExtractionError) as err:
             extractor._parse_siz_marker_segment(jp2)
         assert 'Bad marker code in the SIZ marker segment' in str(err.value)
+
+    @pytest.mark.parametrize('xtsiz_ytsiz, expected_dimensions', [
+        (
+            b'\x00\x00\x00\x01\x00\x00\x00\x01',
+            Dimensions(width=1, height=1)
+        ),
+        (
+            b'\x00\x00\x00\x11\x00\x00\x00\x00',
+            Dimensions(width=17, height=0)
+        ),
+        (
+            b'\x00\x00\x00\x00\x00\x00\x00\x11',
+            Dimensions(width=0, height=17)
+        ),
+        (
+            b'\x01\x01\x01\x01\x02\x02\x02\x02',
+            Dimensions(width=16843009, height=33686018)
+        ),
+    ])
+    def test_get_dimensions_from_siz_marker_segment(
+        self, extractor, xtsiz_ytsiz, expected_dimensions
+    ):
+        jp2 = BytesIO(b'\xFF\x51' + b'\x00' * 20 + xtsiz_ytsiz)
+        dimensions = extractor._parse_siz_marker_segment(jp2)
+        assert dimensions == expected_dimensions
