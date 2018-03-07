@@ -279,6 +279,33 @@ class JP2Extractor(object):
         else:
             assert False, meth
 
+    def _parse_siz_marker_segment(self, jp2):
+        """
+        The SIZ marker segment provides information about the uncompressed
+        image, including (for our purposes) the width/height of the image.
+
+        The layout of the component is as follows:
+
+            SIZ     Marker code, 2 bytes.  Should have value 0xFF51.
+            Lsiz    Length of the marker segment, 2 bytes.
+            Rsiz    2 bytes, irrelevant to us.
+            Xsiz    4 bytes, irrelvant to us.
+            Ysiz    4 bytes, irrelvant to us.
+            XOsiz   4 bytes, irrelevant to us.
+            YOsiz   4 bytes, irrelevant to us.
+            XTsiz:  Width of one reference tile wrt the ref grid.  4 bytes.
+            YTsiz:  Height of one reference tile wrt the ref grid.  4 bytes.
+
+        We don't care about the rest of the fields, and can skip them.
+
+        See § A.5.1 for details.
+        """
+        marker_code = jp2.read(2)
+        if marker_code != b'\xFF\x51':
+            raise JP2ExtractionError(
+                "Bad marker code in the SIZ marker segment: %r" % marker_code
+            )
+
     def extract_jp2(self, jp2):
         """
         Given a file-like object that contains a JP2 image, attempt
@@ -326,6 +353,20 @@ class JP2Extractor(object):
         self.profile.description['qualities'] += qualities
         self.color_profile_bytes = profile_bytes
         logger.debug('qualities: %s', self.profile.description['qualities'])
+
+        # This is all the information we need from the JP2 Header box.
+
+        # Now we want to get tile and size data from the
+        # Continuguous Codestream box, which contains the complete JPEG 2000
+        # codestream (see § I.5.4).
+        #
+        # Specifically, we're interested in the Image and Tile Size (SIZ),
+        # which includes the width and height of the reference grid and tiles.
+        # This starts with a marker code 'SIZ = 0xFF51'.
+        #
+        # There is only one SIZ per codestream, so it suffices to find the
+        # first instance (see § A.5).
+        _read_jp2_until_match(jp2, b'\xFF\x51')
 
         scaleFactors = []
 

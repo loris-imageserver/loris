@@ -254,3 +254,10 @@ class TestJP2Extractor(object):
             qualities, profile_bytes = result
             assert isinstance(qualities, list)
             assert isinstance(profile_bytes, bytes)
+
+    @pytest.mark.parametrize('marker_code', [b'\xFF\x52', b'\xFE\x52', b'00'])
+    def test_bad_siz_marker_code_is_error(self, extractor, marker_code):
+        jp2 = BytesIO(marker_code)
+        with pytest.raises(JP2ExtractionError) as err:
+            extractor._parse_siz_marker_segment(jp2)
+        assert 'Bad marker code in the SIZ marker segment' in str(err.value)
