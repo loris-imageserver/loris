@@ -284,7 +284,7 @@ class JP2Extractor(object):
             return (['gray', 'color'], profile_bytes)
 
         # This should be unreachable; we include it for completeness.
-        else:
+        else:  # unreachable
             assert False, meth
 
     def _parse_siz_marker_segment(self, jp2):
