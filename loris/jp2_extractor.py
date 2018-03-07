@@ -383,9 +383,8 @@ class JP2Extractor(object):
 
         # This is all the information we need from the JP2 Header box.
 
-        # Now we want to get tile and size data from the
-        # Continuguous Codestream box, which contains the complete JPEG 2000
-        # codestream (see § I.5.4).
+        # Now we want to get tile and size data from the Contiguous Codestream
+        # box, which contains the complete JPEG 2000 codestream (see § I.5.4).
         #
         # Specifically, we're interested in the Image and Tile Size (SIZ),
         # which includes the width and height of the reference grid and tiles.
