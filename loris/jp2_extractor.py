@@ -15,9 +15,17 @@ import logging
 import os
 import struct
 
+import attr
+
 from loris.loris_exception import LorisException
 
 logger = logging.getLogger(__name__)
+
+
+@attr.s(slots=True)
+class Dimensions(object):
+    height = attr.ib()
+    width = attr.ib()
 
 
 class JP2ExtractionError(LorisException):
@@ -168,7 +176,7 @@ class JP2Extractor(object):
         # height and width.  Consume the rest of the box before returning.
         jp2.read(22 - 16)
 
-        return (height, width)
+        return Dimensions(width=width, height=height)
 
     def _parse_colour_specification_box(self, jp2):
         """
@@ -332,7 +340,8 @@ class JP2Extractor(object):
         # box in the JP2 Header box (see § I.5.3).  In particular, it gives
         # us the height and the width.
         dimensions = self._get_dimensions_from_image_header_box(jp2)
-        self.height, self.width = dimensions
+        self.height = dimensions.height
+        self.width = dimensions.width
         logger.debug("width:  %d", self.width)
         logger.debug("height: %d", self.height)
 
