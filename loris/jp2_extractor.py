@@ -314,6 +314,24 @@ class JP2Extractor(object):
                 "Bad marker code in the SIZ marker segment: %r" % marker_code
             )
 
+        # Now we read through the irrelevant fields:
+        #
+        #   Lsiz     2
+        #   Rsiz     2
+        #   Xsiz     4
+        #   Ysiz     4
+        #   XOsiz    4
+        #   YOsiz    4
+        #   =       20
+        #
+        jp2.read(20)
+
+        # Now we're on the XTsiz and YTsiz components, so read those.
+        xt_siz = struct.unpack('>I', jp2.read(4))[0]
+        yt_siz = struct.unpack('>I', jp2.read(4))[0]
+
+        return Dimensions(width=xt_siz, height=yt_siz)
+
     def extract_jp2(self, jp2):
         """
         Given a file-like object that contains a JP2 image, attempt
@@ -348,7 +366,7 @@ class JP2Extractor(object):
         # After the Image Header box, there are a number of other boxes inside
         # the JP2 Header box, which can potentially appear in any order.
         # We're only interested in a Colour Specification box, which has
-        # type 'colr', so skip forward until we find that.  ()
+        # type 'colr', so skip forward until we find that.
         #
         # Note: a JP2 Header box may contain more than one colr box; for now
         # we only use the first and ignore the rest.
@@ -377,23 +395,18 @@ class JP2Extractor(object):
         # first instance (see § A.5).
         _read_jp2_until_match(jp2, b'\xFF\x51')
 
-        scaleFactors = []
+        tile_dimensions = self._parse_siz_marker_segment(jp2)
+        if tile_dimensions.height == tile_dimensions.width:
+            self.tiles.append({
+                'width': tile_dimensions.width
+            })
+        else:
+            self.tiles.append({
+                'width': tile_dimensions.width,
+                'height': tile_dimensions.height
+            })
 
-        window = deque(jp2.read(2), 2)
-        # start of codestream
-        while ((window[0] != b'\xFF') or (window[1] != b'\x4F')): # (SOC - required, see pg 14)
-            window.append(jp2.read(1))
-        while ((window[0] != b'\xFF') or (window[1] != b'\x51')):  # (SIZ  - required, see pg 14)
-            window.append(jp2.read(1))
-        jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
-        tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
-        tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
-        logger.debug("tile width: %s", tile_width)
-        logger.debug("tile height: %s", tile_height)
-        self.tiles.append( { 'width' : tile_width } )
-        if tile_width != tile_height:
-            self.tiles[0]['height'] = tile_height
-        jp2.read(10) # XTOsiz (32), YTOsiz (32), Csiz (16)
+        scaleFactors = []
 
         window = deque(jp2.read(2), 2)
         while ((window[0] != b'\xFF') or (window[1] != b'\x52')):  # (COD - required, see pg 14)
