@@ -9,7 +9,7 @@ from hypothesis import given
 from hypothesis.strategies import binary
 import pytest
 
-from loris.jp2_extractor import JP2Extractor, JP2ExtractionError
+from loris.jp2_extractor import Dimensions, JP2Extractor, JP2ExtractionError
 
 
 @pytest.fixture
@@ -105,10 +105,22 @@ class TestJP2Extractor(object):
             assert 'File Type box' in str(err)
 
     @pytest.mark.parametrize('header_box_bytes, expected_dimensions', [
-        (b'\x00\x00\x00\x01\x00\x00\x00\x01', (1, 1)),
-        (b'\x00\x00\x00\x11\x00\x00\x00\x00', (17, 0)),
-        (b'\x00\x00\x00\x00\x00\x00\x00\x11', (0, 17)),
-        (b'\x01\x01\x01\x01\x02\x02\x02\x02', (16843009, 33686018)),
+        (
+            b'\x00\x00\x00\x01\x00\x00\x00\x01',
+            Dimensions(height=1, width=1)
+        ),
+        (
+            b'\x00\x00\x00\x11\x00\x00\x00\x00',
+            Dimensions(height=17, width=0)
+        ),
+        (
+            b'\x00\x00\x00\x00\x00\x00\x00\x11',
+            Dimensions(height=0, width=17)
+        ),
+        (
+            b'\x01\x01\x01\x01\x02\x02\x02\x02',
+            Dimensions(height=16843009, width=33686018)
+        ),
     ])
     def test_reading_dimensions_from_headr_box(
         self, extractor, header_box_bytes, expected_dimensions
@@ -254,3 +266,35 @@ class TestJP2Extractor(object):
             qualities, profile_bytes = result
             assert isinstance(qualities, list)
             assert isinstance(profile_bytes, bytes)
+
+    @pytest.mark.parametrize('marker_code', [b'\xFF\x52', b'\xFE\x52', b'00'])
+    def test_bad_siz_marker_code_is_error(self, extractor, marker_code):
+        jp2 = BytesIO(marker_code)
+        with pytest.raises(JP2ExtractionError) as err:
+            extractor._parse_siz_marker_segment(jp2)
+        assert 'Bad marker code in the SIZ marker segment' in str(err.value)
+
+    @pytest.mark.parametrize('xtsiz_ytsiz, expected_dimensions', [
+        (
+            b'\x00\x00\x00\x01\x00\x00\x00\x01',
+            Dimensions(width=1, height=1)
+        ),
+        (
+            b'\x00\x00\x00\x11\x00\x00\x00\x00',
+            Dimensions(width=17, height=0)
+        ),
+        (
+            b'\x00\x00\x00\x00\x00\x00\x00\x11',
+            Dimensions(width=0, height=17)
+        ),
+        (
+            b'\x01\x01\x01\x01\x02\x02\x02\x02',
+            Dimensions(width=16843009, height=33686018)
+        ),
+    ])
+    def test_get_dimensions_from_siz_marker_segment(
+        self, extractor, xtsiz_ytsiz, expected_dimensions
+    ):
+        jp2 = BytesIO(b'\xFF\x51' + b'\x00' * 20 + xtsiz_ytsiz)
+        dimensions = extractor._parse_siz_marker_segment(jp2)
+        assert dimensions == expected_dimensions

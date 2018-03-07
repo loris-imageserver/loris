@@ -15,9 +15,17 @@ import logging
 import os
 import struct
 
+import attr
+
 from loris.loris_exception import LorisException
 
 logger = logging.getLogger(__name__)
+
+
+@attr.s(slots=True)
+class Dimensions(object):
+    height = attr.ib()
+    width = attr.ib()
 
 
 class JP2ExtractionError(LorisException):
@@ -168,7 +176,7 @@ class JP2Extractor(object):
         # height and width.  Consume the rest of the box before returning.
         jp2.read(22 - 16)
 
-        return (height, width)
+        return Dimensions(width=width, height=height)
 
     def _parse_colour_specification_box(self, jp2):
         """
@@ -276,8 +284,53 @@ class JP2Extractor(object):
             return (['gray', 'color'], profile_bytes)
 
         # This should be unreachable; we include it for completeness.
-        else:
+        else:  # unreachable
             assert False, meth
+
+    def _parse_siz_marker_segment(self, jp2):
+        """
+        The SIZ marker segment provides information about the uncompressed
+        image, including (for our purposes) the width/height of the image.
+
+        The layout of the component is as follows:
+
+            SIZ     Marker code, 2 bytes.  Should have value 0xFF51.
+            Lsiz    Length of the marker segment, 2 bytes.
+            Rsiz    2 bytes, irrelevant to us.
+            Xsiz    4 bytes, irrelvant to us.
+            Ysiz    4 bytes, irrelvant to us.
+            XOsiz   4 bytes, irrelevant to us.
+            YOsiz   4 bytes, irrelevant to us.
+            XTsiz:  Width of one reference tile wrt the ref grid.  4 bytes.
+            YTsiz:  Height of one reference tile wrt the ref grid.  4 bytes.
+
+        We don't care about the rest of the fields, and can skip them.
+
+        See § A.5.1 for details.
+        """
+        marker_code = jp2.read(2)
+        if marker_code != b'\xFF\x51':
+            raise JP2ExtractionError(
+                "Bad marker code in the SIZ marker segment: %r" % marker_code
+            )
+
+        # Now we read through the irrelevant fields:
+        #
+        #   Lsiz     2
+        #   Rsiz     2
+        #   Xsiz     4
+        #   Ysiz     4
+        #   XOsiz    4
+        #   YOsiz    4
+        #   =       20
+        #
+        jp2.read(20)
+
+        # Now we're on the XTsiz and YTsiz components, so read those.
+        xt_siz = struct.unpack('>I', jp2.read(4))[0]
+        yt_siz = struct.unpack('>I', jp2.read(4))[0]
+
+        return Dimensions(width=xt_siz, height=yt_siz)
 
     def extract_jp2(self, jp2):
         """
@@ -305,14 +358,15 @@ class JP2Extractor(object):
         # box in the JP2 Header box (see § I.5.3).  In particular, it gives
         # us the height and the width.
         dimensions = self._get_dimensions_from_image_header_box(jp2)
-        self.height, self.width = dimensions
+        self.height = dimensions.height
+        self.width = dimensions.width
         logger.debug("width:  %d", self.width)
         logger.debug("height: %d", self.height)
 
         # After the Image Header box, there are a number of other boxes inside
         # the JP2 Header box, which can potentially appear in any order.
         # We're only interested in a Colour Specification box, which has
-        # type 'colr', so skip forward until we find that.  ()
+        # type 'colr', so skip forward until we find that.
         #
         # Note: a JP2 Header box may contain more than one colr box; for now
         # we only use the first and ignore the rest.
@@ -327,23 +381,31 @@ class JP2Extractor(object):
         self.color_profile_bytes = profile_bytes
         logger.debug('qualities: %s', self.profile.description['qualities'])
 
-        scaleFactors = []
+        # This is all the information we need from the JP2 Header box.
 
-        window = deque(jp2.read(2), 2)
-        # start of codestream
-        while ((window[0] != b'\xFF') or (window[1] != b'\x4F')): # (SOC - required, see pg 14)
-            window.append(jp2.read(1))
-        while ((window[0] != b'\xFF') or (window[1] != b'\x51')):  # (SIZ  - required, see pg 14)
-            window.append(jp2.read(1))
-        jp2.read(20) # through Lsiz (16), Rsiz (16), Xsiz (32), Ysiz (32), XOsiz (32), YOsiz (32)
-        tile_width = int(struct.unpack(">I", jp2.read(4))[0]) # XTsiz (32)
-        tile_height = int(struct.unpack(">I", jp2.read(4))[0]) # YTsiz (32)
-        logger.debug("tile width: %s", tile_width)
-        logger.debug("tile height: %s", tile_height)
-        self.tiles.append( { 'width' : tile_width } )
-        if tile_width != tile_height:
-            self.tiles[0]['height'] = tile_height
-        jp2.read(10) # XTOsiz (32), YTOsiz (32), Csiz (16)
+        # Now we want to get tile and size data from the Contiguous Codestream
+        # box, which contains the complete JPEG 2000 codestream (see § I.5.4).
+        #
+        # Specifically, we're interested in the Image and Tile Size (SIZ),
+        # which includes the width and height of the reference grid and tiles.
+        # This starts with a marker code 'SIZ = 0xFF51'.
+        #
+        # There is only one SIZ per codestream, so it suffices to find the
+        # first instance (see § A.5).
+        _read_jp2_until_match(jp2, b'\xFF\x51')
+
+        tile_dimensions = self._parse_siz_marker_segment(jp2)
+        if tile_dimensions.height == tile_dimensions.width:
+            self.tiles.append({
+                'width': tile_dimensions.width
+            })
+        else:
+            self.tiles.append({
+                'width': tile_dimensions.width,
+                'height': tile_dimensions.height
+            })
+
+        scaleFactors = []
 
         window = deque(jp2.read(2), 2)
         while ((window[0] != b'\xFF') or (window[1] != b'\x52')):  # (COD - required, see pg 14)
