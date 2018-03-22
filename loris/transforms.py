@@ -302,34 +302,32 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         return arg
 
     def transform(self, target_fp, image_request, image_info):
-        # opj writes to this:
+        # Create the named pipe that OpenJPEG will write to.
         fifo_fp = self._make_tmp_fp()
+        subprocess.check_call([self.mkfifo, fifo_fp])
 
-        # make the named pipe
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        logger.debug('Calling %s', mkfifo_call)
-        resp = subprocess.check_call(mkfifo_call, shell=True)
-        if resp != 0:
-            logger.error('Problem with mkfifo')
-        # how to handle CalledProcessError; would have to be a 500?
+        # Build the OpenJPEG command.
+        opj_cmd = [
+            self.opj_decompress,
 
-        # opj_decompress command
-        i = '-i "%s"' % (image_info.src_img_fp,)
-        o = '-o %s' % (fifo_fp,)
-        region_arg = self._region_to_opj_arg(image_request.region_param(image_info))
-        reg = '-d %s' % (region_arg,) if region_arg else ''
+            # Input/output file
+            '-i', image_info.src_img_fp,
+            '-o', fifo_fp,
+        ]
+
         reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
-        red = '-r %s' % (reduce_arg,) if reduce_arg else ''
+        if reduce_arg:
+            opj_cmd.extend(['-r', reduce_arg])
 
-        opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
-
-        logger.debug('Calling: %s', opj_cmd)
+        region_arg = self._region_to_opj_arg(image_request.region_param(image_info))
+        if region_arg:
+            opj_cmd.extend(['-d', region_arg])
 
         # Start the shellout. Blocks until the pipe is empty
         # TODO: If this command hangs, the server never returns.
         # Surely that can't be right!
         with open(devnull, 'w') as fnull:
-            opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1,
+            opj_decompress_proc = subprocess.Popen(opj_cmd, bufsize=-1,
                 stderr=fnull, stdout=fnull, env=self.env)
 
         with open(fifo_fp, 'rb') as f:
@@ -408,7 +406,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
     def _run_transform(self, target_fp, image_request, image_info, kdu_cmd, fifo_fp):
         try:
             # Start the kdu shellout. Blocks until the pipe is empty
-            kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
+            kdu_expand_proc = subprocess.Popen(kdu_cmd, bufsize=-1,
                 stderr=subprocess.PIPE, env=self.env)
             with open(fifo_fp, 'rb') as f:
                 # read from the named pipe
@@ -443,19 +441,29 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
 
     def transform(self, target_fp, image_request, image_info):
         fifo_fp = self._make_tmp_fp()
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        subprocess.check_call(mkfifo_call, shell=True)
+        subprocess.check_call([self.mkfifo, fifo_fp])
 
-        # kdu command
-        q = '-quiet'
-        t = '-num_threads %s' % self.num_threads
-        i = '-i "%s"' % image_info.src_img_fp
-        o = '-o %s' % fifo_fp
+        # Build the Kakadu command.
+        kdu_cmd = [
+            self.kdu_expand,
+
+            # Suppress informative messages.  (Really?)
+            '-quiet',
+
+            '-num_threads', self.num_threads,
+
+            # Input/output file
+            '-i', image_info.src_img_fp,
+            '-o', fifo_fp,
+        ]
+
         reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
-        red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
+        if reduce_arg:
+            kdu_cmd.extend(['-reduce', reduce_arg])
+
         region_arg = self._region_to_kdu_arg(image_request.region_param(image_info))
-        reg = '-region %s' % (region_arg,) if region_arg else ''
-        kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
+        if region_arg:
+            kdu_cmd.extend(['-region', region_arg])
 
         process = multiprocessing.Process(
             target=self._run_transform,
