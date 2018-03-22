@@ -40,6 +40,8 @@ class ColorConversionMixin:
         # TODO: Maybe try image hashing here?
         self.assertNotEqual(image_orig.histogram(), image_converted.histogram())
 
+        return (image_orig, image_converted)
+
 
 class _ResizingTestMixin:
     """
@@ -138,11 +140,16 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest,
         self.assertEqual(expected_dims, image.size)
 
     def test_can_edit_embedded_color_profile(self):
-        self._assert_can_edit_embedded_color_profile(
+        _, image_converted = self._assert_can_edit_embedded_color_profile(
             ident=self.test_jp2_with_embedded_profile_id,
             transformer='jp2',
             debug_config='kdu'
         )
+
+        # The image is a colour wheel.  If the colour profile has been edited
+        # correctly, red should be at the top of the wheel.  If it's been
+        # mangled, the colours will be scrambled.
+        assert image_converted.getpixel((400, 75)) == (254, 0, 0)
 
 
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
@@ -157,11 +164,16 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
         config = get_debug_config('opj')
         self.build_client_from_config(config)
 
-        self._assert_can_edit_embedded_color_profile(
+        _, image_converted = self._assert_can_edit_embedded_color_profile(
             ident=self.test_jp2_with_embedded_profile_id,
             transformer='jp2',
             debug_config='opj'
         )
+
+        # The image is a colour wheel.  If the colour profile has been edited
+        # correctly, red should be at the top of the wheel.  If it's been
+        # mangled, the colours will be scrambled.
+        assert image_converted.getpixel((400, 75)) == (254, 0, 2)
 
 
 class Test_PILTransformer(loris_t.LorisTest,
