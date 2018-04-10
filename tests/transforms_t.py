@@ -314,3 +314,8 @@ class Test_PILTransformer(loris_t.LorisTest,
         # See https://github.com/loris-imageserver/loris/issues/405
         request_path = '/ycbcr-jpeg.tiff/full/full/0/default.jpg'
         image = self.request_image_from_client(request_path)
+
+    def test_can_transform_transparent_png_as_nontransparent_format(self):
+        ident = 'png_with_transparency.png'
+        request_path = '/%s/full/full/0/default.jpg' % ident
+        self.request_image_from_client(request_path)
