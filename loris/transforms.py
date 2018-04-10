@@ -155,7 +155,13 @@ class _AbstractTransformer(object):
 
             im = im.rotate(r, expand=True)
 
-        if not im.mode.endswith('A'):
+        # If the source format is a PNG image with transparency (mode RGBA)
+        # and we're writing as a non-transparent format (e.g. RGB), we need
+        # to remove the transparency here.
+        if (
+            not im.mode.endswith('A') or
+            (im.mode == 'RGBA' and image_request.format != 'png')
+        ):
             if (
                 im.mode != "RGB" and
                 image_request.quality not in ('gray', 'bitonal')
