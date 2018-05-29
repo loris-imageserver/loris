@@ -14,9 +14,6 @@ import os
 import shutil
 import stat
 
-from pip.download import PipSession
-from pip.req import parse_requirements
-
 VERSION = loris.__version__
 
 EX_NOUSER = 67
@@ -222,9 +219,11 @@ application = create_app(config_file_path='%s')
         config.write()
 
 
-install_requires = parse_requirements(
-    local_file('requirements.txt'), session=PipSession()
-)
+# We use requirements.txt so we can provide a deterministic set of packages
+# to be installed, not the latest version that happens to be available.
+# e.g. Pillow 5 has some issues with TIFF files that we care about.
+with open('requirements.txt') as f:
+    install_requires = list(f)
 
 
 def _read(fname):
@@ -242,7 +241,7 @@ setup(
     license='Simplified BSD',
     version=VERSION,
     packages=['loris'],
-    install_requires=[str(ir.req) for ir in install_requires]
+    install_requires=install_requires,
 )
 
 
