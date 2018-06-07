@@ -291,6 +291,12 @@ class Test_PILTransformer(loris_t.LorisTest,
         image = self.request_image_from_client(request_path)
         assert image.format == 'WEBP'
 
+    def test_can_request_tif_format(self):
+        ident = self.test_jpeg_id
+        request_path = '/%s/full/full/0/default.tif' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.format == 'TIFF'
+
     def test_convert_to_bitonal_with_rotation_is_mode_LA(self):
         request_path = '/%s/full/full/45/bitonal.png' % self.ident
         image = self.request_image_from_client(request_path)

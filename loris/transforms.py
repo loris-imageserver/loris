@@ -195,6 +195,10 @@ class _AbstractTransformer(object):
             # see http://pillow.readthedocs.org/en/latest/handbook/image-file-formats.html#webp
             im.save(target_fp, quality=90)
 
+        elif image_request.format == 'tif':
+            # see http://pillow.readthedocs.io/en/latest/handbook/image-file-formats.html#tiff
+            im.save(target_fp, compression='None')
+
 
 class _PillowTransformer(_AbstractTransformer):
     def transform(self, target_fp, image_request, image_info):
