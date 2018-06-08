@@ -47,7 +47,7 @@ class InfoUnit(loris_t.LorisTest):
         uri = self.test_jp2_color_uri
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-                "formats": [ "jpg", "png", "gif", "webp" ],
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
                 "qualities": [
                     "default",
                     "bitonal",
@@ -122,7 +122,7 @@ class InfoUnit(loris_t.LorisTest):
         uri = self.test_jp2_gray_uri
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-            "formats": [ "jpg", "png", "gif", "webp" ],
+            "formats": [ "jpg", "png", "gif", "webp", "tif" ],
             "qualities": [
                 "default",
                 "bitonal",
@@ -178,7 +178,7 @@ class InfoUnit(loris_t.LorisTest):
         info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-                "formats": [ "jpg", "png", "gif", "webp" ],
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [
                     "canonicalLinkHeader",
@@ -208,7 +208,7 @@ class InfoUnit(loris_t.LorisTest):
         info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-                "formats": [ "jpg", "png", "gif", "webp" ],
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
                 "qualities": [ "default", "gray", "bitonal" ],
                 "supports": [
                     "canonicalLinkHeader",
@@ -239,7 +239,7 @@ class InfoUnit(loris_t.LorisTest):
         info = img_info.ImageInfo(self.app, uri, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-                "formats": [ "jpg", "png", "gif", "webp" ],
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
                 "qualities": [ "default", "color", "gray", "bitonal" ],
                 "supports": [
                     "canonicalLinkHeader",
@@ -353,7 +353,7 @@ class TestImageInfo(object):
     def test_profile_from_json_two_arg_profile(self):
         compliance_uri = 'http://iiif.io/api/image/2/level2.json'
         description = {
-            'formats': ['jpg', 'png', 'gif', 'webp'],
+            'formats': ['jpg', 'png', 'gif', 'webp', 'tif'],
             'qualities': ['default', 'bitonal', 'gray', 'color'],
             'supports': [
                 'canonicalLinkHeader',
@@ -427,7 +427,7 @@ class InfoFunctional(loris_t.LorisTest):
             f.write(resp.data)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-                "formats": [ "jpg", "png", "gif", "webp" ],
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
                 "qualities": [ "default", "bitonal", "gray", "color" ],
                 "supports": [
                     "canonicalLinkHeader",
