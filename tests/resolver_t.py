@@ -391,6 +391,21 @@ class TestSimpleHTTPResolver(object):
         resolver = SimpleHTTPResolver(config=config)
         assert not resolver.is_resolvable(ident='example.png')
 
+    @responses.activate
+    @pytest.mark.parametrize('ident_regex, ident, expected_resolvable', [
+        ('A+', 'bbb.jpg', False),
+        ('\d+', '0001', True),
+        ('\d+Z', '0001', False),
+    ])
+    def test_ident_regex_blocks_based_on_ident(self, mock_responses, ident_regex, ident, expected_resolvable):
+        config = {
+            'cache_root': '/var/cache/loris',
+            'source_prefix': 'http://sample.sample/',
+            'ident_regex': ident_regex,
+        }
+        resolver = SimpleHTTPResolver(config=config)
+        assert resolver.is_resolvable(ident=ident) == expected_resolvable
+
 
 class Test_TemplateHTTPResolver(object):
 
