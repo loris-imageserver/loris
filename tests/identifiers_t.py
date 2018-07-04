@@ -35,6 +35,6 @@ class TestCacheNamer(object):
         ('0001.jpg', '71/d50/39c/f12/091/40b/910/5a4/696/b0b/155'),
         ('example.png', '89/51d/ba4/39b/1aa/07c/688/6dc/bc3/87a/b32'),
     ])
-    def test_cache_directory_name(self, ident, expected_directory):
-        actual_directory = self.cache_namer.cache_directory_name(ident=ident)
+    def test_ident_cache_name(self, ident, expected_directory):
+        actual_directory = self.cache_namer.ident_cache_name(ident=ident)
         assert actual_directory == expected_directory

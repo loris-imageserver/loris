@@ -303,7 +303,7 @@ class SimpleHTTPResolver(_AbstractResolver):
     # Get the directory structure of the identifier itself
     @staticmethod
     def _ident_file_structure(ident):
-        return CacheNamer.cache_directory_name(ident)
+        return CacheNamer.ident_cache_name(ident)
 
     def cache_dir_path(self, ident):
         ident = unquote(ident)

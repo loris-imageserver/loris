@@ -35,7 +35,7 @@ class CacheNamer(object):
     """
 
     @staticmethod
-    def cache_directory_name(ident):
+    def ident_cache_name(ident):
         """
         Returns the name of the cache directory for this object.
         """
