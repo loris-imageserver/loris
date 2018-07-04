@@ -14,7 +14,6 @@ import tempfile
 from contextlib import closing
 import hashlib
 import glob
-import re
 import json
 
 try:
@@ -25,6 +24,7 @@ except ImportError:  # Python 2
 import requests
 
 from loris import constants
+from loris.identifiers import IdentRegexChecker
 from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p, safe_rename
 from loris.img_info import ImageInfo
@@ -209,7 +209,9 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         self.ssl_check = self.config.get('ssl_check', True)
 
-        self.ident_regex = self.config.get('ident_regex', False)
+        self._ident_regex_checker = IdentRegexChecker(
+            ident_regex=self.config.get('ident_regex')
+        )
 
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']
@@ -237,11 +239,8 @@ class SimpleHTTPResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         ident = unquote(ident)
 
-        # TODO: Add some tests around this as well
-        if self.ident_regex:
-            regex = re.compile(self.ident_regex)
-            if not regex.match(ident):
-                return False
+        if not self._ident_regex_checker.is_allowed(ident):
+            return False
 
         fp = join(self.cache_root, SimpleHTTPResolver._cache_subroot(ident))
         if exists(fp):
