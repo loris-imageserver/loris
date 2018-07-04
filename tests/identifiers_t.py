@@ -4,7 +4,7 @@ from hypothesis import given
 from hypothesis.strategies import text
 import pytest
 
-from loris.identifiers import IdentRegexChecker
+from loris.identifiers import CacheNamer, IdentRegexChecker
 
 
 class TestIdentRegexChecker(object):
@@ -25,3 +25,16 @@ class TestIdentRegexChecker(object):
     ):
         checker = IdentRegexChecker(ident_regex=ident_regex)
         assert checker.is_allowed(ident=ident) is expected_is_allowed
+
+
+class TestCacheNamer(object):
+
+    cache_namer = CacheNamer()
+
+    @pytest.mark.parametrize('ident, expected_directory', [
+        ('0001.jpg', '71/d50/39c/f12/091/40b/910/5a4/696/b0b/155'),
+        ('example.png', '89/51d/ba4/39b/1aa/07c/688/6dc/bc3/87a/b32'),
+    ])
+    def test_cache_directory_name(self, ident, expected_directory):
+        actual_directory = self.cache_namer.cache_directory_name(ident=ident)
+        assert actual_directory == expected_directory

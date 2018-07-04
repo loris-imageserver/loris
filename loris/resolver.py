@@ -24,7 +24,7 @@ except ImportError:  # Python 2
 import requests
 
 from loris import constants
-from loris.identifiers import IdentRegexChecker
+from loris.identifiers import CacheNamer, IdentRegexChecker
 from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p, safe_rename
 from loris.img_info import ImageInfo
@@ -212,6 +212,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         self._ident_regex_checker = IdentRegexChecker(
             ident_regex=self.config.get('ident_regex')
         )
+        self._cache_namer = CacheNamer()
 
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']
@@ -302,15 +303,7 @@ class SimpleHTTPResolver(_AbstractResolver):
     # Get the directory structure of the identifier itself
     @staticmethod
     def _ident_file_structure(ident):
-        file_structure = ''
-        ident_hash = hashlib.md5(quote_plus(ident).encode('utf8')).hexdigest()
-        # First level 2 digit directory then do three digits...
-        file_structure_list = [ident_hash[0:2]] + [ident_hash[i:i+3] for i in range(2, len(ident_hash), 3)]
-
-        for piece in file_structure_list:
-            file_structure = join(file_structure, piece)
-
-        return file_structure
+        return CacheNamer.cache_directory_name(ident)
 
     def cache_dir_path(self, ident):
         ident = unquote(ident)
