@@ -37,7 +37,7 @@ class CacheNamer(object):
     @staticmethod
     def ident_cache_name(ident):
         """
-        Returns the name of the cache directory for this object.
+        Returns the name of the individual cache directory for this object.
         """
         # Get the MD5 hash of the identifier, then we create the top-level
         # directory as 2 digits, and take pieces of 3 digits for each
@@ -49,3 +49,23 @@ class CacheNamer(object):
 
         dirnames = [ident_hash[0:2]] + [ident_hash[i:i+3] for i in range(2, len(ident_hash), 3)]
         return os.path.join(*tuple(dirnames))
+
+    @staticmethod
+    def cache_directory_name(ident):
+        """
+        Returns the name of the cache directory for this ident, relative
+        to the cache root.
+        """
+        # Split our potential PID spaces.  Fedora Commons is the most likely
+        # use case.
+        if not ident.startswith(('http://', 'https://')) and len(ident.split(':')) > 1:
+            cache_subroot = os.path.join(*tuple(ident.split(':')[:-1]))
+        elif ident.startswith(('http://', 'https://')):
+            cache_subroot = 'http'
+        else:
+            cache_subroot = ''
+
+        if cache_subroot:
+            return os.path.join(cache_subroot, CacheNamer.ident_cache_name(ident))
+        else:
+            return CacheNamer.ident_cache_name(ident)

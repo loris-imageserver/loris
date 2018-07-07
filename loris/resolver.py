@@ -15,6 +15,7 @@ from contextlib import closing
 import hashlib
 import glob
 import json
+import os
 
 try:
     from urllib.parse import quote_plus, unquote
@@ -243,7 +244,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         if not self._ident_regex_checker.is_allowed(ident):
             return False
 
-        fp = join(self.cache_root, SimpleHTTPResolver._cache_subroot(ident))
+        fp = self.cache_dir_path(ident=ident)
         if exists(fp):
             return True
         else:
@@ -284,32 +285,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             )
         return (url, self.request_options())
 
-    # Get a subdirectory structure for the cache_subroot through hashing.
-    @staticmethod
-    def _cache_subroot(ident):
-        cache_subroot = ''
-
-        # Split out potential pidspaces... Fedora Commons most likely use case.
-        if ident[0:6] != 'http:/' and ident[0:7] != 'https:/' and len(ident.split(':')) > 1:
-            for split_ident in ident.split(':')[0:-1]:
-                cache_subroot = join(cache_subroot, split_ident)
-        elif ident[0:6] == 'http:/' or ident[0:7] == 'https:/':
-            cache_subroot = 'http'
-
-        cache_subroot = join(cache_subroot, SimpleHTTPResolver._ident_file_structure(ident))
-
-        return cache_subroot
-
-    # Get the directory structure of the identifier itself
-    @staticmethod
-    def _ident_file_structure(ident):
-        return CacheNamer.ident_cache_name(ident)
-
     def cache_dir_path(self, ident):
-        ident = unquote(ident)
-        return join(
-                self.cache_root,
-                SimpleHTTPResolver._cache_subroot(ident)
+        return os.path.join(
+            self.cache_root,
+            CacheNamer.cache_directory_name(ident=ident)
         )
 
     def raise_404_for_ident(self, ident):
