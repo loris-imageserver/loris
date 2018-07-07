@@ -340,6 +340,23 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
 
+    @responses.activate
+    def test_is_resolvable_uses_cached_result(self):
+        self._mock_urls()
+
+        config = {
+            'cache_root' : self.SRC_IMAGE_CACHE,
+            'source_prefix' : 'http://sample.sample/',
+            'source_suffix' : '',
+            'default_format' : 'tif',
+            'head_resolvable' : True,
+            'uri_resolvable' : True
+        }
+        self.app.resolver = SimpleHTTPResolver(config)
+
+        assert self.app.resolver.resolve(self.app, ident='0001', base_uri='')
+        assert self.app.resolver.is_resolvable(ident='0001')
+
 
 class TestSimpleHTTPResolver(object):
 
