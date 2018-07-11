@@ -7,6 +7,11 @@ import hashlib
 import os
 import re
 
+try:
+    from urllib.parse import quote_plus
+except ImportError:  # Python 2
+    from urllib import quote_plus
+
 
 class IdentRegexChecker(object):
     """
@@ -39,6 +44,12 @@ class CacheNamer(object):
         """
         Returns the name of the individual cache directory for this object.
         """
+        # This exists for back-compatibility reasons -- the MD5 hash works
+        # just as well on a quoted as unquoted string -- but an old version
+        # of this code quoted the string, and we want to preserve existing
+        # cache paths.
+        ident = quote_plus(ident)
+
         # Get the MD5 hash of the identifier, then we create the top-level
         # directory as 2 digits, and take pieces of 3 digits for each
         # subsequent directory.
