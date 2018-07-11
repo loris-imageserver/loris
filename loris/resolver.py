@@ -12,15 +12,14 @@ from os import remove
 from shutil import copy
 import tempfile
 from contextlib import closing
-import hashlib
 import glob
 import json
 import os
 
 try:
-    from urllib.parse import quote_plus, unquote
+    from urllib.parse import unquote
 except ImportError:  # Python 2
-    from urllib import quote_plus, unquote
+    from urllib import unquote
 
 import requests
 
