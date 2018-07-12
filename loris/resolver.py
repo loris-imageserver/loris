@@ -12,19 +12,19 @@ from os import remove
 from shutil import copy
 import tempfile
 from contextlib import closing
-import hashlib
 import glob
-import re
 import json
+import os
 
 try:
-    from urllib.parse import quote_plus, unquote
+    from urllib.parse import unquote
 except ImportError:  # Python 2
-    from urllib import quote_plus, unquote
+    from urllib import unquote
 
 import requests
 
 from loris import constants
+from loris.identifiers import CacheNamer, IdentRegexChecker
 from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p, safe_rename
 from loris.img_info import ImageInfo
@@ -209,7 +209,10 @@ class SimpleHTTPResolver(_AbstractResolver):
 
         self.ssl_check = self.config.get('ssl_check', True)
 
-        self.ident_regex = self.config.get('ident_regex', False)
+        self._ident_regex_checker = IdentRegexChecker(
+            ident_regex=self.config.get('ident_regex')
+        )
+        self._cache_namer = CacheNamer()
 
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']
@@ -237,13 +240,10 @@ class SimpleHTTPResolver(_AbstractResolver):
     def is_resolvable(self, ident):
         ident = unquote(ident)
 
-        # TODO: Add some tests around this as well
-        if self.ident_regex:
-            regex = re.compile(self.ident_regex)
-            if not regex.match(ident):
-                return False
+        if not self._ident_regex_checker.is_allowed(ident):
+            return False
 
-        fp = join(self.cache_root, SimpleHTTPResolver._cache_subroot(ident))
+        fp = self.cache_dir_path(ident=ident)
         if exists(fp):
             return True
         else:
@@ -284,40 +284,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             )
         return (url, self.request_options())
 
-    # Get a subdirectory structure for the cache_subroot through hashing.
-    @staticmethod
-    def _cache_subroot(ident):
-        cache_subroot = ''
-
-        # Split out potential pidspaces... Fedora Commons most likely use case.
-        if ident[0:6] != 'http:/' and ident[0:7] != 'https:/' and len(ident.split(':')) > 1:
-            for split_ident in ident.split(':')[0:-1]:
-                cache_subroot = join(cache_subroot, split_ident)
-        elif ident[0:6] == 'http:/' or ident[0:7] == 'https:/':
-            cache_subroot = 'http'
-
-        cache_subroot = join(cache_subroot, SimpleHTTPResolver._ident_file_structure(ident))
-
-        return cache_subroot
-
-    # Get the directory structure of the identifier itself
-    @staticmethod
-    def _ident_file_structure(ident):
-        file_structure = ''
-        ident_hash = hashlib.md5(quote_plus(ident).encode('utf8')).hexdigest()
-        # First level 2 digit directory then do three digits...
-        file_structure_list = [ident_hash[0:2]] + [ident_hash[i:i+3] for i in range(2, len(ident_hash), 3)]
-
-        for piece in file_structure_list:
-            file_structure = join(file_structure, piece)
-
-        return file_structure
-
     def cache_dir_path(self, ident):
-        ident = unquote(ident)
-        return join(
-                self.cache_root,
-                SimpleHTTPResolver._cache_subroot(ident)
+        return os.path.join(
+            self.cache_root,
+            CacheNamer.cache_directory_name(ident=ident)
         )
 
     def raise_404_for_ident(self, ident):
