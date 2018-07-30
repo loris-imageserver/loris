@@ -66,7 +66,7 @@ def get_debug_config(debug_jp2_transformer):
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     config['transforms']['target_formats'] = [ 'jpg', 'png', 'gif', 'webp', 'tif']
-    
+
     if debug_jp2_transformer == 'opj':
         from loris.transforms import OPJ_JP2Transformer
         config['transforms']['jp2']['impl'] = 'OPJ_JP2Transformer'
@@ -275,8 +275,14 @@ class LorisRequest(object):
             return
 
         #check for image request
-        #Note: this doesn't guarantee that all the parameters have valid values - see regexes in constants.py.
+        #Note: this doesn't guarantee that all the parameters have valid
+        #values - see regexes in constants.py.
         image_match = constants.IMAGE_RE.match(self._path)
+
+        #check for info request
+        info_match = constants.INFO_RE.match(self._path)
+
+        #process image request
         if image_match:
             groups = image_match.groupdict()
             self.ident = quote_plus(groups['ident'])
@@ -287,15 +293,16 @@ class LorisRequest(object):
                       'format': groups['format']}
             self.request_type = 'image'
 
-        #check for info request
-        elif self._path.endswith('info.json'):
-            ident = '/'.join(self._path[1:].split('/')[:-1])
-            self.ident = quote_plus(ident)
+        #process info request
+        elif info_match:
+            groups = info_match.groupdict()
+            self.ident = quote_plus(groups['ident'])
             self.params = 'info.json'
             self.request_type = 'info'
 
-        #if the request didn't match the stricter regex above, but it does match this one, we know we have an
-        # invalid image request, so we can return a 400 BadRequest to the user.
+        #if the request didn't match the stricter regexes above, but it does
+        #match this one, we know we have an invalid image request, so we can
+        #return a 400 BadRequest to the user.
         elif constants.LOOSER_IMAGE_RE.match(self._path):
             self.request_type = 'bad_image_request'
 

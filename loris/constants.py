@@ -37,12 +37,17 @@ EXTENSION_MAP = {
         'tiff': 'tif',
     }
 
-_IDENT = r'(?P<ident>[|\w:\-\*\.\%\/]+)'
+_IDENT = r'(?P<ident>.+)'
 _REGION = r'(?P<region>[\w:\.\,]+)'
 _SIZE = r'(?P<size>\!?[\w:\.\,]+)'
 _ROTATION = r'(?P<rotation>\!?\d+\.?\d*)'
 _QUALITY = r'(?P<quality>(color|gray|bitonal|default))'
 _FORMAT = r'(?P<format>\w+)'
+
 _IMAGE_REQUEST = r'/%s/%s/%s/%s/%s.%s' % (_IDENT, _REGION, _SIZE, _ROTATION, _QUALITY, _FORMAT)
 IMAGE_RE = re.compile(_IMAGE_REQUEST)
+
+_INFO_REQUEST = r'/%s/%s' % (_IDENT, 'info.json')
+INFO_RE = re.compile(_INFO_REQUEST)
+
 LOOSER_IMAGE_RE = re.compile(r'/%s/\w+/\w+/\w+/\w.\w' % _IDENT)
