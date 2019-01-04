@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import
 
+import urlparse
 from logging import getLogger
 from os.path import join, exists, dirname, split
 from os import remove
@@ -22,6 +23,9 @@ except ImportError:  # Python 2
     from urllib import unquote
 
 import requests
+import boto3
+import botocore
+
 
 from loris import constants
 from loris.identifiers import CacheNamer, IdentRegexChecker
@@ -110,6 +114,48 @@ class _AbstractResolver(object):
         )
 
 
+class _AbstractCachingResolver(_AbstractResolver):
+
+    def __init__(self, config):
+        super(_AbstractCachingResolver, self).__init__(config)
+        if 'cache_root' in self.config:
+            self.cache_root = self.config['cache_root']
+        else:
+            message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
+            logger.error(message)
+            raise ResolverException(message)
+
+    def cache_dir_path(self, ident):
+        return os.path.join(
+            self.cache_root,
+            CacheNamer.cache_directory_name(ident=ident)
+        )
+
+    def raise_404_for_ident(self, ident):
+        raise ResolverException("Image not found for identifier: %r." % ident)
+
+    def cached_file_for_ident(self, ident):
+        cache_dir = self.cache_dir_path(ident)
+        if exists(cache_dir):
+            files = glob.glob(join(cache_dir, 'loris_cache.*'))
+            if files:
+                return files[0]
+        return None
+
+    def copy_to_cache(self, ident):
+        """
+        Copy an image into the cache.
+
+        Args:
+            ident (str):
+                The identifier for the image
+        Returns:
+             The path to the file in the local cache
+        """
+        cn = self.__class__.__name__
+        raise NotImplementedError('copy_to_cache() not implemented for %s' % (cn,))
+
+
 class SimpleFSResolver(_AbstractResolver):
     """
     For this dumb version a constant path is prepended to the identfier
@@ -160,7 +206,7 @@ class ExtensionNormalizingFSResolver(SimpleFSResolver):
     pass
 
 
-class SimpleHTTPResolver(_AbstractResolver):
+class SimpleHTTPResolver(_AbstractCachingResolver):
     '''
     Example resolver that one might use if image files were coming from
     an http image store (like Fedora Commons). The first call to `resolve()`
@@ -213,13 +259,6 @@ class SimpleHTTPResolver(_AbstractResolver):
             ident_regex=self.config.get('ident_regex')
         )
         self._cache_namer = CacheNamer()
-
-        if 'cache_root' in self.config:
-            self.cache_root = self.config['cache_root']
-        else:
-            message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
-            logger.error(message)
-            raise ResolverException(message)
 
         if not self.uri_resolvable and self.source_prefix == '':
             message = 'Server Side Error: Configuration incomplete and cannot resolve. Must either set uri_resolvable' \
@@ -284,22 +323,8 @@ class SimpleHTTPResolver(_AbstractResolver):
             )
         return (url, self.request_options())
 
-    def cache_dir_path(self, ident):
-        return os.path.join(
-            self.cache_root,
-            CacheNamer.cache_directory_name(ident=ident)
-        )
-
     def raise_404_for_ident(self, ident):
         raise ResolverException("Image not found for identifier: %r." % ident)
-
-    def cached_file_for_ident(self, ident):
-        cache_dir = self.cache_dir_path(ident)
-        if exists(cache_dir):
-            files = glob.glob(join(cache_dir, 'loris_cache.*'))
-            if files:
-                return files[0]
-        return None
 
     def cache_file_extension(self, ident, response):
         if 'content-type' in response.headers:
@@ -504,6 +529,102 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         if 'ssl_check' in conf:
             options['verify'] = conf['ssl_check']
         return (url, options)
+
+
+class SimpleAmazonS3Resolver(_AbstractCachingResolver):
+    """
+    A simple AWS S3 resolver.
+
+    The resolver expects that AWS credentials are available in the environment in
+    which it is running.  Note: They can be provided in the configuration file but
+    that is insecure and should NOT be used for anything other than local testing.
+
+    It has the following mandatory config entries:
+
+    ``cache_root`` the local file system to download the S3 stored files to.
+    ``s3_bucket`` The S3 path starting with bucket name in which the files are stored.
+                  (The AWS credentials must have at least read access to the bucket)
+
+    The follow optional config settings are available:
+
+    ``aws_access_key_id`` a aws access key to use for authentication.  *INSECURE*
+    ``aws_secret_access_key`` a aws secret key to use for authenication.  *INSECURE*
+    """
+
+    def __init__(self, config):
+        ''' setup object and validate '''
+        super(SimpleAmazonS3Resolver, self).__init__(config)
+        self.default_format = self.config.get('default_format', None)
+        source_root = self.config.get('source_root', None)
+        assert source_root, 'source_root is a required parameter for the S3 resolver'
+        scheme, self.s3bucket, self.prefix, ___, ___ = urlparse.urlsplit(source_root)
+        assert scheme == 's3', '{0} is not a valid s3 url'.format(source_root)
+        self.prefix = self.prefix[1:]  # remove the leading slash from the prefix path
+
+    def apply_prefix(self, ident):
+        if self.prefix:
+            return self.prefix + ident
+        else:
+            return ident
+
+    def raise_404_for_ident(self, ident):
+        raise ResolverException("Image not found for identifier: %r." % ident)
+
+    def is_resolvable(self, ident):
+        """
+        Check that the file exists in the configured S3 bucket.
+
+        :param ident: The identifier of the file (commonly the filename)
+        :return: Boolean
+        """
+        ident = unquote(ident)
+        local_fp = join(self.cache_root, ident)
+        if exists(local_fp):
+            return True
+        else:
+            # Check that the requested ident exists in our S3 bucket
+            s3 = boto3.resource('s3')
+            try:
+                key = self.apply_prefix(ident)
+                logger.debug('Checking existence of Bucket = %s   Key = %s', self.s3bucket, key)
+                s3.Object(self.s3bucket, key).load()
+            except botocore.exceptions.ClientError as e:
+                if e.response['Error']['Code'] == "404":
+                    return False
+            return True
+
+    def copy_to_cache(self, ident):
+        ident = unquote(ident)
+        extension = self.format_from_ident(ident)
+        cache_dir = self.cache_dir_path(ident)
+        local_fp = join(cache_dir, "loris_cache." + extension)
+        try:
+            logger.debug('Trying to make directory |%s|' % local_fp)
+            mkdir_p(dirname(local_fp))
+        except:
+            logger.debug("Directory already existed... possible problem if not a different format")
+
+        # Download the image from S3
+        bucket_name = self.s3bucket
+        key = self.apply_prefix(ident)
+        logger.debug('Getting img from AWS S3. bucketname, key: %s, %s' % (bucket_name, key))
+        s3_client = boto3.client('s3')
+        s3_client.download_file(bucket_name, key, local_fp)
+
+        logger.info("Copied %s to %s" % (key, local_fp))
+
+    def resolve(self, app, ident, base_uri):
+        cache_dir = self.cache_dir_path(ident)
+        logger.debug('Checking for existence of cache_dir =  %s' % (cache_dir,))
+        if not exists(cache_dir):
+            logger.debug('copying source file to %s' % (cache_dir,))
+            self.copy_to_cache(ident)
+        cached_file_path = self.cached_file_for_ident(ident)
+        logger.info('cached_file_path: %s' % cached_file_path)
+        format_ = self.format_from_ident(cached_file_path)
+        logger.debug('returning src image from local disk: %s' % (cached_file_path,))
+        extra = self.get_extra_info(ident, cached_file_path)
+        return ImageInfo(app, base_uri, cached_file_path, format_, extra)
 
 
 class SourceImageCachingResolver(_AbstractResolver):

@@ -63,7 +63,9 @@ def get_debug_config(debug_jp2_transformer):
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-    config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
+    config['resolver']['impl'] = 'loris.resolver.SimpleAmazonS3Resolver'
+    config['resolver']['source_root'] = 's3://sequoia-short-lived/forum/iiif-testing/'
+    config['resolver']['cache_root'] = '/tmp/loris'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     config['transforms']['target_formats'] = [ 'jpg', 'png', 'gif', 'webp', 'tif']
 
