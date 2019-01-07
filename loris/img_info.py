@@ -234,17 +234,6 @@ class ImageInfo(JP2Extractor, object):
                 )
                 raise ImageInfoException("Invalid JP2 file")
 
-    def assign_color_profile(self, jp2):
-        profile_size_bytes = jp2.read(4)
-        profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
-
-        logger.debug('profile size: %d', profile_size)
-        self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
-
-        # This is an assumption for now (i.e. that if you have a colour profile
-        # embedded, you're probably working with color images.
-        self.profile.description['qualities'] += ['gray', 'color']
-
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
         return [(fn(self.width, sf), fn(self.height, sf)) for sf in scales]
