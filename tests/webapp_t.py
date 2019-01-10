@@ -44,6 +44,21 @@ class TestDebugConfig(object):
         assert 'Unrecognized debug JP2 transformer' in str(err.value)
 
 
+class TestLoris(object):
+
+    def test_can_be_configured_without_authorizer(self):
+        config = webapp.get_debug_config("kdu")
+        del config["authorizer"]
+        app = webapp.Loris(config)
+        assert app.authorizer is None
+
+    def test_can_be_configured_without_authorizer_impl(self):
+        config = webapp.get_debug_config("kdu")
+        del config["authorizer"]["impl"]
+        app = webapp.Loris(config)
+        assert app.authorizer is None
+
+
 class TestLorisRequest(TestCase):
 
     def setUp(self):
