@@ -262,8 +262,6 @@ class SimpleHTTPResolver(_AbstractResolver):
             except requests.ConnectionError:
                 return False
 
-        return False
-
     def get_format(self, ident, potential_format):
         if self.default_format is not None:
             return self.default_format

@@ -380,10 +380,11 @@ class Loris(object):
     def _load_authorizer(self):
         try:
             impl = self.app_configs['authorizer']['impl']
-        except:
+        except KeyError:
             return None
-        AuthorizerClass = self._import_class(impl)
-        return AuthorizerClass(self.app_configs['authorizer'])
+        else:
+            AuthorizerClass = self._import_class(impl)
+            return AuthorizerClass(self.app_configs['authorizer'])
 
     def _import_class(self, qname):
         '''Imports a class AND returns it (the class, not an instance).
