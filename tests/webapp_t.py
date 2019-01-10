@@ -12,10 +12,11 @@ import re
 import pytest
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date
-from werkzeug.test import EnvironBuilder
-from werkzeug.wrappers import Request
+from werkzeug.test import Client, EnvironBuilder
+from werkzeug.wrappers import BaseResponse, Request
 
 from loris import img_info, webapp
+from loris.authorizer import NullAuthorizer, NooneAuthorizer
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
 from tests import loris_t
@@ -44,7 +45,7 @@ class TestDebugConfig(object):
         assert 'Unrecognized debug JP2 transformer' in str(err.value)
 
 
-class TestLoris(object):
+class TestLoris(loris_t.LorisTest):
 
     def test_can_be_configured_without_authorizer(self):
         config = webapp.get_debug_config("kdu")
@@ -57,6 +58,38 @@ class TestLoris(object):
         del config["authorizer"]["impl"]
         app = webapp.Loris(config)
         assert app.authorizer is None
+
+    def test_can_be_configured_with_authorizer(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NullAuthorizer"}
+        app = webapp.Loris(config)
+        assert isinstance(app.authorizer, NullAuthorizer)
+
+    def test_get_info_when_requires_auth_is_required(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NooneAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/info.json" % self.test_jp2_color_id)
+        assert resp.status_code == 401
+
+    def test_can_get_info_when_auth_okay(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NullAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/info.json" % self.test_jp2_color_id)
+        assert resp.status_code == 200
 
 
 class TestLorisRequest(TestCase):
