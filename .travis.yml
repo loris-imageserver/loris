@@ -10,8 +10,8 @@ addons:
     - zlib1g-dev
     - liblcms2-2
     - liblcms2-dev
-    - liblcms-utils
-    - libtiff4-dev
+    - liblcms2-utils
+    - libtiff5-dev
     - libwebp-dev
 
 language: python
