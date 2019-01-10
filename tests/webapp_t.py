@@ -65,7 +65,7 @@ class TestLoris(loris_t.LorisTest):
         app = webapp.Loris(config)
         assert isinstance(app.authorizer, NullAuthorizer)
 
-    def test_get_info_when_requires_auth_is_required(self):
+    def test_cannot_get_info_when_auth_required(self):
         config = webapp.get_debug_config("kdu")
         config["authorizer"] = {"impl": "loris.authorizer.NooneAuthorizer"}
         app = webapp.Loris(config)
@@ -75,7 +75,7 @@ class TestLoris(loris_t.LorisTest):
             response_wrapper=BaseResponse
         )
 
-        resp = client.get("/%s/info.json" % self.test_jp2_color_id)
+        resp = client.get("/%s/info.json" % self.test_jpeg_id)
         assert resp.status_code == 401
 
     def test_can_get_info_when_auth_okay(self):
@@ -88,7 +88,33 @@ class TestLoris(loris_t.LorisTest):
             response_wrapper=BaseResponse
         )
 
-        resp = client.get("/%s/info.json" % self.test_jp2_color_id)
+        resp = client.get("/%s/info.json" % self.test_jpeg_id)
+        assert resp.status_code == 200
+
+    def test_cannot_get_image_when_auth_required(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NooneAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
+        assert resp.status_code == 401
+
+    def test_can_get_image_when_auth_okay(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NullAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
         assert resp.status_code == 200
 
 
