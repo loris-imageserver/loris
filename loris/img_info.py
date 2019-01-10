@@ -10,7 +10,6 @@ from math import ceil
 from threading import Lock
 import json
 import os
-import struct
 
 try:
     from urllib.parse import unquote

@@ -16,7 +16,7 @@ from werkzeug.test import Client, EnvironBuilder
 from werkzeug.wrappers import BaseResponse, Request
 
 from loris import img_info, webapp
-from loris.authorizer import NullAuthorizer, NooneAuthorizer
+from loris.authorizer import NullAuthorizer
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
 from tests import loris_t
