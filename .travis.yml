@@ -1,4 +1,4 @@
-sudo: false
+dist: xenial
 
 addons:
   apt:
@@ -10,8 +10,8 @@ addons:
     - zlib1g-dev
     - liblcms2-2
     - liblcms2-dev
-    - liblcms-utils
-    - libtiff4-dev
+    - liblcms2-utils
+    - libtiff5-dev
     - libwebp-dev
 
 language: python
@@ -21,6 +21,7 @@ python:
   - 3.4
   - 3.5
   - 3.6
+  - 3.7
 
 install:
  - pip install -r requirements_test.txt
@@ -37,3 +38,4 @@ notifications:
     on_failure: "always"
     template:
       - "%{repository}//%{branch}@%{commit} by %{author}: %{message} - %{build_url}"
+
