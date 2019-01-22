@@ -277,30 +277,6 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             arg = str(reduce_arg)
         return arg
 
-
-class OPJ_JP2Transformer(_AbstractJP2Transformer):
-    def __init__(self, config):
-        self.opj_decompress = config['opj_decompress']
-        self.env = None
-        super(OPJ_JP2Transformer, self).__init__(config)
-
-    def _region_to_opj_arg(self, region_param):
-        '''
-        Args:
-            region_param (params.RegionParam)
-
-        Returns (str): e.g. 'x0,y0,x1,y1'
-        '''
-        arg = None
-        if region_param.mode != 'full':
-            x0 = region_param.pixel_x
-            y0 = region_param.pixel_y
-            x1 = region_param.pixel_x + region_param.pixel_w
-            y1 = region_param.pixel_y + region_param.pixel_h
-            arg = ','.join(map(str, (x0, y0, x1, y1)))
-        logger.debug('opj region parameter: %s', arg)
-        return arg
-
     def _run_transform(self, target_fp, image_request, image_info, transform_cmd, fifo_fp):
         try:
             expand_proc = subprocess.Popen(transform_cmd, shell=True, bufsize=-1,
@@ -335,6 +311,30 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             image_info=image_info,
             crop=False
         )
+
+
+class OPJ_JP2Transformer(_AbstractJP2Transformer):
+    def __init__(self, config):
+        self.opj_decompress = config['opj_decompress']
+        self.env = None
+        super(OPJ_JP2Transformer, self).__init__(config)
+
+    def _region_to_opj_arg(self, region_param):
+        '''
+        Args:
+            region_param (params.RegionParam)
+
+        Returns (str): e.g. 'x0,y0,x1,y1'
+        '''
+        arg = None
+        if region_param.mode != 'full':
+            x0 = region_param.pixel_x
+            y0 = region_param.pixel_y
+            x1 = region_param.pixel_x + region_param.pixel_w
+            y1 = region_param.pixel_y + region_param.pixel_h
+            arg = ','.join(map(str, (x0, y0, x1, y1)))
+        logger.debug('opj region parameter: %s', arg)
+        return arg
 
     def transform(self, target_fp, image_request, image_info):
         # opj writes to this:
@@ -419,42 +419,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         logger.debug('kdu region parameter: %s', arg)
         return arg
 
-    def _run_transform(self, target_fp, image_request, image_info, kdu_cmd, fifo_fp):
-        try:
-            # Start the kdu shellout. Blocks until the pipe is empty
-            kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
-                stderr=subprocess.PIPE, env=self.env)
-            with open(fifo_fp, 'rb') as f:
-                # read from the named pipe
-                p = Parser()
-                while True:
-                    s = f.read(1024)
-                    if not s:
-                        break
-                    p.feed(s)
-                im = p.close() # a PIL.Image
-        finally:
-            _, stderrdata = kdu_expand_proc.communicate()
-            kdu_exit = kdu_expand_proc.returncode
-            if kdu_exit != 0:
-                map(logger.error, stderrdata)
-            unlink(fifo_fp)
-
-        try:
-            if self.map_profile_to_srgb and image_info.color_profile_bytes:
-                emb_profile = BytesIO(image_info.color_profile_bytes)
-                im = self._map_im_profile_to_srgb(im, emb_profile)
-        except PyCMSError as err:
-            logger.warn('Error converting %r to sRGB: %r', im, err)
-
-        self._derive_with_pil(
-            im=im,
-            target_fp=target_fp,
-            image_request=image_request,
-            image_info=image_info,
-            crop=False
-        )
-
     def transform(self, target_fp, image_request, image_info):
         fifo_fp = self._make_tmp_fp()
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
@@ -477,7 +441,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                 'target_fp': target_fp,
                 'image_request': image_request,
                 'image_info': image_info,
-                'kdu_cmd': kdu_cmd,
+                'transform_cmd': kdu_cmd,
                 'fifo_fp': fifo_fp
             }
         )
