@@ -11,6 +11,7 @@ addons:
     - liblcms2-2
     - liblcms2-dev
     - liblcms2-utils
+    - libopenjp2-tools
     - libtiff5-dev
     - libwebp-dev
 

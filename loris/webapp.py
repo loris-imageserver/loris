@@ -70,10 +70,7 @@ def get_debug_config(debug_jp2_transformer):
     if debug_jp2_transformer == 'opj':
         from loris.transforms import OPJ_JP2Transformer
         config['transforms']['jp2']['impl'] = 'OPJ_JP2Transformer'
-        opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-        config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
-        libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
-        config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
+        config['transforms']['jp2']['opj_decompress'] = '/usr/bin/opj_decompress'
     elif debug_jp2_transformer == 'kdu':
         from loris.transforms import KakaduJP2Transformer
         config['transforms']['jp2']['impl'] = 'KakaduJP2Transformer'
