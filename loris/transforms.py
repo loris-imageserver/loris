@@ -6,7 +6,7 @@ from __future__ import absolute_import
 import multiprocessing
 from logging import getLogger
 from math import ceil, log
-from os import path, unlink, devnull
+from os import path, unlink
 import platform
 import random
 import string
