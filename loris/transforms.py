@@ -279,23 +279,8 @@ class _AbstractJP2Transformer(_AbstractTransformer):
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
     def __init__(self, config):
         self.opj_decompress = config['opj_decompress']
-        self.env = {
-            'LD_LIBRARY_PATH' : config['opj_libs'],
-            'PATH' : config['opj_decompress']
-        }
+        self.env = None
         super(OPJ_JP2Transformer, self).__init__(config)
-
-    @staticmethod
-    def local_opj_decompress_path():
-        '''Only used in dev and tests.
-        '''
-        return 'bin/%s/%s/opj_decompress' % (platform.system(),platform.machine())
-
-    @staticmethod
-    def local_libopenjp2_dir():
-        '''Only used in dev and tests.
-        '''
-        return 'lib/%s/%s' % (platform.system(),platform.machine())
 
     def _region_to_opj_arg(self, region_param):
         '''
