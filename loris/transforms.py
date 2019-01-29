@@ -375,7 +375,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             process.terminate()
             if path.exists(fifo_fp):
                 unlink(fifo_fp)
-            raise TransformException('transform process timed out')
+            raise TransformException('OpenJPEG transform process timed out')
 
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
