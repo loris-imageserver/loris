@@ -262,7 +262,7 @@ class SizeParameter(object):
         h (int):
             The height.
     '''
-    PCT_MODE_REGEX = re.compile(r'^pct:(?P<percentage>[0-9]+)$')
+    PCT_MODE_REGEX = re.compile(r'^pct:(?P<percentage>[0-9]+(\.[0-9]+)?)$')
     PIXEL_MODE_REGEX = re.compile(
         r'^(?P<best_fit>!?)(?P<width>[0-9]*),(?P<height>[0-9]*)$'
     )
