@@ -224,6 +224,12 @@ class TestSizeParameter(_ParameterTest):
         sp = SizeParameter('pct:50', rp)
         self.assertEquals(sp.w, 1)
 
+    def test_decimal_percentage_is_allowed(self):
+        info = build_image_info(width=400, height=200)
+        rp = RegionParameter('full', info)
+        sp = SizeParameter('pct:6.25', rp)
+        self.assertEquals(sp.w, 25)
+
     def test_negative_x_percentage_is_rejected(self):
         info = build_image_info()
         with self.assertRaises(RequestException):
