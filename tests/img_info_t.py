@@ -581,3 +581,20 @@ class TestInfoCache(loris_t.LorisTest):
 
         with pytest.raises(KeyError):
             cache[req]
+
+    def test_creates_cache_dir(self):
+        root = os.path.join(tempfile.mkdtemp(), "doesnotexist")
+        assert not os.path.exists(root)
+        cache = img_info.InfoCache(root=root)
+        path = self.test_jpeg_fp
+        req = webapp_t._get_werkzeug_request(path=path)
+
+        info = img_info.ImageInfo(
+            app=self.app,
+            ident=self.test_jpeg_uri,
+            src_img_fp=self.test_jpeg_fp,
+            src_format=self.test_jpeg_fmt
+        )
+
+        cache[req] = info
+        assert cache[req][0] == info
