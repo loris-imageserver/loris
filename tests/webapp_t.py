@@ -20,7 +20,7 @@ from loris import img_info, webapp
 from loris.authorizer import NullAuthorizer
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
-from loris.webapp import get_debug_config
+from loris.webapp import get_debug_config, Loris
 from tests import loris_t
 
 
@@ -595,6 +595,12 @@ class WebappIntegration(loris_t.LorisTest):
         assert self.app.tmp_dp == "/tmp/doesnotexist"
 
         self.client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
+
+    def test_invalid_tmp_dir_is_configerror(self):
+        config = get_debug_config('kdu')
+        config["loris.Loris"]["tmp_dp"] = "/dev/null/tmp"
+        with pytest.raises(ConfigError, match="Error creating tmp_dp /dev/null/tmp:"):
+            Loris(config)
 
     def _assert_tmp_has_no_files(self):
         # callback should delete the image before the test ends, so the tmp dir
