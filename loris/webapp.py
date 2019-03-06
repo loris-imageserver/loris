@@ -41,7 +41,7 @@ from loris.loris_exception import (
     SyntaxException,
     TransformException,
 )
-
+from loris.utils import mkdir_p
 
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -328,6 +328,12 @@ class Loris(object):
         # make the loris.Loris configs attrs for easier access
         _loris_config = self.app_configs['loris.Loris']
         self.tmp_dp = _loris_config['tmp_dp']
+
+        try:
+            mkdir_p(self.tmp_dp)
+        except Exception as exc:
+            raise ConfigError("Error creating tmp_dp %s: %r" % (self.tmp_dp, exc))
+
         self.www_dp = _loris_config['www_dp']
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
