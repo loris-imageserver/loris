@@ -4,7 +4,6 @@
 from __future__ import absolute_import
 
 from datetime import datetime
-import os
 from os import path, listdir
 from time import sleep
 from unittest import TestCase
