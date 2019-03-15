@@ -435,3 +435,9 @@ class InfoCache(object):
 
     def __len__(self):
         return len(self._dict)
+
+
+class RedirectInfo(object):
+
+    def __init__(self, redirect_url):
+        self.redirect_url = redirect_url

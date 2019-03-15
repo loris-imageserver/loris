@@ -222,6 +222,9 @@ class TIF_Transformer(_PillowTransformer):
 class PNG_Transformer(_PillowTransformer):
     pass
 
+class FPX_Transformer(_PillowTransformer):
+    pass
+
 
 class _AbstractJP2Transformer(_AbstractTransformer):
     '''

@@ -39,8 +39,7 @@ from loris.loris_exception import (
     RequestException,
     ResolverException,
     SyntaxException,
-    TransformException,
-)
+    TransformException)
 
 
 
@@ -63,9 +62,9 @@ def get_debug_config(debug_jp2_transformer):
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-    config['resolver']['impl'] = 'loris.resolver.SimpleAmazonS3Resolver'
-    config['resolver']['source_root'] = 's3://sequoia-short-lived/forum/iiif-testing/'
-    config['resolver']['cache_root'] = '/tmp/loris'
+    # config['resolver']['impl'] = 'loris.resolver.SimpleAmazonS3Resolver'
+    # config['resolver']['source_root'] = 's3://sequoia-forum-media/'
+    # config['resolver']['cache_root'] = '/tmp/loris'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     config['transforms']['target_formats'] = [ 'jpg', 'png', 'gif', 'webp', 'tif']
 
@@ -487,6 +486,12 @@ class Loris(object):
             msg = '%s \n(This is likely a permissions problem)' % e
             return ServerSideErrorResponse(msg)
 
+        if hasattr(info, 'redirect_url'):
+            self.logger.critical(request)
+            self.logger.critical(dir(request))
+            headers = dict(location="%s/info.json" % info.redirect_url)
+            return Response(status=302, headers=headers)
+
         r = LorisResponse()
         r.set_acao(request, self.cors_regex)
         ims_hdr = request.headers.get('If-Modified-Since')
@@ -540,6 +545,10 @@ class Loris(object):
         else:
 
             info = self.resolver.resolve(self, ident, base_uri)
+
+            # Maybe a redirect
+            if hasattr(info, 'redirect_url'):
+                return info, None
 
             # Maybe inject services before caching
             if self.authorizer and self.authorizer.is_protected(info):
@@ -603,6 +612,13 @@ class Loris(object):
             info = self._get_info(ident, request, base_uri)[0]
         except ResolverException as re:
             return NotFoundResponse(str(re))
+
+        if hasattr(info, 'redirect_url'):
+            new_url = "{base_url}/{ident}/{region}/{size}/{rotation}/{quality}.{format}".format(
+                base_url=info.redirect_url, ident=ident, region=region, size=size, rotation=rotation,
+                quality=quality, format=target_fmt)
+            headers = dict(location=new_url)
+            return Response(status=302, headers=headers)
 
         if self.authorizer and self.authorizer.is_protected(info):
             authed = self.authorizer.is_authorized(info, request)
@@ -761,7 +777,7 @@ if __name__ == '__main__':
 
     app = create_app(debug=True) # or 'opj'
 
-    run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True)
+    run_simple('0.0.0.0', 5004, app, use_debugger=True, use_reloader=True)
     # To debug ssl:
     # run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True,
     #     ssl_context='adhoc')

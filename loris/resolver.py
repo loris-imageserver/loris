@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 import urlparse
 from logging import getLogger
+import importlib
 from os.path import join, exists, dirname, split
 from os import remove
 from shutil import copy
@@ -31,8 +32,7 @@ from loris import constants
 from loris.identifiers import CacheNamer, IdentRegexChecker
 from loris.loris_exception import ResolverException
 from loris.utils import mkdir_p, safe_rename
-from loris.img_info import ImageInfo
-
+from loris.img_info import ImageInfo, RedirectInfo
 
 logger = getLogger(__name__)
 
@@ -612,14 +612,16 @@ class SimpleAmazonS3Resolver(_AbstractCachingResolver):
         s3_client.download_file(bucket_name, key, local_fp)
 
         logger.info("Copied %s to %s" % (key, local_fp))
+        return local_fp
 
     def resolve(self, app, ident, base_uri):
         cache_dir = self.cache_dir_path(ident)
         logger.debug('Checking for existence of cache_dir =  %s' % (cache_dir,))
         if not exists(cache_dir):
             logger.debug('copying source file to %s' % (cache_dir,))
-            self.copy_to_cache(ident)
-        cached_file_path = self.cached_file_for_ident(ident)
+            cached_file_path = self.copy_to_cache(ident)
+        else:
+            cached_file_path = self.cached_file_for_ident(ident)
         logger.info('cached_file_path: %s' % cached_file_path)
         format_ = self.format_from_ident(cached_file_path)
         logger.debug('returning src image from local disk: %s' % (cached_file_path,))
@@ -689,3 +691,55 @@ class SourceImageCachingResolver(_AbstractResolver):
         uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, cache_fp)
         return ImageInfo(app, uri, cache_fp, format_, extra)
+
+
+class SimpleHTTPRedirector(_AbstractResolver):
+
+    def __init__(self, config):
+        ''' setup object and validate '''
+        super(SimpleHTTPRedirector, self).__init__(config)
+        self.source_prefix = self.config.get('source_prefix', '')
+
+    def is_resolvable(self, ident):
+        res = requests.get("%s/%s/info.json" % (self.source_prefix, ident))
+        return res.status_code < 400
+
+    def resolve(self, app, ident, base_uri):
+        return RedirectInfo(self.source_prefix)
+
+
+class MultipleResolver(_AbstractResolver):
+
+    def __init__(self, config):
+        ''' setup object and validate '''
+        super(MultipleResolver, self).__init__(config)
+        self.resolvers = []
+        resolver_list = config.get('resolvers')
+        if len(resolver_list) > 1:
+            for r in resolver_list:
+                resolver_config = config.get(r)
+                resolver_module, _, resolver_class = resolver_config.get('impl').rpartition('.')
+                resolver_class = getattr(importlib.import_module(resolver_module), resolver_class)
+                self.resolvers.append(resolver_class(resolver_config))
+        else:
+            raise ResolverException("If using a single resolver you should use it directly.")
+
+    def is_resolvable(self, ident):
+        for resolver in self.resolvers:
+            if resolver.is_resolvable(ident):
+                return True
+        return False
+
+    def get_first_available_resolver(self, ident):
+        for resolver in self.resolvers:
+            if resolver.is_resolvable(ident):
+                return resolver
+
+    def resolve(self, app, ident, base_uri):
+        resolver = self.get_first_available_resolver(ident)
+        if not resolver:
+            self.raise_404_for_ident(ident)
+        else:
+            logger.warn("%s handling request for %s" % (resolver.__class__.__name__, base_uri))
+            return resolver.resolve(app, ident, base_uri)
+

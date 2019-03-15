@@ -15,8 +15,8 @@ enum34==1.1.6             # via cryptography
 idna==2.6                 # via cryptography, requests
 ipaddress==1.0.19         # via cryptography
 netaddr==0.7.19
-olefile==0.45.1           # via pillow
-pillow==4.3.0
+olefile==0.46           # via pillow
+pillow==5.4.1
 pycparser==2.18           # via cffi
 pyjwt==1.5.3
 requests==2.18.4

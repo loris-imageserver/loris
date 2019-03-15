@@ -231,7 +231,7 @@ def _read(fname):
 
 
 setup(
-    cmdclass={ 'install' : LorisInstallCommand },
+    #cmdclass={ 'install' : LorisInstallCommand },
     name='Loris',
     author='Jon Stroop',
     author_email='jpstroop@gmail.com',

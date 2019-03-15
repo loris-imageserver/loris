@@ -86,7 +86,9 @@ else
   #mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-edeb3ca6.efs.us-east-1.amazonaws.com:/ /cache
 fi
 
+mkdir -p /cache/loris
 chown loris /cache
+
 
 #
 ## Install s3fs for mounting AWS S3 filesystems as local storage
@@ -119,7 +121,7 @@ chown loris /cache
 pip install -U appdynamics\<4.4
 pip install Pillow
 cd /usr/local/src
-python setup.py install --image-cache=/cache/loris2 --info-cache=/cache/loris2
+python setup.py install
 
 
 #
