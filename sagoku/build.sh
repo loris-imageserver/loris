@@ -51,7 +51,7 @@ EOF
 
 cat << EOF > ${BUILD_DIR}/DEBIAN/postinst
 #!/bin/bash
-set -xeuo pipefail
+#set -xeuo pipefail
 USER=loris
 
 echo "Starting postinst"

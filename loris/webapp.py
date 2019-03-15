@@ -487,9 +487,7 @@ class Loris(object):
             return ServerSideErrorResponse(msg)
 
         if hasattr(info, 'redirect_url'):
-            self.logger.critical(request)
-            self.logger.critical(dir(request))
-            headers = dict(location="%s/info.json" % info.redirect_url)
+            headers = dict(location="%s%s/info.json" % (info.redirect_url, ident))
             return Response(status=302, headers=headers)
 
         r = LorisResponse()
