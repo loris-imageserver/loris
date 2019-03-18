@@ -740,6 +740,6 @@ class MultipleResolver(_AbstractResolver):
         if not resolver:
             self.raise_404_for_ident(ident)
         else:
-            logger.warn("%s handling request for %s" % (resolver.__class__.__name__, base_uri))
+            logger.info("%s handling request for %s" % (resolver.__class__.__name__, base_uri))
             return resolver.resolve(app, ident, base_uri)
 

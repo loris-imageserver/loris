@@ -57,6 +57,12 @@ USER=loris
 echo "Starting postinst"
 
 #
+## Install our Python dependencies
+#
+pip install -U appdynamics\<4.4
+pip install Pillow
+
+#
 ## Create a user to own the gust service
 #
 if ! getent passwd \$USER > /dev/null ; then
@@ -67,7 +73,7 @@ if ! getent passwd \$USER > /dev/null ; then
 fi
 
 #
-## Configure and start apache
+## Configure apache
 #
 a2enmod headers expires
 a2enmod wsgi
@@ -116,10 +122,8 @@ fi
 chown loris /cache
 
 #
-## Install our dependencies
+## Install Loris
 #
-pip install -U appdynamics\<4.4
-pip install Pillow
 cd /usr/local/src
 python setup.py install
 
