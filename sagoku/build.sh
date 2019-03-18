@@ -55,12 +55,14 @@ cat << EOF > ${BUILD_DIR}/DEBIAN/postinst
 USER=loris
 
 echo "Starting postinst"
+touch /tmp/STARTED_POSTINSTALL_SCRIPT
 
 #
 ## Install our Python dependencies
 #
 pip install -U appdynamics\<4.4
 pip install Pillow
+ln -s /usr/local/lib/python2.7/dist-packages/appdynamics/scripts/wsgi.py /var/www/loris/appd.wsgi
 
 #
 ## Create a user to own the gust service
@@ -134,7 +136,7 @@ python setup.py install
 if [ -f /etc/forum/appd.conf ]; then
     NODENAME="\$SGK_APP_SERVICE_NAME.\$SGK_INSTANCE_ID"
     sed -i -e 's/node =/node = '"\$NODENAME"'/g' /etc/forum/appd.conf
-    sudo -u loris /usr/local/bin/pyagent proxy start
+    sudo -u loris /usr/local/bin/pyagent proxy start &
 fi
 
 #
