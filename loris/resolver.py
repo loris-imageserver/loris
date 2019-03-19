@@ -586,7 +586,7 @@ class SimpleAmazonS3Resolver(_AbstractCachingResolver):
             s3 = boto3.resource('s3')
             try:
                 key = self.apply_prefix(ident)
-                logger.debug('Checking existence of Bucket = %s   Key = %s', self.s3bucket, key)
+                logger.warn('Checking existence of Bucket = %s   Key = %s', self.s3bucket, key)
                 s3.Object(self.s3bucket, key).load()
             except botocore.exceptions.ClientError as e:
                 if e.response['Error']['Code'] == "404":
