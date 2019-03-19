@@ -380,6 +380,24 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         assert self.app.resolver.resolve(self.app, ident='0001', base_uri='')
         assert self.app.resolver.is_resolvable(ident='0001')
 
+    @responses.activate
+    def test_without_extra_info(self):
+        self._mock_urls()
+
+        config = {
+            'cache_root' : self.SRC_IMAGE_CACHE,
+            'source_prefix' : 'http://sample.sample/',
+            'source_suffix' : '',
+            'default_format' : 'tif',
+            'head_resolvable' : True,
+            'uri_resolvable' : True,
+            'use_extra_info' : False
+        }
+        self.app.resolver = SimpleHTTPResolver(config)
+
+        assert self.app.resolver.resolve(self.app, ident='0001', base_uri='')
+        assert self.app.resolver.is_resolvable(ident='0001')
+
 
 class TestSimpleHTTPResolver(object):
 
