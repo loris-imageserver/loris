@@ -45,7 +45,7 @@ Maintainer: Ithaka
 Architecture: amd64
 Section: main
 Priority: optional
-Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, libapache2-mod-wsgi, apache2
+Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2
 Description: $APP_NAME
 EOF
 
@@ -78,7 +78,6 @@ fi
 ## Configure apache
 #
 a2enmod headers expires
-a2enmod wsgi
 rm -f /etc/apache2/sites-enabled/*
 ln -s /etc/apache2/sites-available/loris-web.conf /etc/apache2/sites-enabled/
 
@@ -97,6 +96,8 @@ fi
 mkdir -p /cache/loris
 chown loris /cache
 
+
+apt-get install -y libapache2-mod-wsgi
 
 #
 ## Install s3fs for mounting AWS S3 filesystems as local storage
