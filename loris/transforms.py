@@ -6,7 +6,7 @@ from __future__ import absolute_import
 import multiprocessing
 from logging import getLogger
 from math import ceil, log
-from os import path, unlink, devnull
+from os import path, unlink
 import platform
 import random
 import string
@@ -244,6 +244,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             exit(77)
 
         super(_AbstractJP2Transformer, self).__init__(config)
+        self.transform_timeout = config.get('timeout', 120)
 
     def _make_tmp_fp(self, fmt='bmp'):
         n = ''.join(random.choice(string.ascii_lowercase) for x in range(5))
@@ -276,26 +277,47 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             arg = str(reduce_arg)
         return arg
 
+    def _run_transform(self, target_fp, image_request, image_info, transform_cmd, fifo_fp):
+        try:
+            expand_proc = subprocess.Popen(transform_cmd, shell=True, bufsize=-1,
+                stderr=subprocess.PIPE, env=self.env)
+            with open(fifo_fp, 'rb') as f:
+                # read from the named pipe
+                p = Parser()
+                while True:
+                    s = f.read(1024)
+                    if not s:
+                        break
+                    p.feed(s)
+                im = p.close() # a PIL.Image
+        finally:
+            _, stderrdata = expand_proc.communicate()
+            proc_exit = expand_proc.returncode
+            if proc_exit != 0:
+                map(logger.error, stderrdata)
+            unlink(fifo_fp)
+
+        try:
+            if self.map_profile_to_srgb and image_info.color_profile_bytes:
+                emb_profile = BytesIO(image_info.color_profile_bytes)
+                im = self._map_im_profile_to_srgb(im, emb_profile)
+        except PyCMSError as err:
+            logger.warn('Error converting %r to sRGB: %r', im, err)
+
+        self._derive_with_pil(
+            im=im,
+            target_fp=target_fp,
+            image_request=image_request,
+            image_info=image_info,
+            crop=False
+        )
+
+
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
     def __init__(self, config):
         self.opj_decompress = config['opj_decompress']
-        self.env = {
-            'LD_LIBRARY_PATH' : config['opj_libs'],
-            'PATH' : config['opj_decompress']
-        }
+        self.env = None
         super(OPJ_JP2Transformer, self).__init__(config)
-
-    @staticmethod
-    def local_opj_decompress_path():
-        '''Only used in dev and tests.
-        '''
-        return 'bin/%s/%s/opj_decompress' % (platform.system(),platform.machine())
-
-    @staticmethod
-    def local_libopenjp2_dir():
-        '''Only used in dev and tests.
-        '''
-        return 'lib/%s/%s' % (platform.system(),platform.machine())
 
     def _region_to_opj_arg(self, region_param):
         '''
@@ -320,7 +342,6 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
         # make the named pipe
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        logger.debug('Calling %s', mkfifo_call)
         resp = subprocess.check_call(mkfifo_call, shell=True)
         if resp != 0:
             logger.error('Problem with mkfifo')
@@ -336,45 +357,26 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
 
         opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
 
-        logger.debug('Calling: %s', opj_cmd)
-
-        # Start the shellout. Blocks until the pipe is empty
-        # TODO: If this command hangs, the server never returns.
-        # Surely that can't be right!
-        with open(devnull, 'w') as fnull:
-            opj_decompress_proc = subprocess.Popen(opj_cmd, shell=True, bufsize=-1,
-                stderr=fnull, stdout=fnull, env=self.env)
-
-        with open(fifo_fp, 'rb') as f:
-            # read from the named pipe
-            p = Parser()
-            while True:
-                s = f.read(1024)
-                if not s:
-                    break
-                p.feed(s)
-            im = p.close() # a PIL.Image
-
-        # finish opj
-        opj_exit = opj_decompress_proc.wait()
-        if opj_exit != 0:
-            map(logger.error, opj_decompress_proc.stderr)
-        unlink(fifo_fp)
-
-        try:
-            if self.map_profile_to_srgb and image_info.color_profile_bytes:
-                emb_profile = BytesIO(image_info.color_profile_bytes)
-                im = self._map_im_profile_to_srgb(im, emb_profile)
-        except PyCMSError as err:
-            logger.warn('Error converting %r to sRGB: %r', im, err)
-
-        self._derive_with_pil(
-            im=im,
-            target_fp=target_fp,
-            image_request=image_request,
-            image_info=image_info,
-            crop=False
+        process = multiprocessing.Process(
+            target=self._run_transform,
+            kwargs={
+                'target_fp': target_fp,
+                'image_request': image_request,
+                'image_info': image_info,
+                'transform_cmd': opj_cmd,
+                'fifo_fp': fifo_fp
+            }
         )
+        process.start()
+        process.join(self.transform_timeout)
+        if process.is_alive():
+            logger.info('terminating process for %s, %s',
+                image_info.src_img_fp, target_fp)
+            process.terminate()
+            if path.exists(fifo_fp):
+                unlink(fifo_fp)
+            raise TransformException('OpenJPEG transform process timed out')
+
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
 
@@ -385,7 +387,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             'LD_LIBRARY_PATH' : config['kdu_libs'],
             'PATH' : config['kdu_expand']
         }
-        self.transform_timeout = config.get('timeout', 120)
         super(KakaduJP2Transformer, self).__init__(config)
 
     @staticmethod
@@ -418,42 +419,6 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         logger.debug('kdu region parameter: %s', arg)
         return arg
 
-    def _run_transform(self, target_fp, image_request, image_info, kdu_cmd, fifo_fp):
-        try:
-            # Start the kdu shellout. Blocks until the pipe is empty
-            kdu_expand_proc = subprocess.Popen(kdu_cmd, shell=True, bufsize=-1,
-                stderr=subprocess.PIPE, env=self.env)
-            with open(fifo_fp, 'rb') as f:
-                # read from the named pipe
-                p = Parser()
-                while True:
-                    s = f.read(1024)
-                    if not s:
-                        break
-                    p.feed(s)
-                im = p.close() # a PIL.Image
-        finally:
-            _, stderrdata = kdu_expand_proc.communicate()
-            kdu_exit = kdu_expand_proc.returncode
-            if kdu_exit != 0:
-                map(logger.error, stderrdata)
-            unlink(fifo_fp)
-
-        try:
-            if self.map_profile_to_srgb and image_info.color_profile_bytes:
-                emb_profile = BytesIO(image_info.color_profile_bytes)
-                im = self._map_im_profile_to_srgb(im, emb_profile)
-        except PyCMSError as err:
-            logger.warn('Error converting %r to sRGB: %r', im, err)
-
-        self._derive_with_pil(
-            im=im,
-            target_fp=target_fp,
-            image_request=image_request,
-            image_info=image_info,
-            crop=False
-        )
-
     def transform(self, target_fp, image_request, image_info):
         fifo_fp = self._make_tmp_fp()
         mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
@@ -476,7 +441,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
                 'target_fp': target_fp,
                 'image_request': image_request,
                 'image_info': image_info,
-                'kdu_cmd': kdu_cmd,
+                'transform_cmd': kdu_cmd,
                 'fifo_fp': fifo_fp
             }
         )
@@ -488,4 +453,5 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             process.terminate()
             if path.exists(fifo_fp):
                 unlink(fifo_fp)
-            raise TransformException('transform process timed out')
+            raise TransformException('Kakadu transform process timed out')
+

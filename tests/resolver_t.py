@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import copy
+import os
 from os.path import dirname
 from os.path import isfile
 from os.path import join
@@ -122,6 +123,13 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
         self.assertEqual(expected_path, ii.src_img_fp)
         self.assertEqual(ii.src_format, 'jp2')
         self.assertTrue(isfile(ii.src_img_fp))
+
+        # Now we resolve it a second time, to test the case where the
+        # cache is already warm.
+        ii = self.app.resolver.resolve(self.app, ident, base_uri="")
+        assert ii.src_img_fp == expected_path
+        assert ii.src_format == "jp2"
+        assert os.path.isfile(ii.src_img_fp)
 
     def test_present_ident_is_resolvable(self):
         ident = self.test_png_id
@@ -290,6 +298,13 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
 
+        # Now we resolve the same identifier a second time, when the cache
+        # is warm.
+        ii = self.app.resolver.resolve(self.app, ident, base_uri="")
+        assert ii.src_img_fp == expected_path
+        assert ii.src_format == "tif"
+        assert os.path.isfile(ii.src_img_fp)
+
         #Test with a full uri
         #Note: This seems weird but idents resolve wrong and removes a slash from //
         ident = quote_plus('http://sample.sample/0001')
@@ -446,6 +461,15 @@ class Test_TemplateHTTPResolver(object):
     def test_template_http_resolver_with_no_config_is_error(self):
         with pytest.raises(ResolverException):
             TemplateHTTPResolver({})
+
+    def test_allow_no_template_config(self):
+        no_template_config = {
+            k: v for k, v in self.config.items() if k != "templates"
+        }
+        resolver = TemplateHTTPResolver(no_template_config)
+
+        with pytest.raises(ResolverException):
+            resolver.resolve(app=None, ident="a:foo.jpg", base_uri="")
 
     def test_parsing_template_http_resolver_config(self):
         resolver = TemplateHTTPResolver(self.config)

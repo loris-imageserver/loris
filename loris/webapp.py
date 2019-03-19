@@ -41,7 +41,7 @@ from loris.loris_exception import (
     SyntaxException,
     TransformException,
 )
-
+from loris.utils import mkdir_p
 
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -68,12 +68,8 @@ def get_debug_config(debug_jp2_transformer):
     config['transforms']['target_formats'] = [ 'jpg', 'png', 'gif', 'webp', 'tif']
 
     if debug_jp2_transformer == 'opj':
-        from loris.transforms import OPJ_JP2Transformer
         config['transforms']['jp2']['impl'] = 'OPJ_JP2Transformer'
-        opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-        config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
-        libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
-        config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
+        config['transforms']['jp2']['opj_decompress'] = '/usr/bin/opj_decompress'
     elif debug_jp2_transformer == 'kdu':
         from loris.transforms import KakaduJP2Transformer
         config['transforms']['jp2']['impl'] = 'KakaduJP2Transformer'
@@ -332,6 +328,12 @@ class Loris(object):
         # make the loris.Loris configs attrs for easier access
         _loris_config = self.app_configs['loris.Loris']
         self.tmp_dp = _loris_config['tmp_dp']
+
+        try:
+            mkdir_p(self.tmp_dp)
+        except Exception as exc:
+            raise ConfigError("Error creating tmp_dp %s: %r" % (self.tmp_dp, exc))
+
         self.www_dp = _loris_config['www_dp']
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
@@ -380,10 +382,11 @@ class Loris(object):
     def _load_authorizer(self):
         try:
             impl = self.app_configs['authorizer']['impl']
-        except:
+        except KeyError:
             return None
-        AuthorizerClass = self._import_class(impl)
-        return AuthorizerClass(self.app_configs['authorizer'])
+        else:
+            AuthorizerClass = self._import_class(impl)
+            return AuthorizerClass(self.app_configs['authorizer'])
 
     def _import_class(self, qname):
         '''Imports a class AND returns it (the class, not an instance).

@@ -12,12 +12,14 @@ import re
 import pytest
 from werkzeug.datastructures import Headers
 from werkzeug.http import http_date
-from werkzeug.test import EnvironBuilder
-from werkzeug.wrappers import Request
+from werkzeug.test import Client, EnvironBuilder
+from werkzeug.wrappers import BaseResponse, Request
 
 from loris import img_info, webapp
+from loris.authorizer import NullAuthorizer
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
+from loris.webapp import get_debug_config, Loris
 from tests import loris_t
 
 
@@ -42,6 +44,79 @@ class TestDebugConfig(object):
         with pytest.raises(ConfigError) as err:
             webapp.get_debug_config('no_such_jp2_transformer')
         assert 'Unrecognized debug JP2 transformer' in str(err.value)
+
+
+class TestLoris(loris_t.LorisTest):
+
+    def test_can_be_configured_without_authorizer(self):
+        config = webapp.get_debug_config("kdu")
+        del config["authorizer"]
+        app = webapp.Loris(config)
+        assert app.authorizer is None
+
+    def test_can_be_configured_without_authorizer_impl(self):
+        config = webapp.get_debug_config("kdu")
+        del config["authorizer"]["impl"]
+        app = webapp.Loris(config)
+        assert app.authorizer is None
+
+    def test_can_be_configured_with_authorizer(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NullAuthorizer"}
+        app = webapp.Loris(config)
+        assert isinstance(app.authorizer, NullAuthorizer)
+
+    def test_cannot_get_info_when_auth_required(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NooneAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/info.json" % self.test_jpeg_id)
+        assert resp.status_code == 401
+
+    def test_can_get_info_when_auth_okay(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NullAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/info.json" % self.test_jpeg_id)
+        assert resp.status_code == 200
+
+    def test_cannot_get_image_when_auth_required(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NooneAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
+        assert resp.status_code == 401
+
+    def test_can_get_image_when_auth_okay(self):
+        config = webapp.get_debug_config("kdu")
+        config["authorizer"] = {"impl": "loris.authorizer.NullAuthorizer"}
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        resp = client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
+        assert resp.status_code == 200
 
 
 class TestLorisRequest(TestCase):
@@ -510,6 +585,21 @@ class WebappIntegration(loris_t.LorisTest):
         with self.client.get(to_get):
             pass
         self._assert_tmp_has_no_files()
+
+    def test_can_use_tmp_dir_for_transforms(self):
+        config = get_debug_config('kdu')
+        config["loris.Loris"]["tmp_dp"] = "/tmp/doesnotexist"
+        self.build_client_from_config(config)
+
+        assert self.app.tmp_dp == "/tmp/doesnotexist"
+
+        self.client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
+
+    def test_invalid_tmp_dir_is_configerror(self):
+        config = get_debug_config('kdu')
+        config["loris.Loris"]["tmp_dp"] = "/dev/null/tmp"
+        with pytest.raises(ConfigError, match="Error creating tmp_dp /dev/null/tmp:"):
+            Loris(config)
 
     def _assert_tmp_has_no_files(self):
         # callback should delete the image before the test ends, so the tmp dir
