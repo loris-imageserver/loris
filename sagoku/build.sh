@@ -45,7 +45,7 @@ Maintainer: Ithaka
 Architecture: amd64
 Section: main
 Priority: optional
-Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2, libapache2-mod-wsgi, build-essential, libfuse-dev, libxml2-dev, mime-support, libcurl4-openssl-dev, automake, libtool, wget, tar
+Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2, libapache2-mod-wsgi
 Description: $APP_NAME
 EOF
 
@@ -101,25 +101,25 @@ chown loris /cache
 #
 ## Install s3fs for mounting AWS S3 filesystems as local storage
 #
-cd /tmp
-git clone https://github.com/s3fs-fuse/s3fs-fuse.git
-cd s3fs-fuse
-./autogen.sh
-./configure --prefix=/usr
-make
-make install
+#cd /tmp
+#git clone https://github.com/s3fs-fuse/s3fs-fuse.git
+#cd s3fs-fuse
+#./autogen.sh
+#./configure --prefix=/usr
+#make
+#make install
 
 #
 ## Map and mount the S3 filesystem as local storage
 #
-mkdir /images
+#mkdir /images
 
-if [ \${SGK_ENVIRONMENT} == "test" ]; then
-  s3fs forum-data-cache /images -o iam_role='test-ForumTeamInstRole' -o allow_other -o umask=0222
-else
-  echo 'No production yet';
+#if [ \${SGK_ENVIRONMENT} == "test" ]; then
+#  s3fs forum-data-cache /images -o iam_role='test-ForumTeamInstRole' -o allow_other -o umask=0222
+#else
+#  echo 'No production yet';
   #mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-edeb3ca6.efs.us-east-1.amazonaws.com:/ /cache
-fi
+#fi
 
 chown loris /cache
 
