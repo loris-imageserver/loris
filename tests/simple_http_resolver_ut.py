@@ -175,6 +175,7 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
             'uri_resolvable': True,
             'user': 'TestUser',
             'pw': 'TestPW',
+            'use_extra_info': False,
         }
 
         resolver = SimpleHTTPResolver(config)
@@ -186,6 +187,7 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
         self.assertEqual(resolver.uri_resolvable, True)
         self.assertEqual(resolver.user, 'TestUser')
         self.assertEqual(resolver.pw, 'TestPW')
+        self.assertEqual(resolver.use_extra_info, False)
 
     def test_barebones_config(self):
         config = {
@@ -202,3 +204,4 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
         self.assertEqual(resolver.uri_resolvable, True)
         self.assertEqual(resolver.user, None)
         self.assertEqual(resolver.pw, None)
+        self.assertEqual(resolver.use_extra_info, True)

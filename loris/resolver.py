@@ -39,6 +39,7 @@ class _AbstractResolver(object):
         self.config = config
         if config:
             self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
+            self.use_extra_info = self.config.get('use_extra_info', True)
 
     def is_resolvable(self, ident):
         """
@@ -381,7 +382,10 @@ class SimpleHTTPResolver(_AbstractResolver):
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
         uri = self.fix_base_uri(base_uri)
-        extra = self.get_extra_info(ident, cached_file_path)
+        if self.use_extra_info:
+            extra = self.get_extra_info(ident, cached_file_path)
+        else:
+            extra = {}
         return ImageInfo(app, uri, cached_file_path, format_, extra)
 
 
