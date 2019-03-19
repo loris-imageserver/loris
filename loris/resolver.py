@@ -730,6 +730,9 @@ class MultipleResolver(_AbstractResolver):
                 return True
         return False
 
+    def raise_404_for_ident(self, ident):
+        raise ResolverException("Image not found for identifier: %r." % ident)
+
     def get_first_available_resolver(self, ident):
         for resolver in self.resolvers:
             if resolver.is_resolvable(ident):
