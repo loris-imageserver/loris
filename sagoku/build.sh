@@ -159,3 +159,4 @@ service apache2 start
 EOF
 
 chmod 0755 ${BUILD_DIR}/DEBIAN/postinst
+chmod 0755 ${BUILD_DIR}/DEBIAN/preinst
