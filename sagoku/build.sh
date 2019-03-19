@@ -45,15 +45,10 @@ Maintainer: Ithaka
 Architecture: amd64
 Section: main
 Priority: optional
-Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2, libapache2-mod-wsgi
+Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2
 Description: $APP_NAME
 EOF
 
-
-cat << EOF > ${BUILD_DIR}/DEBIAN/preinst
-#!/bin/bash
-rm /etc/apache2/mods-available/wsgi.load
-EOF
 
 cat << EOF > ${BUILD_DIR}/DEBIAN/postinst
 #!/bin/bash
@@ -159,4 +154,3 @@ service apache2 start
 EOF
 
 chmod 0755 ${BUILD_DIR}/DEBIAN/postinst
-chmod 0755 ${BUILD_DIR}/DEBIAN/preinst
