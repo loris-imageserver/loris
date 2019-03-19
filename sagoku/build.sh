@@ -45,7 +45,7 @@ Maintainer: Ithaka
 Architecture: amd64
 Section: main
 Priority: optional
-Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2, libapache2-mod-wsgi
+Depends: python-dev, python-pip, libjpeg-turbo8-dev, libfreetype6-dev, zlib1g-dev, liblcms2-dev, liblcms2-utils, libtiff5-dev, libwebp-dev, apache2
 Description: $APP_NAME
 EOF
 
@@ -142,6 +142,7 @@ fi
 #
 ## Start the application
 #
+a2enmod wsgi
 service apache2 start
 
 #
