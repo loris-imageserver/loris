@@ -8,10 +8,17 @@ Loris is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/
 
 [![Build Status](https://travis-ci.org/loris-imageserver/loris.svg?branch=development)](https://travis-ci.org/loris-imageserver/loris)
 
-Demos
------
- * [Mentelin Bible, l. 1r](http://libimages.princeton.edu/loris2/pudl0001%2F5138415%2F00000011.jp2/full/full/0/default.jpg)
- * [Scroll illustrating a story about the Sagami River](http://libimages1.princeton.edu/osd-demo/?feedme=pudl0123/8172070/01/00000001.jp2) with [OpenSeadragon](http://openseadragon.github.io/)
+Ithaka specific instructions
+----------------------------
+ Building a development docker image for use in PyCharm
+  * Use the included Dockerfile and tag the image as loris:loris
+  
+        docker build . -t loris:loris
+  * Setup PyCharm to use a remote Python interpreter and specify the Python in the loris:loris docker image.
+  * Update PyCharm to use pytest for unit testing.
+
+The application can be run via PyCharm by running webapp.py in the loris directory.
+  
 
 Installation Instructions
 -------------------------

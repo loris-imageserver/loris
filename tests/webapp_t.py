@@ -275,14 +275,16 @@ class TestGetInfo(loris_t.LorisTest):
 class WebappIntegration(loris_t.LorisTest):
     'Simulate working with the webapp over HTTP.'
 
-    def test_index(self):
-        resp = self.client.get('/')
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.data.decode('utf8').startswith('This is Loris, '))
-
-    def test_favicon(self):
-        resp = self.client.get('/favicon.ico')
-        self.assertEqual(resp.status_code, 200)
+    # Removed static file serving tests.  (WFG 3/20/19)
+    #
+    # def test_index(self):
+    #     resp = self.client.get('/')
+    #     self.assertEqual(resp.status_code, 200)
+    #     self.assertTrue(resp.data.decode('utf8').startswith('This is Loris, '))
+    #
+    # def test_favicon(self):
+    #     resp = self.client.get('/favicon.ico')
+    #     self.assertEqual(resp.status_code, 200)
 
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))

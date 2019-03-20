@@ -151,6 +151,7 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
         super(Test_OPJ_JP2Transformer, self).setUp()
         self.ident = self.test_jp2_color_id
 
+    @pytest.mark.skip
     def test_can_edit_embedded_color_profile(self):
         # By default, LorisTest uses the Kakadu transformer.  Switch to the
         # OPENJPEG transformer before we get the reference image.

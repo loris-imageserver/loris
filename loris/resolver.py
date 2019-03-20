@@ -531,7 +531,7 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         return (url, options)
 
 
-class SimpleAmazonS3Resolver(_AbstractCachingResolver):
+class SimpleS3Resolver(_AbstractCachingResolver):
     """
     A simple AWS S3 resolver.
 
@@ -553,13 +553,20 @@ class SimpleAmazonS3Resolver(_AbstractCachingResolver):
 
     def __init__(self, config):
         ''' setup object and validate '''
-        super(SimpleAmazonS3Resolver, self).__init__(config)
+        super(SimpleS3Resolver, self).__init__(config)
         self.default_format = self.config.get('default_format', None)
-        source_root = self.config.get('source_root', None)
-        assert source_root, 'source_root is a required parameter for the S3 resolver'
-        scheme, self.s3bucket, self.prefix, ___, ___ = urlparse.urlsplit(source_root)
-        assert scheme == 's3', '{0} is not a valid s3 url'.format(source_root)
+        s3_path = self.config.get('s3_path', None)
+        if not s3_path:
+            message = 'Server Side Error: Configuration incomplete and cannot resolve. Must set s3_path in settings.'
+            logger.error(message)
+            raise ResolverException(message)
+        scheme, self.s3bucket, self.prefix, ___, ___ = urlparse.urlsplit(s3_path)
+        if scheme != 's3':
+            message = 'Server Side Error: Configuration incomplete S3 path must start with s3://.'
+            logger.error(message)
+            raise ResolverException(message)
         self.prefix = self.prefix[1:]  # remove the leading slash from the prefix path
+
 
     def apply_prefix(self, ident):
         if self.prefix:
@@ -586,11 +593,10 @@ class SimpleAmazonS3Resolver(_AbstractCachingResolver):
             s3 = boto3.resource('s3')
             try:
                 key = self.apply_prefix(ident)
-                logger.warn('Checking existence of Bucket = %s   Key = %s', self.s3bucket, key)
+                logger.info('Checking existence of Bucket = %s   Key = %s', self.s3bucket, key)
                 s3.Object(self.s3bucket, key).load()
             except botocore.exceptions.ClientError as e:
-                if e.response['Error']['Code'] == "404":
-                    return False
+                return False
             return True
 
     def copy_to_cache(self, ident):
@@ -693,12 +699,17 @@ class SourceImageCachingResolver(_AbstractResolver):
         return ImageInfo(app, uri, cache_fp, format_, extra)
 
 
-class SimpleHTTPRedirector(_AbstractResolver):
+class SimpleHTTPRedirectResolver(_AbstractResolver):
 
     def __init__(self, config):
         ''' setup object and validate '''
-        super(SimpleHTTPRedirector, self).__init__(config)
+        super(SimpleHTTPRedirectResolver, self).__init__(config)
         self.source_prefix = self.config.get('source_prefix', '')
+        if self.source_prefix == '':
+            message = 'Server Side Error: Configuration incomplete and cannot resolve. Must set source_prefix in settings.'
+            logger.error(message)
+            raise ResolverException(message)
+
 
     def is_resolvable(self, ident):
         res = requests.get("%s/%s/info.json" % (self.source_prefix, ident))
@@ -715,6 +726,8 @@ class MultipleResolver(_AbstractResolver):
         super(MultipleResolver, self).__init__(config)
         self.resolvers = []
         resolver_list = config.get('resolvers')
+        if type(resolver_list) is not list:
+            raise ResolverException("MultipleResolver expects a list of resolvers.")
         if len(resolver_list) > 1:
             for r in resolver_list:
                 resolver_config = config.get(r)

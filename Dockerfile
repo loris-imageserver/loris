@@ -38,6 +38,7 @@ COPY sagoku/* /
 #RUN mkdir -p /cache && mkdir -p /var/log/loris && mkdir -p /tmp/loris/tmp && mkdir -p /var/www/loris
 
 RUN pip install -r requirements.txt
+RUN pip install pytest
 
 # Define mountable directories.
 #VOLUME ["/data"]
