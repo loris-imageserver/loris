@@ -62,8 +62,7 @@ touch /tmp/STARTED_POSTINSTALL_SCRIPT
 ## Install our Python dependencies
 #
 pip install -U appdynamics\<4.4
-pip install Pillow
-ln -s /usr/local/lib/python2.7/dist-packages/appdynamics/scripts/wsgi.py /var/www/loris/appd.wsgi
+pip install Pillow uwsgi
 
 #
 ## Create a user to own the gust service
@@ -97,8 +96,6 @@ fi
 mkdir -p /cache/loris
 chown loris /cache
 
-
-apt-get install -y libapache2-mod-wsgi
 
 #
 ## Install s3fs for mounting AWS S3 filesystems as local storage
@@ -144,8 +141,8 @@ fi
 #
 ## Start the application
 #
-a2enmod wsgi
 service apache2 start
+service loris start
 
 #
 ## Verify the application starts up properly
