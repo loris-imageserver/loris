@@ -95,32 +95,8 @@ fi
 
 mkdir -p /cache/loris
 chown loris /cache
-
-
-#
-## Install s3fs for mounting AWS S3 filesystems as local storage
-#
-#cd /tmp
-#git clone https://github.com/s3fs-fuse/s3fs-fuse.git
-#cd s3fs-fuse
-#./autogen.sh
-#./configure --prefix=/usr
-#make
-#make install
-
-#
-## Map and mount the S3 filesystem as local storage
-#
-#mkdir /images
-
-#if [ \${SGK_ENVIRONMENT} == "test" ]; then
-#  s3fs forum-data-cache /images -o iam_role='test-ForumTeamInstRole' -o allow_other -o umask=0222
-#else
-#  echo 'No production yet';
-  #mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-edeb3ca6.efs.us-east-1.amazonaws.com:/ /cache
-#fi
-
-chown loris /cache
+mkdir -p /mnt/loris/tmp/jp2
+chown -R loris /mnt/loris
 
 #
 ## Install Loris
