@@ -1,0 +1,4 @@
+--require ./spec/support/env.rb
+--require support/rspec_config.rb
+--require support/matchers.rb
+--require support/junit_formatter.rb
