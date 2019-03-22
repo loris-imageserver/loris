@@ -6,7 +6,7 @@ require 'digest'
 
 describe 'Loris IIIF APIs' do
 
-  api_extends = [Forum::API::STOR]
+  api_extends = [Forum::API::LORIS_IIIF]
   host = DIRECT_SERVICE==''? BASE_IIIF_URL : DIRECT_SERVICE
   md5 = Digest::MD5.new
 
@@ -14,8 +14,12 @@ describe 'Loris IIIF APIs' do
   test_id = Time.now.to_i.to_s
   context 'Record on Sagoku:' do
     tmp_download_path = "#{Dir.pwd}/tmp/Sagoku_download_#{test_id}.jpg"
-    uuid = 'd0434e64-0793-4017-83f6-5895d82fd897'
-    date_path = '/2019/03/19/17/'
+    uuid_test = 'd0434e64-0793-4017-83f6-5895d82fd897'
+    date_path_test = '/2019/03/19/17/'
+    uuid_prod = 'e14ae65d-9303-4173-adec-3b1d06735c4b'
+    date_path_prod = '/2019/03/22/18/'
+    uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
+    date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
 
     it 'returns iiif json data of image record on Sagoku' do
       resp = agent.get_iiif_json_data(date_path, uuid)
@@ -36,8 +40,12 @@ describe 'Loris IIIF APIs' do
 
   context 'Record on DataCenter: ' do
     tmp_download_path = "#{Dir.pwd}/tmp/DC_download_#{test_id}.jpg"
-    uuid = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
-    date_path = '/2019/03/22/10/'
+    uuid_test = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
+    date_path_test = '/2019/03/22/10/'
+    uuid_prod = 'ef3015fc-0fec-423f-9c52-4ff18b3090d7'
+    date_path_prod = '/2019/03/22/14/'
+    uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
+    date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
 
     it 'returns iiif json data of image record on DataCenter' do
       resp = agent.get_iiif_json_data(date_path, uuid)
@@ -58,6 +66,7 @@ describe 'Loris IIIF APIs' do
   context 'failure cases:' do
     uuid = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
     date_path = '/2019/03/22/11/'
+
     it 'returns 404 error iiif json data request if record not existed neither DC or Sagoku' do
       expect {agent.get_iiif_json_data(date_path, uuid)}.to raise_exception {|error|
         expect(error.response_code).to eq('404')}
