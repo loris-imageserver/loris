@@ -18,10 +18,6 @@ RSpec.configure do |config|
     skip('Environment is STAGE and this test is marked ":no_stage"') if ENVIRONMENT == 'stage'
   end
 
-  config.before(:example, :no_qa) do
-    skip('Environment is QA and this test is marked ":no_qa"') if ENVIRONMENT == 'qa'
-  end
-
   config.before(:example, :wip) do
     skip('Cases marked ":wip" would not execute.')
   end

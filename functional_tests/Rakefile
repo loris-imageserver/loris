@@ -4,12 +4,9 @@
 require 'parallel_tests/tasks'
 require './spec/support/env.rb'
 require 'rspec/core/rake_task'
-require 'pact_broker/client/tasks'
-require 'pact/tasks'
-require 'pact/provider/proxy/tasks'
 
-namespace :Job_Manager do
 
+namespace :Loris_IIIF do
   rspec_options = '-f JunitFormatter -o rspec_junit_results.xml -f d --color --tag ~wip'
   rspec_options << case ENVIRONMENT
                    when 'prod'
@@ -20,7 +17,7 @@ namespace :Job_Manager do
                      '' # Don't add tags in this case
                    end
 
-  RSpec::Core::RakeTask.new(:full_suite, 'Full suite for Job Manager service.') do |t|
+  RSpec::Core::RakeTask.new(:full_suite, 'Full suite for Loris IIIF service.') do |t|
     rbfiles = File.join('spec/forum/**', '*service_spec.rb')
     t.pattern = Dir.glob(rbfiles)
     t.rspec_opts = [rspec_options]
@@ -31,50 +28,5 @@ namespace :Job_Manager do
     t.pattern = Dir.glob(rbfiles)
     t.rspec_opts = ['--dry-run -f d --color --tag ~wip']
   end
-
-end
-
-# Test Execution Tasks #
-
-namespace :pact do
-  rspec_options = '-f d --color --tag ~wip'
-  rspec_options << case ENVIRONMENT
-                   when 'prod'
-                     ' -t ~no_prod'
-                   when 'stage'
-                     ' -t ~no_stage'
-                   else
-                     '' # Don't add tags in this case
-                   end
-
-  RSpec::Core::RakeTask.new(:create_all_contracts) do |t|
-    rbfiles = File.join('spec/service_providers/**', '*pact_spec.rb')
-    t.pattern = Dir.glob(rbfiles)
-    t.rspec_opts = [rspec_options]
-  end
-
-  RSpec::Core::RakeTask.new(:dryRun) do |t|
-    rbfiles = File.join('spec/service_providers/**', '*pact_spec.rb')
-    t.pattern = Dir.glob(rbfiles)
-    t.rspec_opts = ['--dry-run -f d --color --tag ~wip']
-  end
-
-end
-
-# Pact Tasks #
-
-PactBroker::Client::PublicationTask.new do |task|
-  task.consumer_version = '0.1.1'
-  task.pact_broker_base_url = 'http://pact-broker.apps.test.cirrostratus.org'
-  task.tag_with_git_branch = false
-  task.tags = ['dev']
-end
-
-Pact::ProxyVerificationTask.new :jobmanager_service do |task|
-  pact_url = 'http://pact-broker.apps.test.cirrostratus.org/pacts/provider/forum-jobmanager-service/consumer/forum-ui/latest'
-  task.pact_url pact_url, :pact_helper => './spec/service_providers/pact_helper.rb'
-  task.provider_base_url BASE_JOBMANAGER_URL
-  task.provider_app_version '1.0.0'
-  task.publish_verification_results true
 end
 
