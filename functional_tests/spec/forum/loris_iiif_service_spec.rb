@@ -59,7 +59,7 @@ describe 'Loris IIIF APIs' do
       expect(resp.code).to eq('200')
       expect(resp.response["content-type"]).to eq('image/jpeg')
       resp.save! tmp_download_path
-      expect(md5.hexdigest(File.read(tmp_download_path))).to eq('c29ea1ad73e23489776a5428f2c59126')
+      expect(md5.hexdigest(File.read(tmp_download_path))).to eq('1806bb994ffc578ea94a7dfabd1c47aa')
     end
   end
 

@@ -13,7 +13,8 @@ local_env_configs = {
     ip_auth_proxy_port: '80',
     no_ip_auth_proxy_url: 'apacheproxy02.acorn.cirrostratus.org',
     no_ip_auth_proxy_port: '80',
-    direct_service: ''
+    direct_service: '',
+    environment: 'stage'
 }
 stage_environment = {
     base_appsgateway_url: 'https://test.forum.jstor.org'
