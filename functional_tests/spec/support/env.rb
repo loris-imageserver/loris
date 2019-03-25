@@ -90,3 +90,4 @@ service.configuration.environment = env
 
 BASE_JOBMANAGER_URL = service.get_host('forum-job-manager-service')
 BASE_IIIF_URL = service.get_host('forum-iiif-service')
+BASE_STOR_URL = service.get_host('forum-stor')
