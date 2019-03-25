@@ -86,11 +86,10 @@ ln -s /etc/apache2/sites-available/loris-web.conf /etc/apache2/sites-enabled/
 #
 mkdir /cache
 
-if [ \${SGK_ENVIRONMENT} == "test" ]; then
-  mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-b6d3a757.efs.us-east-1.amazonaws.com:/ /cache
+if [ \${SGK_ENVIRONMENT} == "prod" ]; then
+  mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-33fcb6d3.efs.us-east-1.amazonaws.com:/ /cache
 else
-  echo 'No production yet';
-  #mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-edeb3ca6.efs.us-east-1.amazonaws.com:/ /cache
+  mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport fs-b6d3a757.efs.us-east-1.amazonaws.com:/ /cache
 fi
 
 mkdir -p /cache/loris
