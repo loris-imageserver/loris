@@ -1,0 +1,13 @@
+source 'https://artifactory.acorn.cirrostratus.org/artifactory/api/gems/gems' do
+
+  gem 'activesupport',          '>= 3.2.6'
+  gem 'aws-sdk-s3',             '~> 1.17.0'
+  gem 'forum_apis',             '~> 1.8.0'
+  gem 'ithaka_utilities',       '~> 4.8'
+  gem 'mechanize',              '~> 2.7.5'
+  gem 'parallel_tests',         '~> 2.15.0'
+  gem 'rake',                   '~> 12.3.2'
+  gem 'rest-client',            '~> 2.0.2'
+  gem 'rspec',                  '~> 3.8'
+
+end

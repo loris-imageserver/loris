@@ -1,0 +1,3 @@
+--require support/junit_formatter.rb
+--format JunitFormatter
+--out tmp/rspec<%= ENV["TEST_ENV_NUMBER"] %>.xml

@@ -1,0 +1,32 @@
+# ********************************************************************
+# **Local Environment Configuration**
+# ********************************************************************
+require 'parallel_tests/tasks'
+require './spec/support/env.rb'
+require 'rspec/core/rake_task'
+
+
+namespace :Loris_IIIF do
+  rspec_options = '-f JunitFormatter -o rspec_junit_results.xml -f d --color --tag ~wip'
+  rspec_options << case ENVIRONMENT
+                   when 'prod'
+                     ' -t ~no_prod'
+                   when 'stage'
+                     ' -t ~no_stage'
+                   else
+                     '' # Don't add tags in this case
+                   end
+
+  RSpec::Core::RakeTask.new(:full_suite, 'Full suite for Loris IIIF service.') do |t|
+    rbfiles = File.join('spec/forum/**', '*service_spec.rb')
+    t.pattern = Dir.glob(rbfiles)
+    t.rspec_opts = [rspec_options]
+  end
+
+  RSpec::Core::RakeTask.new(:dryRun) do |t|
+    rbfiles = File.join('spec/forum/**', '*service_spec.rb')
+    t.pattern = Dir.glob(rbfiles)
+    t.rspec_opts = ['--dry-run -f d --color --tag ~wip']
+  end
+end
+
