@@ -621,6 +621,7 @@ class SimpleS3Resolver(_AbstractCachingResolver):
         return local_fp
 
     def resolve(self, app, ident, base_uri):
+        ident = unquote(ident)
         cache_dir = self.cache_dir_path(ident)
         logger.debug('Checking for existence of cache_dir =  %s' % (cache_dir,))
         if not exists(cache_dir):
