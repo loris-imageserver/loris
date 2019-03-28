@@ -1,3 +1,4 @@
+--extra-index https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
 asn1crypto==0.24.0        # via cryptography
 attrs==17.4.0
 certifi==2018.1.18        # via requests
@@ -10,7 +11,7 @@ idna==2.6                 # via cryptography, requests
 ipaddress==1.0.19         # via cryptography
 netaddr==0.7.19
 olefile==0.46           # via pillow
-pillow==5.4.1
+pillow==2019.03.28
 pycparser==2.18           # via cffi
 pyjwt==1.5.3
 requests==2.18.4
