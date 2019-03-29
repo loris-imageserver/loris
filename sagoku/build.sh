@@ -62,7 +62,8 @@ touch /tmp/STARTED_POSTINSTALL_SCRIPT
 ## Install our Python dependencies
 #
 pip install -U appdynamics\<4.4
-pip install Pillow uwsgi
+pip install Pillow==2019.03.28 -i https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
+pip install uwsgi
 
 #
 ## Create a user to own the gust service

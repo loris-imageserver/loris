@@ -62,9 +62,8 @@ def get_debug_config(debug_jp2_transformer):
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-    config['resolver']['impl'] = 'loris.resolver.SimpleS3Resolver'
-    config['resolver']['s3_path'] = 's3://sequoia-forum-media/test.cirrostratus.org/'
-    config['resolver']['cache_root'] = '/tmp'
+    config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
+    config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     config['transforms']['target_formats'] = ['jpg', 'png', 'gif', 'webp', 'tif']
 
     if debug_jp2_transformer == 'opj':
@@ -400,6 +399,10 @@ class Loris(object):
         return response(environ, start_response)
 
     def route(self, request):
+        # Handle IIP requests
+        if 'iiif' in [k.lower() for k in request.args]:
+            request.path = "/%s" % request.args.get('iiif', request.args.get('IIIF'))
+
         loris_request = LorisRequest(request, self.redirect_id_slash_to_info, self.proxy_path)
         request_type = loris_request.request_type
 

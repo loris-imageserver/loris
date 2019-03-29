@@ -1,4 +1,3 @@
---extra-index https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
 asn1crypto==0.24.0        # via cryptography
 attrs==17.4.0
 certifi==2018.1.18        # via requests
