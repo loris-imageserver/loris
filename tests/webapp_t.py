@@ -420,6 +420,16 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 200)
 
+    def test_iip_request_rewriting(self):
+        param = '%s/full/300,/0/default.jpg' % self.test_jp2_color_id
+        resp = self.client.get("/?iiif=%s" % param)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_capitolized_iip_request_rewriting(self):
+        param = '%s/full/300,/0/default.jpg' % self.test_jp2_color_id
+        resp = self.client.get("/?IIIF=%s" % param)
+        self.assertEqual(resp.status_code, 200)
+
 
     def test_no_ims_header_ok(self):
         to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)

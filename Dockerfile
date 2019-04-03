@@ -36,7 +36,7 @@ COPY requirements.txt ./
 COPY sagoku/* /
 
 #RUN mkdir -p /cache && mkdir -p /var/log/loris && mkdir -p /tmp/loris/tmp && mkdir -p /var/www/loris
-
+RUN pip install Pillow==2019.03.28 -i https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
 RUN pip install -r requirements.txt
 RUN pip install pytest
 
