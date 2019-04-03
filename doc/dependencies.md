@@ -35,19 +35,6 @@ Now install Pillow (setup.py would do this for you, but it's better to do separa
 
     $ sudo pip install Pillow
 
-The output should (and MUST!) include these lines:
-
-    [...]
-    --- JPEG support available
-    [...]
-    --- ZLIB (PNG/ZIP) support available
-    --- LIBTIFF support available
-    --- FREETYPE2 support available
-    --- LITTLECMS2 support available
-    --- WEBP support available
-    --- WEBPMUX support available
-    [...]
-
 In case you plan on working on the source code without running setup.py, the following are required python libraries that must currently exist in your Python environment:
 
     $ sudo pip install configobj
