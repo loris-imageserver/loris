@@ -24,6 +24,8 @@ from PIL.ImageOps import mirror
 # This import is only used for converting embedded color profiles to sRGB,
 # which is a user-configurable setting.  If they don't have this enabled,
 # the failure of this import isn't catastrophic.
+Image.MAX_IMAGE_PIXELS = None
+
 try:
     from PIL.ImageCms import profileToProfile, PyCMSError
     has_imagecms = True
