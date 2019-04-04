@@ -62,8 +62,10 @@ touch /tmp/STARTED_POSTINSTALL_SCRIPT
 ## Install our Python dependencies
 #
 pip install -U appdynamics\<4.4
-pip install Pillow==2019.03.28 -i https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
+pip install Pillow==2019.04.03 -i https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
 pip install uwsgi
+pip install -U -r /usr/local/src/requirements.txt
+
 
 #
 ## Create a user to own the gust service
@@ -113,6 +115,14 @@ if [ -f /etc/forum/appd.conf ]; then
     sed -i -e 's/node =/node = '"\$NODENAME"'/g' /etc/forum/appd.conf
     sudo -u loris /usr/local/bin/pyagent proxy start &
 fi
+
+#
+## Copying Libs
+#
+sudo cp bin/Linux/x86_64/* /usr/local/bin/
+sudo cp lib/Linux/x86_64/* /usr/lib/
+
+
 
 #
 ## Start the application
