@@ -36,6 +36,7 @@ PIL_MODES_TO_QUALITIES = {
     'LA' : ['default','gray','bitonal'],
     'P' : ['default','gray','bitonal'],
     'RGB': ['default','color','gray','bitonal'],
+    'LAB': ['default','color','gray','bitonal'],
     'RGBA': ['default','color','gray','bitonal'],
     'RGBX': ['default','color','gray','bitonal'],
     'CMYK': ['default','color','gray','bitonal'],
