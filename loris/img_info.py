@@ -198,7 +198,7 @@ class ImageInfo(JP2Extractor, object):
             description=profile_description
         )
 
-        if self.src_format == 'jp2':
+        if self.src_format in ['jp2', 'jpf', 'jpx']:
             self._from_jp2(self.src_img_fp)
         elif self.src_format  in ('jpg','tif','png'):
             self._extract_with_pillow(self.src_img_fp)
