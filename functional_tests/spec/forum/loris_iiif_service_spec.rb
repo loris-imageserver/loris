@@ -27,7 +27,7 @@ describe 'Loris IIIF APIs' do
     it 'returns iiif json data of image record on Sagoku' do
       resp = agent.get_iiif_json_data(date_path, uuid)
       expect(resp.response["access-control-allow-origin"]).to eq('*'), 'Header required for cross-origin request was missing'
-      expect(resp.json[:@id]).to include(CGI.escape(date_path[1..-1]+uuid))
+      expect(resp.json[:@id]).to include(date_path+uuid)
       expect(resp.uri.to_s).to include(BASE_IIIF_URL)
     end
 
@@ -35,9 +35,9 @@ describe 'Loris IIIF APIs' do
       resp = agent.get_iiif_image_view(date_path, uuid)
       expect(resp.code).to eq('200')
       expect(resp.response["content-type"]).to eq('image/jpeg')
-      expect(resp.response["content-length"]).to eq('23584')
       resp.save! tmp_download_path
-      expect(md5.hexdigest(File.read(tmp_download_path))).to eq('6e99d6c4f383220904611ccdf601ebb7')
+      expect(File.size(tmp_download_path)).to be_within(5).of(23559)
+      expect(md5.hexdigest(File.read(tmp_download_path))).to eq('4276576321c30b1ee0c83fdc4a1cd850')
     end
   end
 
@@ -118,7 +118,7 @@ describe 'Loris IIIF APIs' do
     it 'returns iiif json data of new image record on Sagoku' do
       resp = agent.get_iiif_json_data(@date_path, @uuid)
       expect(resp.response["access-control-allow-origin"]).to eq('*'), 'Header required for cross-origin request was missing'
-      expect(resp.json[:@id]).to include(CGI.escape(@date_path[1..-1]+@uuid))
+      expect(resp.json[:@id]).to include(@date_path+@uuid)
       expect(resp.uri.to_s).to include(BASE_IIIF_URL)
     end
 
@@ -126,11 +126,9 @@ describe 'Loris IIIF APIs' do
       resp = agent.get_iiif_image_view(@date_path, @uuid)
       expect(resp.code).to eq('200')
       expect(resp.response["content-type"]).to eq('image/jpeg')
-      #expect(resp.response["content-length"]).to eq('23584')
       resp.save! tmp_download_path
       expect( File.size(tmp_download_path)).to be_within(10).of(23559)
     end
-
   end
 end
 
