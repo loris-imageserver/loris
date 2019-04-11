@@ -212,13 +212,14 @@ class LorisResponse(BaseResponse, CommonResponseDescriptorsMixin):
         self.headers['Link'] = '<%s>;rel="profile"' % (constants.COMPLIANCE,)
 
     def set_acao(self, request, regex=None):
-        if regex:
-            if regex.search(request.url_root):
-                self.headers['Access-Control-Allow-Origin'] = request.url_root
-        else:
-            self.headers['Access-Control-Allow-Origin'] = "*"
-        self.headers['Access-Control-Allow-Methods'] = "GET, OPTIONS"
-        self.headers['Access-Control-Allow-Headers'] = "Authorization"
+        pass
+        # if regex:
+        #     if regex.search(request.url_root):
+        #         self.headers['Access-Control-Allow-Origin'] = request.url_root
+        # else:
+        #     self.headers['Access-Control-Allow-Origin'] = "*"
+        # self.headers['Access-Control-Allow-Methods'] = "GET, OPTIONS"
+        # self.headers['Access-Control-Allow-Headers'] = "Authorization"
 
 
 class BadRequestResponse(LorisResponse):
