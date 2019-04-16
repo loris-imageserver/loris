@@ -20,10 +20,13 @@ except ImportError:  # Python 3
 from PIL import Image
 from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
+from PIL import ImageCms
 
 # This import is only used for converting embedded color profiles to sRGB,
 # which is a user-configurable setting.  If they don't have this enabled,
 # the failure of this import isn't catastrophic.
+Image.MAX_IMAGE_PIXELS = None
+
 try:
     from PIL.ImageCms import profileToProfile, PyCMSError
     has_imagecms = True
@@ -169,7 +172,13 @@ class _AbstractTransformer(object):
                 im.mode != "RGB" and
                 image_request.quality not in ('gray', 'bitonal')
             ):
-                im = im.convert("RGB")
+                if "LAB" in im.mode:
+                    srgb_p = ImageCms.createProfile("sRGB")
+                    lab_p = ImageCms.createProfile("LAB")
+                    lab2rgb = ImageCms.buildTransformFromOpenProfiles(lab_p, srgb_p, "LAB", "RGB")
+                    im = ImageCms.applyTransform(im, lab2rgb)
+                else:
+                    im = im.convert("RGB")
 
             elif image_request.quality == 'gray':
                 im = im.convert('L')
