@@ -17,12 +17,19 @@ describe 'Loris IIIF APIs' do
     tmp_download_path = "#{Dir.pwd}/tmp/Sagoku_download_#{test_id}.jpg"
     uuid_test = '51d7db67-3dbf-4a04-b84b-3b6b05405988'
     date_path_test = '/2019/03/25/15/'
+    img_size_test = 23559
+    md5_test = '4276576321c30b1ee0c83fdc4a1cd850'
 
     uuid_prod = '7959323b-1691-471a-a49e-eb77db216705'
     date_path_prod = '/2019/03/26/15/'
+    img_size_prod = 23584
+    md5_prod = '6e99d6c4f383220904611ccdf601ebb7'
 
     uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
     date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
+    img_size= ENVIRONMENT == 'prod'? img_size_prod : img_size_test
+    expected_md5 = ENVIRONMENT == 'prod'? md5_prod : md5_test
+
 
     it 'returns iiif json data of image record on Sagoku' do
       resp = agent.get_iiif_json_data(date_path, uuid)
@@ -36,8 +43,8 @@ describe 'Loris IIIF APIs' do
       expect(resp.code).to eq('200')
       expect(resp.response["content-type"]).to eq('image/jpeg')
       resp.save! tmp_download_path
-      expect(File.size(tmp_download_path)).to be_within(5).of(23559)
-      expect(md5.hexdigest(File.read(tmp_download_path))).to eq('4276576321c30b1ee0c83fdc4a1cd850')
+      expect(File.size(tmp_download_path)).to be_within(5).of(img_size)
+      expect(md5.hexdigest(File.read(tmp_download_path))).to eq(expected_md5)
     end
   end
 
