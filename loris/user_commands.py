@@ -19,18 +19,6 @@ def _init_dir(d):
     # ownership aren't sufficient.
     if not os.path.exists(d):
         os.makedirs(d)
-        print('Created %s' % d)
-        os.chown(d, self.loris_owner_id, self.loris_group_id)
-        print(
-            'Changed ownership of %s to %s:%s' %
-            (d, self.loris_owner, self.loris_group)
-        )
-
-    s = os.stat(d)
-    permissions = oct(stat.S_IMODE(s.st_mode))
-    if permissions != oct(0o755):
-        os.chmod(d, 0o755)
-        stdout.write('Set permissions for %s to 0755\n' % (d,))
 
 
 def _config_file_path():
@@ -53,11 +41,12 @@ application = create_app(config_file_path='%s')
     return content
 
 
-def _write_wsgi(self):
+def _write_wsgi(config):
     wsgi_content = _get_default_wsgi()
-    wsgi_file_path = os.path.join(WWW_DIR_DEFAULT, WSGI_FILE_NAME)
+    www_dir = config['loris.Loris']['www_dp']
+    wsgi_file_path = os.path.join(www_dir, WSGI_FILE_NAME)
     with open(wsgi_file_path, 'w') as f:
-        f.write(content)
+        f.write(wsgi_content)
 
 
 def _write_config():
@@ -65,8 +54,7 @@ def _write_config():
     with open(config_file_target, 'wb') as f:
         f.write(_get_default_config_content().encode('utf8'))
 
-def _copy_index_and_favicon():
-    config = ConfigObj(_config_file_path(), unrepr=True, interpolation=False)
+def _copy_index_and_favicon(config):
     www_dir = config['loris.Loris']['www_dp']
     www_src = os.path.join(_src_code_repo_root(), 'www')
     index_src = os.path.join(www_src, 'index.txt')
@@ -79,8 +67,7 @@ def _copy_index_and_favicon():
     shutil.copyfile(favicon_src, favicon_target)
 
 
-def _make_directories():
-    config = ConfigObj(_config_file_path(), unrepr=True, interpolation=False)
+def _make_directories(config):
     image_cache = config['img.ImageCache']['cache_dp']
     info_cache = config['img_info.InfoCache']['cache_dp']
     log_dir = config['logging']['log_dir']
@@ -92,7 +79,6 @@ def _make_directories():
         tmp_dir,
         www_dir,
         log_dir,
-        CONFIG_DIR_DEFAULT,
     ]
     for d in loris_directories:
         _init_dir(d)
@@ -107,9 +93,10 @@ def display_default_wsgi_file():
     print(wsgi_content)
 
 
-def create_default_files_and_directories():
-    _make_directories()
-    _write_wsgi()
-    _write_config()
-    _copy_index_and_favicon()
+def create_default_files_and_directories(config=None):
+    if not config:
+        config = ConfigObj(_config_file_path(), unrepr=True, interpolation=False)
+    _make_directories(config)
+    _write_wsgi(config)
+    _copy_index_and_favicon(config)
 
