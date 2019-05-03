@@ -258,7 +258,7 @@ class ImageInfo(JP2Extractor, object):
         """returns only IIIF info (not Loris-specific info like src_format)"""
         d = {}
         d['@context'] = CONTEXT
-        d['@id'] = self.ident
+        d['@id'] = unquote(self.ident)
         d['protocol'] = self.protocol
         d['profile'] = self.profile
         d['width'] = self.width

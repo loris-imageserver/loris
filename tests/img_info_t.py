@@ -446,7 +446,7 @@ class InfoFunctional(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
-        self.assertEqual(info.ident, self.test_jp2_color_uri)
+        self.assertEqual(info.ident, unquote(self.test_jp2_color_uri))
 
     def test_json_ld_headers(self):
         'We should get jsonld if we ask for it'

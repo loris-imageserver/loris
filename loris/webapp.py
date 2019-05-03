@@ -46,7 +46,7 @@ from loris.loris_exception import (
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
 
-def get_debug_config(debug_jp2_transformer):
+def get_debug_config(debug_jp2_transformer, running_tests=True):
     # change a few things, read the config and set up logging
     project_dp = path.dirname(path.dirname(path.realpath(__file__)))
     config_file_path = path.join(project_dp, 'etc', 'loris2.conf')
@@ -62,8 +62,10 @@ def get_debug_config(debug_jp2_transformer):
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
-    config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
-    config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+    if running_tests:
+        config['loris.Loris']['prefixes_to_strip'] = 'bad_prefix_one,bad_prefix_two'
+        config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
+        config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
     config['transforms']['target_formats'] = ['jpg', 'png', 'gif', 'webp', 'tif']
 
     if debug_jp2_transformer == 'opj':
@@ -94,9 +96,9 @@ def get_debug_config(debug_jp2_transformer):
     return config
 
 
-def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
+def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path='', running_tests=True):
     if debug:
-        config = get_debug_config(debug_jp2_transformer)
+        config = get_debug_config(debug_jp2_transformer, running_tests)
     else:
         config = read_config(config_file_path)
 
@@ -337,6 +339,7 @@ class Loris(object):
         self.redirect_id_slash_to_info = _loris_config['redirect_id_slash_to_info']
         self.proxy_path = _loris_config.get('proxy_path', None)
         self.cors_regex = _loris_config.get('cors_regex', None)
+        self.path_prefixes_to_strip = _loris_config.get('prefixes_to_strip', '').split(',')
         if self.cors_regex:
             self.cors_regex = re.compile(self.cors_regex)
 
@@ -393,6 +396,18 @@ class Loris(object):
         self.logger.debug('Imported %s', qname)
         return getattr(module, class_name)
 
+    def rewrite_stor_paths(self, req):
+        proposed_path = "%s" % req.args.get('iiif', req.args.get('IIIF'))
+        matching_prefixes = [p for p in self.path_prefixes_to_strip if proposed_path.startswith(p)]
+        if matching_prefixes:
+            proposed_path = proposed_path.replace(matching_prefixes[0], '')
+        self.logger.debug("Rewriting IIP Request path from: %s to: %s" %
+                          (req.args.get('iiif', req.args.get('IIIF')), proposed_path))
+        if proposed_path[0] != '/':
+            return "/%s" % proposed_path
+        else:
+            return proposed_path
+
     def wsgi_app(self, environ, start_response):
         request = Request(environ)
         response = self.route(request)
@@ -401,7 +416,8 @@ class Loris(object):
     def route(self, request):
         # Handle IIP requests
         if 'iiif' in [k.lower() for k in request.args]:
-            request.path = "/%s" % request.args.get('iiif', request.args.get('IIIF'))
+            request.original_path = request.path
+            request.path = self.rewrite_stor_paths(request)
 
         loris_request = LorisRequest(request, self.redirect_id_slash_to_info, self.proxy_path)
         request_type = loris_request.request_type
@@ -775,7 +791,7 @@ if __name__ == '__main__':
 
     sys.path.append(path.join(project_dp)) # to find any local resolvers
 
-    app = create_app(debug=True) # or 'opj'
+    app = create_app(debug=True, running_tests=False) # or 'opj'
 
     run_simple('0.0.0.0', 5004, app, use_debugger=True, use_reloader=True)
     # To debug ssl:
