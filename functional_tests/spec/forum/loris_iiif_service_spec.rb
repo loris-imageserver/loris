@@ -52,8 +52,8 @@ describe 'Loris IIIF APIs' do
     tmp_download_path = "#{Dir.pwd}/tmp/DC_download_#{test_id}.jpg"
     uuid_test = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
     date_path_test = '/2019/03/22/10/'
-    uuid_prod = 'ef3015fc-0fec-423f-9c52-4ff18b3090d7'
-    date_path_prod = '/2019/03/22/14/'
+    uuid_prod = 'd868d3b8-06e4-4b60-b126-52192cb8cdde'
+    date_path_prod = '/2019/05/06/09/'
     uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
     date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
 
@@ -83,7 +83,7 @@ describe 'Loris IIIF APIs' do
     end
 
     it 'returns 404 error iiif image request if record not existed on neither DC or Sagoku' do
-      expect {agent.get_iiif_json_data(date_path, uuid)}.to raise_exception {|error|
+      expect {agent.get_iiif_image_view(date_path, uuid)}.to raise_exception {|error|
         expect(error.response_code).to eq('404')}
     end
   end
