@@ -201,7 +201,7 @@ class ImageInfo(JP2Extractor, object):
 
         if self.src_format in ['jp2', 'jpf', 'jpx']:
             self._from_jp2(self.src_img_fp)
-        elif self.src_format  in ('jpg','tif','png'):
+        elif self.src_format  in ('jpg','tif','png','fpx'):
             self._extract_with_pillow(self.src_img_fp)
         else:
             raise ImageInfoException(
