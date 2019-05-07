@@ -38,7 +38,7 @@ describe 'Loris IIIF APIs' do
       expect(resp.uri.to_s).to include(BASE_IIIF_URL)
     end
 
-    it 'returns iiif image of on Sagoku' do
+    it 'returns iiif image on Sagoku' do
       resp = agent.get_iiif_image_view(date_path, uuid)
       expect(resp.code).to eq('200')
       expect(resp.response["content-type"]).to eq('image/jpeg')
@@ -46,6 +46,24 @@ describe 'Loris IIIF APIs' do
       expect(File.size(tmp_download_path)).to be_within(5).of(img_size)
       expect(md5.hexdigest(File.read(tmp_download_path))).to eq(expected_md5)
     end
+
+    it 'returns iiif image on sagoku with negative x y position' do
+      download_path_00 = "#{Dir.pwd}/tmp/download_00_#{test_id}.jpg"
+      download_path_neg = "#{Dir.pwd}/tmp/download_neg_#{test_id}.jpg"
+
+      resp1 = agent.get_iiif_image_view(date_path, uuid, from_x: 0, from_y: 0)
+      expect(resp1.code).to eq('200')
+      expect(resp1.response["content-type"]).to eq('image/jpeg')
+      resp1.save! download_path_00
+
+      resp2 = agent.get_iiif_image_view(date_path, uuid, from_x: -111, from_y: -222)
+      expect(resp2.code).to eq('200')
+      expect(resp2.response["content-type"]).to eq('image/jpeg')
+      resp2.save! download_path_neg
+
+      expect(md5.hexdigest(File.read(download_path_00))).to eq(md5.hexdigest(File.read(download_path_neg)))
+    end
+
   end
 
   context 'Record on DataCenter: ' do
