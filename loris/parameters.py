@@ -199,6 +199,13 @@ class RegionParameter(object):
     def _populate_slots_from_pixels(self, dimensions):
         # pixels
         self.pixel_x, self.pixel_y, self.pixel_w, self.pixel_h = dimensions
+
+        if self.pixel_x < 0:
+            self.pixel_x = 0
+
+        if self.pixel_y < 0:
+            self.pixel_y = 0
+
         # decimals
         self.decimal_x = Decimal(self.pixel_x) / Decimal(str(self.image_info.width))
         self.decimal_y = Decimal(self.pixel_y) / Decimal(str(self.image_info.height))
@@ -231,7 +238,7 @@ class RegionParameter(object):
                     comma_segments[3] == str(image_info.height)
                 ]):
                 return FULL_MODE
-            elif all([n.isdigit() for n in comma_segments]):
+            elif all([n.replace("-", "").isdigit() for n in comma_segments]):
                 return PIXEL_MODE
             elif region_segment.split(':')[0] == 'pct':
                 return PCT_MODE
