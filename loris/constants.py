@@ -38,7 +38,7 @@ EXTENSION_MAP = {
     }
 
 _IDENT = r'(?P<ident>.+)'
-_REGION = r'(?P<region>[\w:\.\,]+)'
+_REGION = r'(?P<region>[-? \w:\.\,]+)'
 _SIZE = r'(?P<size>\!?[\w:\.\,]+)'
 _ROTATION = r'(?P<rotation>\!?\d+\.?\d*)'
 _QUALITY = r'(?P<quality>(color|gray|bitonal|default))'
