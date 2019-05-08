@@ -22,8 +22,8 @@ describe 'Loris IIIF APIs' do
 
     uuid_prod = '7959323b-1691-471a-a49e-eb77db216705'
     date_path_prod = '/2019/03/26/15/'
-    img_size_prod = 23584
-    md5_prod = '6e99d6c4f383220904611ccdf601ebb7'
+    img_size_prod = 23559
+    md5_prod = '4276576321c30b1ee0c83fdc4a1cd850'
 
     uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
     date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
@@ -70,8 +70,8 @@ describe 'Loris IIIF APIs' do
     tmp_download_path = "#{Dir.pwd}/tmp/DC_download_#{test_id}.jpg"
     uuid_test = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
     date_path_test = '/2019/03/22/10/'
-    uuid_prod = 'd868d3b8-06e4-4b60-b126-52192cb8cdde'
-    date_path_prod = '/2019/05/06/09/'
+    uuid_prod = '98e9b510-5cf6-48a0-9ed8-c164831234f1'
+    date_path_prod = '/2019/05/08/10/'
     uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
     date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
 
@@ -128,7 +128,8 @@ describe 'Loris IIIF APIs' do
       @date_path = '/' + yyyy + '/' + mm + '/' + dd + '/' + tt + '/'
 
       #wait until pyrimidal completed
-      for i in 0..15 do
+      sleep 15
+      for i in 0..30 do
         resp = @agent.get_asset_meta_data(@uuid).json
         if resp[:pyrimidal_completed]
           break
@@ -137,7 +138,7 @@ describe 'Loris IIIF APIs' do
           sleep 1
         end
       end
-      raise 'Pyrimidal not completed after max wait time' if resp[:pyrimidal_completed] != true
+      #raise 'Pyrimidal not completed after max wait time' if resp[:pyrimidal_completed] != true
     end
 
     it 'returns iiif json data of new image record on Sagoku' do
