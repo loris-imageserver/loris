@@ -70,8 +70,8 @@ describe 'Loris IIIF APIs' do
     tmp_download_path = "#{Dir.pwd}/tmp/DC_download_#{test_id}.jpg"
     uuid_test = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
     date_path_test = '/2019/03/22/10/'
-    uuid_prod = '98e9b510-5cf6-48a0-9ed8-c164831234f1'
-    date_path_prod = '/2019/05/08/10/'
+    uuid_prod = '0c3ee536-a5f1-4d26-a719-958b6142c353'
+    date_path_prod = '/2019/05/10/09/'
     uuid = ENVIRONMENT == 'prod'? uuid_prod : uuid_test
     date_path = ENVIRONMENT == 'prod'? date_path_prod : date_path_test
 
