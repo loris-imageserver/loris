@@ -66,7 +66,9 @@ describe 'Loris IIIF APIs' do
 
   end
 
-  context 'Record on DataCenter: ' do
+  # This is No Prod since the test file was moved from DC to Sagoku already.
+  # The Prod test was initially working. Then, the test failed due to calls are not forwarding to DC anymore.
+  context 'Record on DataCenter: ', :no_prod do
     tmp_download_path = "#{Dir.pwd}/tmp/DC_download_#{test_id}.jpg"
     uuid_test = 'dd881ba7-a695-4c04-a012-c8f0e346c313'
     date_path_test = '/2019/03/22/10/'
