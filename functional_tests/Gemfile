@@ -2,7 +2,7 @@ source 'https://artifactory.acorn.cirrostratus.org/artifactory/api/gems/gems' do
 
   gem 'activesupport',          '>= 3.2.6'
   gem 'aws-sdk-s3',             '~> 1.17.0'
-  gem 'forum_apis',             '~> 1.8.0'
+  gem 'forum_apis',             '~> 1.10.2'
   gem 'ithaka_utilities',       '~> 4.8'
   gem 'mechanize',              '~> 2.7.5'
   gem 'parallel_tests',         '~> 2.15.0'
