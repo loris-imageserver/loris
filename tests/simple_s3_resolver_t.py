@@ -45,13 +45,13 @@ class SimpleS3ResolverTest(unittest.TestCase):
 
     @patch('loris.resolver.boto3')
     def test_is_not_resolvable(self, boto):
-        s3 = MagicMock()
+        client = MagicMock()
         obj = MagicMock()
-        boto.resource.return_value = s3
-        s3.Object.return_value = obj
-        obj.load.side_effect = botocore.exceptions.ClientError({}, {})
+        boto.client.return_value = client
+        client.head_object.return_value = obj
+        obj.get.side_effect = botocore.exceptions.ClientError({}, {})
         self.assertFalse(
-                self.resolver.is_resolvable(self.not_identifier)
+            self.resolver.is_resolvable(self.not_identifier)
         )
 
 
