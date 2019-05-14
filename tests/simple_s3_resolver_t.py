@@ -35,12 +35,24 @@ class SimpleS3ResolverTest(unittest.TestCase):
 
     @patch('loris.resolver.boto3')
     def test_is_resolvable_001(self, boto):
-        s3 = MagicMock()
+        client = MagicMock()
         obj = MagicMock()
-        boto.resource.return_value = s3
-        s3.Object.return_value = obj
+        boto.client.return_value = client
+        client.head_object.return_value = obj
+        obj.get.return_value = True
         self.assertTrue(
          self.resolver.is_resolvable(self.identifier)
+        )
+
+    @patch('loris.resolver.boto3')
+    def test_is_resolvable_0byte(self, boto):
+        client = MagicMock()
+        obj = MagicMock()
+        boto.client.return_value = client
+        client.head_object.return_value = obj
+        obj.get.return_value = 0
+        self.assertFalse(
+            self.resolver.is_resolvable(self.identifier)
         )
 
     @patch('loris.resolver.boto3')
