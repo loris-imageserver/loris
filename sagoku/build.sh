@@ -62,7 +62,6 @@ touch /tmp/STARTED_POSTINSTALL_SCRIPT
 ## Install our Python dependencies
 #
 pip install -U appdynamics\<4.4
-pip install Pillow==2019.04.03 -i https://artifactory.acorn.cirrostratus.org/artifactory/api/pypi/pypi/simple
 pip install uwsgi
 pip install -U -r /usr/local/src/requirements.txt
 
