@@ -3,6 +3,7 @@
 import os
 import shutil
 from configobj import ConfigObj
+from loris.utils import mkdir_p
 
 
 CONFIG_FILE_NAME = 'loris2.conf'
@@ -12,13 +13,6 @@ WSGI_FILE_NAME = 'loris2.wsgi'
 
 def _src_code_repo_root():
     return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-
-def _init_dir(d):
-    # Could do something here to warn if dir exists but permissions or
-    # ownership aren't sufficient.
-    if not os.path.exists(d):
-        os.makedirs(d)
 
 
 def _config_file_path():
@@ -62,7 +56,7 @@ def _copy_index_and_favicon(config):
     index_target = os.path.join(www_dir, 'index.txt')
     favicon_target_dir = os.path.join(www_dir, 'icons')
     favicon_target = os.path.join(favicon_target_dir, 'favicon.ico')
-    _init_dir(favicon_target_dir)
+    mkdir_p(favicon_target_dir)
     shutil.copyfile(index_src, index_target)
     shutil.copyfile(favicon_src, favicon_target)
 
@@ -81,7 +75,7 @@ def _make_directories(config):
         log_dir,
     ]
     for d in loris_directories:
-        _init_dir(d)
+        mkdir_p(d)
 
 
 def display_default_config_file():
