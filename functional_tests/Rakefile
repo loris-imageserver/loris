@@ -6,7 +6,7 @@ require './spec/support/env.rb'
 require 'rspec/core/rake_task'
 
 
-namespace :Loris_IIIF do
+namespace :'forum-loris' do
   rspec_options = '-f JunitFormatter -o rspec_junit_results.xml -f d --color --tag ~wip'
   rspec_options << case ENVIRONMENT
                    when 'prod'
