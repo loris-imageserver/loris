@@ -1,0 +1,81 @@
+import groovy.json.JsonOutput
+@Library('forum-job-manager')
+def slackNotifier = new slackNotifications()
+
+APP_NAME = 'forum-loris'
+TEST_CODE_PATH = 'functional_tests'
+IMAGE_NAME = "${APP_NAME}-tests"
+TEST_IMAGE_TAG = "docker.artifactory.acorn.cirrostratus.org/fsrv/fsrv-tests:FSRV-2780-f6bbb3"
+
+error_message = ''
+uuid = "${UUID.randomUUID().toString()}"
+label = APP_NAME + uuid
+podTemplate(
+        label: label,
+        cloud: 'kubernetes',
+        containers: [
+                containerTemplate(
+                        name: "${IMAGE_NAME}",
+                        image: "${TEST_IMAGE_TAG}",
+                        workingDir: '/home/jenkins',
+                        resourceLimitCpu: '2',
+                        resourceLimitMemory: '1024Mi',
+                        ttyEnabled: true
+                )
+        ]
+)
+        {
+            node(label) {
+                ansiColor('xterm') {
+                    try {
+                        checkout(scm)
+                        container("${IMAGE_NAME}") {
+                            timeout(10) {
+                                    stage("Run bundle update") {
+                                        sh "cd ${env.WORKSPACE}/${TEST_CODE_PATH} && bundle update --quiet"
+                                    }
+                                    stage("Run full suite") {
+                                        currentBuild.result = runTask('full_suite')
+                                        }
+                                    }
+
+                        }
+                    } catch (error) {
+                        println "Caught an error: ${error}"
+                        error_message = error
+                        currentBuild.result = "FAILED"
+                    } finally {
+                        stage('Publish test results') {
+                            results = junit "**/*results*.xml";
+                            slackNotifier.notifySlack(currentBuild.result, results, error_message)
+
+                            def ENV_URL = 'test.cirrostratus.org'
+                            if (JENKINS_URL.contains('prod.cirrostratus.org')) {
+                                ENV_URL = 'prod.cirrostratus.org'
+                            }
+                            withKafkaLog(kafkaServers: "kafka01.${ENV_URL}:9092", kafkaTopic: 'captains-log', buildResult: currentBuild.result) {
+                                echo ''
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+def runTask(task) {
+    println "Running ${task} tests"
+    def ret = sh(
+        returnStatus: true,
+        script: "cd ${env.WORKSPACE}/${TEST_CODE_PATH} && rake ${APP_NAME}:${task}"
+    )
+    println "Exit code: ${ret}"
+
+    if (ret == 1) {
+        return 'UNSTABLE'
+    } else if (ret != 0)  {
+        return 'FAILURE'
+    } else {
+        return 'SUCCESS'
+    }
+}
