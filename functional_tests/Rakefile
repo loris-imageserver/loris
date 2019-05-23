@@ -6,26 +6,28 @@ require './spec/support/env.rb'
 require 'rspec/core/rake_task'
 
 
-namespace :Loris_IIIF do
-  rspec_options = '-f JunitFormatter -o rspec_junit_results.xml -f d --color --tag ~wip'
-  rspec_options << case ENVIRONMENT
-                   when 'prod'
-                     ' -t ~no_prod'
-                   when 'stage'
-                     ' -t ~no_stage'
-                   else
-                     '' # Don't add tags in this case
-                   end
+namespace :'forum-loris' do
+
+  rspec_options = ''
+  def set_rspec_options(task_name)
+    rspec_options = "-f JunitFormatter -o rspec_#{task_name}_junit_results.xml -f d --color --tag ~wip"
+    rspec_options << case ENVIRONMENT
+                     when 'prod'
+                       ' -t ~no_prod'
+                     when 'stage'
+                       ' -t ~no_stage'
+                     else
+                       '' # Don't add tags in this case
+                     end
+  end
 
   RSpec::Core::RakeTask.new(:full_suite, 'Full suite for Loris IIIF service.') do |t|
-    rbfiles = File.join('spec/forum/**', '*service_spec.rb')
-    t.pattern = Dir.glob(rbfiles)
-    t.rspec_opts = [rspec_options]
+    t.pattern = Dir.glob('spec/forum/**')
+    t.rspec_opts = [set_rspec_options(t.name.to_s)]
   end
 
   RSpec::Core::RakeTask.new(:dryRun) do |t|
-    rbfiles = File.join('spec/forum/**', '*service_spec.rb')
-    t.pattern = Dir.glob(rbfiles)
+    t.pattern = Dir.glob('spec/forum/**')
     t.rspec_opts = ['--dry-run -f d --color --tag ~wip']
   end
 end
