@@ -22,12 +22,12 @@ namespace :'forum-loris' do
   end
 
   RSpec::Core::RakeTask.new(:full_suite, 'Full suite for Loris IIIF service.') do |t|
+    t.pattern = Dir.glob('spec/forum/**')
     t.rspec_opts = [set_rspec_options(t.name.to_s)]
-    t.rspec_opts = [rspec_options]
   end
 
   RSpec::Core::RakeTask.new(:dryRun) do |t|
-    t.rspec_opts = [set_rspec_options(t.name.to_s)]
+    t.pattern = Dir.glob('spec/forum/**')
     t.rspec_opts = ['--dry-run -f d --color --tag ~wip']
   end
 end
