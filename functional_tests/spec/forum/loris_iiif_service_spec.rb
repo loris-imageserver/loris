@@ -120,6 +120,7 @@ describe 'Loris IIIF APIs' do
       resp = @agent.post_compound_img_to_stor(file).json
       expect(resp[:id]).not_to eq(nil), 'uuid is nil at upload response'
       @uuid = resp[:id]
+      pp @uuid
       expect(resp[:SourceFile]).to include(@uuid), 'SourceFile empty or not contain uuid at upload response'
       @source_file = resp[:SourceFile]
       expect(resp[:md5sum]).to eq(full_image_md5), 'md5 in stor db not match expected md5 at upload response'
@@ -158,5 +159,35 @@ describe 'Loris IIIF APIs' do
       expect( File.size(tmp_download_path)).to be_within(10).of(23559)
     end
   end
+
+  context 'handle of special Tiff - FSRV-3021', :FSRV_3021 do
+
+    # Sample record stored at:
+    # Project: 639
+    # SSID: 24982122 / 1002999800
+    # I copied user's deflate.tif field in S3 location to qasam001 record's Stor location on Prod and Stage for this test.
+
+    it 'provides the correct IIIF view of Tiff reported at FSRV-3021' do
+      tmp_download_path = "#{Dir.pwd}/tmp/FSRV_3021_#{test_id}.jpg"
+      expected_image = "#{Dir.pwd}/lib/data_files/FSRV_3021_expected.jpg"
+      prod_uuid = '5ab1d051-364c-4e0d-b4cc-93976796e3ab'
+      prod_path = '/2019/05/21/18/'
+
+      test_uuid = 'f1021ef7-2f1d-4aa7-a0a2-dd6f9339c0cc'
+      test_path = '/2019/05/21/18/'
+
+      uuid = ENVIRONMENT == 'prod'? prod_uuid : test_uuid
+      date_path = ENVIRONMENT == 'prod'? prod_path : test_path
+
+      resp = agent.get_iiif_image_view(date_path, uuid, to_x: 2000, to_y: 2000)
+      expect(resp.code).to eq('200')
+      expect(resp.response["content-type"]).to eq('image/jpeg')
+      resp.save! tmp_download_path
+      expect(File.size(tmp_download_path).to_i).to be_within(5).of(File.size(expected_image)), 'FSRV 3021 - IIIF image size not match expected'
+      expect(md5.hexdigest(File.read(tmp_download_path))).to eq((md5.hexdigest(File.read(expected_image)))), 'FSRV 3021 - IIIF image MD3 not matched, but size okay.'
+
+    end
+  end
+
 end
 
