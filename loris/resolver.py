@@ -590,14 +590,18 @@ class SimpleS3Resolver(_AbstractCachingResolver):
             return True
         else:
             # Check that the requested ident exists in our S3 bucket
-            s3 = boto3.resource('s3')
+            client = boto3.client('s3')
             try:
                 key = self.apply_prefix(ident)
                 logger.info('Checking existence of Bucket = %s   Key = %s', self.s3bucket, key)
-                s3.Object(self.s3bucket, key).load()
-            except botocore.exceptions.ClientError as e:
-                return False
-            return True
+                content = client.head_object(Bucket=self.s3bucket, Key=key)
+                if content.get('ResponseMetadata', None) is not None and content.get('ContentLength', None) > 0:
+                    return True
+                else:
+                    logger.info('File Doesnt Exists on s3 Bucket = %s   Key = %s', self.s3bucket, key)
+            except botocore.exceptions.ClientError:
+                logger.info('File Doesnt Exists on s3 Bucket = %s   Key = %s', self.s3bucket, key)
+        return False
 
     def copy_to_cache(self, ident):
         ident = unquote(ident)
