@@ -90,3 +90,11 @@ service.configuration.environment = env
 
 BASE_IIIF_URL = service.get_host('forum-iiif-service')
 BASE_STOR_URL = service.get_host('forum-stor')
+
+# ********************************************************************
+# ** Make a tmp folder if not already existed
+# ********************************************************************
+TMP_DIR = File.join(Dir.pwd, '/tmp/')
+if Dir.exist?(TMP_DIR) == false
+  Dir.mkdir(TMP_DIR)
+end
