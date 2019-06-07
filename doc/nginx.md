@@ -13,7 +13,7 @@ Install the uSWGI package:
 pip install uwsgi
 ```
 
-We'll now create a separate configuration file just for Loris. Create a new file inside the /etc/nginx/conf.d folder; name it `loris.conf` . Open it with your editor of choice, and put this code inside it:
+We'll now create a separate configuration file just for Loris. Create a new file inside the /etc/nginx/conf.d folder; name it `loris.conf`. Open it with your editor of choice, and put this code inside it:
 
 ```
 server {
