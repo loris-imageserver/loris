@@ -5,7 +5,7 @@ The following has been tested on a Python 3.7.3 virtual environment on CentOS7.
 
 These instructions assume you have (or will) run `sudo ./setup.py install` with the default configurations options.
 
-Instructions on install NGINX on your system can be found [here](https://www.nginx.com/resources/wiki/start/topics/tutorials/install/).
+Instructions on how to install NGINX on your system can be found [here](https://www.nginx.com/resources/wiki/start/topics/tutorials/install/).
 
 Install the uSWGI package:
 
