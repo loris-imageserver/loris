@@ -7,7 +7,7 @@ These instructions assume you have (or will) run `sudo ./setup.py install` with 
 
 Instructions on how to install NGINX on your system can be found [here](https://www.nginx.com/resources/wiki/start/topics/tutorials/install/).
 
-Install the uSWGI package:
+Install the uWSGI package:
 
 ```
 pip install uwsgi
