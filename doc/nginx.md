@@ -30,7 +30,7 @@ server {
 
 Locate the NGINX configuration file; on CentOS it's in /etc/nginx/nginx.conf. Open it with your editor of choice.
 
-just before the closing of the last '}' bracket, add:
+Just before the closing of the last '}' bracket, add:
 
 ```
     include loris.conf;
@@ -38,7 +38,7 @@ just before the closing of the last '}' bracket, add:
 
 This will load the reverse-proxy configuration stored in the loris.conf you created.
 
-Create a new file called loris.wsgi and place it, for instance, inside the `/var/www/loris2` folder. Open it with your editor of choice, and populate it with the following code:
+Create a new file called `loris.wsgi` and place it, for instance, inside the `/var/www/loris2` folder. Open it with your editor of choice, and populate it with the following code:
 
 ```
 #!/your/python/path python
