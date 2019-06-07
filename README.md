@@ -24,6 +24,7 @@ These instructions need to be updated (PRs welcome!). If you are running into in
  * [Resolver Implementation](doc/resolver.md)
  * [Run `setup.py`](doc/setup.md)
  * [Deploy with Apache](doc/apache.md)
+ * [Deploy with NGINX and uWSGI](doc/nginx.md)
  * [Deploy with Docker](https://github.com/loris-imageserver/loris-docker)
  * (Optional) [Developer Notes](doc/develop.md)
 
