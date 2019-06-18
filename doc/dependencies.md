@@ -35,15 +35,6 @@ For CentOS:
 
     $ sudo yum install zlib-devel freetype libjpeg-turbo-devel lcms2-utils \ 
     libtiff-devel libwebp-devel openjpeg2
-    
-    Install liblcms-devel:
-        - Download latest trinity-repo rpm from [here](http://mirror.ppa.trinitydesktop.org/trinity/trinity/rpm/el7/trinity-r14/RPMS/noarch/)
-        
-        - Install nginx-release rpm:
-        # rpm -Uvh trinity-repo*rpm
-
-        -Install liblcms-devel rpm package:
-        # yum install liblcms-devel
 
 Now install Pillow (setup.py would do this for you, but it's better to do separately and check):
 
