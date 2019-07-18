@@ -88,7 +88,7 @@ class _AbstractResolver(object):
         Returns:
             dict: The dict of information to embed in info.json
         """
-        xjsfp = source_fp.rsplit('.')[0] + "." + self.auth_rules_ext
+        xjsfp = source_fp.rsplit('.', 1)[0] + "." + self.auth_rules_ext
         if exists(xjsfp):
             fh = open(xjsfp)
             xjs = json.load(fh)
@@ -361,7 +361,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         # cache_dir is image specific, so this is easy
 
         bits = split(source_url)
-        fn = bits[1].rsplit('.')[0] + "." + self.auth_rules_ext
+        fn = bits[1].rsplit('.', 1)[0] + "." + self.auth_rules_ext
         rules_url = bits[0] + '/' + fn
         try:
             resp = requests.get(rules_url)
