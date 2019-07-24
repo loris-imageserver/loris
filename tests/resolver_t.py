@@ -3,12 +3,14 @@
 from __future__ import absolute_import
 
 import copy
+import json
 import os
 from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import exists
+import tempfile
 import unittest
 
 try:
@@ -102,6 +104,21 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         }
         resolver = SimpleFSResolver(config=config)
         assert not resolver.is_resolvable(ident='doesnotexist.jpg')
+
+    def test_get_extra_info(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ident = 'HP.2007.13.jp2'
+            rules_filename = 'HP.2007.13.rules.json'
+            source_fp = os.path.join(tmp, ident)
+            with open(source_fp, 'wb') as f:
+                pass
+            with open(os.path.join(tmp, rules_filename), 'wb') as f:
+                f.write(json.dumps({'rule': 1}).encode('utf8'))
+            config = {
+                'src_img_roots' : [tmp]
+            }
+            resolver = SimpleFSResolver(config=config)
+            assert resolver.get_extra_info(ident, source_fp) == {'rule': 1}
 
 
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
