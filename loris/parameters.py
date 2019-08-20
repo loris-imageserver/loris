@@ -1,14 +1,9 @@
-# parameters.py
-# -*- coding: utf-8 -*-
-
 '''
 IIIF Image API parameters as objects.
 
 The attributes of this class should make it possible to work with most imaging
 libraries without any further need to process the IIIF syntax.
 '''
-
-from __future__ import absolute_import
 
 import re
 from decimal import Decimal

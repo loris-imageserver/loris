@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 class LorisException(Exception):
     """Base exception class for all errors raised by Loris."""
     pass

@@ -1,18 +1,9 @@
-# img.py
-#-*-coding:utf-8-*-
-
-from __future__ import absolute_import
-
 from datetime import datetime
 import errno
 from logging import getLogger
 from os import path
 import os
-
-try:
-    from urllib.parse import quote_plus, unquote
-except ImportError:  # Python 2
-    from urllib import quote_plus, unquote
+from urllib.parse import quote_plus, unquote
 
 import attr
 

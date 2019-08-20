@@ -1,12 +1,9 @@
 #!/usr/bin/env python
-#-*- coding: utf-8 -*-
 '''
 webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 '''
-from __future__ import absolute_import
-
 from datetime import datetime
 from decimal import getcontext
 import logging
@@ -16,10 +13,7 @@ from os import path, unlink
 import re
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-try:
-    from urllib.parse import unquote, quote_plus
-except ImportError:  # Python 2
-    from urllib import unquote, quote_plus
+from urllib.parse import unquote, quote_plus
 
 import sys
 sys.path.append('.')

@@ -1,4 +1,3 @@
-# -*- encoding: utf-8
 """
 Implements a parser for JPEG2000 images.
 

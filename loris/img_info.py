@@ -1,8 +1,3 @@
-# img_info.py
-# -*- encoding: utf-8
-
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from datetime import datetime
 from logging import getLogger
@@ -10,11 +5,7 @@ from math import ceil
 from threading import Lock
 import json
 import os
-
-try:
-    from urllib.parse import unquote
-except ImportError:  # Python 2
-    from urllib import unquote
+from urllib.parse import unquote
 
 import attr
 from PIL import Image

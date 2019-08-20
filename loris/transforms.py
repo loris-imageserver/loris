@@ -1,8 +1,3 @@
-# transformers.py
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import multiprocessing
 from logging import getLogger
 from math import ceil, log
@@ -11,11 +6,7 @@ import platform
 import random
 import string
 import subprocess
-
-try:
-    from cStringIO import BytesIO
-except ImportError:  # Python 3
-    from io import BytesIO
+from io import BytesIO
 
 from PIL import Image
 from PIL.ImageFile import Parser
