@@ -1,16 +1,10 @@
-# -*- encoding: utf-8
 """
 Utilities for dealing with identifiers.
 """
-
 import hashlib
 import os
 import re
-
-try:
-    from urllib.parse import quote_plus
-except ImportError:  # Python 2
-    from urllib import quote_plus
+from urllib.parse import quote_plus
 
 
 class IdentRegexChecker(object):

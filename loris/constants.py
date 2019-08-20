@@ -1,8 +1,3 @@
-# constants.py
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import re
 
 COMPLIANCE = 'http://iiif.io/api/image/2/level2.json'

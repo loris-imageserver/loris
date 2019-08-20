@@ -1,18 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 `authorizer` -- Handle authorization of access to content
 =========================================================
 """
-from __future__ import absolute_import
-
 from logging import getLogger
+from urllib.parse import urlparse
+
 import requests
-
-try:
-    from urllib.parse import urlparse
-except ImportError:  # Python 2
-    from urlparse import urlparse
-
 import jwt
 
 # See: https://cryptography.io/en/latest/fernet/#using-passwords-with-fernet

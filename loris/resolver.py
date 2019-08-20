@@ -1,11 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
-
-from __future__ import absolute_import
-
 from logging import getLogger
 from os.path import join, exists, dirname, split
 from os import remove
@@ -15,11 +11,7 @@ from contextlib import closing
 import glob
 import json
 import os
-
-try:
-    from urllib.parse import unquote
-except ImportError:  # Python 2
-    from urllib import unquote
+from urllib.parse import unquote
 
 import requests
 
