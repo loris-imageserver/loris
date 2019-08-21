@@ -220,7 +220,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
         # Set a degraded tier
         # Should redirect for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"], "tiers":
-            [{"identifier":"http://localhost:5004/"+self.okayInfo.ident}]}
+            [{"identifier":"http://localhost:5004/"+self.okayInfo.base_uri}]}
         authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
         self.assertEqual(authd['status'], "redirect")
         authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)
@@ -264,7 +264,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
         # Set a degraded tier
         # Should redirect for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"], "tiers":
-            [{"identifier":"http://localhost:5004/"+self.okayInfo.ident}]}
+            [{"identifier":"http://localhost:5004/"+self.okayInfo.base_uri}]}
         authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
         self.assertEqual(authd['status'], "redirect")
         authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest)

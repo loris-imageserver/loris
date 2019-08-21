@@ -65,7 +65,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
-        self.assertEqual(info.ident, uri)
+        self.assertEqual(info.base_uri, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
         self.app.max_size_above_full = 0
@@ -138,7 +138,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_gray_tiles)
         self.assertEqual(info.sizes, self.test_jp2_gray_sizes)
-        self.assertEqual(info.ident, uri)
+        self.assertEqual(info.base_uri, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
     def test_info_from_jpg_marked_as_jp2(self):
@@ -187,7 +187,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_jpeg_sizes)
-        self.assertEqual(info.ident, uri)
+        self.assertEqual(info.base_uri, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
     def test_png_info_from_image(self):
@@ -217,7 +217,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_png_sizes)
-        self.assertEqual(info.ident, uri)
+        self.assertEqual(info.base_uri, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
 
@@ -248,7 +248,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_tiff_sizes)
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
-        self.assertEqual(info.ident, uri)
+        self.assertEqual(info.base_uri, uri)
         self.assertEqual(info.protocol, PROTOCOL)
 
     def test_info_from_json(self):
@@ -275,7 +275,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
-        self.assertEqual(info.ident, self.test_jp2_color_uri)
+        self.assertEqual(info.base_uri, self.test_jp2_color_uri)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
         self.assertEqual(info.protocol, PROTOCOL)
 
@@ -437,7 +437,7 @@ class InfoFunctional(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
-        self.assertEqual(info.ident, self.test_jp2_color_uri)
+        self.assertEqual(info.base_uri, self.test_jp2_color_uri)
 
     def test_json_ld_headers(self):
         'We should get jsonld if we ask for it'
@@ -582,7 +582,7 @@ class TestInfoCache(loris_t.LorisTest):
 
         info = img_info.ImageInfo(
             app=self.app,
-            ident=self.test_jpeg_uri,
+            base_uri=self.test_jpeg_uri,
             src_img_fp=self.test_jpeg_fp,
             src_format=self.test_jpeg_fmt
         )

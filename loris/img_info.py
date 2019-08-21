@@ -56,12 +56,12 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         return obj
 
 
-class ImageInfo(JP2Extractor, object):
+class ImageInfo(JP2Extractor):
     '''Info about the image.
     See: <http://iiif.io/api/image/>
 
     Slots:
-        ident (str): The image identifier.
+        base_uri (str): The base URI of the image, including scheme, server, prefix and identifier without a trailing slash..
         width (int)
         height (int)
         scaleFactors [(int)]
@@ -79,14 +79,14 @@ class ImageInfo(JP2Extractor, object):
 
     '''
     __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'ident', 'profile', 'protocol', 'sizes', 'service',
+        'base_uri', 'profile', 'protocol', 'sizes', 'service',
         'attribution', 'logo', 'license', 'auth_rules',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
-    def __init__(self, app=None, ident="", src_img_fp="", src_format="", extra={}):
+    def __init__(self, app=None, base_uri="", src_img_fp="", src_format="", extra={}):
 
         self.protocol = PROTOCOL
-        self.ident = ident
+        self.base_uri = base_uri
         self.src_img_fp = src_img_fp
         self.src_format = src_format
         self.attribution = None
@@ -144,13 +144,13 @@ class ImageInfo(JP2Extractor, object):
         new_inst = ImageInfo()
         j = json.loads(json_string)
 
-        new_inst.ident = j.get(u'@id')
-        new_inst.width = j.get(u'width')
-        new_inst.height = j.get(u'height')
+        new_inst.base_uri = j.get('@id')
+        new_inst.width = j.get('width')
+        new_inst.height = j.get('height')
         # TODO: make sure these are resulting in error or Nones when
         # we load from the filesystem
-        new_inst.tiles = j.get(u'tiles')
-        new_inst.sizes = j.get(u'sizes')
+        new_inst.tiles = j.get('tiles')
+        new_inst.sizes = j.get('sizes')
 
         profile_args = tuple(j.get(u'profile', []))
         new_inst.profile = Profile(*profile_args)
@@ -236,7 +236,7 @@ class ImageInfo(JP2Extractor, object):
         """returns only IIIF info (not Loris-specific info like src_format)"""
         d = {}
         d['@context'] = CONTEXT
-        d['@id'] = self.ident
+        d['@id'] = self.base_uri
         d['protocol'] = self.protocol
         d['profile'] = self.profile
         d['width'] = self.width
