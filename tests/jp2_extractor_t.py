@@ -1,9 +1,4 @@
-# -*- encoding: utf-8 -*-
-
-try:
-    from io import BytesIO
-except ImportError:  # Python 2
-    from StringIO import StringIO as BytesIO
+from io import BytesIO
 
 from hypothesis import given
 from hypothesis.strategies import binary
@@ -17,8 +12,7 @@ def extractor():
     return JP2Extractor()
 
 
-
-class TestJP2Extractor(object):
+class TestJP2Extractor:
 
     def test_valid_signature_box_is_accepted(self, extractor):
         extractor._check_signature_box(

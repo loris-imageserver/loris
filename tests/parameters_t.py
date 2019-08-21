@@ -1,8 +1,3 @@
-# parameters_t.py
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from decimal import Decimal
 
 from hypothesis import given

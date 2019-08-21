@@ -1,4 +1,3 @@
-
 from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
     NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
 from loris.loris_exception import ConfigError
@@ -10,7 +9,7 @@ from cryptography.fernet import Fernet
 import jwt
 import pytest
 
-class MockRequest(object):
+class MockRequest:
 
     def __init__(self, hdrs={}, cooks={}):
         self.headers = hdrs

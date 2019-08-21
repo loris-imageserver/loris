@@ -1,8 +1,3 @@
-# webapp_t.py
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from datetime import datetime
 from os import path, listdir
 from time import sleep
@@ -29,7 +24,8 @@ def _get_werkzeug_request(path):
     return Request(env)
 
 
-class TestDebugConfig(object):
+class TestDebugConfig:
+
     def test_debug_config_gives_kakadu_transformer(self):
         config = webapp.get_debug_config('kdu')
         app = webapp.Loris(config)

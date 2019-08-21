@@ -1,5 +1,3 @@
-# -*- encoding: utf-8
-
 from hypothesis import given
 from hypothesis.strategies import text
 import pytest
@@ -7,7 +5,7 @@ import pytest
 from loris.identifiers import CacheNamer, IdentRegexChecker
 
 
-class TestIdentRegexChecker(object):
+class TestIdentRegexChecker:
 
     @given(text(min_size=1))
     def test_any_ident_is_allowed_if_regex_is_none(self, ident):
@@ -27,7 +25,7 @@ class TestIdentRegexChecker(object):
         assert checker.is_allowed(ident=ident) is expected_is_allowed
 
 
-class TestCacheNamer(object):
+class TestCacheNamer:
 
     cache_namer = CacheNamer()
 

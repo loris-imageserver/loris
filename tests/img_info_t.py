@@ -1,18 +1,9 @@
-# img_info_t.py
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import os
 from os import path
 import json
 import tempfile
 from datetime import datetime
-
-try:
-    from urllib.parse import unquote
-except ImportError:  # Python 2
-    from urllib import unquote
+from urllib.parse import unquote
 
 import pytest
 from werkzeug.datastructures import Headers
@@ -24,7 +15,7 @@ from loris.loris_exception import ImageInfoException
 from tests import loris_t, webapp_t
 
 
-class MockApp(object):
+class MockApp:
     transformers = {}
     max_size_above_full = 200
 

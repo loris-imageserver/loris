@@ -1,10 +1,8 @@
-#-*- coding: utf-8 -*-
-
 import pytest
 
 from loris import constants
 
-class TestImageRequest(object):
+class TestImageRequest:
 
     def test_valid_filenames(self):
         self._assert_valid('/123.jpg/full/full/0/default.jpg')
