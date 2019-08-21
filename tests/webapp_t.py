@@ -342,9 +342,8 @@ class TestGetInfo(loris_t.LorisTest):
         #self.assertRaises(exception, function, *args)
 
 
-
-class WebappIntegration(loris_t.LorisTest):
-    'Simulate working with the webapp over HTTP.'
+class StaticRoutes(loris_t.LorisTest):
+    '''Tests for static routes like /, /favicon.ico, ...'''
 
     def test_index(self):
         resp = self.client.get('/')
@@ -354,6 +353,9 @@ class WebappIntegration(loris_t.LorisTest):
     def test_favicon(self):
         resp = self.client.get('/favicon.ico')
         self.assertEqual(resp.status_code, 200)
+
+
+class BareIdentifierRequests(loris_t.LorisTest):
 
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
@@ -374,40 +376,8 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,), follow_redirects=False)
         self.assertEqual(resp.headers['access-control-allow-origin'], '*')
 
-    def test_access_control_allow_origin_on_info_requests(self):
-        uri = '/%s/info.json' % (self.test_jp2_color_id,)
-        resp = self.client.get(uri)
-        self.assertEqual(resp.headers['access-control-allow-origin'], '*')
-
-    def test_access_control_allow_origin_on_img_request(self):
-        uri = '/%s/full/100,/0/default.jpg' % (self.test_jp2_color_id,)
-        resp = self.client.get(uri)
-        self.assertEqual(resp.headers['access-control-allow-origin'], '*')
-
-    def test_cors_regex_match(self):
-        self.app.cors_regex = re.compile('calhos')
-        to_get = '/%s/full/110,/0/default.jpg' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get)
-        self.assertEquals(resp.headers['Access-Control-Allow-Origin'], 'http://localhost/')
-
-    def test_cors_regex_no_match(self):
-        self.app.cors_regex = re.compile('fooxyz')
-        to_get = '/%s/full/120,/0/default.jpg' % (self.test_jp2_color_id,)
-        resp = self.client.get(to_get)
-        self.assertFalse(resp.headers.has_key('Access-Control-Allow-Origin'))
-
     def test_bare_broken_identifier_request_404(self):
         resp = self.client.get('/foo%2Fbar')
-        self.assertEqual(resp.status_code, 404)
-        self.assertEqual(resp.headers['content-type'], 'text/plain')
-
-    def test_info_not_found_request(self):
-        resp = self.client.get('/foobar/info.json')
-        self.assertEqual(resp.status_code, 404)
-        self.assertEqual(resp.headers['content-type'], 'text/plain')
-
-    def test_image_not_found_request(self):
-        resp = self.client.get('/foobar/full/full/0/default.jpg')
         self.assertEqual(resp.status_code, 404)
         self.assertEqual(resp.headers['content-type'], 'text/plain')
 
@@ -426,12 +396,88 @@ class WebappIntegration(loris_t.LorisTest):
         info = img_info.ImageInfo.from_json_fp(tmp_fp)
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
 
+
+class InfoRequests(loris_t.LorisTest):
+
+    def test_access_control_allow_origin_on_info_requests(self):
+        uri = '/%s/info.json' % (self.test_jp2_color_id,)
+        resp = self.client.get(uri)
+        self.assertEqual(resp.headers['access-control-allow-origin'], '*')
+
+    def test_info_not_found_request(self):
+        resp = self.client.get('/foobar/info.json')
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.headers['content-type'], 'text/plain')
+
     def test_info_without_dot_json_404(self):
         # Note that this isn't what we really want...should be 400, but this
         # gets through as an ID. Technically OK, I think.
         to_get = '/%s/info' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 404)
+
+    def test_info_fake_jp2(self):
+        to_get = '/01%2F03%2Ffake.jp2/info.json'
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 500)
+        self.assertEqual(resp.data.decode('utf8'), 'Server Side Error: Invalid JP2 file (500)')
+
+    def test_info_sends_304(self):
+        to_get = '/%s/info.json' % (self.test_jp2_color_id,)
+
+        # get an image
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 200)
+        lmod = resp.headers['Last-Modified']
+
+        sleep(1) # just make sure.
+        headers = Headers([('if-modified-since', lmod)])
+        resp = self.client.get(to_get, headers=headers)
+        self.assertEqual(resp.status_code, 304)
+
+        sleep(1)
+        dt = http_date(datetime.utcnow()) # ~2 seconds later
+        headers = Headers([('if-modified-since', dt)])
+        resp = self.client.get(to_get, headers=headers)
+        self.assertEqual(resp.status_code, 304)
+
+    def test_info_with_callback_is_wrapped_correctly(self):
+        to_get = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
+        resp = self.client.get(to_get)
+        assert resp.status_code == 200
+
+        assert re.match(r'^mycallback\(.*\);$', resp.data.decode('utf8'))
+
+    def test_info_as_options(self):
+        to_opt = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
+        resp = self.client.options(to_opt)
+        assert resp.status_code == 200
+        assert resp.headers.get('Access-Control-Allow-Methods') == 'GET, OPTIONS'
+
+
+class ImageRequests(loris_t.LorisTest):
+
+    def test_access_control_allow_origin_on_img_request(self):
+        uri = '/%s/full/100,/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(uri)
+        self.assertEqual(resp.headers['access-control-allow-origin'], '*')
+
+    def test_cors_regex_match(self):
+        self.app.cors_regex = re.compile('calhos')
+        to_get = '/%s/full/110,/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEquals(resp.headers['Access-Control-Allow-Origin'], 'http://localhost/')
+
+    def test_cors_regex_no_match(self):
+        self.app.cors_regex = re.compile('fooxyz')
+        to_get = '/%s/full/120,/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertFalse(resp.headers.has_key('Access-Control-Allow-Origin'))
+
+    def test_image_not_found_request(self):
+        resp = self.client.get('/foobar/full/full/0/default.jpg')
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.headers['content-type'], 'text/plain')
 
     def test_image_without_format_400(self):
         to_get = '/%s/full/full/0/default' % (self.test_jp2_color_id,)
@@ -489,50 +535,11 @@ class WebappIntegration(loris_t.LorisTest):
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 200)
 
-
     def test_no_ims_header_ok(self):
         to_get = '/%s/full/full/0/default.jpg' % (self.test_jp2_color_id,)
         # get an image
         resp = self.client.get(to_get, headers=Headers())
         self.assertEqual(resp.status_code, 200)
-
-    def test_info_fake_jp2(self):
-        to_get = '/01%2F03%2Ffake.jp2/info.json'
-        resp = self.client.get(to_get)
-        self.assertEqual(resp.status_code, 500)
-        self.assertEqual(resp.data.decode('utf8'), 'Server Side Error: Invalid JP2 file (500)')
-
-    def test_info_sends_304(self):
-        to_get = '/%s/info.json' % (self.test_jp2_color_id,)
-
-        # get an image
-        resp = self.client.get(to_get)
-        self.assertEqual(resp.status_code, 200)
-        lmod = resp.headers['Last-Modified']
-
-        sleep(1) # just make sure.
-        headers = Headers([('if-modified-since', lmod)])
-        resp = self.client.get(to_get, headers=headers)
-        self.assertEqual(resp.status_code, 304)
-
-        sleep(1)
-        dt = http_date(datetime.utcnow()) # ~2 seconds later
-        headers = Headers([('if-modified-since', dt)])
-        resp = self.client.get(to_get, headers=headers)
-        self.assertEqual(resp.status_code, 304)
-
-    def test_info_with_callback_is_wrapped_correctly(self):
-        to_get = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
-        resp = self.client.get(to_get)
-        assert resp.status_code == 200
-
-        assert re.match(r'^mycallback\(.*\);$', resp.data.decode('utf8'))
-
-    def test_info_as_options(self):
-        to_opt = '/%s/info.json?callback=mycallback' % self.test_jpeg_id
-        resp = self.client.options(to_opt)
-        assert resp.status_code == 200
-        assert resp.headers.get('Access-Control-Allow-Methods') == 'GET, OPTIONS'
 
     def test_bad_format_returns_400(self):
         to_get = '/%s/full/full/0/default.hey' % (self.test_jp2_color_id,)
@@ -605,13 +612,12 @@ class WebappIntegration(loris_t.LorisTest):
         self.assertTrue(not any_files, "There are too many files in %s: %s" % (tmp, any_files))
 
 
-
 class SizeRestriction(loris_t.LorisTest):
     '''Tests for restriction of size parameter.'''
 
     def setUp(self):
         '''Set max_size_above_full to 100 for tests.'''
-        super(SizeRestriction, self).setUp()
+        super().setUp()
         self.app.max_size_above_full = 100
 
     def test_json_no_size_above_full(self):
@@ -628,7 +634,6 @@ class SizeRestriction(loris_t.LorisTest):
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 200)
         self.assertTrue('sizeAboveFull' in resp.data.decode('utf8'))
-
 
     def test_full_full(self):
         '''full/full has no size restrictions.'''
@@ -692,7 +697,6 @@ class SizeRestriction(loris_t.LorisTest):
         request_path = '/%s/100,100,100,100/120,/0/default.jpg' % (self.test_jpeg_id,)
         resp = self.client.get(request_path)
         self.assertEqual(resp.status_code, 404)
-
 
     def test_no_restriction(self):
         '''If max_size_above_full ist set to 0, users can request
