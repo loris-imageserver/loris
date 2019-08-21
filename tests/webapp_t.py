@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from os import path, listdir
 from time import sleep
 from unittest import TestCase
@@ -316,32 +317,6 @@ class TestLorisRequest(TestCase):
         self.assertEqual(loris_request.ident, encoded_identifier)
 
 
-class TestGetInfo(loris_t.LorisTest):
-
-    def test_get_info(self):
-        path = '/%s/' % self.test_jp2_color_id
-        req = _get_werkzeug_request(path=path)
-        base_uri = 'http://example.org/01%2F02%2F0001.jp2'
-        info, last_mod = self.app._get_info(self.test_jp2_color_id, req, base_uri)
-        self.assertEqual(info.ident, base_uri)
-
-    def test_get_info_invalid_src_format(self):
-        # This functionality was factored out
-        # --azaroth42 2017-07-07
-        return None
-        #path = '/%s/' % self.test_jp2_color_id
-        #builder = EnvironBuilder(path=path)
-        #env = builder.get_environ()
-        #req = Request(env)
-        #base_uri = 'http://example.org/01%2F02%2F0001.jp2'
-        #src_fp = 'invalid'
-        #src_format = 'invalid'
-        #exception = loris_exception.ImageInfoException
-        #function = self.app._get_info
-        #args = [self.test_jp2_color_id, req, base_uri]
-        #self.assertRaises(exception, function, *args)
-
-
 class StaticRoutes(loris_t.LorisTest):
     '''Tests for static routes like /, /favicon.ico, ...'''
 
@@ -398,6 +373,12 @@ class BareIdentifierRequests(loris_t.LorisTest):
 
 
 class InfoRequests(loris_t.LorisTest):
+
+    def test_valid_info_request(self):
+        uri = '/%s/info.json' % (self.test_jp2_color_id)
+        resp = self.client.get(uri)
+        info = json.loads(resp.data.decode('utf8'))
+        assert info['@id'] == 'http://localhost/01%2F02%2F0001.jp2' #base URI of the image including scheme, server, prefix and identifier without a trailing slash
 
     def test_access_control_allow_origin_on_info_requests(self):
         uri = '/%s/info.json' % (self.test_jp2_color_id,)
