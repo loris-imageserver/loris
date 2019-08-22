@@ -1,24 +1,16 @@
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
+import mock
 from os.path import exists
 from os.path import islink
 from os.path import join
+from urllib.parse import unquote
 
-import mock
 import pytest
-
-try:
-    from urllib.parse import unquote
-except ImportError:  # Python 2
-    from urllib import unquote
 
 from loris import img, img_info
 from tests import loris_t
 
 
-class TestImageRequest(object):
+class TestImageRequest:
 
     @pytest.mark.parametrize('args, request_path', [
         (('id1', 'full', 'full', '0', 'default', 'jpg'),

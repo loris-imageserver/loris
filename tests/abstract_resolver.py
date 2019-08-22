@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-
 from loris import loris_exception
 
 
-class AbstractResolverTest(object):
+class AbstractResolverTest:
 
     def test_is_resolvable(self):
         self.assertTrue(

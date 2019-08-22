@@ -1,7 +1,3 @@
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import copy
 import json
 import os
@@ -12,11 +8,7 @@ from os.path import realpath
 from os.path import exists
 import tempfile
 import unittest
-
-try:
-    from urllib.parse import quote_plus, unquote
-except ImportError:  # Python 2
-    from urllib import quote_plus, unquote
+from urllib.parse import quote_plus, unquote
 
 import pytest
 import responses
