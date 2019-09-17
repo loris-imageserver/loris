@@ -304,6 +304,35 @@ class LorisRequest(object):
             self.request_type = 'redirect_info'
 
 
+def set_content_disposition_header(image_request, response):
+    """
+    Set the HTTP Content-Disposition header.
+
+    This indicates to the browser what filename it should use to download the
+    file.  We use the identifier from the request, which is generally more
+    useful than `default.jpg`.
+
+    See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
+    """
+    ident = image_request.ident
+    img_format = image_request.format
+
+    # If the identifier has an associated image format and it matches the
+    # request, pass through the identifier directly.
+    #
+    # If the request is for a different format, include both formats.
+    #
+    # e.g.  /cats.jpg/…/default.jpg ~> cats.jpg
+    #       /cats.jpg/…/default.png ~> cats.jpg.png
+    #
+    if ident.endswith(".%s" % img_format):
+        download_filename = ident
+    else:
+        download_filename = "%s.%s" % (ident, img_format)
+
+    response.headers["Content-Disposition"] = "filename*=utf-8''%s" % download_filename
+
+
 class Loris(object):
 
     def __init__(self, app_configs={}):
@@ -606,6 +635,8 @@ class Loris(object):
                 # Images don't redirect, they just deny out
                 r.status_code = 401
                 return r
+
+        set_content_disposition_header(image_request=image_request, response=r)
 
         if in_cache:
             fp, img_last_mod = self.img_cache[image_request]
