@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import os.path
 from os import path, listdir
 from time import sleep
 from unittest import TestCase
@@ -114,6 +115,29 @@ class TestLoris(loris_t.LorisTest):
 
         resp = client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
         assert resp.status_code == 200
+
+    def test_sends_content_disposition_header_for_image(self):
+        config = webapp.get_debug_config("kdu")
+        app = webapp.Loris(config)
+
+        client = Client(
+            application=webapp.Loris(config),
+            response_wrapper=BaseResponse
+        )
+
+        jpg_resp = client.get("/%s/full/full/0/default.jpg" % self.test_jpeg_id)
+
+        expected_filename = os.path.relpath(self.test_jpeg_fp, self.test_img_dir)
+
+        assert jpg_resp.headers["Content-Disposition"] == (
+            "filename*=utf-8''%s" % expected_filename
+        )
+
+        png_resp = client.get("/%s/full/full/0/default.png" % self.test_jpeg_id)
+
+        assert png_resp.headers["Content-Disposition"] == (
+            "filename*=utf-8''%s.png" % expected_filename
+        )
 
 
 class TestLorisRequest(TestCase):
