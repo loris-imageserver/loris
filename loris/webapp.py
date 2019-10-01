@@ -550,7 +550,7 @@ class Loris(object):
 
     def _get_info(self,ident,request,base_uri):
         if self.enable_caching:
-            in_cache = request in self.info_cache
+            in_cache = ident in self.info_cache
         else:
             in_cache = False
 
@@ -559,8 +559,8 @@ class Loris(object):
         #   If we don't see src_format, that means it's old cache data, so just
         #   ignore it and cache new ImageInfo.
         #   TODO: remove src_format check in Loris 4.0.
-        if in_cache and self.info_cache[request][0].src_format:
-            return self.info_cache[request]
+        if in_cache and self.info_cache[ident][0].src_format:
+            return self.info_cache[ident]
         else:
 
             info = self.resolver.resolve(self, ident, base_uri)
@@ -575,9 +575,9 @@ class Loris(object):
             # store
             if self.enable_caching:
                 self.logger.debug('ident used to store %s: %s', ident, ident)
-                self.info_cache[request] = info
+                self.info_cache[ident] = info
                 # pick up the timestamp... :()
-                info,last_mod = self.info_cache[request]
+                info,last_mod = self.info_cache[ident]
             else:
                 last_mod = None
 

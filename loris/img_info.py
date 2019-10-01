@@ -274,13 +274,12 @@ class InfoCache(object):
     iterators, views, default, update, comparators, etc.
 
     Slots:
-        http_root (str): See below
-        https_root (str): See below
+        root (str): See below
         size (int): See below.
         _dict (OrderedDict): The map.
         _lock (Lock): The lock.
     """
-    __slots__ = ( 'http_root', 'https_root', 'size', '_dict', '_lock')
+    __slots__ = ( 'root', 'size', '_dict', '_lock')
 
     def __init__(self, root, size=500):
         """
@@ -290,50 +289,36 @@ class InfoCache(object):
             size (int):
                 Max entries before the we start popping (LRU).
         """
-        self.http_root = os.path.join(root, 'http')
-        self.https_root = os.path.join(root, 'https')
+        self.root = root
         self.size = size
         self._dict = OrderedDict()  # keyed by URL, so we don't need
                                     # to separate HTTP and HTTPS
         self._lock = Lock()
 
-    def _which_root(self, request):
-        if request.url.startswith('https'):
-            return self.https_root
-        else:
-            return self.http_root
+    def _get_ident_dir_path(self, ident):
+        return os.path.join(self.root, unquote(ident))
 
-    @staticmethod
-    def ident_from_request(request):
-        return '/'.join(request.path[1:].split('/')[:-1])
+    def _get_info_fp(self, ident):
+        return os.path.join(self._get_ident_dir_path(ident), 'info.json')
 
-    def _get_info_fp(self, request):
-        ident = InfoCache.ident_from_request(request)
-        cache_root = self._which_root(request)
-        path = os.path.join(cache_root, unquote(ident), 'info.json')
-        return path
+    def _get_color_profile_fp(self, ident):
+        return os.path.join(self._get_ident_dir_path(ident), 'profile.icc')
 
-    def _get_color_profile_fp(self, request):
-        ident = InfoCache.ident_from_request(request)
-        cache_root = self._which_root(request)
-        path = os.path.join(cache_root, unquote(ident), 'profile.icc')
-        return path
-
-    def get(self, request):
+    def get(self, ident):
         '''
         Returns:
             ImageInfo if it is in the cache, else None
         '''
         info_and_lastmod = None
         with self._lock:
-            info_and_lastmod = self._dict.get(request.url)
+            info_and_lastmod = self._dict.get(ident)
         if info_and_lastmod is None:
-            info_fp = self._get_info_fp(request)
+            info_fp = self._get_info_fp(ident)
             if os.path.exists(info_fp):
                 # from fs
                 info = ImageInfo.from_json_fp(info_fp)
 
-                icc_fp = self._get_color_profile_fp(request)
+                icc_fp = self._get_color_profile_fp(ident)
                 if os.path.exists(icc_fp):
                     with open(icc_fp, "rb") as f:
                         info.color_profile_bytes = f.read()
@@ -342,29 +327,29 @@ class InfoCache(object):
 
                 lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
                 info_and_lastmod = (info, lastmod)
-                logger.debug('Info for %s read from file system', request)
+                logger.debug('Info for %s read from file system', ident)
                 # into mem:
-                self.__setitem__(request, info, _to_fs=False)
+                self.__setitem__(ident, info, _to_fs=False)
         return info_and_lastmod
 
-    def has_key(self, request):
-        return os.path.exists(self._get_info_fp(request))
+    def has_key(self, ident):
+        return os.path.exists(self._get_info_fp(ident))
 
-    def __contains__(self, request):
-        return self.has_key(request)
+    def __contains__(self, ident):
+        return self.has_key(ident)
 
-    def __getitem__(self, request):
-        info_lastmod = self.get(request)
+    def __getitem__(self, ident):
+        info_lastmod = self.get(ident)
         if info_lastmod is None:
             raise KeyError
         else:
             return info_lastmod
 
-    def __setitem__(self, request, info, _to_fs=True):
-        info_fp = self._get_info_fp(request)
+    def __setitem__(self, ident, info, _to_fs=True):
+        info_fp = self._get_info_fp(ident)
         if _to_fs:
             # to fs
-            logger.debug('request passed to __setitem__: %s', request)
+            logger.debug('ident passed to __setitem__: %s', ident)
             dp = os.path.dirname(info_fp)
             mkdir_p(dp)
             logger.debug('Created %s', dp)
@@ -375,7 +360,7 @@ class InfoCache(object):
 
 
             if info.color_profile_bytes:
-                icc_fp = self._get_color_profile_fp(request)
+                icc_fp = self._get_color_profile_fp(ident)
                 with open(icc_fp, 'wb') as f:
                     f.write(info.color_profile_bytes)
                 logger.debug('Created %s', icc_fp)
@@ -388,18 +373,18 @@ class InfoCache(object):
         if self.size > 0:
             lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
             with self._lock:
-                self._dict[request.url] = (info,lastmod)
+                self._dict[ident] = (info,lastmod)
                 while len(self._dict) > self.size:
                     self._dict.popitem(last=False)
 
-    def __delitem__(self, request):
+    def __delitem__(self, ident):
         with self._lock:
-            del self._dict[request.url]
+            del self._dict[ident]
 
-        info_fp = self._get_info_fp(request)
+        info_fp = self._get_info_fp(ident)
         os.unlink(info_fp)
 
-        icc_fp = self._get_color_profile_fp(request)
+        icc_fp = self._get_color_profile_fp(ident)
         if os.path.exists(icc_fp):
             os.unlink(icc_fp)
 

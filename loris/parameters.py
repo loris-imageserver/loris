@@ -52,7 +52,7 @@ class RegionParameter(object):
 
         Args:
             uri_value (str): The region slice of an IIIF image request URI.
-            image_info (ImgInfo)
+            image_info (ImageInfo)
 
         Raises:
             SyntaxException

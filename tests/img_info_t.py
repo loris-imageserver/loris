@@ -451,27 +451,24 @@ class InfoFunctional(loris_t.LorisTest):
 
 class TestInfoCache(loris_t.LorisTest):
 
-    def _cache_with_request(self):
+    def _cache_with_ident(self):
         """
         Returns a tuple: an ``InfoCache`` with a single entry, and the key.
         """
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
 
-        path = self.test_jp2_color_fp
-        req = webapp_t._get_werkzeug_request(path=path)
-
         info = img_info.ImageInfo(self.app, self.test_jp2_color_fp, self.test_jp2_color_fmt)
 
-        cache[req] = info
-        return (cache, req)
+        cache[self.test_jp2_color_id] = info
+        return (cache, self.test_jp2_color_id)
 
-    def test_info_goes_to_http_fs_cache(self):
+    def test_info_goes_to_expected_path(self):
         # there isn't a way to do a fake HTTPS request, but this at least
         # confirms that HTTP goes to the right place.
-        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+        request_uri = '/%s/%s' % (self.test_jp2_color_id, 'info.json')
         resp = self.client.get(request_uri)
         expected_path = path.join(
-            self.app.info_cache.http_root,
+            self.app.info_cache.root,
             unquote(self.test_jp2_color_id),
             'info.json'
         )
@@ -485,7 +482,7 @@ class TestInfoCache(loris_t.LorisTest):
         request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
         resp = self.client.get(request_uri)
         expected_path = path.join(
-            self.app.info_cache.http_root,
+            self.app.info_cache.root,
             unquote(self.test_jp2_color_id),
             'info.json'
         )
@@ -501,8 +498,8 @@ class TestInfoCache(loris_t.LorisTest):
         self.assertTrue(fs_first_time == fs_second_time)
 
     def test_can_delete_items_from_infocache(self):
-        cache, req = self._cache_with_request()
-        del cache[req]
+        cache, ident = self._cache_with_ident()
+        del cache[ident]
 
     def test_empty_cache_has_zero_size(self):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
@@ -533,38 +530,35 @@ class TestInfoCache(loris_t.LorisTest):
 
     def test_deleting_cache_item_removes_color_profile_fp(self):
         # First assemble the cache
-        cache, req = self._cache_with_request()
+        cache, ident = self._cache_with_ident()
 
         # Then create a file where the cached color profile would be
-        color_profile_fp = cache._get_color_profile_fp(req)
-        open(color_profile_fp, 'w')
+        color_profile_fp = cache._get_color_profile_fp(ident)
+        with open(color_profile_fp, 'w'): pass
         assert os.path.exists(color_profile_fp)
 
         # Finally, delete the cache entry, and check the color profile fp
         # was deleted.
-        del cache[req]
+        del cache[ident]
         assert not os.path.exists(color_profile_fp)
 
     def test_looking_up_missing_item_is_keyerror(self):
-        cache = img_info.InfoCache(root=tempfile.mkdtemp())
-        path = self.test_jp2_color_fp
-        req = webapp_t._get_werkzeug_request(path=path)
-
-        with pytest.raises(KeyError):
-            cache[req]
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img_info.InfoCache(root=tmp)
+            with pytest.raises(KeyError):
+                cache[self.test_jp2_color_id]
 
     def test_creates_cache_dir(self):
-        root = os.path.join(tempfile.mkdtemp(), "doesnotexist")
-        assert not os.path.exists(root)
-        cache = img_info.InfoCache(root=root)
-        path = self.test_jpeg_fp
-        req = webapp_t._get_werkzeug_request(path=path)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "doesnotexist")
+            assert not os.path.exists(root)
+            cache = img_info.InfoCache(root=root)
 
-        info = img_info.ImageInfo(
-            app=self.app,
-            src_img_fp=self.test_jpeg_fp,
-            src_format=self.test_jpeg_fmt
-        )
+            info = img_info.ImageInfo(
+                app=self.app,
+                src_img_fp=self.test_jpeg_fp,
+                src_format=self.test_jpeg_fmt
+            )
 
-        cache[req] = info
-        assert cache[req][0] == info
+            cache[self.test_jpeg_id] = info
+            assert cache[self.test_jpeg_id][0] == info
