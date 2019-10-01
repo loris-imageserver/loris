@@ -45,7 +45,6 @@ class Test_AbstractAuthorizer(unittest.TestCase):
 class Test_NullAuthorizer(unittest.TestCase):
 
     def setUp(self):
-        ident = "test"
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = NullAuthorizer({})
@@ -67,7 +66,6 @@ class Test_NullAuthorizer(unittest.TestCase):
 class Test_NooneAuthorizer(unittest.TestCase):
 
     def setUp(self):
-        ident = "test"
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = NooneAuthorizer({})
@@ -89,7 +87,6 @@ class Test_NooneAuthorizer(unittest.TestCase):
 class Test_SingleDegradingAuthorizer(unittest.TestCase):
 
     def setUp(self):
-        ident = "test"
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = SingleDegradingAuthorizer({})
@@ -116,7 +113,6 @@ class Test_SingleDegradingAuthorizer(unittest.TestCase):
 class Test_RulesAuthorizer(unittest.TestCase):
 
     def setUp(self):
-        ident = "test"
         fp = "img/test.png"
         fmt = "png"
 

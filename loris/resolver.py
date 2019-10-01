@@ -89,9 +89,6 @@ class _AbstractResolver(object):
         else:
             return {}
 
-    def fix_base_uri(self, base_uri):
-        return base_uri
-
     def format_from_ident(self, ident):
         if ident.rfind('.') != -1:
             extension = ident.split('.')[-1]
@@ -139,7 +136,6 @@ class SimpleFSResolver(_AbstractResolver):
 
         source_fp = self.source_file_path(ident)
         format_ = self.format_from_ident(ident)
-        uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, source_fp)
         return ImageInfo(app, source_fp, format_, extra)
 
@@ -373,7 +369,6 @@ class SimpleHTTPResolver(_AbstractResolver):
         if not cached_file_path:
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
-        uri = self.fix_base_uri(base_uri)
         if self.use_extra_info:
             extra = self.get_extra_info(ident, cached_file_path)
         else:
@@ -559,6 +554,5 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         cache_fp = self.cache_file_path(ident)
         format_ = self.format_from_ident(ident)
-        uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, cache_fp)
         return ImageInfo(app, cache_fp, format_, extra)
