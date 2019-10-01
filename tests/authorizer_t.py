@@ -9,12 +9,14 @@ from cryptography.fernet import Fernet
 import jwt
 import pytest
 
+
 class MockRequest:
 
     def __init__(self, hdrs={}, cooks={}):
         self.headers = hdrs
         self.cookies = cooks
         self.path = "bla/info.json"
+
 
 class Test_AbstractAuthorizer(unittest.TestCase):
 
@@ -40,7 +42,6 @@ class Test_AbstractAuthorizer(unittest.TestCase):
             aa.is_authorized(info={}, request=None)
 
 
-# This is mostly pointless, as the values returned are static
 class Test_NullAuthorizer(unittest.TestCase):
 
     def setUp(self):
@@ -48,7 +49,7 @@ class Test_NullAuthorizer(unittest.TestCase):
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = NullAuthorizer({})
-        self.info = ImageInfo(None, ident, fp, fmt)
+        self.info = ImageInfo(None, fp, fmt)
         self.request = MockRequest()
 
     def test_is_protected(self):
@@ -63,7 +64,6 @@ class Test_NullAuthorizer(unittest.TestCase):
         self.assertEqual(svcs, {})
 
 
-# This is also mostly pointless, as the values returned are static
 class Test_NooneAuthorizer(unittest.TestCase):
 
     def setUp(self):
@@ -71,7 +71,7 @@ class Test_NooneAuthorizer(unittest.TestCase):
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = NooneAuthorizer({})
-        self.info = ImageInfo(None, ident, fp, fmt)
+        self.info = ImageInfo(None, fp, fmt)
         self.request = MockRequest()
 
     def test_is_protected(self):
@@ -85,7 +85,7 @@ class Test_NooneAuthorizer(unittest.TestCase):
         svcs = self.authorizer.get_services_info(self.info)
         self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
 
-# This is ever-so-slightly less pointless
+
 class Test_SingleDegradingAuthorizer(unittest.TestCase):
 
     def setUp(self):
@@ -93,9 +93,9 @@ class Test_SingleDegradingAuthorizer(unittest.TestCase):
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = SingleDegradingAuthorizer({})
-        self.badInfo = ImageInfo(None, ident, fp, fmt)
-        self.okayInfo = ImageInfo(None, "67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
-            "img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
+        self.badInfo = ImageInfo(None, fp, fmt)
+        self.okayIdent = "67352ccc-d1b0-11e1-89ae-279075081939.jp2"
+        self.okayInfo = ImageInfo(None, "img/%s" % self.okayIdent, "jp2")
         self.request = MockRequest()
 
     def test_is_protected(self):
@@ -112,7 +112,7 @@ class Test_SingleDegradingAuthorizer(unittest.TestCase):
         svcs = self.authorizer.get_services_info(self.okayInfo)
         self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
 
-# And this is actually useful
+
 class Test_RulesAuthorizer(unittest.TestCase):
 
     def setUp(self):
@@ -124,9 +124,9 @@ class Test_RulesAuthorizer(unittest.TestCase):
             {"cookie_secret": b"4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
             "token_secret": b"hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
             "salt": b"4rakTQJD4lC1B4lu"})
-        self.badInfo = ImageInfo(None, ident, fp, fmt)
-        self.okayInfo = ImageInfo(None, "67352ccc-d1b0-11e1-89ae-279075081939.jp2",\
-            "img/67352ccc-d1b0-11e1-89ae-279075081939.jp2", "jp2")
+        self.badInfo = ImageInfo(None, fp, fmt)
+        self.okayIdent = "67352ccc-d1b0-11e1-89ae-279075081939.jp2"
+        self.okayInfo = ImageInfo(None, "img/%s" % self.okayIdent, "jp2")
 
         self.origin = "localhost"
         # role to get access is "test"
@@ -220,7 +220,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
         # Set a degraded tier
         # Should redirect for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"], "tiers":
-            [{"identifier":"http://localhost:5004/"+self.okayInfo.base_uri}]}
+            [{"identifier":"http://localhost:5004/"+self.okayIdent}]}
         authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
         self.assertEqual(authd['status'], "redirect")
         authd = self.authorizer.is_authorized(self.badInfo, self.tokenRequest)
@@ -264,7 +264,7 @@ class Test_RulesAuthorizer(unittest.TestCase):
         # Set a degraded tier
         # Should redirect for empty, pass for cookie/token
         self.badInfo.auth_rules = {"allowed": ["test"], "tiers":
-            [{"identifier":"http://localhost:5004/"+self.okayInfo.base_uri}]}
+            [{"identifier":"http://localhost:5004/"+self.okayIdent}]}
         authd = self.authorizer.is_authorized(self.badInfo, self.emptyRequest)
         self.assertEqual(authd['status'], "redirect")
         authd = self.authorizer.is_authorized(self.badInfo, self.jwtTokenRequest)

@@ -9,7 +9,6 @@ import pytest
 from werkzeug.datastructures import Headers
 
 from loris import img_info, loris_exception
-from loris.constants import PROTOCOL
 from loris.img_info import ImageInfo, Profile
 from loris.loris_exception import ImageInfoException
 from tests import loris_t, webapp_t
@@ -25,11 +24,6 @@ class MockApp:
 
 
 class InfoUnit(loris_t.LorisTest):
-    'Tests ImageInfo constructors.'
-
-    #def setUp(self):
-    #    super(InfoUnit, self).setUp()
-    #    self.mockapp = MockApp()
 
     def test_color_jp2_info_from_image(self):
         fp = self.test_jp2_color_fp
@@ -57,7 +51,7 @@ class InfoUnit(loris_t.LorisTest):
 
         #test that sizeAboveFull isn't in profile if max_size_above_full is > 0 and <= 100
         self.app.max_size_above_full = 80
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
         self.assertEqual(info.height, self.test_jp2_color_dims[1])
@@ -65,11 +59,9 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
-        self.assertEqual(info.base_uri, uri)
-        self.assertEqual(info.protocol, PROTOCOL)
 
         self.app.max_size_above_full = 0
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
         self.assertTrue('sizeAboveFull' in info.profile.description['supports'])
         self.app.max_size_above_full = 200
 
@@ -80,7 +72,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_jp2_with_precincts_id
         uri = self.test_jp2_with_precincts_uri
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         self.assertEqual(info.tiles, self.test_jp2_with_precincts_tiles)
         self.assertEqual(info.sizes, self.test_jp2_with_precincts_sizes)
@@ -92,7 +84,7 @@ class InfoUnit(loris_t.LorisTest):
         uri = self.test_jp2_with_embedded_profile_uri
         profile_copy_fp = self.test_jp2_embedded_profile_copy_fp
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         with open(self.test_jp2_embedded_profile_copy_fp, 'rb') as fixture_bytes:
             self.assertEqual(info.color_profile_bytes, fixture_bytes.read())
@@ -103,7 +95,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_jp2_color_id
         uri = self.test_jp2_color_uri
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
         self.assertEqual(info.color_profile_bytes, None)
 
     def test_gray_jp2_info_from_image(self):
@@ -130,7 +122,7 @@ class InfoUnit(loris_t.LorisTest):
             }
         ]
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         self.assertEqual(info.width, self.test_jp2_gray_dims[0])
         self.assertEqual(info.height, self.test_jp2_gray_dims[1])
@@ -138,8 +130,6 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_gray_tiles)
         self.assertEqual(info.sizes, self.test_jp2_gray_sizes)
-        self.assertEqual(info.base_uri, uri)
-        self.assertEqual(info.protocol, PROTOCOL)
 
     def test_info_from_jpg_marked_as_jp2(self):
         fp = path.join(self.test_img_dir, '01', '03', '0001.jpg')
@@ -147,7 +137,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = '01%2f03%2f0001.jpg'
         uri = '%s/%s' % (self.URI_BASE, ident)
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
-            img_info.ImageInfo(self.app, uri, fp, fmt)
+            img_info.ImageInfo(self.app, fp, fmt)
         self.assertEqual(str(cm.exception), 'Invalid JP2 file')
 
     def test_info_from_invalid_src_format(self):
@@ -157,7 +147,7 @@ class InfoUnit(loris_t.LorisTest):
         uri = '%s/%s' % (self.URI_BASE, ident)
         error_message = "Didn\'t get a source format, or at least one we recognize ('invalid_format')."
         with self.assertRaises(loris_exception.ImageInfoException) as cm:
-            img_info.ImageInfo(self.app, uri, fp, fmt)
+            img_info.ImageInfo(self.app, fp, fmt)
         self.assertEqual(str(cm.exception), error_message)
 
     def test_jpeg_info_from_image(self):
@@ -166,7 +156,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_jpeg_id
         uri = self.test_jpeg_uri
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp", "tif" ],
@@ -187,8 +177,6 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_jpeg_sizes)
-        self.assertEqual(info.base_uri, uri)
-        self.assertEqual(info.protocol, PROTOCOL)
 
     def test_png_info_from_image(self):
         fp = self.test_png_fp
@@ -196,7 +184,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_png_id
         uri = self.test_png_uri
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp", "tif" ],
@@ -217,8 +205,6 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_png_sizes)
-        self.assertEqual(info.base_uri, uri)
-        self.assertEqual(info.protocol, PROTOCOL)
 
 
     def test_tiff_info_from_image(self):
@@ -227,7 +213,7 @@ class InfoUnit(loris_t.LorisTest):
         ident = self.test_tiff_id
         uri = self.test_tiff_uri
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, fp, fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp", "tif" ],
@@ -248,8 +234,6 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_tiff_sizes)
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
-        self.assertEqual(info.base_uri, uri)
-        self.assertEqual(info.protocol, PROTOCOL)
 
     def test_info_from_json(self):
         json_fp = self.test_jp2_color_info_fp
@@ -275,9 +259,7 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
-        self.assertEqual(info.base_uri, self.test_jp2_color_uri)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
-        self.assertEqual(info.protocol, PROTOCOL)
 
     def test_extrainfo_appears_in_iiif_json(self):
         info = ImageInfo(
@@ -292,14 +274,14 @@ class InfoUnit(loris_t.LorisTest):
         )
         info.from_image_file()
 
-        iiif_json = json.loads(info.to_iiif_json())
+        iiif_json = json.loads(info.to_iiif_json(base_uri='http://localhost/1234'))
         assert iiif_json['license'] == 'CC-BY'
         assert iiif_json['logo'] == 'logo.png'
         assert iiif_json['service'] == {'@id': 'my_service'}
         assert iiif_json['attribution'] == 'Author unknown'
 
 
-class TestImageInfo(object):
+class TestImageInfo:
 
     def test_extrainfo_can_override_attributes(self):
         info = ImageInfo(extra={'extraInfo': {
@@ -437,7 +419,6 @@ class InfoFunctional(loris_t.LorisTest):
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
-        self.assertEqual(info.base_uri, self.test_jp2_color_uri)
 
     def test_json_ld_headers(self):
         'We should get jsonld if we ask for it'
@@ -479,8 +460,7 @@ class TestInfoCache(loris_t.LorisTest):
         path = self.test_jp2_color_fp
         req = webapp_t._get_werkzeug_request(path=path)
 
-        info = img_info.ImageInfo(self.app, self.test_jp2_color_uri,
-            self.test_jp2_color_fp, self.test_jp2_color_fmt)
+        info = img_info.ImageInfo(self.app, self.test_jp2_color_fp, self.test_jp2_color_fmt)
 
         cache[req] = info
         return (cache, req)
@@ -582,7 +562,6 @@ class TestInfoCache(loris_t.LorisTest):
 
         info = img_info.ImageInfo(
             app=self.app,
-            base_uri=self.test_jpeg_uri,
             src_img_fp=self.test_jpeg_fp,
             src_format=self.test_jpeg_fmt
         )

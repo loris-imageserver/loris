@@ -141,7 +141,7 @@ class SimpleFSResolver(_AbstractResolver):
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, source_fp)
-        return ImageInfo(app, uri, source_fp, format_, extra)
+        return ImageInfo(app, source_fp, format_, extra)
 
 
 class ExtensionNormalizingFSResolver(SimpleFSResolver):
@@ -378,7 +378,7 @@ class SimpleHTTPResolver(_AbstractResolver):
             extra = self.get_extra_info(ident, cached_file_path)
         else:
             extra = {}
-        return ImageInfo(app, uri, cached_file_path, format_, extra)
+        return ImageInfo(app, cached_file_path, format_, extra)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -561,4 +561,4 @@ class SourceImageCachingResolver(_AbstractResolver):
         format_ = self.format_from_ident(ident)
         uri = self.fix_base_uri(base_uri)
         extra = self.get_extra_info(ident, cache_fp)
-        return ImageInfo(app, uri, cache_fp, format_, extra)
+        return ImageInfo(app, cache_fp, format_, extra)

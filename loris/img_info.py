@@ -61,13 +61,11 @@ class ImageInfo(JP2Extractor):
     See: <http://iiif.io/api/image/>
 
     Slots:
-        base_uri (str): The base URI of the image, including scheme, server, prefix and identifier without a trailing slash..
         width (int)
         height (int)
         scaleFactors [(int)]
         sizes [(str)]: the optimal sizes of the image to request
         tiles: [{}]
-        protocol (str): the protocol URI (constant)
         service (dict): services associated with the image
         profile (Profile): Features supported by the server/available for
             this image
@@ -79,14 +77,11 @@ class ImageInfo(JP2Extractor):
 
     '''
     __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'base_uri', 'profile', 'protocol', 'sizes', 'service',
+        'profile', 'sizes', 'service',
         'attribution', 'logo', 'license', 'auth_rules',
         'src_format', 'src_img_fp', 'color_profile_bytes')
 
-    def __init__(self, app=None, base_uri="", src_img_fp="", src_format="", extra={}):
-
-        self.protocol = PROTOCOL
-        self.base_uri = base_uri
+    def __init__(self, app=None, src_img_fp="", src_format="", extra={}):
         self.src_img_fp = src_img_fp
         self.src_format = src_format
         self.attribution = None
@@ -144,7 +139,6 @@ class ImageInfo(JP2Extractor):
         new_inst = ImageInfo()
         j = json.loads(json_string)
 
-        new_inst.base_uri = j.get('@id')
         new_inst.width = j.get('width')
         new_inst.height = j.get('height')
         # TODO: make sure these are resulting in error or Nones when
@@ -233,11 +227,8 @@ class ImageInfo(JP2Extractor):
         return int(ceil(dim_len * 1.0/scale))
 
     def _get_iiif_info(self):
-        """returns only IIIF info (not Loris-specific info like src_format)"""
         d = {}
         d['@context'] = CONTEXT
-        d['@id'] = self.base_uri
-        d['protocol'] = self.protocol
         d['profile'] = self.profile
         d['width'] = self.width
         d['height'] = self.height
@@ -252,11 +243,13 @@ class ImageInfo(JP2Extractor):
             d['logo'] = self.logo
         if self.license:
             d['license'] = self.license
-
         return d
 
-    def to_iiif_json(self):
+    def to_iiif_json(self, base_uri):
+        """returns only IIIF info (not Loris-specific info like src_format)"""
         d = self._get_iiif_info()
+        d['@id'] = base_uri
+        d['protocol'] = PROTOCOL
         return json.dumps(d, cls=EnhancedJSONEncoder)
 
     def to_full_info_json(self):
