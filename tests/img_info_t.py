@@ -463,39 +463,40 @@ class TestInfoCache(loris_t.LorisTest):
         return (cache, self.test_jp2_color_id)
 
     def test_info_goes_to_expected_path(self):
-        # there isn't a way to do a fake HTTPS request, but this at least
-        # confirms that HTTP goes to the right place.
+        expected_path_for_id = '1b/372/221/d29/35d/2eb/82a/1f8/021/1ee/89f'
         request_uri = '/%s/%s' % (self.test_jp2_color_id, 'info.json')
         resp = self.client.get(request_uri)
         expected_path = path.join(
             self.app.info_cache.root,
-            unquote(self.test_jp2_color_id),
+            expected_path_for_id,
             'info.json'
         )
         self.assertTrue(path.exists(expected_path))
 
     def test_just_ram_cache_update(self):
         # Cache size of one, so it's easy to manipulate
-        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=1)
-        self.app.info_cache = cache
-        # First request
-        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
-        resp = self.client.get(request_uri)
-        expected_path = path.join(
-            self.app.info_cache.root,
-            unquote(self.test_jp2_color_id),
-            'info.json'
-        )
-        fs_first_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
-        # Push this entry out of the RAM cache with another
-        push_request_uri = '/%s/%s' % (self.test_jp2_gray_id,'info.json')
-        resp = self.client.get(push_request_uri)
-        # Request the first file again
-        # It should now exist on disk, but not in RAM, so it shouldn't
-        # have been rewritten by the second get.
-        resp = self.client.get(request_uri)
-        fs_second_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
-        self.assertTrue(fs_first_time == fs_second_time)
+        with tempfile.TemporaryDirectory() as cache_root:
+            cache = img_info.InfoCache(root=cache_root, size=1)
+            self.app.info_cache = cache
+            expected_path_for_id = '1b/372/221/d29/35d/2eb/82a/1f8/021/1ee/89f'
+            # First request
+            request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+            resp = self.client.get(request_uri)
+            expected_path = path.join(
+                self.app.info_cache.root,
+                expected_path_for_id,
+                'info.json'
+            )
+            fs_first_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
+            # Push this entry out of the RAM cache with another
+            push_request_uri = '/%s/%s' % (self.test_jp2_gray_id,'info.json')
+            resp = self.client.get(push_request_uri)
+            # Request the first file again
+            # It should now exist on disk, but not in RAM, so it shouldn't
+            # have been rewritten by the second get.
+            resp = self.client.get(request_uri)
+            fs_second_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
+            self.assertTrue(fs_first_time == fs_second_time)
 
     def test_can_delete_items_from_infocache(self):
         cache, ident = self._cache_with_ident()

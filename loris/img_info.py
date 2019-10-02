@@ -11,6 +11,7 @@ import attr
 from PIL import Image
 
 from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
+from loris.identifiers import CacheNamer
 from loris.jp2_extractor import JP2Extractor, JP2ExtractionError
 from loris.loris_exception import ImageInfoException
 from loris.utils import mkdir_p
@@ -296,7 +297,7 @@ class InfoCache(object):
         self._lock = Lock()
 
     def _get_ident_dir_path(self, ident):
-        return os.path.join(self.root, unquote(ident))
+        return os.path.join(self.root, CacheNamer.cache_directory_name(ident=ident))
 
     def _get_info_fp(self, ident):
         return os.path.join(self._get_ident_dir_path(ident), 'info.json')
