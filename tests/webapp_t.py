@@ -14,6 +14,7 @@ from werkzeug.wrappers import BaseResponse, Request
 
 from loris import img_info, webapp
 from loris.authorizer import NullAuthorizer
+from loris.constants import PROTOCOL
 from loris.loris_exception import ConfigError
 from loris.transforms import KakaduJP2Transformer, OPJ_JP2Transformer
 from loris.webapp import get_debug_config, Loris
@@ -403,6 +404,7 @@ class InfoRequests(loris_t.LorisTest):
         resp = self.client.get(uri)
         info = json.loads(resp.data.decode('utf8'))
         assert info['@id'] == 'http://localhost/01%2F02%2F0001.jp2' #base URI of the image including scheme, server, prefix and identifier without a trailing slash
+        assert info['protocol'] == PROTOCOL
 
     def test_access_control_allow_origin_on_info_requests(self):
         uri = '/%s/info.json' % (self.test_jp2_color_id,)
