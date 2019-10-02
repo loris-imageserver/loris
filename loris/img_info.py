@@ -5,7 +5,6 @@ from math import ceil
 from threading import Lock
 import json
 import os
-from urllib.parse import unquote
 
 import attr
 from PIL import Image
@@ -17,8 +16,6 @@ from loris.loris_exception import ImageInfoException
 from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
-
-STAR_DOT_JSON = '*.json'
 
 PIL_MODES_TO_QUALITIES = {
     # Thanks to http://stackoverflow.com/a/1996609/714478

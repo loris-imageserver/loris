@@ -3,7 +3,6 @@ from os import path
 import json
 import tempfile
 from datetime import datetime
-from urllib.parse import unquote
 
 import pytest
 from werkzeug.datastructures import Headers
@@ -11,7 +10,7 @@ from werkzeug.datastructures import Headers
 from loris import img_info, loris_exception
 from loris.img_info import ImageInfo, Profile
 from loris.loris_exception import ImageInfoException
-from tests import loris_t, webapp_t
+from tests import loris_t
 
 
 class MockApp:
