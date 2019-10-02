@@ -4,6 +4,7 @@ import os.path
 from os import path, listdir
 from time import sleep
 from unittest import TestCase
+from unittest.mock import patch
 import re
 
 import pytest
@@ -617,6 +618,13 @@ class ImageRequests(loris_t.LorisTest):
         tmp = self.app.tmp_dp
         any_files = any([path.isfile(path.join(tmp, n)) for n in listdir(tmp)])
         self.assertTrue(not any_files, "There are too many files in %s: %s" % (tmp, any_files))
+
+    @patch('loris.transforms.KakaduJP2Transformer.transform')
+    def test_empty_image_file_error(self, mock_transform):
+        to_get = '/%s/full/300,/0/default.jpg' % (self.test_jp2_color_id,)
+        resp = self.client.get(to_get)
+        self.assertEqual(resp.status_code, 500)
+        self.assertTrue('empty derivative file' in resp.data.decode('utf8'))
 
 
 class SizeRestriction(loris_t.LorisTest):
