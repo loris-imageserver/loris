@@ -358,8 +358,7 @@ class SimpleHTTPResolver(_AbstractResolver):
                 if not exists(local_rules_fp):
                     with open(local_rules_fp, 'w') as fh:
                         fh.write(resp.text)
-        except:
-            # No connection available
+        except requests.exceptions.RequestException:
             pass
 
         return local_fp
