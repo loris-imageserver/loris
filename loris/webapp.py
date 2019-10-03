@@ -763,7 +763,8 @@ possible that there was a problem with the source file
             )
             derivative_size = os.stat(temp_fp).st_size
             if derivative_size < 1:
-                raise TransformException('empty derivative file created')
+                self.logger.error('empty derivative file created for %s' % image_info.src_img_fp)
+                raise TransformException()
         except TransformException:
             unlink(temp_fp)
             raise

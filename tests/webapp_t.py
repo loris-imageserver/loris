@@ -624,7 +624,6 @@ class ImageRequests(loris_t.LorisTest):
         to_get = '/%s/full/300,/0/default.jpg' % (self.test_jp2_color_id,)
         resp = self.client.get(to_get)
         self.assertEqual(resp.status_code, 500)
-        self.assertTrue('empty derivative file' in resp.data.decode('utf8'))
 
 
 class SizeRestriction(loris_t.LorisTest):
