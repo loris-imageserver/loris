@@ -176,7 +176,7 @@ class SimpleHTTPResolver(_AbstractResolver):
      * `key`, path to an SSL client key to use for authentication.
     '''
     def __init__(self, config):
-        super(SimpleHTTPResolver, self).__init__(config)
+        super().__init__(config)
 
         self.source_prefix = self.config.get('source_prefix', '')
 
@@ -201,7 +201,6 @@ class SimpleHTTPResolver(_AbstractResolver):
         self._ident_regex_checker = IdentRegexChecker(
             ident_regex=self.config.get('ident_regex')
         )
-        self._cache_namer = CacheNamer()
 
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']

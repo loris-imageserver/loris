@@ -3,7 +3,6 @@ from os import path
 import json
 import tempfile
 from datetime import datetime
-from urllib.parse import unquote
 
 import pytest
 from werkzeug.datastructures import Headers
@@ -11,7 +10,7 @@ from werkzeug.datastructures import Headers
 from loris import img_info, loris_exception
 from loris.img_info import ImageInfo, Profile
 from loris.loris_exception import ImageInfoException
-from tests import loris_t, webapp_t
+from tests import loris_t
 
 
 class MockApp:
@@ -451,58 +450,56 @@ class InfoFunctional(loris_t.LorisTest):
 
 class TestInfoCache(loris_t.LorisTest):
 
-    def _cache_with_request(self):
+    def _cache_with_ident(self):
         """
         Returns a tuple: an ``InfoCache`` with a single entry, and the key.
         """
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
 
-        path = self.test_jp2_color_fp
-        req = webapp_t._get_werkzeug_request(path=path)
-
         info = img_info.ImageInfo(self.app, self.test_jp2_color_fp, self.test_jp2_color_fmt)
 
-        cache[req] = info
-        return (cache, req)
+        cache[self.test_jp2_color_id] = info
+        return (cache, self.test_jp2_color_id)
 
-    def test_info_goes_to_http_fs_cache(self):
-        # there isn't a way to do a fake HTTPS request, but this at least
-        # confirms that HTTP goes to the right place.
-        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+    def test_info_goes_to_expected_path(self):
+        expected_path_for_id = '1b/372/221/d29/35d/2eb/82a/1f8/021/1ee/89f'
+        request_uri = '/%s/%s' % (self.test_jp2_color_id, 'info.json')
         resp = self.client.get(request_uri)
         expected_path = path.join(
-            self.app.info_cache.http_root,
-            unquote(self.test_jp2_color_id),
+            self.app.info_cache.root,
+            expected_path_for_id,
             'info.json'
         )
         self.assertTrue(path.exists(expected_path))
 
     def test_just_ram_cache_update(self):
         # Cache size of one, so it's easy to manipulate
-        cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE, size=1)
-        self.app.info_cache = cache
-        # First request
-        request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
-        resp = self.client.get(request_uri)
-        expected_path = path.join(
-            self.app.info_cache.http_root,
-            unquote(self.test_jp2_color_id),
-            'info.json'
-        )
-        fs_first_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
-        # Push this entry out of the RAM cache with another
-        push_request_uri = '/%s/%s' % (self.test_jp2_gray_id,'info.json')
-        resp = self.client.get(push_request_uri)
-        # Request the first file again
-        # It should now exist on disk, but not in RAM, so it shouldn't
-        # have been rewritten by the second get.
-        resp = self.client.get(request_uri)
-        fs_second_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
-        self.assertTrue(fs_first_time == fs_second_time)
+        with tempfile.TemporaryDirectory() as cache_root:
+            cache = img_info.InfoCache(root=cache_root, size=1)
+            self.app.info_cache = cache
+            expected_path_for_id = '1b/372/221/d29/35d/2eb/82a/1f8/021/1ee/89f'
+            # First request
+            request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
+            resp = self.client.get(request_uri)
+            expected_path = path.join(
+                self.app.info_cache.root,
+                expected_path_for_id,
+                'info.json'
+            )
+            fs_first_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
+            # Push this entry out of the RAM cache with another
+            push_request_uri = '/%s/%s' % (self.test_jp2_gray_id,'info.json')
+            resp = self.client.get(push_request_uri)
+            # Request the first file again
+            # It should now exist on disk, but not in RAM, so it shouldn't
+            # have been rewritten by the second get.
+            resp = self.client.get(request_uri)
+            fs_second_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))
+            self.assertTrue(fs_first_time == fs_second_time)
 
     def test_can_delete_items_from_infocache(self):
-        cache, req = self._cache_with_request()
-        del cache[req]
+        cache, ident = self._cache_with_ident()
+        del cache[ident]
 
     def test_empty_cache_has_zero_size(self):
         cache = img_info.InfoCache(root=self.SRC_IMAGE_CACHE)
@@ -533,38 +530,35 @@ class TestInfoCache(loris_t.LorisTest):
 
     def test_deleting_cache_item_removes_color_profile_fp(self):
         # First assemble the cache
-        cache, req = self._cache_with_request()
+        cache, ident = self._cache_with_ident()
 
         # Then create a file where the cached color profile would be
-        color_profile_fp = cache._get_color_profile_fp(req)
-        open(color_profile_fp, 'w')
+        color_profile_fp = cache._get_color_profile_fp(ident)
+        with open(color_profile_fp, 'w'): pass
         assert os.path.exists(color_profile_fp)
 
         # Finally, delete the cache entry, and check the color profile fp
         # was deleted.
-        del cache[req]
+        del cache[ident]
         assert not os.path.exists(color_profile_fp)
 
     def test_looking_up_missing_item_is_keyerror(self):
-        cache = img_info.InfoCache(root=tempfile.mkdtemp())
-        path = self.test_jp2_color_fp
-        req = webapp_t._get_werkzeug_request(path=path)
-
-        with pytest.raises(KeyError):
-            cache[req]
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img_info.InfoCache(root=tmp)
+            with pytest.raises(KeyError):
+                cache[self.test_jp2_color_id]
 
     def test_creates_cache_dir(self):
-        root = os.path.join(tempfile.mkdtemp(), "doesnotexist")
-        assert not os.path.exists(root)
-        cache = img_info.InfoCache(root=root)
-        path = self.test_jpeg_fp
-        req = webapp_t._get_werkzeug_request(path=path)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "doesnotexist")
+            assert not os.path.exists(root)
+            cache = img_info.InfoCache(root=root)
 
-        info = img_info.ImageInfo(
-            app=self.app,
-            src_img_fp=self.test_jpeg_fp,
-            src_format=self.test_jpeg_fmt
-        )
+            info = img_info.ImageInfo(
+                app=self.app,
+                src_img_fp=self.test_jpeg_fp,
+                src_format=self.test_jpeg_fmt
+            )
 
-        cache[req] = info
-        assert cache[req][0] == info
+            cache[self.test_jpeg_id] = info
+            assert cache[self.test_jpeg_id][0] == info
