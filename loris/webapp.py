@@ -754,12 +754,20 @@ possible that there was a problem with the source file
         )
         temp_fp = temp_file.name
 
-        transformer = self.transformers[image_info.src_format]
-        transformer.transform(
-            target_fp=temp_fp,
-            image_request=image_request,
-            image_info=image_info
-        )
+        try:
+            transformer = self.transformers[image_info.src_format]
+            transformer.transform(
+                target_fp=temp_fp,
+                image_request=image_request,
+                image_info=image_info
+            )
+            derivative_size = os.stat(temp_fp).st_size
+            if derivative_size < 1:
+                self.logger.error('empty derivative file created for %s' % image_info.src_img_fp)
+                raise TransformException()
+        except TransformException:
+            unlink(temp_fp)
+            raise
 
         if self.enable_caching:
             temp_fp = self.img_cache.upsert(
