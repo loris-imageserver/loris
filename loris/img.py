@@ -104,8 +104,7 @@ class ImageRequest(object):
 
 
 class ImageCache(dict):
-    '''
-    '''
+
     def __init__(self, cache_root):
         self.cache_root = cache_root
 

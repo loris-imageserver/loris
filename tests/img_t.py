@@ -2,6 +2,7 @@ import mock
 from os.path import exists
 from os.path import islink
 from os.path import join
+import tempfile
 from urllib.parse import unquote
 
 import pytest
@@ -90,31 +91,35 @@ class Test_ImageCache(loris_t.LorisTest):
         self.app.img_cache.create_dir_and_return_file_path(image_request, image_info)
 
     def test_missing_entry_is_keyerror(self):
-        cache = img.ImageCache(cache_root='/tmp')
-        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img.ImageCache(cache_root=tmp)
+            request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
 
-        with self.assertRaises(KeyError):
-            cache[request]
+            with self.assertRaises(KeyError):
+                cache[request]
 
     def test_missing_entry_gets_none(self):
-        cache = img.ImageCache(cache_root='/tmp')
-        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img.ImageCache(cache_root=tmp)
+            request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
 
-        self.assertIsNone(cache.get(request))
+            self.assertIsNone(cache.get(request))
 
     def test_getitem_with_unexpected_error_is_raised(self):
-        cache = img.ImageCache(cache_root='/tmp')
-        request = img.ImageRequest('id', 'full', 'full', '0', 'default', 'jpg')
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img.ImageCache(cache_root=tmp)
+            request = img.ImageRequest('id', 'full', 'full', '0', 'default', 'jpg')
 
-        message = "Exception thrown in img_t.py for Test_ImageCache"
-        m = mock.Mock(side_effect=OSError(-1, message))
-        with mock.patch('loris.img.path.getmtime', m):
-            with pytest.raises(OSError) as err:
-                cache[request]
+            message = "Exception thrown in img_t.py for Test_ImageCache"
+            m = mock.Mock(side_effect=OSError(-1, message))
+            with mock.patch('loris.img.path.getmtime', m):
+                with pytest.raises(OSError) as err:
+                    cache[request]
 
     def test_deleting_cache_entries(self):
         # Because this operation is a no-op, we just check we can call the
         # __del__ method without an error.
-        cache = img.ImageCache(cache_root='/tmp')
-        request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
-        del cache[request]
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img.ImageCache(cache_root=tmp)
+            request = img.ImageRequest('id1', 'full', 'full', '0', 'default', 'jpg')
+            del cache[request]
