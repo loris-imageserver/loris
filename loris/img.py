@@ -7,6 +7,7 @@ from urllib.parse import quote_plus, unquote
 
 import attr
 
+from loris.identifiers import CacheNamer
 from loris.parameters import RegionParameter, RotationParameter, SizeParameter
 from loris.utils import mkdir_p, safe_rename, symlink
 
@@ -156,11 +157,13 @@ class ImageCache(dict):
 
     def get_request_cache_path(self, image_request):
         request_fp = image_request.cache_path
-        return path.realpath(path.join(self.cache_root, unquote(request_fp)))
+        cache_dir = CacheNamer.cache_directory_name(image_request.ident)
+        return path.realpath(path.join(self.cache_root, cache_dir, unquote(request_fp)))
 
     def get_canonical_cache_path(self, image_request, image_info):
         canonical_fp = image_request.canonical_cache_path(image_info=image_info)
-        return path.realpath(path.join(self.cache_root, unquote(canonical_fp)))
+        cache_dir = CacheNamer.cache_directory_name(image_request.ident)
+        return path.realpath(path.join(self.cache_root, cache_dir, unquote(canonical_fp)))
 
     def create_dir_and_return_file_path(self, image_request, image_info):
         target_fp = self.get_canonical_cache_path(image_request, image_info)

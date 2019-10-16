@@ -50,7 +50,8 @@ class Test_ImageCache(loris_t.LorisTest):
 
         # the canonical path
         rel_cache_path = '%s/full/590,/0/default.jpg' % (unquote(ident),)
-        expect_cache_path = join(self.app.img_cache.cache_root, rel_cache_path)
+        cache_dir = 'd7/b86/a99/44c/b2d/31d/80a/25e/38b/a3e/9f7'
+        expect_cache_path = join(self.app.img_cache.cache_root, cache_dir, rel_cache_path)
 
         self.assertTrue(exists(expect_cache_path))
 
@@ -63,7 +64,8 @@ class Test_ImageCache(loris_t.LorisTest):
 
         # the symlink path
         rel_cache_path = '%s/%s' % (unquote(ident), params)
-        expect_symlink = join(self.app.img_cache.cache_root, rel_cache_path)
+        cache_dir = 'd7/b86/a99/44c/b2d/31d/80a/25e/38b/a3e/9f7'
+        expect_symlink = join(self.app.img_cache.cache_root, cache_dir, rel_cache_path)
 
         self.assertTrue(islink(expect_symlink))
 
@@ -74,7 +76,8 @@ class Test_ImageCache(loris_t.LorisTest):
         self.client.get('/%s' % (request_path,))
 
         rel_cache_path = '%s/full/202,/0/default.jpg' % (unquote(ident),)
-        expect_cache_path = join(self.app.img_cache.cache_root, rel_cache_path)
+        cache_dir = 'd7/b86/a99/44c/b2d/31d/80a/25e/38b/a3e/9f7'
+        expect_cache_path = join(self.app.img_cache.cache_root, cache_dir, rel_cache_path)
 
         self.assertTrue(exists(expect_cache_path))
         self.assertFalse(islink(expect_cache_path))
