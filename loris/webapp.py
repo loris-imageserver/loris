@@ -549,39 +549,32 @@ class Loris(object):
         return r
 
     def _get_info(self,ident,request,base_uri):
+        #return info from the cache if we can
         if self.enable_caching:
-            in_cache = ident in self.info_cache
+            try:
+                return self.info_cache[ident]
+            except KeyError:
+                pass
+
+        #otherwise construct it
+        info = self.resolver.resolve(self, ident, base_uri)
+
+        # Maybe inject services before caching
+        if self.authorizer and self.authorizer.is_protected(info):
+            # Call get_services to inject
+            svcs = self.authorizer.get_services_info(info)
+            if svcs and 'service' in svcs:
+                info.service = svcs['service']
+
+        # cache new info if needed
+        if self.enable_caching:
+            self.info_cache[ident] = info
+            # pick up the timestamp... :()
+            info,last_mod = self.info_cache[ident]
         else:
-            in_cache = False
+            last_mod = None
 
-        #Checking for src_format in ImageInfo signals that it's not old cache data:
-        #   src_format didn't used to be in the Info cache, but now it is.
-        #   If we don't see src_format, that means it's old cache data, so just
-        #   ignore it and cache new ImageInfo.
-        #   TODO: remove src_format check in Loris 4.0.
-        if in_cache and self.info_cache[ident][0].src_format:
-            return self.info_cache[ident]
-        else:
-
-            info = self.resolver.resolve(self, ident, base_uri)
-
-            # Maybe inject services before caching
-            if self.authorizer and self.authorizer.is_protected(info):
-                # Call get_services to inject
-                svcs = self.authorizer.get_services_info(info)
-                if svcs and 'service' in svcs:
-                    info.service = svcs['service']
-
-            # store
-            if self.enable_caching:
-                self.logger.debug('ident used to store %s: %s', ident, ident)
-                self.info_cache[ident] = info
-                # pick up the timestamp... :()
-                info,last_mod = self.info_cache[ident]
-            else:
-                last_mod = None
-
-            return (info,last_mod)
+        return (info,last_mod)
 
     def _set_canonical_link(
         self, request, response, image_request, image_info

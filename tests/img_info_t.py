@@ -1,6 +1,7 @@
+import json
 import os
 from os import path
-import json
+import shutil
 import tempfile
 from datetime import datetime
 
@@ -345,7 +346,7 @@ class TestImageInfo:
         assert info.profile.description == description
 
 
-class TestProfile(object):
+class TestProfile:
 
     compliance_uri = 'http://iiif.io/api/image/2/level2.json'
     description = {
@@ -562,3 +563,19 @@ class TestInfoCache(loris_t.LorisTest):
 
             cache[self.test_jpeg_id] = info
             assert cache[self.test_jpeg_id][0] == info
+
+    def test_missing_src_file_causes_cache_miss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = img_info.InfoCache(root=tmp)
+            jpeg_fp = os.path.join(tmp, 'will_be_removed.jpeg')
+            shutil.copyfile(self.test_jpeg_fp, jpeg_fp)
+            info = img_info.ImageInfo(
+                app=self.app,
+                src_img_fp=jpeg_fp,
+                src_format=self.test_jpeg_fmt
+            )
+            cache[self.test_jpeg_id] = info
+            os.remove(jpeg_fp)
+            with pytest.raises(KeyError):
+                cache[self.test_jpeg_id]
+

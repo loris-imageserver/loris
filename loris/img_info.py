@@ -325,9 +325,15 @@ class InfoCache(object):
 
                 lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
                 info_and_lastmod = (info, lastmod)
-                logger.debug('Info for %s read from file system', ident)
                 # into mem:
                 self.__setitem__(ident, info, _to_fs=False)
+
+        #check that src image exists if it's in the info
+        if info_and_lastmod:
+            info = info_and_lastmod[0]
+            if info.src_img_fp and not os.path.exists(info.src_img_fp):
+                return None
+
         return info_and_lastmod
 
     def has_key(self, ident):
@@ -367,7 +373,7 @@ class InfoCache(object):
         # The info file cache on disk must already exist before
         # this is called - it's where the mtime gets drawn from.
         # aka, nothing outside of this class should be using
-        # to_fs=False
+        # _to_fs=False
         if self.size > 0:
             lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
             with self._lock:
