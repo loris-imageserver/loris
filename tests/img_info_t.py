@@ -4,6 +4,7 @@ from os import path
 import shutil
 import tempfile
 from datetime import datetime
+from urllib.parse import unquote
 
 import pytest
 from werkzeug.datastructures import Headers
@@ -463,28 +464,30 @@ class TestInfoCache(loris_t.LorisTest):
         return (cache, self.test_jp2_color_id)
 
     def test_info_goes_to_expected_path(self):
-        expected_path_for_id = '1b/372/221/d29/35d/2eb/82a/1f8/021/1ee/89f'
+        expected_path_for_id = 'd7/b86/a99/44c/b2d/31d/80a/25e/38b/a3e/9f7'
         request_uri = '/%s/%s' % (self.test_jp2_color_id, 'info.json')
         resp = self.client.get(request_uri)
         expected_path = path.join(
             self.app.info_cache.root,
             expected_path_for_id,
+            '01/02/0001.jp2',
             'info.json'
         )
-        self.assertTrue(path.exists(expected_path))
+        assert path.exists(expected_path)
 
     def test_just_ram_cache_update(self):
         # Cache size of one, so it's easy to manipulate
         with tempfile.TemporaryDirectory() as cache_root:
             cache = img_info.InfoCache(root=cache_root, size=1)
             self.app.info_cache = cache
-            expected_path_for_id = '1b/372/221/d29/35d/2eb/82a/1f8/021/1ee/89f'
+            expected_path_for_id = 'd7/b86/a99/44c/b2d/31d/80a/25e/38b/a3e/9f7'
             # First request
             request_uri = '/%s/%s' % (self.test_jp2_color_id,'info.json')
             resp = self.client.get(request_uri)
             expected_path = path.join(
                 self.app.info_cache.root,
                 expected_path_for_id,
+                unquote(self.test_jp2_color_id),
                 'info.json'
             )
             fs_first_time = datetime.utcfromtimestamp(os.path.getmtime(expected_path))

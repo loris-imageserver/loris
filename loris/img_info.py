@@ -5,6 +5,7 @@ from math import ceil
 from threading import Lock
 import json
 import os
+from urllib.parse import unquote
 
 import attr
 from PIL import Image
@@ -259,7 +260,7 @@ class ImageInfo(JP2Extractor):
         return json.dumps(d, cls=EnhancedJSONEncoder)
 
 
-class InfoCache(object):
+class InfoCache:
     """A dict-like cache for ImageInfo objects. The n most recently used are
     also kept in memory; all entries are on the file system.
 
@@ -294,7 +295,12 @@ class InfoCache(object):
         self._lock = Lock()
 
     def _get_ident_dir_path(self, ident):
-        return os.path.join(self.root, CacheNamer.cache_directory_name(ident=ident))
+        ident = unquote(ident)
+        return os.path.join(
+                self.root,
+                CacheNamer.cache_directory_name(ident=ident),
+                ident
+            )
 
     def _get_info_fp(self, ident):
         return os.path.join(self._get_ident_dir_path(ident), 'info.json')
