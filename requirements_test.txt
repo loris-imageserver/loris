@@ -10,15 +10,11 @@ certifi==2018.1.18
 cffi==1.11.5
 chardet==3.0.4
 configobj==5.0.0
-configparser==3.5.0       # via flake8
 coverage==4.4.1
 cryptography==2.1.4
-enum34==1.1.6
 flake8==3.5.0
-funcsigs==1.0.2           # via mock
 hypothesis==3.46.1
 idna==2.6
-ipaddress==1.0.19
 mccabe==0.6.1             # via flake8
 mock==2.0.0               # via responses
 netaddr==0.7.19
@@ -36,4 +32,4 @@ requests==2.18.4
 responses==0.3.0
 six==1.11.0
 urllib3==1.22
-werkzeug==0.14.1
+werkzeug==0.15.3
