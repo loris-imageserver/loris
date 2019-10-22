@@ -52,6 +52,7 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                     'e4a',
                     '91b',
                     '032',
+                    '0001', #identifier
                 ]
         self.expected_filedir = os.path.join(*expected_filepath_list)
         self.expected_filepath = os.path.join(self.expected_filedir, 'loris_cache.tif')
