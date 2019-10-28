@@ -574,7 +574,7 @@ class Loris(object):
         else:
             last_mod = None
 
-        return (info,last_mod)
+        return (info, last_mod)
 
     def _set_canonical_link(
         self, request, response, image_request, image_info

@@ -297,10 +297,10 @@ class InfoCache:
     def _get_ident_dir_path(self, ident):
         ident = unquote(ident)
         return os.path.join(
-                self.root,
-                CacheNamer.cache_directory_name(ident=ident),
-                ident
-            )
+            self.root,
+            CacheNamer.cache_directory_name(ident=ident),
+            ident
+        )
 
     def _get_info_fp(self, ident):
         return os.path.join(self._get_ident_dir_path(ident), 'info.json')
@@ -334,10 +334,11 @@ class InfoCache:
                 # into mem:
                 self.__setitem__(ident, info, _to_fs=False)
 
-        #check that src image exists if it's in the info
+        #If a source image is referred to in a cached info.json, check that it exists on disk.
         if info_and_lastmod:
             info = info_and_lastmod[0]
             if info.src_img_fp and not os.path.exists(info.src_img_fp):
+                logger.warning('%s cached info references src image which doesn\'t exist: %s' % (ident, info.src_img_fp))
                 return None
 
         return info_and_lastmod
