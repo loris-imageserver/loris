@@ -273,7 +273,8 @@ class SimpleHTTPResolver(_AbstractResolver):
     def cache_dir_path(self, ident):
         return os.path.join(
             self.cache_root,
-            CacheNamer.cache_directory_name(ident=ident)
+            CacheNamer.cache_directory_name(ident=ident),
+            ident,
         )
 
     def raise_404_for_ident(self, ident):

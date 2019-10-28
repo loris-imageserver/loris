@@ -300,6 +300,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'e4a')
         expected_path = join(expected_path, '91b')
         expected_path = join(expected_path, '032')
+        expected_path = join(expected_path, '0001') #add identifier to the path
         expected_path = join(expected_path, 'loris_cache.tif')
 
         ii = self.app.resolver.resolve(self.app, ident, "")
@@ -315,7 +316,6 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         assert os.path.isfile(ii.src_img_fp)
 
         #Test with a full uri
-        #Note: This seems weird but idents resolve wrong and removes a slash from //
         ident = quote_plus('http://sample.sample/0001')
         expected_path = join(self.app.resolver.cache_root, 'http')
         expected_path = join(expected_path, '32')
@@ -329,6 +329,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'ebc')
         expected_path = join(expected_path, 'c75')
         expected_path = join(expected_path, '083')
+        expected_path = join(expected_path, unquote(ident))
         expected_path = join(expected_path, 'loris_cache.tif')
 
         self.assertFalse(exists(expected_path))

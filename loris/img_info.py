@@ -5,6 +5,7 @@ from math import ceil
 from threading import Lock
 import json
 import os
+from urllib.parse import unquote
 
 import attr
 from PIL import Image
@@ -259,7 +260,7 @@ class ImageInfo(JP2Extractor):
         return json.dumps(d, cls=EnhancedJSONEncoder)
 
 
-class InfoCache(object):
+class InfoCache:
     """A dict-like cache for ImageInfo objects. The n most recently used are
     also kept in memory; all entries are on the file system.
 
@@ -294,7 +295,12 @@ class InfoCache(object):
         self._lock = Lock()
 
     def _get_ident_dir_path(self, ident):
-        return os.path.join(self.root, CacheNamer.cache_directory_name(ident=ident))
+        ident = unquote(ident)
+        return os.path.join(
+            self.root,
+            CacheNamer.cache_directory_name(ident=ident),
+            ident
+        )
 
     def _get_info_fp(self, ident):
         return os.path.join(self._get_ident_dir_path(ident), 'info.json')
@@ -325,9 +331,16 @@ class InfoCache(object):
 
                 lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
                 info_and_lastmod = (info, lastmod)
-                logger.debug('Info for %s read from file system', ident)
                 # into mem:
                 self.__setitem__(ident, info, _to_fs=False)
+
+        #If a source image is referred to in a cached info.json, check that it exists on disk.
+        if info_and_lastmod:
+            info = info_and_lastmod[0]
+            if info.src_img_fp and not os.path.exists(info.src_img_fp):
+                logger.warning('%s cached info references src image which doesn\'t exist: %s' % (ident, info.src_img_fp))
+                return None
+
         return info_and_lastmod
 
     def has_key(self, ident):
@@ -367,7 +380,7 @@ class InfoCache(object):
         # The info file cache on disk must already exist before
         # this is called - it's where the mtime gets drawn from.
         # aka, nothing outside of this class should be using
-        # to_fs=False
+        # _to_fs=False
         if self.size > 0:
             lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
             with self._lock:
