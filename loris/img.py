@@ -123,7 +123,7 @@ class ImageCache(dict):
             else:
                 raise
 
-    def store(self, image_request, image_info, canonical_fp):
+    def _store(self, image_request, image_info, canonical_fp):
         # Because we're working with files, it's more practical to put derived
         # images where the cache expects them when they are created (i.e. by
         # Loris#_make_image()), so __setitem__, as defined by the dict API
@@ -131,7 +131,7 @@ class ImageCache(dict):
         # should be put is encapulated in the ImageCache#get_request_cache_path
         # and ImageCache#get_canonical_cache_path methods.
         #
-        # Instead, __setitem__ simply makes a symlink in the cache from the
+        # Instead, we simply make a symlink in the cache from the
         # requested syntax to the canonical syntax to enable faster lookups of
         # the same non-canonical request the next time.
         #
@@ -139,8 +139,11 @@ class ImageCache(dict):
         # ImageCache#get_canonical_cache_path and passes that to the
         # transformer.
         if not image_request.is_canonical(image_info):
-            requested_fp = self.get_request_cache_path(image_request)
-            symlink(src=canonical_fp, dst=requested_fp)
+            try:
+                requested_fp = self.get_request_cache_path(image_request)
+                symlink(src=canonical_fp, dst=requested_fp)
+            except Exception as e:
+                logger.warning('error creating image cache symlink: %s\ncanonical_fp: %s' % (e, canonical_fp))
 
     def __delitem__(self, image_request):
         # if we ever decide to start cleaning our own cache...
@@ -177,4 +180,9 @@ class ImageCache(dict):
             image_info=image_info
         )
         safe_rename(temp_fp, target_fp)
+        self._store(
+            image_request=image_request,
+            image_info=image_info,
+            canonical_fp=target_fp
+        )
         return target_fp

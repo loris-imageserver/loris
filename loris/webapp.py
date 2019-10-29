@@ -763,19 +763,14 @@ possible that there was a problem with the source file
             raise
 
         if self.enable_caching:
-            temp_fp = self.img_cache.upsert(
+            canonical_cache_fp = self.img_cache.upsert(
                 image_request=image_request,
                 temp_fp=temp_fp,
                 image_info=image_info
             )
-            # TODO: not sure how the non-canonical use case works
-            self.img_cache.store(
-                image_request=image_request,
-                image_info=image_info,
-                canonical_fp=temp_fp
-            )
-
-        return temp_fp
+            return canonical_cache_fp
+        else:
+            return temp_fp
 
 
 if __name__ == '__main__':
