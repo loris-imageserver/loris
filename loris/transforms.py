@@ -303,6 +303,25 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             crop=False
         )
 
+    def _process(self, cmd, target_fp, image_request, image_info, fifo_fp):
+        process = multiprocessing.Process(
+            target=self._run_transform,
+            kwargs={
+                'target_fp': target_fp,
+                'image_request': image_request,
+                'image_info': image_info,
+                'transform_cmd': cmd,
+                'fifo_fp': fifo_fp
+            }
+        )
+        process.start()
+        process.join(self.transform_timeout)
+        if process.is_alive():
+            logger.info('terminating process for %s, %s',
+                image_info.src_img_fp, target_fp)
+            process.terminate()
+            raise TransformException('JP2 transform process timed out')
+
 
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
     def __init__(self, config):
@@ -338,24 +357,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             fifo_fp = self._create_fifo(tmp)
             o = '-o %s' % (fifo_fp,)
             opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
-
-            process = multiprocessing.Process(
-                target=self._run_transform,
-                kwargs={
-                    'target_fp': target_fp,
-                    'image_request': image_request,
-                    'image_info': image_info,
-                    'transform_cmd': opj_cmd,
-                    'fifo_fp': fifo_fp
-                }
-            )
-            process.start()
-            process.join(self.transform_timeout)
-            if process.is_alive():
-                logger.info('terminating process for %s, %s',
-                    image_info.src_img_fp, target_fp)
-                process.terminate()
-                raise TransformException('OpenJPEG transform process timed out')
+            self._process(opj_cmd, target_fp, image_request, image_info, fifo_fp)
 
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
@@ -412,22 +414,5 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             fifo_fp = self._create_fifo(tmp)
             o = '-o %s' % fifo_fp
             kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
-
-            process = multiprocessing.Process(
-                target=self._run_transform,
-                kwargs={
-                    'target_fp': target_fp,
-                    'image_request': image_request,
-                    'image_info': image_info,
-                    'transform_cmd': kdu_cmd,
-                    'fifo_fp': fifo_fp
-                }
-            )
-            process.start()
-            process.join(self.transform_timeout)
-            if process.is_alive():
-                logger.info('terminating process for %s, %s',
-                    image_info.src_img_fp, target_fp)
-                process.terminate()
-                raise TransformException('Kakadu transform process timed out')
+            self._process(kdu_cmd, target_fp, image_request, image_info, fifo_fp)
 
