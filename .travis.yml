@@ -35,11 +35,4 @@ script:
   - "coverage run --module py.test --verbose tests/*.py"
   - "coverage report"
 
-notifications:
-  email:
-    recipients: "jpstroop@gmail.com"
-    on_success: "always"
-    on_failure: "always"
-    template:
-      - "%{repository}//%{branch}@%{commit} by %{author}: %{message} - %{build_url}"
 
