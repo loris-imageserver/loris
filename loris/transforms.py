@@ -265,8 +265,8 @@ class _AbstractJP2Transformer(_AbstractTransformer):
 
     def _create_fifo(self, tmp):
         fifo_fp = path.join(tmp, 'fifo.bmp')
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        subprocess.check_call(mkfifo_call.split())
+        mkfifo_call = [self.mkfifo, fifo_fp]
+        subprocess.check_call(mkfifo_call)
         return fifo_fp
 
     def _run_transform(self, target_fp, image_request, image_info, transform_cmd, fifo_fp):
@@ -320,7 +320,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             logger.info('terminating process for %s, %s',
                 image_info.src_img_fp, target_fp)
             process.terminate()
-            raise TransformException('JP2 transform process timed out')
+            raise TransformException('JP2 transform process timed out after %d seconds' % self.transform_timeout)
 
 
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
