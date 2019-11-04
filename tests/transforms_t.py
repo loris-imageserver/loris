@@ -150,7 +150,7 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest,
         request_path = '/%s/full/full/0/default.jpg' % ident
         response = self.client.get(request_path)
         assert response.status_code == 500
-        assert 'Kakadu transform process timed out' in response.data.decode('utf8')
+        assert 'JP2 transform process timed out' in response.data.decode('utf8')
 
 
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
@@ -180,7 +180,7 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
         request_path = '/%s/full/full/0/default.jpg' % ident
         response = self.client.get(request_path)
         assert response.status_code == 500
-        assert 'OpenJPEG transform process timed out' in response.data.decode('utf8')
+        assert 'JP2 transform process timed out' in response.data.decode('utf8')
 
 
 class Test_PILTransformer(loris_t.LorisTest,

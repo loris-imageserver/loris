@@ -1,12 +1,11 @@
+from io import BytesIO
 import multiprocessing
 from logging import getLogger
 from math import ceil, log
-from os import path, unlink
+from os import path
 import platform
-import random
-import string
 import subprocess
-from io import BytesIO
+import tempfile
 
 from PIL import Image
 from PIL.ImageFile import Parser
@@ -237,10 +236,6 @@ class _AbstractJP2Transformer(_AbstractTransformer):
         super(_AbstractJP2Transformer, self).__init__(config)
         self.transform_timeout = config.get('timeout', 120)
 
-    def _make_tmp_fp(self, fmt='bmp'):
-        n = ''.join(random.choice(string.ascii_lowercase) for x in range(5))
-        return '%s.%s' % (path.join(self.tmp_dp, n), fmt)
-
     def _scale_dim(self, dim, scale):
         return int(ceil(dim/float(scale)))
 
@@ -268,6 +263,12 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             arg = str(reduce_arg)
         return arg
 
+    def _create_fifo(self, tmp):
+        fifo_fp = path.join(tmp, 'fifo.bmp')
+        mkfifo_call = [self.mkfifo, fifo_fp]
+        subprocess.check_call(mkfifo_call)
+        return fifo_fp
+
     def _run_transform(self, target_fp, image_request, image_info, transform_cmd, fifo_fp):
         try:
             expand_proc = subprocess.Popen(transform_cmd, shell=True, bufsize=-1,
@@ -286,7 +287,6 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             proc_exit = expand_proc.returncode
             if proc_exit != 0:
                 map(logger.error, stderrdata)
-            unlink(fifo_fp)
 
         try:
             if self.map_profile_to_srgb and image_info.color_profile_bytes:
@@ -302,6 +302,25 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             image_info=image_info,
             crop=False
         )
+
+    def _process(self, cmd, target_fp, image_request, image_info, fifo_fp):
+        process = multiprocessing.Process(
+            target=self._run_transform,
+            kwargs={
+                'target_fp': target_fp,
+                'image_request': image_request,
+                'image_info': image_info,
+                'transform_cmd': cmd,
+                'fifo_fp': fifo_fp
+            }
+        )
+        process.start()
+        process.join(self.transform_timeout)
+        if process.is_alive():
+            logger.info('terminating process for %s, %s',
+                image_info.src_img_fp, target_fp)
+            process.terminate()
+            raise TransformException('JP2 transform process timed out after %d seconds' % self.transform_timeout)
 
 
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
@@ -328,45 +347,17 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         return arg
 
     def transform(self, target_fp, image_request, image_info):
-        # opj writes to this:
-        fifo_fp = self._make_tmp_fp()
-
-        # make the named pipe
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        resp = subprocess.check_call(mkfifo_call, shell=True)
-        if resp != 0:
-            logger.error('Problem with mkfifo')
-        # how to handle CalledProcessError; would have to be a 500?
-
         # opj_decompress command
-        i = '-i "%s"' % (image_info.src_img_fp,)
-        o = '-o %s' % (fifo_fp,)
         region_arg = self._region_to_opj_arg(image_request.region_param(image_info))
         reg = '-d %s' % (region_arg,) if region_arg else ''
         reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
         red = '-r %s' % (reduce_arg,) if reduce_arg else ''
-
-        opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
-
-        process = multiprocessing.Process(
-            target=self._run_transform,
-            kwargs={
-                'target_fp': target_fp,
-                'image_request': image_request,
-                'image_info': image_info,
-                'transform_cmd': opj_cmd,
-                'fifo_fp': fifo_fp
-            }
-        )
-        process.start()
-        process.join(self.transform_timeout)
-        if process.is_alive():
-            logger.info('terminating process for %s, %s',
-                image_info.src_img_fp, target_fp)
-            process.terminate()
-            if path.exists(fifo_fp):
-                unlink(fifo_fp)
-            raise TransformException('OpenJPEG transform process timed out')
+        i = '-i "%s"' % (image_info.src_img_fp,)
+        with tempfile.TemporaryDirectory(dir=self.tmp_dp) as tmp:
+            fifo_fp = self._create_fifo(tmp)
+            o = '-o %s' % (fifo_fp,)
+            opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
+            self._process(opj_cmd, target_fp, image_request, image_info, fifo_fp)
 
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
@@ -411,38 +402,17 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         return arg
 
     def transform(self, target_fp, image_request, image_info):
-        fifo_fp = self._make_tmp_fp()
-        mkfifo_call = '%s %s' % (self.mkfifo, fifo_fp)
-        subprocess.check_call(mkfifo_call, shell=True)
-
         # kdu command
-        q = '-quiet'
-        t = '-num_threads %s' % self.num_threads
-        i = '-i "%s"' % image_info.src_img_fp
-        o = '-o %s' % fifo_fp
         reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
         red = '-reduce %s' % (reduce_arg,) if reduce_arg else ''
         region_arg = self._region_to_kdu_arg(image_request.region_param(image_info))
         reg = '-region %s' % (region_arg,) if region_arg else ''
-        kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
-
-        process = multiprocessing.Process(
-            target=self._run_transform,
-            kwargs={
-                'target_fp': target_fp,
-                'image_request': image_request,
-                'image_info': image_info,
-                'transform_cmd': kdu_cmd,
-                'fifo_fp': fifo_fp
-            }
-        )
-        process.start()
-        process.join(self.transform_timeout)
-        if process.is_alive():
-            logger.info('terminating process for %s, %s',
-                image_info.src_img_fp, target_fp)
-            process.terminate()
-            if path.exists(fifo_fp):
-                unlink(fifo_fp)
-            raise TransformException('Kakadu transform process timed out')
+        q = '-quiet'
+        t = '-num_threads %s' % self.num_threads
+        i = '-i "%s"' % image_info.src_img_fp
+        with tempfile.TemporaryDirectory(dir=self.tmp_dp) as tmp:
+            fifo_fp = self._create_fifo(tmp)
+            o = '-o %s' % fifo_fp
+            kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
+            self._process(kdu_cmd, target_fp, image_request, image_info, fifo_fp)
 
