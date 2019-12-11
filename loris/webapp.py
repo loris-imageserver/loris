@@ -620,6 +620,8 @@ class Loris(object):
             info = self._get_info(ident, request, base_uri)[0]
         except ResolverException as re:
             return NotFoundResponse(str(re))
+        except ImageInfoException as ie:
+            return ServerSideErrorResponse(ie)
 
         if self.authorizer and self.authorizer.is_protected(info):
             authed = self.authorizer.is_authorized(info, request)
