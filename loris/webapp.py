@@ -666,18 +666,18 @@ class Loris(object):
                 return r
         else:
             try:
-                #Check that we can make the quality requested
+                # Check that we can make the quality requested
                 if image_request.quality not in info.profile.description['qualities']:
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
-                #Check if requested size is allowed
+                # Check if requested size is allowed
                 if image_request.request_resolution_too_large(
                     max_size_above_full=self.max_size_above_full,
                     image_info=info
                 ):
                     return NotFoundResponse('Resolution not available')
 
-                #Redirect if appropriate
+                # Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical(info):
                         self.logger.debug('Attempting redirect to %s', image_request.canonical_request_path,)
@@ -685,7 +685,7 @@ class Loris(object):
                         r.status_code = 301
                         return r
 
-                #Make an image
+                # Make an image
                 fp = self._make_image(
                     image_request=image_request,
                     image_info=info
