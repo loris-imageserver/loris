@@ -107,10 +107,11 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
             with open(os.path.join(tmp, rules_filename), 'wb') as f:
                 f.write(json.dumps({'rule': 1}).encode('utf8'))
             config = {
-                'src_img_roots' : [tmp]
+                'src_img_roots' : [tmp],
+                'use_auth_rules': True
             }
             resolver = SimpleFSResolver(config=config)
-            assert resolver.get_extra_info(ident, source_fp) == {'rule': 1}
+            assert resolver.get_auth_rules(ident, source_fp) == {'rule': 1}
 
 
 class Test_SourceImageCachingResolver(loris_t.LorisTest):

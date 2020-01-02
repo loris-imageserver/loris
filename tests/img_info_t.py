@@ -262,44 +262,23 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.tiles, self.test_jp2_color_tiles)
         self.assertEqual(info.sizes, self.test_jp2_color_sizes)
 
-    def test_extrainfo_appears_in_iiif_json(self):
+    def test_rights_licensing_properties_in_iiif_json(self):
         info = ImageInfo(
             src_img_fp=self.test_jpeg_fp,
             src_format=self.test_jpeg_fmt,
-            extra={'extraInfo': {
-                'license': 'CC-BY',
-                'logo': 'logo.png',
-                'service': {'@id': 'my_service'},
-                'attribution': 'Author unknown',
-            }}
+            license='CC-BY',
+            logo='logo.png',
+            attribution='Author unknown',
         )
         info.from_image_file()
 
         iiif_json = json.loads(info.to_iiif_json(base_uri='http://localhost/1234'))
         assert iiif_json['license'] == 'CC-BY'
         assert iiif_json['logo'] == 'logo.png'
-        assert iiif_json['service'] == {'@id': 'my_service'}
         assert iiif_json['attribution'] == 'Author unknown'
 
 
 class TestImageInfo:
-
-    def test_extrainfo_can_override_attributes(self):
-        info = ImageInfo(extra={'extraInfo': {
-            'license': 'CC-BY',
-            'logo': 'logo.png',
-            'service': {'@id': 'my_service'},
-            'attribution': 'Author unknown',
-        }})
-        assert info.license == 'CC-BY'
-        assert info.logo == 'logo.png'
-        assert info.service == {'@id': 'my_service'}
-        assert info.attribution == 'Author unknown'
-
-    def test_invalid_extra_info_is_imageinfoexception(self):
-        with pytest.raises(ImageInfoException) as exc:
-            ImageInfo(extra={'extraInfo': {'foo': 'bar', 'baz': 'bat'}})
-        assert 'Invalid parameters in extraInfo' in str(exc.value)
 
     @pytest.mark.parametrize('src_format', ['', None, 'imgX'])
     def test_invalid_src_format_is_error(self, src_format):
