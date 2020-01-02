@@ -10,7 +10,7 @@ certifi==2018.1.18        # via requests
 cffi==1.11.5              # via cryptography
 chardet==3.0.4            # via requests
 configobj==5.0.0
-cryptography==2.1.4
+cryptography==2.3
 idna==2.6                 # via cryptography, requests
 netaddr==0.7.19
 olefile==0.45.1           # via pillow
