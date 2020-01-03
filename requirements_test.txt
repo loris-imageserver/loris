@@ -4,14 +4,13 @@
 #
 #    pip-compile --output-file requirements_test.txt requirements_test.in
 #
-asn1crypto==0.24.0
 attrs==17.4.0
 certifi==2018.1.18
 cffi==1.11.5
 chardet==3.0.4
 configobj==5.0.0
 coverage==4.4.1
-cryptography==2.3
+cryptography==2.8
 flake8==3.5.0
 hypothesis==3.46.1
 idna==2.6
