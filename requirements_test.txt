@@ -11,7 +11,7 @@ cffi==1.11.5
 chardet==3.0.4
 configobj==5.0.0
 coverage==4.4.1
-cryptography==2.1.4
+cryptography==2.3
 flake8==3.5.0
 hypothesis==3.46.1
 idna==2.6
