@@ -18,9 +18,8 @@ idna==2.6
 mccabe==0.6.1             # via flake8
 mock==2.0.0               # via responses
 netaddr==0.7.19
-olefile==0.45.1
 pbr==3.1.1                # via mock
-pillow==4.3.0
+pillow==6.2.0
 py==1.5.2                 # via pytest
 pycodestyle==2.3.1        # via flake8
 pycparser==2.18
