@@ -48,7 +48,7 @@ class Test_NullAuthorizer(unittest.TestCase):
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = NullAuthorizer({})
-        self.info = ImageInfo(None, fp, fmt)
+        self.info = ImageInfo(app=None, src_img_fp=fp, src_format=fmt)
         self.request = MockRequest()
 
     def test_is_protected(self):
@@ -69,7 +69,7 @@ class Test_NooneAuthorizer(unittest.TestCase):
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = NooneAuthorizer({})
-        self.info = ImageInfo(None, fp, fmt)
+        self.info = ImageInfo(app=None, src_img_fp=fp, src_format=fmt)
         self.request = MockRequest()
 
     def test_is_protected(self):
@@ -90,9 +90,9 @@ class Test_SingleDegradingAuthorizer(unittest.TestCase):
         fp = "img/test.png"
         fmt = "png"
         self.authorizer = SingleDegradingAuthorizer({})
-        self.badInfo = ImageInfo(None, fp, fmt)
+        self.badInfo = ImageInfo(app=None, src_img_fp=fp, src_format=fmt)
         self.okayIdent = "67352ccc-d1b0-11e1-89ae-279075081939.jp2"
-        self.okayInfo = ImageInfo(None, "img/%s" % self.okayIdent, "jp2")
+        self.okayInfo = ImageInfo(app=None, src_img_fp="img/%s" % self.okayIdent, src_format="jp2")
         self.request = MockRequest()
 
     def test_is_protected(self):
@@ -120,9 +120,9 @@ class Test_RulesAuthorizer(unittest.TestCase):
             {"cookie_secret": b"4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o=",
             "token_secret": b"hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
             "salt": b"4rakTQJD4lC1B4lu"})
-        self.badInfo = ImageInfo(None, fp, fmt)
+        self.badInfo = ImageInfo(app=None, src_img_fp=fp, src_format=fmt)
         self.okayIdent = "67352ccc-d1b0-11e1-89ae-279075081939.jp2"
-        self.okayInfo = ImageInfo(None, "img/%s" % self.okayIdent, "jp2")
+        self.okayInfo = ImageInfo(app=None, src_img_fp="img/%s" % self.okayIdent, src_format="jp2")
 
         self.origin = "localhost"
         # role to get access is "test"

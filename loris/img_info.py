@@ -80,12 +80,11 @@ class ImageInfo(JP2Extractor):
         auth_rules (dict): extra information about authorization [non IIIF]
 
     '''
-    __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'profile', 'sizes', 'service',
-        'attribution', 'logo', 'license', 'auth_rules',
-        'src_format', 'src_img_fp', 'color_profile_bytes')
+    __slots__ = ('width', 'height', 'scaleFactors', 'sizes', 'tiles',
+        'profile', 'service', 'attribution', 'license', 'logo',
+        'src_img_fp', 'src_format', 'color_profile_bytes', 'auth_rules')
 
-    def __init__(self, app=None, src_img_fp="", src_format="", attribution=None, logo=None, license=None, service=None, auth_rules=None):
+    def __init__(self, app=None, service=None, attribution=None, license=None, logo=None, src_img_fp="", src_format="", auth_rules=None):
         self.src_img_fp = src_img_fp
         self.src_format = src_format
         self.attribution = attribution
