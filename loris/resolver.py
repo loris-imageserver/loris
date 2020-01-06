@@ -2,22 +2,22 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
+from contextlib import closing
+import glob
+import json
 from logging import getLogger
 from os.path import join, exists, dirname, split
 from os import remove
 from shutil import copy
 import tempfile
-from contextlib import closing
-import glob
-import json
-import os
 from urllib.parse import unquote
+import warnings
 
 import requests
 
 from loris import constants
 from loris.identifiers import CacheNamer, IdentRegexChecker
-from loris.loris_exception import ResolverException
+from loris.loris_exception import ResolverException, ConfigError
 from loris.utils import mkdir_p, safe_rename
 from loris.img_info import ImageInfo
 
@@ -30,6 +30,14 @@ class _AbstractResolver:
     def __init__(self, config):
         self.config = config
         if config:
+            # check for previous settings
+            if "use_extra_info" in self.config and "use_auth_rules" in self.config:
+                raise ConfigError("You cannot set both use_extra_info and use_auth_rules. Please remove use_extra_info from your config.")
+
+            if "use_extra_info" in self.config:
+                warnings.warn("The use_extra_info field has been renamed to use_auth_rules and will be removed in a future version. Please update your config.", DeprecationWarning)
+                self.config["use_auth_rules"] = self.config["use_extra_info"]
+
             self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
             self.use_auth_rules = self.config.get('use_auth_rules', False)
 
@@ -269,7 +277,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         return (url, self.request_options())
 
     def cache_dir_path(self, ident):
-        return os.path.join(
+        return join(
             self.cache_root,
             CacheNamer.cache_directory_name(ident=ident),
             ident,
