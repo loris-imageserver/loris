@@ -2,22 +2,22 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
+from contextlib import closing
+import glob
+import json
 from logging import getLogger
 from os.path import join, exists, dirname, split
 from os import remove
 from shutil import copy
 import tempfile
-from contextlib import closing
-import glob
-import json
-import os
 from urllib.parse import unquote
+import warnings
 
 import requests
 
 from loris import constants
 from loris.identifiers import CacheNamer, IdentRegexChecker
-from loris.loris_exception import ResolverException
+from loris.loris_exception import ResolverException, ConfigError
 from loris.utils import mkdir_p, safe_rename
 from loris.img_info import ImageInfo
 
@@ -25,13 +25,21 @@ from loris.img_info import ImageInfo
 logger = getLogger(__name__)
 
 
-class _AbstractResolver(object):
+class _AbstractResolver:
 
     def __init__(self, config):
         self.config = config
         if config:
+            # check for previous settings
+            if "use_extra_info" in self.config and "use_auth_rules" in self.config:
+                raise ConfigError("You cannot set both use_extra_info and use_auth_rules. Please remove use_extra_info from your config.")
+
+            if "use_extra_info" in self.config:
+                warnings.warn("The use_extra_info field has been renamed to use_auth_rules and will be removed in a future version. Please update your config.", DeprecationWarning)
+                self.config["use_auth_rules"] = self.config["use_extra_info"]
+
             self.auth_rules_ext = self.config.get('auth_rules_ext', 'rules.json')
-            self.use_extra_info = self.config.get('use_extra_info', True)
+            self.use_auth_rules = self.config.get('use_auth_rules', False)
 
     def is_resolvable(self, ident):
         """
@@ -65,12 +73,10 @@ class _AbstractResolver(object):
         cn = self.__class__.__name__
         raise NotImplementedError('resolve() not implemented for %s' % (cn,))
 
-    def get_extra_info(self, ident, source_fp):
+    def get_auth_rules(self, ident, source_fp):
         """
-        Given the identifier and any resolved source file, find the associated
-        extra information to include in info.json, plus any additional authorizer
-        specific information.  It might end up there after being copied by a
-        caching implementation, or live there permanently.
+        Given the identifier and any resolved source file (ie. on the filesystem), grab the associated
+        authentication rules from the filesystem (if they exist).
 
         Args:
             ident (str):
@@ -80,12 +86,12 @@ class _AbstractResolver(object):
         Returns:
             dict: The dict of information to embed in info.json
         """
+        if not self.use_auth_rules:
+            return {}
         xjsfp = source_fp.rsplit('.', 1)[0] + "." + self.auth_rules_ext
         if exists(xjsfp):
-            fh = open(xjsfp)
-            xjs = json.load(fh)
-            fh.close()
-            return xjs
+            with open(xjsfp) as fh:
+                return json.load(fh)
         else:
             return {}
 
@@ -130,14 +136,13 @@ class SimpleFSResolver(_AbstractResolver):
         return not self.source_file_path(ident) is None
 
     def resolve(self, app, ident, base_uri):
-
         if not self.is_resolvable(ident):
             self.raise_404_for_ident(ident)
 
         source_fp = self.source_file_path(ident)
         format_ = self.format_from_ident(ident)
-        extra = self.get_extra_info(ident, source_fp)
-        return ImageInfo(app, source_fp, format_, extra)
+        auth_rules = self.get_auth_rules(ident, source_fp)
+        return ImageInfo(app=app, src_img_fp=source_fp, src_format=format_, auth_rules=auth_rules)
 
 
 class ExtensionNormalizingFSResolver(SimpleFSResolver):
@@ -271,7 +276,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         return (url, self.request_options())
 
     def cache_dir_path(self, ident):
-        return os.path.join(
+        return join(
             self.cache_root,
             CacheNamer.cache_directory_name(ident=ident),
             ident,
@@ -347,19 +352,19 @@ class SimpleHTTPResolver(_AbstractResolver):
         # These files are < 2k in size, so fetch in one go.
         # Assumes that the rules will be next to the image
         # cache_dir is image specific, so this is easy
-
-        bits = split(source_url)
-        fn = bits[1].rsplit('.', 1)[0] + "." + self.auth_rules_ext
-        rules_url = bits[0] + '/' + fn
-        try:
-            resp = requests.get(rules_url)
-            if resp.status_code == 200:
-                local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
-                if not exists(local_rules_fp):
-                    with open(local_rules_fp, 'w') as fh:
-                        fh.write(resp.text)
-        except requests.exceptions.RequestException:
-            pass
+        if self.use_auth_rules:
+            bits = split(source_url)
+            fn = bits[1].rsplit('.', 1)[0] + "." + self.auth_rules_ext
+            rules_url = bits[0] + '/' + fn
+            try:
+                resp = requests.get(rules_url)
+                if resp.status_code == 200:
+                    local_rules_fp = join(cache_dir, "loris_cache." + self.auth_rules_ext)
+                    if not exists(local_rules_fp):
+                        with open(local_rules_fp, 'w') as fh:
+                            fh.write(resp.text)
+            except requests.exceptions.RequestException:
+                pass
 
         return local_fp
 
@@ -368,11 +373,8 @@ class SimpleHTTPResolver(_AbstractResolver):
         if not cached_file_path:
             cached_file_path = self.copy_to_cache(ident)
         format_ = self.get_format(cached_file_path, None)
-        if self.use_extra_info:
-            extra = self.get_extra_info(ident, cached_file_path)
-        else:
-            extra = {}
-        return ImageInfo(app, cached_file_path, format_, extra)
+        auth_rules = self.get_auth_rules(ident, cached_file_path)
+        return ImageInfo(app=app, src_img_fp=cached_file_path, src_format=format_, auth_rules=auth_rules)
 
 
 class TemplateHTTPResolver(SimpleHTTPResolver):
@@ -553,5 +555,5 @@ class SourceImageCachingResolver(_AbstractResolver):
 
         cache_fp = self.cache_file_path(ident)
         format_ = self.format_from_ident(ident)
-        extra = self.get_extra_info(ident, cache_fp)
-        return ImageInfo(app, cache_fp, format_, extra)
+        auth_rules = self.get_auth_rules(ident, cache_fp)
+        return ImageInfo(app=app, src_img_fp=cache_fp, src_format=format_, auth_rules=auth_rules)

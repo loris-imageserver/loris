@@ -15,7 +15,7 @@ from tests import loris_t
 
 def build_image_info(width=100, height=100):
     """Produces an ``ImageInfo`` object of the given dimensions."""
-    info = img_info.ImageInfo(None)
+    info = img_info.ImageInfo()
     info.width = width
     info.height = height
     return info
@@ -28,7 +28,7 @@ class _ParameterTest(loris_t.LorisTest):
         fmt = self.test_jp2_color_fmt
         ident = self.test_jp2_color_id
         uri = self.test_jp2_color_uri
-        ii = img_info.ImageInfo(self.app, fp, fmt)
+        ii = img_info.ImageInfo(app=self.app, src_img_fp=fp, src_format=fmt)
         return ii
 
     def _get_info_long_x(self):
@@ -37,7 +37,7 @@ class _ParameterTest(loris_t.LorisTest):
         fmt = self.test_jpeg_fmt
         ident = self.test_jpeg_id
         uri = self.test_jpeg_uri
-        ii = img_info.ImageInfo(self.app, fp, fmt)
+        ii = img_info.ImageInfo(app=self.app, src_img_fp=fp, src_format=fmt)
         return ii
 
 class TestRegionParameter(_ParameterTest):

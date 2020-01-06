@@ -32,7 +32,7 @@ class TestImageRequest:
         (('id4', 'full', '!80,20', '30', 'default', 'jpg'), False),
     ])
     def test_is_canonical(self, args, is_canonical):
-        info = img_info.ImageInfo(None)
+        info = img_info.ImageInfo()
         info.width = 100
         info.height = 100
         request = img.ImageRequest(*args)
@@ -84,7 +84,7 @@ class Test_ImageCache(loris_t.LorisTest):
 
     def test_cache_dir_already_exists(self):
         ident = 'id1'
-        image_info = img_info.ImageInfo(None)
+        image_info = img_info.ImageInfo()
         image_info.width = 100
         image_info.height = 100
         image_request = img.ImageRequest(ident, 'full', 'full', '0', 'default', 'jpg')

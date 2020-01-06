@@ -57,7 +57,7 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 
 class ImageInfo(JP2Extractor):
     '''Info about the image.
-    See: <http://iiif.io/api/image/>
+    See: <http://iiif.io/api/image/>, <https://iiif.io/api/image/2.1/#complete-response>
 
     Slots:
         width (int)
@@ -65,9 +65,14 @@ class ImageInfo(JP2Extractor):
         scaleFactors [(int)]
         sizes [(str)]: the optimal sizes of the image to request
         tiles: [{}]
-        service (dict): services associated with the image
         profile (Profile): Features supported by the server/available for
             this image
+        service [{}]: optional - services associated with the image
+        attribution [{}]: optional - text that must be shown when content obtained from the Image API service is 
+            displayed or used
+        license []: optional - link to an external resource that describes the license or rights statement under which
+            content obtained from the Image API service may be used
+        logo {}: optional - small image that represents an individual or organization associated with the content
 
         src_img_fp (str): the absolute path on the file system [non IIIF]
         src_format (str): the format of the source image file [non IIIF]
@@ -75,32 +80,18 @@ class ImageInfo(JP2Extractor):
         auth_rules (dict): extra information about authorization [non IIIF]
 
     '''
-    __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'profile', 'sizes', 'service',
-        'attribution', 'logo', 'license', 'auth_rules',
-        'src_format', 'src_img_fp', 'color_profile_bytes')
+    __slots__ = ('width', 'height', 'scaleFactors', 'sizes', 'tiles',
+        'profile', 'service', 'attribution', 'license', 'logo',
+        'src_img_fp', 'src_format', 'color_profile_bytes', 'auth_rules')
 
-    def __init__(self, app=None, src_img_fp="", src_format="", extra={}):
+    def __init__(self, app=None, service=None, attribution=None, license=None, logo=None, src_img_fp="", src_format="", auth_rules=None):
         self.src_img_fp = src_img_fp
         self.src_format = src_format
-        self.attribution = None
-        self.logo = None
-        self.license = None
-        self.service = {}
-        self.auth_rules = extra
-
-        # The extraInfo parameter can be used to override specific attributes.
-        # If there are extra attributes, drop an error.
-        bad_attrs = []
-        for (k, v) in extra.get('extraInfo', {}).items():
-            try:
-                setattr(self, k, v)
-            except AttributeError:
-                bad_attrs.append(k)
-        if bad_attrs:
-            raise ImageInfoException(
-                "Invalid parameters in extraInfo: %s." % ', '.join(bad_attrs)
-            )
+        self.attribution = attribution
+        self.logo = logo
+        self.license = license
+        self.service = service or {}
+        self.auth_rules = auth_rules or {}
 
         # If constructed from JSON, the pixel info will already be processed
         if app:
