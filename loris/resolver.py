@@ -91,8 +91,7 @@ class _AbstractResolver:
         xjsfp = source_fp.rsplit('.', 1)[0] + "." + self.auth_rules_ext
         if exists(xjsfp):
             with open(xjsfp) as fh:
-                xjs = json.load(fh)
-            return xjs
+                return json.load(fh)
         else:
             return {}
 
