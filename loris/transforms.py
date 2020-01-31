@@ -2,6 +2,7 @@ from io import BytesIO
 import multiprocessing
 from logging import getLogger
 from math import ceil, log
+iomport os
 from os import path
 import platform
 import subprocess
@@ -22,7 +23,6 @@ except ImportError:
 
 from loris.loris_exception import ConfigError, TransformException
 from loris.parameters import FULL_MODE
-from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -224,7 +224,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
         self.tmp_dp = config['tmp_dp']
 
         try:
-            mkdir_p(self.tmp_dp)
+            os.makedirs(self.tmp_dp, exist_ok=True)
         except OSError as ose:
             # Almost certainly a permissions error on one of the required dirs
             from sys import exit

@@ -35,7 +35,6 @@ from loris.loris_exception import (
     SyntaxException,
     TransformException,
 )
-from loris.utils import mkdir_p
 
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
@@ -353,7 +352,7 @@ class Loris(object):
         self.tmp_dp = _loris_config['tmp_dp']
 
         try:
-            mkdir_p(self.tmp_dp)
+            os.makedirs(self.tmp_dp, exist_ok=True)
         except Exception as exc:
             raise ConfigError("Error creating tmp_dp %s: %r" % (self.tmp_dp, exc))
 
