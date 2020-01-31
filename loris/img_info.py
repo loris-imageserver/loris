@@ -14,7 +14,6 @@ from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
 from loris.identifiers import CacheNamer
 from loris.jp2_extractor import JP2Extractor, JP2ExtractionError
 from loris.loris_exception import ImageInfoException
-from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
 
@@ -353,7 +352,7 @@ class InfoCache:
             # to fs
             logger.debug('ident passed to __setitem__: %s', ident)
             dp = os.path.dirname(info_fp)
-            mkdir_p(dp)
+            os.makedirs(dp, exist_ok=True)
             logger.debug('Created %s', dp)
 
             with open(info_fp, 'w') as f:

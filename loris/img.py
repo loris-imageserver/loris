@@ -9,7 +9,7 @@ import attr
 
 from loris.identifiers import CacheNamer
 from loris.parameters import RegionParameter, RotationParameter, SizeParameter
-from loris.utils import mkdir_p, safe_rename, symlink
+from loris.utils import safe_rename, symlink
 
 logger = getLogger(__name__)
 
@@ -171,7 +171,7 @@ class ImageCache(dict):
     def create_dir_and_return_file_path(self, image_request, image_info):
         target_fp = self.get_canonical_cache_path(image_request, image_info)
         target_dp = path.dirname(target_fp)
-        mkdir_p(target_dp)
+        os.makedirs(target_dp, exist_ok=True)
         return target_fp
 
     def upsert(self, image_request, temp_fp, image_info):

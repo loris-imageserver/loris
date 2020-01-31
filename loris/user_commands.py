@@ -2,7 +2,6 @@
 import os
 import shutil
 from configobj import ConfigObj
-from loris.utils import mkdir_p
 
 
 CONFIG_FILE_NAME = 'loris2.conf'
@@ -55,7 +54,7 @@ def _copy_index_and_favicon(config):
     index_target = os.path.join(www_dir, 'index.txt')
     favicon_target_dir = os.path.join(www_dir, 'icons')
     favicon_target = os.path.join(favicon_target_dir, 'favicon.ico')
-    mkdir_p(favicon_target_dir)
+    os.makedirs(favicon_target_dir, exist_ok=True)
     shutil.copyfile(index_src, index_target)
     shutil.copyfile(favicon_src, favicon_target)
 
@@ -74,7 +73,7 @@ def _make_directories(config):
         log_dir,
     ]
     for d in loris_directories:
-        mkdir_p(d)
+        os.makedirs(d, exist_ok=True)
 
 
 def display_default_config_file():
