@@ -2,7 +2,7 @@ from io import BytesIO
 import multiprocessing
 from logging import getLogger
 from math import ceil, log
-iomport os
+import os
 from os import path
 import platform
 import subprocess
