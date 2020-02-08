@@ -279,64 +279,54 @@ class Test_RulesAuthorizer(unittest.TestCase):
         svcs = self.authorizer.get_services_info(self.badInfo)
         self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
 
-    def test_missing_cookie_secret_is_configerror(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'token_secret': 't0k3ns3kr1t'
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            'Missing mandatory parameters for RulesAuthorizer: cookie_secret' ==
-            str(err.value)
-        )
 
-    def test_missing_token_secret_is_configerror(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'cookie_secret': 'c00ki3sekr1t',
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            'Missing mandatory parameters for RulesAuthorizer: token_secret' ==
-            str(err.value)
-        )
-
-    def test_false_use_jwt_without_salt_is_configerror(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'cookie_secret': 'c00ki3sekr1t',
-            'token_secret': 't0k3ns3kr1t',
-            'use_jwt': False,
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            'If use_jwt=False, you must supply the "salt" config parameter' ==
-            str(err.value)
-        )
-
-    def test_salt_must_be_bytes(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'cookie_secret': 'c00ki3sekr1t',
-            'token_secret': 't0k3ns3kr1t',
-            'use_jwt': False,
-            'salt': u'salt',
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            str(err.value).startswith('"salt" config parameter must be bytes;')
-        )
+InfoStub = collections.namedtuple("InfoStub", ["auth_rules"])
 
 
 class TestRulesAuthorizerPytest:
+
+    @pytest.mark.parametrize("config, expected_error", [
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "token_secret": "t0k3ns3kr1t"
+            },
+            "Missing mandatory parameters for RulesAuthorizer: cookie_secret"
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": "c00ki3sekr1t",
+            },
+            "Missing mandatory parameters for RulesAuthorizer: token_secret"
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": "c00ki3sekr1t",
+                "token_secret": "t0k3ns3kr1t",
+                "use_jwt": False,
+            },
+            'If use_jwt=False, you must supply the "salt" config parameter'
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": "c00ki3sekr1t",
+                "token_secret": "t0k3ns3kr1t",
+                "use_jwt": False,
+                "salt": u"salt",
+            },
+            '"salt" config parameter must be bytes;'
+        )
+    ])
+    def test_invalid_config_is_configerror(self, config, expected_error):
+        with pytest.raises(ConfigError, match=expected_error):
+            RulesAuthorizer(config)
 
     @pytest.mark.parametrize("auth_rules, expected_is_protected", [
         ({}, False),
@@ -344,8 +334,6 @@ class TestRulesAuthorizerPytest:
         ({"allowed": ["yes"]}, True),
     ])
     def test_is_protected(self, auth_rules, expected_is_protected):
-        InfoStub = collections.namedtuple("InfoStub", ["auth_rules"])
-
         info = InfoStub(auth_rules=auth_rules)
         authorizer = RulesAuthorizer(config={
             "cookie_secret": "123",
