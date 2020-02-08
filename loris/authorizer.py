@@ -280,10 +280,10 @@ class RulesAuthorizer(_AbstractAuthorizer):
         if self.use_jwt:
             try:
                 value = jwt.decode(cval, secret)
-            except jwt.ExpiredSignatureError:
-                value = jwt.decode(cval, secret, verify=False)                
+            except jwt.ExpiredSignatureError as err:
+                value = jwt.decode(cval, secret, verify=False)
                 logger.debug(value)
-                raise AuthorizerException(message="invalidCredentials: expired")
+                raise AuthorizerException("Credentials have expired: %r" % err)
         else:
             key = base64.urlsafe_b64encode(self.kdf().derive(secret))
             fern = Fernet(key)
@@ -321,16 +321,16 @@ class RulesAuthorizer(_AbstractAuthorizer):
         return bool(info.auth_rules.get("allowed"))
 
     def is_authorized(self, info, request):
-        if not "allowed" in info.auth_rules:
+        try:
+            roles = info.auth_rules["allowed"]
+        except KeyError:
             # We shouldn't be here, but just check in case
             return {"status": "ok"}
 
-        roles = info.auth_rules['allowed']
-
         try:
             userroles = set(self._roles_from_request(request))
-        except AuthorizerException as e:
-            logger.debug("Got authorization exception: %s" % e.message)
+        except Exception as err:
+            logger.debug("Got authorization exception: %r", err)
             return {"status": "deny"}
 
         okay = set(roles).intersection(userroles)

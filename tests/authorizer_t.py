@@ -1,5 +1,6 @@
 import base64
 import collections
+import datetime
 import unittest
 
 from cryptography.fernet import Fernet
@@ -14,9 +15,9 @@ from loris.img_info import ImageInfo
 
 class MockRequest:
 
-    def __init__(self, hdrs={}, cooks={}):
-        self.headers = hdrs
-        self.cookies = cooks
+    def __init__(self, headers=None, cookies=None):
+        self.headers = headers or {}
+        self.cookies = cookies or {}
         self.path = "bla/info.json"
 
 
@@ -145,12 +146,20 @@ class Test_RulesAuthorizer(unittest.TestCase):
         jwt_cv = jwt.encode({"sub": "test"}, secret, algorithm='HS256')
         jwt_cv_roles = jwt.encode({"roles": ['test']}, secret, algorithm='HS256')
 
-        self.tokenRequest = MockRequest(hdrs={"Authorization": b"Bearer " + tv, "origin": self.origin})
-        self.cookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': cv})
+        self.tokenRequest = MockRequest(
+            headers={"Authorization": b"Bearer " + tv, "origin": self.origin}
+        )
+        self.cookieRequest = MockRequest(
+            headers={"origin": self.origin}, cookies={'iiif_access_cookie': cv}
+        )
         self.cookieRequest.path = ".../default.jpg"
 
-        self.jwtTokenRequest = MockRequest(hdrs={"Authorization": b"Bearer " + jwt_tv, "origin": self.origin})
-        self.jwtCookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': jwt_cv})
+        self.jwtTokenRequest = MockRequest(
+            headers={"Authorization": b"Bearer " + jwt_tv, "origin": self.origin}
+        )
+        self.jwtCookieRequest = MockRequest(
+            headers={"origin": self.origin}, cookies={'iiif_access_cookie': jwt_cv}
+        )
         self.jwtCookieRequest.path = ".../default.jpg"
 
 
@@ -358,3 +367,35 @@ class TestRulesAuthorizerPytest:
         info = InfoStub(auth_rules=auth_rules)
         authorizer = self.create_authorizer()
         assert authorizer.is_protected(info=info) == expected_is_protected
+
+    def test_no_allowed_in_auth_rules_is_always_authorized(self):
+        info = InfoStub(auth_rules={})
+        authorizer = self.create_authorizer()
+        assert authorizer.is_authorized(info=info, request=None) == {"status": "ok"}
+
+    @pytest.mark.parametrize("bad_token", [
+        jwt.encode({}, b"different_token_secret-localhost", algorithm="HS256"),
+        jwt.encode({}, b"token_secret-different_origin", algorithm="HS256"),
+        jwt.encode(
+            {"exp": datetime.datetime(2001, 1, 1)},
+            b"token_secret-localhost",
+            algorithm="HS256"
+        ),
+    ])
+    def test_failed_jwt_verification_is_deny(self, bad_token):
+        info = InfoStub(auth_rules={"allowed": ["any"]})
+        authorizer = self.create_authorizer(
+            token_secret=b"token_secret",
+            use_jwt=True
+        )
+
+        headers = {
+            "Authorization": b"Bearer " + bad_token,
+            "Origin": "localhost",
+        }
+
+        request = MockRequest(headers=headers)
+
+        assert (
+            authorizer.is_authorized(info=info, request=request) == {"status": "deny"}
+        )
