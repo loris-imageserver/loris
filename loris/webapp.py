@@ -73,13 +73,13 @@ def get_debug_config(debug_jp2_transformer):
     else:
         raise ConfigError('Unrecognized debug JP2 transformer: %r' % debug_jp2_transformer)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
-    config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
-    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
-    config['authorizer']['roles_key'] = 'roles'
-    config['authorizer']['id_key'] = 'sub'
-
-
+    config['authorizer'] = {
+        "impl": "loris.authorizer.RulesAuthorizer",
+        "cookie_secret": b"4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o",
+        "token_secret": b"hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
+        "roles_key": "roles",
+        "id_key": "sub",
+    }
 
     return config
 
