@@ -194,11 +194,17 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 config['use_jwt']
             )
 
-        if ('salt' in config) and (not isinstance(config['salt'], bytes)):
-            raise ConfigError(
-                '"salt" config parameter must be bytes; got %r (%s)' %
-                (config['salt'], type(config['salt']))
-            )
+        for param in ("token_secret", "salt"):
+            try:
+                value = config[param]
+            except KeyError:
+                continue
+
+            if not isinstance(value, bytes):
+                raise ConfigError(
+                    '"%s" config parameter must be bytes; got %r (%s)' %
+                    (param, value, type(value))
+                )
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
