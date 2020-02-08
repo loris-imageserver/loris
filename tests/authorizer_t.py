@@ -283,7 +283,7 @@ class TestRulesAuthorizerPytest:
     @staticmethod
     def create_authorizer(**extra_config):
         config = {
-            "cookie_secret": "123",
+            "cookie_secret": b"123",
             "token_secret": b"123",
         }
         config.update(extra_config)
@@ -303,7 +303,7 @@ class TestRulesAuthorizerPytest:
             {
                 "cookie_service": "cookie.example.com",
                 "token_service": "token.example.com",
-                "cookie_secret": "c00ki3sekr1t",
+                "cookie_secret": b"c00ki3sekr1t",
             },
             "Missing mandatory parameters for RulesAuthorizer: token_secret"
         ),
@@ -311,7 +311,7 @@ class TestRulesAuthorizerPytest:
             {
                 "cookie_service": "cookie.example.com",
                 "token_service": "token.example.com",
-                "cookie_secret": "c00ki3sekr1t",
+                "cookie_secret": b"c00ki3sekr1t",
                 "token_secret": b"t0k3ns3kr1t",
                 "use_jwt": False,
             },
@@ -321,10 +321,10 @@ class TestRulesAuthorizerPytest:
             {
                 "cookie_service": "cookie.example.com",
                 "token_service": "token.example.com",
-                "cookie_secret": "c00ki3sekr1t",
+                "cookie_secret": b"c00ki3sekr1t",
                 "token_secret": u"t0k3ns3kr1t",
                 "use_jwt": False,
-                "salt": u"salt",
+                "salt": b"salt",
             },
             '"token_secret" config parameter must be bytes;'
         ),
@@ -332,7 +332,18 @@ class TestRulesAuthorizerPytest:
             {
                 "cookie_service": "cookie.example.com",
                 "token_service": "token.example.com",
-                "cookie_secret": "c00ki3sekr1t",
+                "cookie_secret": u"c00ki3sekr1t",
+                "token_secret": b"t0k3ns3kr1t",
+                "use_jwt": False,
+                "salt": b"salt",
+            },
+            '"cookie_secret" config parameter must be bytes;'
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": b"c00ki3sekr1t",
                 "token_secret": b"t0k3ns3kr1t",
                 "use_jwt": False,
                 "salt": u"salt",

@@ -194,7 +194,7 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 config['use_jwt']
             )
 
-        for param in ("token_secret", "salt"):
+        for param in ("cookie_secret", "token_secret", "salt"):
             try:
                 value = config[param]
             except KeyError:
