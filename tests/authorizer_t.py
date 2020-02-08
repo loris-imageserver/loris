@@ -1,13 +1,15 @@
+import base64
+import collections
+import unittest
+
+from cryptography.fernet import Fernet
+import jwt
+import pytest
+
 from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
     NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
 from loris.loris_exception import ConfigError
 from loris.img_info import ImageInfo
-
-import unittest
-import base64
-from cryptography.fernet import Fernet
-import jwt
-import pytest
 
 
 class MockRequest:
@@ -174,11 +176,6 @@ class Test_RulesAuthorizer(unittest.TestCase):
         for (test, expect) in tests.items():
             self.assertEqual(self.authorizer.basic_origin(test), expect)
 
-    def test_is_protected(self):
-        self.badInfo.auth_rules = {"allowed": ["test"]}
-        self.assertEqual(self.authorizer.is_protected(self.badInfo), True)
-        self.assertEqual(self.authorizer.is_protected(self.okayInfo), False)
-
     def test_is_authorized(self):
 
         # Set use_jwt to False
@@ -338,3 +335,20 @@ class Test_RulesAuthorizer(unittest.TestCase):
             str(err.value).startswith('"salt" config parameter must be bytes;')
         )
 
+
+class TestRulesAuthorizerPytest:
+
+    @pytest.mark.parametrize("auth_rules, expected_is_protected", [
+        ({}, False),
+        ({"allowed": []}, False),
+        ({"allowed": ["yes"]}, True),
+    ])
+    def test_is_protected(self, auth_rules, expected_is_protected):
+        InfoStub = collections.namedtuple("InfoStub", ["auth_rules"])
+
+        info = InfoStub(auth_rules=auth_rules)
+        authorizer = RulesAuthorizer(config={
+            "cookie_secret": "123",
+            "token_secret": "123",
+        })
+        assert authorizer.is_protected(info=info) == expected_is_protected

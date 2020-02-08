@@ -307,9 +307,9 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def is_protected(self, info):
         # Now we can check info.auth_rules
-        # Protected if there's an 'allowed' key, with a non-false value 
-        logger.debug("Called is_protected with %r" % info.auth_rules)
-        return bool('allowed' in info.auth_rules and info.auth_rules['allowed'])
+        # Protected if there's an 'allowed' key, with a non-false value
+        logger.debug("Called is_protected with %r", info.auth_rules)
+        return bool(info.auth_rules.get("allowed"))
 
     def is_authorized(self, info, request):
         if not "allowed" in info.auth_rules:
