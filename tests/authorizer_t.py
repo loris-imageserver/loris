@@ -9,7 +9,7 @@ import pytest
 
 from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
     NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
-from loris.loris_exception import ConfigError
+from loris.loris_exception import AuthorizerException, ConfigError
 from loris.img_info import ImageInfo
 
 
@@ -275,20 +275,6 @@ class Test_RulesAuthorizer(unittest.TestCase):
         self.assertEqual(authd['status'], "ok")
 
 
-    def test_get_services_info(self):
-
-        self.authorizer.cookie_service = "http://localhost:8000/cookie"
-
-        self.badInfo.auth_rules = {"allowed":["test"],"extraInfo": {
-            "service": {
-                "@context": "http://iiif.io/api/auth/1/context.json",
-                "@id": "http://localhost:8000/cookie",
-                "profile": "http://iiif.io/api/auth/1/login"}
-            }}
-        svcs = self.authorizer.get_services_info(self.badInfo)
-        self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
-
-
 InfoStub = collections.namedtuple("InfoStub", ["auth_rules"])
 
 
@@ -399,3 +385,57 @@ class TestRulesAuthorizerPytest:
         assert (
             authorizer.is_authorized(info=info, request=request) == {"status": "deny"}
         )
+
+    def test_uses_service_for_services_info(self):
+        info = InfoStub(auth_rules={"extraInfo": {"service": "MagicAuth"}})
+        authorizer = self.create_authorizer()
+
+        assert authorizer.get_services_info(info=info) == {"service": "MagicAuth"}
+
+    def test_gets_correct_services_info(self):
+        cookie_service = "http://example.org/cookie_service"
+        token_service = "http://example.org/token_service"
+
+        authorizer = self.create_authorizer(
+            cookie_service=cookie_service,
+            token_service=token_service,
+        )
+
+        info = InfoStub(auth_rules={})
+
+        resp = authorizer.get_services_info(info=info)
+
+        assert resp == {
+            "service": {
+                "@context": "http://iiif.io/api/auth/1/context.json",
+                "@id": cookie_service,
+                "label": "Please Login",
+                "profile": "http://iiif.io/api/auth/1/login",
+                "service": {
+                    "@context": "http://iiif.io/api/auth/1/context.json",
+                    "@id": token_service,
+                    "label": "Access Token Service",
+                    "profile": "http://iiif.io/api/auth/1/token",
+                }
+            }
+        }
+
+    def test_no_cookie_service_with_services_info_is_error(self):
+        info = InfoStub(auth_rules={})
+        authorizer = self.create_authorizer(cookie_service=False, token_service=True)
+
+        with pytest.raises(
+            AuthorizerException,
+            match="No cookie service for authentication"
+        ):
+            authorizer.get_services_info(info=info)
+
+    def test_no_token_service_with_services_info_is_error(self):
+        info = InfoStub(auth_rules={})
+        authorizer = self.create_authorizer(cookie_service=True, token_service=False)
+
+        with pytest.raises(
+            AuthorizerException,
+            match="No token service for authentication"
+        ):
+            authorizer.get_services_info(info=info)

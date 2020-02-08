@@ -37,12 +37,12 @@ class _AbstractAuthorizer(object):
             "service": []
         }
 
+        self.context = "http://iiif.io/api/auth/1/context.json"
         self.login_profile = "http://iiif.io/api/auth/1/login"
         self.clickthrough_profile = "http://iiif.io/api/auth/1/clickthrough"
         self.kiosk_profile = "http://iiif.io/api/auth/1/kiosk"
         self.external_profile = "http://iiif.io/api/auth/1/external"
         self.token_profile = "http://iiif.io/api/auth/1/token"
-
 
     def _strip_empty_fields(self, svc):
         # dicts are modified in place
@@ -346,30 +346,38 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 return {"status": "deny"} 
 
     def get_services_info(self, info):
+        extra_info = info.auth_rules.get("extraInfo", {})
 
-        xi = info.auth_rules.get('extraInfo', {})
-        if not xi or not xi.get('service', {}):
-            # look in config for URIs instead of in XI
-            if not self.cookie_service:
-                raise AuthorizerException("No cookie service for authentication")
-            elif not self.token_service:
-                raise AuthorizerException("No token service for authentication")
-            tmpl = self.service_template.copy()
-            tmpl['@id'] = self.cookie_service
-            tmpl['label'] = "Please Login"
-            tmpl['profile'] = self.login_profile
-            self._strip_empty_fields(tmpl)
-            token = self.service_template.copy()
-            token['@id'] = self.token_service
-            token['label'] = "Access Token Service"
-            token['profile'] = self.token_profile
-            self._strip_empty_fields(token)
-            tmpl['service'] = [token]
-            return {"service": tmpl}
-        elif xi and xi.get('service', {}):
-            return {"service": xi['service']}
-        else:
-            raise AuthorizerException("No services for authentication for %s" % info.ident)
+        try:
+            return {"service": extra_info["service"]}
+        except KeyError:
+            pass
+
+        # If there's no service in the extraInfo field, look in config
+        # for URIs instead.
+
+        if not self.cookie_service:
+            raise AuthorizerException("No cookie service for authentication")
+
+        if not self.token_service:
+            raise AuthorizerException("No token service for authentication")
+
+        token_service = {
+            "@context": self.context,
+            "@id": self.token_service,
+            "label": "Access Token Service",
+            "profile": self.token_profile,
+        }
+
+        service = {
+            "@context": self.context,
+            "@id": self.cookie_service,
+            "label": "Please Login",
+            "profile": self.login_profile,
+            "service": token_service
+        }
+
+        return {"service": service}
 
 
 class ExternalAuthorizer(_AbstractAuthorizer):
