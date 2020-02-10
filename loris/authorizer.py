@@ -37,12 +37,12 @@ class _AbstractAuthorizer(object):
             "service": []
         }
 
+        self.context = "http://iiif.io/api/auth/1/context.json"
         self.login_profile = "http://iiif.io/api/auth/1/login"
         self.clickthrough_profile = "http://iiif.io/api/auth/1/clickthrough"
         self.kiosk_profile = "http://iiif.io/api/auth/1/kiosk"
         self.external_profile = "http://iiif.io/api/auth/1/external"
         self.token_profile = "http://iiif.io/api/auth/1/token"
-
 
     def _strip_empty_fields(self, svc):
         # dicts are modified in place
@@ -194,8 +194,17 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 config['use_jwt']
             )
 
-        if ('salt' in config) and (not isinstance(config['salt'], bytes)):
-            raise ConfigError('"salt" config parameter must be bytes; got %r (%s)' % (config['salt'], type(config['salt'])))
+        for param in ("cookie_secret", "token_secret", "salt"):
+            try:
+                value = config[param]
+            except KeyError:
+                continue
+
+            if not isinstance(value, bytes):
+                raise ConfigError(
+                    '"%s" config parameter must be bytes; got %r (%s)' %
+                    (param, value, type(value))
+                )
 
     def kdf(self):
         return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt,
@@ -271,10 +280,10 @@ class RulesAuthorizer(_AbstractAuthorizer):
         if self.use_jwt:
             try:
                 value = jwt.decode(cval, secret)
-            except jwt.ExpiredSignatureError:
-                value = jwt.decode(cval, secret, verify=False)                
+            except jwt.ExpiredSignatureError as err:
+                value = jwt.decode(cval, secret, verify=False)
                 logger.debug(value)
-                raise AuthorizerException(message="invalidCredentials: expired")
+                raise AuthorizerException("Credentials have expired: %r" % err)
         else:
             key = base64.urlsafe_b64encode(self.kdf().derive(secret))
             fern = Fernet(key)
@@ -307,21 +316,21 @@ class RulesAuthorizer(_AbstractAuthorizer):
 
     def is_protected(self, info):
         # Now we can check info.auth_rules
-        # Protected if there's an 'allowed' key, with a non-false value 
-        logger.debug("Called is_protected with %r" % info.auth_rules)
-        return bool('allowed' in info.auth_rules and info.auth_rules['allowed'])
+        # Protected if there's an 'allowed' key, with a non-false value
+        logger.debug("Called is_protected with %r", info.auth_rules)
+        return bool(info.auth_rules.get("allowed"))
 
     def is_authorized(self, info, request):
-        if not "allowed" in info.auth_rules:
+        try:
+            roles = info.auth_rules["allowed"]
+        except KeyError:
             # We shouldn't be here, but just check in case
             return {"status": "ok"}
 
-        roles = info.auth_rules['allowed']
-
         try:
             userroles = set(self._roles_from_request(request))
-        except AuthorizerException as e:
-            logger.debug("Got authorization exception: %s" % e.message)
+        except Exception as err:
+            logger.debug("Got authorization exception: %r", err)
             return {"status": "deny"}
 
         okay = set(roles).intersection(userroles)
@@ -337,30 +346,38 @@ class RulesAuthorizer(_AbstractAuthorizer):
                 return {"status": "deny"} 
 
     def get_services_info(self, info):
+        extra_info = info.auth_rules.get("extraInfo", {})
 
-        xi = info.auth_rules.get('extraInfo', {})
-        if not xi or not xi.get('service', {}):
-            # look in config for URIs instead of in XI
-            if not self.cookie_service:
-                raise AuthorizerException("No cookie service for authentication")
-            elif not self.token_service:
-                raise AuthorizerException("No token service for authentication")
-            tmpl = self.service_template.copy()
-            tmpl['@id'] = self.cookie_service
-            tmpl['label'] = "Please Login"
-            tmpl['profile'] = self.login_profile
-            self._strip_empty_fields(tmpl)
-            token = self.service_template.copy()
-            token['@id'] = self.token_service
-            token['label'] = "Access Token Service"
-            token['profile'] = self.token_profile
-            self._strip_empty_fields(token)
-            tmpl['service'] = [token]
-            return {"service": tmpl}
-        elif xi and xi.get('service', {}):
-            return {"service": xi['service']}
-        else:
-            raise AuthorizerException("No services for authentication for %s" % info.ident)
+        try:
+            return {"service": extra_info["service"]}
+        except KeyError:
+            pass
+
+        # If there's no service in the extraInfo field, look in config
+        # for URIs instead.
+
+        if not self.cookie_service:
+            raise AuthorizerException("No cookie service for authentication")
+
+        if not self.token_service:
+            raise AuthorizerException("No token service for authentication")
+
+        token_service = {
+            "@context": self.context,
+            "@id": self.token_service,
+            "label": "Access Token Service",
+            "profile": self.token_profile,
+        }
+
+        service = {
+            "@context": self.context,
+            "@id": self.cookie_service,
+            "label": "Please Login",
+            "profile": self.login_profile,
+            "service": token_service
+        }
+
+        return {"service": service}
 
 
 class ExternalAuthorizer(_AbstractAuthorizer):

@@ -1,20 +1,23 @@
-from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
-    NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
-from loris.loris_exception import ConfigError
-from loris.img_info import ImageInfo
-
-import unittest
 import base64
+import collections
+import datetime
+import unittest
+
 from cryptography.fernet import Fernet
 import jwt
 import pytest
 
+from loris.authorizer import _AbstractAuthorizer, NullAuthorizer,\
+    NooneAuthorizer, SingleDegradingAuthorizer, RulesAuthorizer
+from loris.loris_exception import AuthorizerException, ConfigError
+from loris.img_info import ImageInfo
+
 
 class MockRequest:
 
-    def __init__(self, hdrs={}, cooks={}):
-        self.headers = hdrs
-        self.cookies = cooks
+    def __init__(self, headers=None, cookies=None):
+        self.headers = headers or {}
+        self.cookies = cookies or {}
         self.path = "bla/info.json"
 
 
@@ -143,12 +146,20 @@ class Test_RulesAuthorizer(unittest.TestCase):
         jwt_cv = jwt.encode({"sub": "test"}, secret, algorithm='HS256')
         jwt_cv_roles = jwt.encode({"roles": ['test']}, secret, algorithm='HS256')
 
-        self.tokenRequest = MockRequest(hdrs={"Authorization": b"Bearer " + tv, "origin": self.origin})
-        self.cookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': cv})
+        self.tokenRequest = MockRequest(
+            headers={"Authorization": b"Bearer " + tv, "origin": self.origin}
+        )
+        self.cookieRequest = MockRequest(
+            headers={"origin": self.origin}, cookies={'iiif_access_cookie': cv}
+        )
         self.cookieRequest.path = ".../default.jpg"
 
-        self.jwtTokenRequest = MockRequest(hdrs={"Authorization": b"Bearer " + jwt_tv, "origin": self.origin})
-        self.jwtCookieRequest = MockRequest(hdrs={"origin": self.origin}, cooks={'iiif_access_cookie': jwt_cv})
+        self.jwtTokenRequest = MockRequest(
+            headers={"Authorization": b"Bearer " + jwt_tv, "origin": self.origin}
+        )
+        self.jwtCookieRequest = MockRequest(
+            headers={"origin": self.origin}, cookies={'iiif_access_cookie': jwt_cv}
+        )
         self.jwtCookieRequest.path = ".../default.jpg"
 
 
@@ -173,11 +184,6 @@ class Test_RulesAuthorizer(unittest.TestCase):
 
         for (test, expect) in tests.items():
             self.assertEqual(self.authorizer.basic_origin(test), expect)
-
-    def test_is_protected(self):
-        self.badInfo.auth_rules = {"allowed": ["test"]}
-        self.assertEqual(self.authorizer.is_protected(self.badInfo), True)
-        self.assertEqual(self.authorizer.is_protected(self.okayInfo), False)
 
     def test_is_authorized(self):
 
@@ -269,72 +275,178 @@ class Test_RulesAuthorizer(unittest.TestCase):
         self.assertEqual(authd['status'], "ok")
 
 
-    def test_get_services_info(self):
+InfoStub = collections.namedtuple("InfoStub", ["auth_rules"])
 
-        self.authorizer.cookie_service = "http://localhost:8000/cookie"
 
-        self.badInfo.auth_rules = {"allowed":["test"],"extraInfo": {
+class TestRulesAuthorizerPytest:
+
+    @staticmethod
+    def create_authorizer(**extra_config):
+        config = {
+            "cookie_secret": b"123",
+            "token_secret": b"123",
+        }
+        config.update(extra_config)
+
+        return RulesAuthorizer(config=config)
+
+    @pytest.mark.parametrize("config, expected_error", [
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "token_secret": b"t0k3ns3kr1t"
+            },
+            "Missing mandatory parameters for RulesAuthorizer: cookie_secret"
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": b"c00ki3sekr1t",
+            },
+            "Missing mandatory parameters for RulesAuthorizer: token_secret"
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": b"c00ki3sekr1t",
+                "token_secret": b"t0k3ns3kr1t",
+                "use_jwt": False,
+            },
+            'If use_jwt=False, you must supply the "salt" config parameter'
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": b"c00ki3sekr1t",
+                "token_secret": u"t0k3ns3kr1t",
+                "use_jwt": False,
+                "salt": b"salt",
+            },
+            '"token_secret" config parameter must be bytes;'
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": u"c00ki3sekr1t",
+                "token_secret": b"t0k3ns3kr1t",
+                "use_jwt": False,
+                "salt": b"salt",
+            },
+            '"cookie_secret" config parameter must be bytes;'
+        ),
+        (
+            {
+                "cookie_service": "cookie.example.com",
+                "token_service": "token.example.com",
+                "cookie_secret": b"c00ki3sekr1t",
+                "token_secret": b"t0k3ns3kr1t",
+                "use_jwt": False,
+                "salt": u"salt",
+            },
+            '"salt" config parameter must be bytes;'
+        ),
+    ])
+    def test_invalid_config_is_configerror(self, config, expected_error):
+        with pytest.raises(ConfigError, match=expected_error):
+            RulesAuthorizer(config)
+
+    @pytest.mark.parametrize("auth_rules, expected_is_protected", [
+        ({}, False),
+        ({"allowed": []}, False),
+        ({"allowed": ["yes"]}, True),
+    ])
+    def test_is_protected(self, auth_rules, expected_is_protected):
+        info = InfoStub(auth_rules=auth_rules)
+        authorizer = self.create_authorizer()
+        assert authorizer.is_protected(info=info) == expected_is_protected
+
+    def test_no_allowed_in_auth_rules_is_always_authorized(self):
+        info = InfoStub(auth_rules={})
+        authorizer = self.create_authorizer()
+        assert authorizer.is_authorized(info=info, request=None) == {"status": "ok"}
+
+    @pytest.mark.parametrize("bad_token", [
+        jwt.encode({}, b"different_token_secret-localhost", algorithm="HS256"),
+        jwt.encode({}, b"token_secret-different_origin", algorithm="HS256"),
+        jwt.encode(
+            {"exp": datetime.datetime(2001, 1, 1)},
+            b"token_secret-localhost",
+            algorithm="HS256"
+        ),
+    ])
+    def test_failed_jwt_verification_is_deny(self, bad_token):
+        info = InfoStub(auth_rules={"allowed": ["any"]})
+        authorizer = self.create_authorizer(
+            token_secret=b"token_secret",
+            use_jwt=True
+        )
+
+        headers = {
+            "Authorization": b"Bearer " + bad_token,
+            "Origin": "localhost",
+        }
+
+        request = MockRequest(headers=headers)
+
+        assert (
+            authorizer.is_authorized(info=info, request=request) == {"status": "deny"}
+        )
+
+    def test_uses_service_for_services_info(self):
+        info = InfoStub(auth_rules={"extraInfo": {"service": "MagicAuth"}})
+        authorizer = self.create_authorizer()
+
+        assert authorizer.get_services_info(info=info) == {"service": "MagicAuth"}
+
+    def test_gets_correct_services_info(self):
+        cookie_service = "http://example.org/cookie_service"
+        token_service = "http://example.org/token_service"
+
+        authorizer = self.create_authorizer(
+            cookie_service=cookie_service,
+            token_service=token_service,
+        )
+
+        info = InfoStub(auth_rules={})
+
+        resp = authorizer.get_services_info(info=info)
+
+        assert resp == {
             "service": {
                 "@context": "http://iiif.io/api/auth/1/context.json",
-                "@id": "http://localhost:8000/cookie",
-                "profile": "http://iiif.io/api/auth/1/login"}
-            }}
-        svcs = self.authorizer.get_services_info(self.badInfo)
-        self.assertEqual(svcs['service']['profile'], "http://iiif.io/api/auth/1/login")
-
-    def test_missing_cookie_secret_is_configerror(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'token_secret': 't0k3ns3kr1t'
+                "@id": cookie_service,
+                "label": "Please Login",
+                "profile": "http://iiif.io/api/auth/1/login",
+                "service": {
+                    "@context": "http://iiif.io/api/auth/1/context.json",
+                    "@id": token_service,
+                    "label": "Access Token Service",
+                    "profile": "http://iiif.io/api/auth/1/token",
+                }
+            }
         }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            'Missing mandatory parameters for RulesAuthorizer: cookie_secret' ==
-            str(err.value)
-        )
 
-    def test_missing_token_secret_is_configerror(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'cookie_secret': 'c00ki3sekr1t',
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            'Missing mandatory parameters for RulesAuthorizer: token_secret' ==
-            str(err.value)
-        )
+    def test_no_cookie_service_with_services_info_is_error(self):
+        info = InfoStub(auth_rules={})
+        authorizer = self.create_authorizer(cookie_service=False, token_service=True)
 
-    def test_false_use_jwt_without_salt_is_configerror(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'cookie_secret': 'c00ki3sekr1t',
-            'token_secret': 't0k3ns3kr1t',
-            'use_jwt': False,
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            'If use_jwt=False, you must supply the "salt" config parameter' ==
-            str(err.value)
-        )
+        with pytest.raises(
+            AuthorizerException,
+            match="No cookie service for authentication"
+        ):
+            authorizer.get_services_info(info=info)
 
-    def test_salt_must_be_bytes(self):
-        config = {
-            'cookie_service': 'cookie.example.com',
-            'token_service': 'token.example.com',
-            'cookie_secret': 'c00ki3sekr1t',
-            'token_secret': 't0k3ns3kr1t',
-            'use_jwt': False,
-            'salt': u'salt',
-        }
-        with pytest.raises(ConfigError) as err:
-            RulesAuthorizer(config)
-        assert (
-            str(err.value).startswith('"salt" config parameter must be bytes;')
-        )
+    def test_no_token_service_with_services_info_is_error(self):
+        info = InfoStub(auth_rules={})
+        authorizer = self.create_authorizer(cookie_service=True, token_service=False)
 
+        with pytest.raises(
+            AuthorizerException,
+            match="No token service for authentication"
+        ):
+            authorizer.get_services_info(info=info)
