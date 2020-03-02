@@ -379,7 +379,7 @@ class Loris(object):
         tforms = self.app_configs['transforms']
         source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
         self.logger.debug('Source formats: %r', source_formats)
-        global_tranform_options = dict((k, v) for k, v in tforms.iteritems() if not isinstance(v, dict))
+        global_tranform_options = dict((k, v) for k, v in tforms.items() if not isinstance(v, dict))
         self.logger.debug('Global transform options: %r', global_tranform_options)
 
         transformers = {}
