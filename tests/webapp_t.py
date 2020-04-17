@@ -355,6 +355,15 @@ class WebappIntegration(loris_t.LorisTest):
         info = img_info.ImageInfo.from_json_fp(tmp_fp)
         self.assertEqual(info.width, self.test_jp2_color_dims[0])
 
+    def test_gif_identifier(self):
+        # Should be able to request source GIF in a supported target format
+        # Note: cannot use @pytest.mark.parametrize here because this is a unittest.TestCase subclass
+        for target_format in ( 'gif', 'jpg', 'png', 'webp'):
+            identifier = 'three_static.gif'
+            to_get = '/%s/full/full/0/default.%s' % (identifier, target_format)
+            resp = self.client.get(to_get)
+            self.assertEqual(resp.status_code, 200)
+
     def test_info_without_dot_json_404(self):
         # Note that this isn't what we really want...should be 400, but this
         # gets through as an ID. Technically OK, I think.
