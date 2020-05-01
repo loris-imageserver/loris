@@ -104,6 +104,13 @@ class LorisTest(unittest.TestCase):
         self.test_tiff_dims = (839,1080)
         self.test_tiff_sizes = []
 
+        self.test_gif_static_fp = path.join(self.test_img_dir, 'three_static.gif')
+        self.test_gif_static_fmt = 'gif'
+        self.test_gif_static_id = 'three_static.gif'
+        self.test_gif_static_uri = '%s/%s' % (self.URI_BASE, self.test_gif_static_id)
+        self.test_gif_static_dims = (288, 250) # w,h
+        self.test_gif_static_sizes = []
+
         self.test_png_fp = path.join(self.test_img_dir,'henneken.png')
         self.test_png_fp2 = path.join(self.test_img_dir2,'henneken.png')
         self.test_png_fmt = 'png'
