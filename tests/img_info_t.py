@@ -210,10 +210,8 @@ class InfoUnit(loris_t.LorisTest):
     def test_gif_info_from_image(self):
         fp = self.test_gif_static_fp
         fmt = self.test_gif_static_fmt
-        ident = self.test_gif_static_id
-        uri = self.test_gif_static_uri
 
-        info = img_info.ImageInfo(self.app, uri, fp, fmt)
+        info = img_info.ImageInfo(self.app, src_image_fp=fp, src_format=fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
                 "formats": [ "jpg", "png", "gif", "webp" ],
