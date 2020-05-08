@@ -1,19 +1,14 @@
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import copy
+import json
+import os
 from os.path import dirname
 from os.path import isfile
 from os.path import join
 from os.path import realpath
 from os.path import exists
+import tempfile
 import unittest
-
-try:
-    from urllib.parse import quote_plus, unquote
-except ImportError:  # Python 2
-    from urllib import quote_plus, unquote
+from urllib.parse import quote_plus, unquote
 
 import pytest
 import responses
@@ -102,6 +97,22 @@ class Test_SimpleFSResolver(loris_t.LorisTest):
         resolver = SimpleFSResolver(config=config)
         assert not resolver.is_resolvable(ident='doesnotexist.jpg')
 
+    def test_get_extra_info(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ident = 'HP.2007.13.jp2'
+            rules_filename = 'HP.2007.13.rules.json'
+            source_fp = os.path.join(tmp, ident)
+            with open(source_fp, 'wb') as f:
+                pass
+            with open(os.path.join(tmp, rules_filename), 'wb') as f:
+                f.write(json.dumps({'rule': 1}).encode('utf8'))
+            config = {
+                'src_img_roots' : [tmp],
+                'use_auth_rules': True
+            }
+            resolver = SimpleFSResolver(config=config)
+            assert resolver.get_auth_rules(ident, source_fp) == {'rule': 1}
+
 
 class Test_SourceImageCachingResolver(loris_t.LorisTest):
 
@@ -122,6 +133,13 @@ class Test_SourceImageCachingResolver(loris_t.LorisTest):
         self.assertEqual(expected_path, ii.src_img_fp)
         self.assertEqual(ii.src_format, 'jp2')
         self.assertTrue(isfile(ii.src_img_fp))
+
+        # Now we resolve it a second time, to test the case where the
+        # cache is already warm.
+        ii = self.app.resolver.resolve(self.app, ident, base_uri="")
+        assert ii.src_img_fp == expected_path
+        assert ii.src_format == "jp2"
+        assert os.path.isfile(ii.src_img_fp)
 
     def test_present_ident_is_resolvable(self):
         ident = self.test_png_id
@@ -283,6 +301,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'e4a')
         expected_path = join(expected_path, '91b')
         expected_path = join(expected_path, '032')
+        expected_path = join(expected_path, '0001') #add identifier to the path
         expected_path = join(expected_path, 'loris_cache.tif')
 
         ii = self.app.resolver.resolve(self.app, ident, "")
@@ -290,8 +309,14 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
 
+        # Now we resolve the same identifier a second time, when the cache
+        # is warm.
+        ii = self.app.resolver.resolve(self.app, ident, base_uri="")
+        assert ii.src_img_fp == expected_path
+        assert ii.src_format == "tif"
+        assert os.path.isfile(ii.src_img_fp)
+
         #Test with a full uri
-        #Note: This seems weird but idents resolve wrong and removes a slash from //
         ident = quote_plus('http://sample.sample/0001')
         expected_path = join(self.app.resolver.cache_root, 'http')
         expected_path = join(expected_path, '32')
@@ -305,6 +330,7 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         expected_path = join(expected_path, 'ebc')
         expected_path = join(expected_path, 'c75')
         expected_path = join(expected_path, '083')
+        expected_path = join(expected_path, unquote(ident))
         expected_path = join(expected_path, 'loris_cache.tif')
 
         self.assertFalse(exists(expected_path))
@@ -347,6 +373,41 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertIsNotNone(ii.src_img_fp)
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
+
+    @responses.activate
+    def test_is_resolvable_uses_cached_result(self):
+        self._mock_urls()
+
+        config = {
+            'cache_root' : self.SRC_IMAGE_CACHE,
+            'source_prefix' : 'http://sample.sample/',
+            'source_suffix' : '',
+            'default_format' : 'tif',
+            'head_resolvable' : True,
+            'uri_resolvable' : True
+        }
+        self.app.resolver = SimpleHTTPResolver(config)
+
+        assert self.app.resolver.resolve(self.app, ident='0001', base_uri='')
+        assert self.app.resolver.is_resolvable(ident='0001')
+
+    @responses.activate
+    def test_without_extra_info(self):
+        self._mock_urls()
+
+        config = {
+            'cache_root' : self.SRC_IMAGE_CACHE,
+            'source_prefix' : 'http://sample.sample/',
+            'source_suffix' : '',
+            'default_format' : 'tif',
+            'head_resolvable' : True,
+            'uri_resolvable' : True,
+            'use_extra_info' : False
+        }
+        self.app.resolver = SimpleHTTPResolver(config)
+
+        assert self.app.resolver.resolve(self.app, ident='0001', base_uri='')
+        assert self.app.resolver.is_resolvable(ident='0001')
 
 
 class TestSimpleHTTPResolver(object):
@@ -391,6 +452,21 @@ class TestSimpleHTTPResolver(object):
         resolver = SimpleHTTPResolver(config=config)
         assert not resolver.is_resolvable(ident='example.png')
 
+    @responses.activate
+    @pytest.mark.parametrize('ident_regex, ident, expected_resolvable', [
+        ('A+', 'bbb.jpg', False),
+        ('\d+', '0001', True),
+        ('\d+Z', '0001', False),
+    ])
+    def test_ident_regex_blocks_based_on_ident(self, mock_responses, ident_regex, ident, expected_resolvable):
+        config = {
+            'cache_root': '/var/cache/loris',
+            'source_prefix': 'http://sample.sample/',
+            'ident_regex': ident_regex,
+        }
+        resolver = SimpleHTTPResolver(config=config)
+        assert resolver.is_resolvable(ident=ident) == expected_resolvable
+
 
 class Test_TemplateHTTPResolver(object):
 
@@ -414,6 +490,15 @@ class Test_TemplateHTTPResolver(object):
     def test_template_http_resolver_with_no_config_is_error(self):
         with pytest.raises(ResolverException):
             TemplateHTTPResolver({})
+
+    def test_allow_no_template_config(self):
+        no_template_config = {
+            k: v for k, v in self.config.items() if k != "templates"
+        }
+        resolver = TemplateHTTPResolver(no_template_config)
+
+        with pytest.raises(ResolverException):
+            resolver.resolve(app=None, ident="a:foo.jpg", base_uri="")
 
     def test_parsing_template_http_resolver_config(self):
         resolver = TemplateHTTPResolver(self.config)

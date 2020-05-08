@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import shutil
 import unittest
@@ -54,6 +52,7 @@ class SimpleHTTPResolverTest(unittest.TestCase):
                     'e4a',
                     '91b',
                     '032',
+                    '0001', #identifier
                 ]
         self.expected_filedir = os.path.join(*expected_filepath_list)
         self.expected_filepath = os.path.join(self.expected_filedir, 'loris_cache.tif')
@@ -175,6 +174,7 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
             'uri_resolvable': True,
             'user': 'TestUser',
             'pw': 'TestPW',
+            'use_auth_rules': True,
         }
 
         resolver = SimpleHTTPResolver(config)
@@ -186,6 +186,7 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
         self.assertEqual(resolver.uri_resolvable, True)
         self.assertEqual(resolver.user, 'TestUser')
         self.assertEqual(resolver.pw, 'TestPW')
+        self.assertEqual(resolver.use_auth_rules, True)
 
     def test_barebones_config(self):
         config = {
@@ -202,3 +203,4 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
         self.assertEqual(resolver.uri_resolvable, True)
         self.assertEqual(resolver.user, None)
         self.assertEqual(resolver.pw, None)
+        self.assertEqual(resolver.use_auth_rules, False)

@@ -1,8 +1,3 @@
-# parameters_t.py
-#-*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from decimal import Decimal
 
 from hypothesis import given
@@ -20,7 +15,7 @@ from tests import loris_t
 
 def build_image_info(width=100, height=100):
     """Produces an ``ImageInfo`` object of the given dimensions."""
-    info = img_info.ImageInfo(None)
+    info = img_info.ImageInfo()
     info.width = width
     info.height = height
     return info
@@ -33,7 +28,7 @@ class _ParameterTest(loris_t.LorisTest):
         fmt = self.test_jp2_color_fmt
         ident = self.test_jp2_color_id
         uri = self.test_jp2_color_uri
-        ii = img_info.ImageInfo(self.app, uri, fp, fmt)
+        ii = img_info.ImageInfo(app=self.app, src_img_fp=fp, src_format=fmt)
         return ii
 
     def _get_info_long_x(self):
@@ -42,7 +37,7 @@ class _ParameterTest(loris_t.LorisTest):
         fmt = self.test_jpeg_fmt
         ident = self.test_jpeg_id
         uri = self.test_jpeg_uri
-        ii = img_info.ImageInfo(self.app, uri, fp, fmt)
+        ii = img_info.ImageInfo(app=self.app, src_img_fp=fp, src_format=fmt)
         return ii
 
 class TestRegionParameter(_ParameterTest):
@@ -223,6 +218,12 @@ class TestSizeParameter(_ParameterTest):
         rp = RegionParameter('full', info)
         sp = SizeParameter('pct:50', rp)
         self.assertEquals(sp.w, 1)
+
+    def test_decimal_percentage_is_allowed(self):
+        info = build_image_info(width=400, height=200)
+        rp = RegionParameter('full', info)
+        sp = SizeParameter('pct:6.25', rp)
+        self.assertEquals(sp.w, 25)
 
     def test_negative_x_percentage_is_rejected(self):
         info = build_image_info()

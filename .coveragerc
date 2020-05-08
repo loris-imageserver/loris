@@ -9,3 +9,4 @@ exclude_lines =
     pragma: no cover
     assert False, "Should not be reachable"
     else:  # unreachable
+    .*:.* # Python \d.*

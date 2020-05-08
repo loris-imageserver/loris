@@ -31,22 +31,14 @@ Then, install all of the dependencies--note that exact versions may vary dependi
     liblcms2-dev liblcms2-utils libtiff5-dev python-dev libwebp-dev apache2 \
     libapache2-mod-wsgi
 
+For CentOS:
+
+    $ sudo yum install zlib-devel freetype libjpeg-turbo-devel lcms2-utils \ 
+    libtiff-devel libwebp-devel openjpeg2
+
 Now install Pillow (setup.py would do this for you, but it's better to do separately and check):
 
     $ sudo pip install Pillow
-
-The output should (and MUST!) include these lines:
-
-    [...]
-    --- JPEG support available
-    [...]
-    --- ZLIB (PNG/ZIP) support available
-    --- LIBTIFF support available
-    --- FREETYPE2 support available
-    --- LITTLECMS2 support available
-    --- WEBP support available
-    --- WEBPMUX support available
-    [...]
 
 In case you plan on working on the source code without running setup.py, the following are required python libraries that must currently exist in your Python environment:
 

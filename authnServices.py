@@ -181,7 +181,7 @@ class AuthNHandler(object):
                     # Hmmm... hack attempt?
                     data = {"error":"invalidCredentials","description":"Login details invalid"}
 
-        except:
+        except Exception:
             info = ''
 
         if not info:

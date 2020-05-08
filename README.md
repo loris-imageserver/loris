@@ -3,9 +3,6 @@
 
 Loris is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).
 
- * If you're looking for IIIF 1.1 support, please use the [last release in the 1.x series](https://github.com/pulibrary/loris/releases/tag/1.2.2).
- * If you're looking for IIIF 1.0 support, [this release](https://github.com/pulibrary/loris/releases/tag/0.0.9alpha) is the closest Loris ever was, but there are known flaws, deployment is tough, and it is certainly not supported at this point.
-
 [![Build Status](https://travis-ci.org/loris-imageserver/loris.svg?branch=development)](https://travis-ci.org/loris-imageserver/loris)
 
 Demos
@@ -15,9 +12,9 @@ Demos
 
 Installation Instructions
 -------------------------
-Loris is only supported on Python 2.7.x. If you need to use Python 2.6, Loris v2.1.0 is the last version to support it.
+Loris is supported on Python 3.5+. If you need to use Python 2.7 or Python 3.4, Loris v2.3.3 is the last version to support it.
 
-These instructions are known to work on Ubuntu 12.04 or greater and Python 2.7.x (but not 3.x). See below for some help with RedHat/CentOS and Debian.
+These instructions need to be updated (PRs welcome!). If you are running into install problems, please open an issue. See below for some help with RedHat/CentOS and Debian.
 
 **Do Not!** Run `setup.py` until you've read the following:
 
@@ -27,6 +24,7 @@ These instructions are known to work on Ubuntu 12.04 or greater and Python 2.7.x
  * [Resolver Implementation](doc/resolver.md)
  * [Run `setup.py`](doc/setup.md)
  * [Deploy with Apache](doc/apache.md)
+ * [Deploy with NGINX and uWSGI](doc/nginx.md)
  * [Deploy with Docker](https://github.com/loris-imageserver/loris-docker)
  * (Optional) [Developer Notes](doc/develop.md)
 
@@ -93,3 +91,4 @@ The executables available [here](http://www.kakadusoftware.com/index.php?option=
 Copyright is owned by NewSouth Innovations Pty Limited, commercial arm of the University of New South Wales, Sydney, Australia. **You are free to trial these executables and even to re-distribute them, so long as such use or re-distribution is accompanied with this copyright notice and is not for commercial gain. Note: Binaries can only be used for non-commercial purposes.** If in doubt please [contact Dr. Taubman](http://www.kakadusoftware.com/index.php?option=com_content&task=blogcategory&id=8&Itemid=14).
 
 For further details, please visit the [Kakadu website](http://www.kakadusoftware.com/)
+

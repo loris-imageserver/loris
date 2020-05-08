@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 import logging
 from logging import StreamHandler
 from logging.handlers import RotatingFileHandler
@@ -26,7 +24,7 @@ valid_file_config = {
 }
 
 
-class TestLoggingConfig(object):
+class TestLoggingConfig:
 
     @pytest.mark.parametrize('log_to', ['notafile', '', 'disk'])
     def test_bad_log_to_is_configerror(self, log_to):

@@ -4,7 +4,7 @@ Run `setup.py`
 Create a user that will own the loris application, e.g.:
 
 ```
-$ adduser loris
+$ sudo adduser loris
 ```
 
 This user needs to have a home directory (unless you want to override it in the WSGI [`home=` directive](https://code.google.com/p/modwsgi/wiki/ConfigurationDirectives#WSGIDaemonProcess)) and the user and group name should match the `run_as_user` and `run_as_group` options of in the `[loris.Loris]` section of `loris2.conf` and the `--loris-owner` and `--loris-group` options that you pass to `setup.py` (see beloq)..

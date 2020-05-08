@@ -1,12 +1,9 @@
 #!/usr/bin/env python
-#-*- coding: utf-8 -*-
 '''
 webapp.py
 =========
 Implements IIIF 2.0 <http://iiif.io/api/image/2.0/> level 2
 '''
-from __future__ import absolute_import
-
 from datetime import datetime
 from decimal import getcontext
 import logging
@@ -16,10 +13,7 @@ from os import path, unlink
 import re
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-try:
-    from urllib.parse import unquote, quote_plus
-except ImportError:  # Python 2
-    from urllib import unquote, quote_plus
+from urllib.parse import unquote, quote_plus
 
 import sys
 sys.path.append('.')
@@ -43,7 +37,6 @@ from loris.loris_exception import (
 )
 
 
-
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
 
@@ -65,13 +58,11 @@ def get_debug_config(debug_jp2_transformer):
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
     config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+    config['transforms']['target_formats'] = [ 'jpg', 'png', 'gif', 'webp', 'tif']
+
     if debug_jp2_transformer == 'opj':
-        from loris.transforms import OPJ_JP2Transformer
         config['transforms']['jp2']['impl'] = 'OPJ_JP2Transformer'
-        opj_decompress = OPJ_JP2Transformer.local_opj_decompress_path()
-        config['transforms']['jp2']['opj_decompress'] = path.join(project_dp, opj_decompress)
-        libopenjp2_dir = OPJ_JP2Transformer.local_libopenjp2_dir()
-        config['transforms']['jp2']['opj_libs'] = path.join(project_dp, libopenjp2_dir)
+        config['transforms']['jp2']['opj_decompress'] = '/usr/bin/opj_decompress'
     elif debug_jp2_transformer == 'kdu':
         from loris.transforms import KakaduJP2Transformer
         config['transforms']['jp2']['impl'] = 'KakaduJP2Transformer'
@@ -82,13 +73,13 @@ def get_debug_config(debug_jp2_transformer):
     else:
         raise ConfigError('Unrecognized debug JP2 transformer: %r' % debug_jp2_transformer)
 
-    config['authorizer'] = {'impl': 'loris.authorizer.RulesAuthorizer'}
-    config['authorizer']['cookie_secret'] = "4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o="
-    config['authorizer']['token_secret'] = "hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0="
-    config['authorizer']['roles_key'] = 'roles'
-    config['authorizer']['id_key'] = 'sub'
-
-
+    config['authorizer'] = {
+        "impl": "loris.authorizer.RulesAuthorizer",
+        "cookie_secret": b"4rakTQJDyhaYgoew802q78pNnsXR7ClvbYtAF1YC87o",
+        "token_secret": b"hyQijpEEe9z1OB9NOkHvmSA4lC1B4lu1n80bKNx0Uz0=",
+        "roles_key": "roles",
+        "id_key": "sub",
+    }
 
     return config
 
@@ -273,8 +264,14 @@ class LorisRequest(object):
             return
 
         #check for image request
-        #Note: this doesn't guarantee that all the parameters have valid values - see regexes in constants.py.
+        #Note: this doesn't guarantee that all the parameters have valid
+        #values - see regexes in constants.py.
         image_match = constants.IMAGE_RE.match(self._path)
+
+        #check for info request
+        info_match = constants.INFO_RE.match(self._path)
+
+        #process image request
         if image_match:
             groups = image_match.groupdict()
             self.ident = quote_plus(groups['ident'])
@@ -285,15 +282,16 @@ class LorisRequest(object):
                       'format': groups['format']}
             self.request_type = 'image'
 
-        #check for info request
-        elif self._path.endswith('info.json'):
-            ident = '/'.join(self._path[1:].split('/')[:-1])
-            self.ident = quote_plus(ident)
+        #process info request
+        elif info_match:
+            groups = info_match.groupdict()
+            self.ident = quote_plus(groups['ident'])
             self.params = 'info.json'
             self.request_type = 'info'
 
-        #if the request didn't match the stricter regex above, but it does match this one, we know we have an
-        # invalid image request, so we can return a 400 BadRequest to the user.
+        #if the request didn't match the stricter regexes above, but it does
+        #match this one, we know we have an invalid image request, so we can
+        #return a 400 BadRequest to the user.
         elif constants.LOOSER_IMAGE_RE.match(self._path):
             self.request_type = 'bad_image_request'
 
@@ -303,6 +301,35 @@ class LorisRequest(object):
                 ident = ident[:-1]
             self.ident = quote_plus(ident)
             self.request_type = 'redirect_info'
+
+
+def set_content_disposition_header(image_request, response):
+    """
+    Set the HTTP Content-Disposition header.
+
+    This indicates to the browser what filename it should use to download the
+    file.  We use the identifier from the request, which is generally more
+    useful than `default.jpg`.
+
+    See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition
+    """
+    ident = image_request.ident
+    img_format = image_request.format
+
+    # If the identifier has an associated image format and it matches the
+    # request, pass through the identifier directly.
+    #
+    # If the request is for a different format, include both formats.
+    #
+    # e.g.  /cats.jpg/…/default.jpg ~> cats.jpg
+    #       /cats.jpg/…/default.png ~> cats.jpg.png
+    #
+    if ident.endswith(".%s" % img_format):
+        download_filename = ident
+    else:
+        download_filename = "%s.%s" % (ident, img_format)
+
+    response.headers["Content-Disposition"] = "filename*=utf-8''%s" % download_filename
 
 
 class Loris(object):
@@ -323,6 +350,12 @@ class Loris(object):
         # make the loris.Loris configs attrs for easier access
         _loris_config = self.app_configs['loris.Loris']
         self.tmp_dp = _loris_config['tmp_dp']
+
+        try:
+            os.makedirs(self.tmp_dp, exist_ok=True)
+        except Exception as exc:
+            raise ConfigError("Error creating tmp_dp %s: %r" % (self.tmp_dp, exc))
+
         self.www_dp = _loris_config['www_dp']
         self.enable_caching = _loris_config['enable_caching']
         self.redirect_canonical_image_request = _loris_config['redirect_canonical_image_request']
@@ -346,7 +379,7 @@ class Loris(object):
         tforms = self.app_configs['transforms']
         source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
         self.logger.debug('Source formats: %r', source_formats)
-        global_tranform_options = dict((k, v) for k, v in tforms.iteritems() if not isinstance(v, dict))
+        global_tranform_options = dict((k, v) for k, v in tforms.items() if not isinstance(v, dict))
         self.logger.debug('Global transform options: %r', global_tranform_options)
 
         transformers = {}
@@ -371,10 +404,11 @@ class Loris(object):
     def _load_authorizer(self):
         try:
             impl = self.app_configs['authorizer']['impl']
-        except:
+        except KeyError:
             return None
-        AuthorizerClass = self._import_class(impl)
-        return AuthorizerClass(self.app_configs['authorizer'])
+        else:
+            AuthorizerClass = self._import_class(impl)
+            return AuthorizerClass(self.app_configs['authorizer'])
 
     def _import_class(self, qname):
         '''Imports a class AND returns it (the class, not an instance).
@@ -502,7 +536,7 @@ class Loris(object):
             callback = request.args.get('callback', None)
             if callback:
                 r.mimetype = 'application/javascript'
-                r.data = '%s(%s);' % (callback, info.to_iiif_json())
+                r.data = '%s(%s);' % (callback, info.to_iiif_json(base_uri))
             else:
                 if request.headers.get('accept') == 'application/ld+json':
                     r.content_type = 'application/ld+json'
@@ -510,43 +544,36 @@ class Loris(object):
                     r.content_type = 'application/json'
                     l = '<http://iiif.io/api/image/2/context.json>;rel="http://www.w3.org/ns/json-ld#context";type="application/ld+json"'
                     r.headers['Link'] = '%s,%s' % (r.headers['Link'], l)
-                r.data = info.to_iiif_json()
+                r.data = info.to_iiif_json(base_uri)
         return r
 
     def _get_info(self,ident,request,base_uri):
+        #return info from the cache if we can
         if self.enable_caching:
-            in_cache = request in self.info_cache
+            try:
+                return self.info_cache[ident]
+            except KeyError:
+                pass
+
+        #otherwise construct it
+        info = self.resolver.resolve(self, ident, base_uri)
+
+        # Maybe inject services before caching
+        if self.authorizer and self.authorizer.is_protected(info):
+            # Call get_services to inject
+            svcs = self.authorizer.get_services_info(info)
+            if svcs and 'service' in svcs:
+                info.service = svcs['service']
+
+        # cache new info if needed
+        if self.enable_caching:
+            self.info_cache[ident] = info
+            # pick up the timestamp... :()
+            info,last_mod = self.info_cache[ident]
         else:
-            in_cache = False
+            last_mod = None
 
-        #Checking for src_format in ImageInfo signals that it's not old cache data:
-        #   src_format didn't used to be in the Info cache, but now it is.
-        #   If we don't see src_format, that means it's old cache data, so just
-        #   ignore it and cache new ImageInfo.
-        #   TODO: remove src_format check in Loris 4.0.
-        if in_cache and self.info_cache[request][0].src_format:
-            return self.info_cache[request]
-        else:
-
-            info = self.resolver.resolve(self, ident, base_uri)
-
-            # Maybe inject services before caching
-            if self.authorizer and self.authorizer.is_protected(info):
-                # Call get_services to inject
-                svcs = self.authorizer.get_services_info(info)
-                if svcs and 'service' in svcs:
-                    info.service = svcs['service']
-
-            # store
-            if self.enable_caching:
-                self.logger.debug('ident used to store %s: %s', ident, ident)
-                self.info_cache[request] = info
-                # pick up the timestamp... :()
-                info,last_mod = self.info_cache[request]
-            else:
-                last_mod = None
-
-            return (info,last_mod)
+        return (info, last_mod)
 
     def _set_canonical_link(
         self, request, response, image_request, image_info
@@ -592,6 +619,8 @@ class Loris(object):
             info = self._get_info(ident, request, base_uri)[0]
         except ResolverException as re:
             return NotFoundResponse(str(re))
+        except ImageInfoException as ie:
+            return ServerSideErrorResponse(ie)
 
         if self.authorizer and self.authorizer.is_protected(info):
             authed = self.authorizer.is_authorized(info, request)
@@ -600,6 +629,8 @@ class Loris(object):
                 # Images don't redirect, they just deny out
                 r.status_code = 401
                 return r
+
+        set_content_disposition_header(image_request=image_request, response=r)
 
         if in_cache:
             fp, img_last_mod = self.img_cache[image_request]
@@ -634,21 +665,18 @@ class Loris(object):
                 return r
         else:
             try:
-                # 1. Get the info
-                info = self._get_info(ident, request, base_uri)[0]
-
-                # 2. Check that we can make the quality requested
+                # Check that we can make the quality requested
                 if image_request.quality not in info.profile.description['qualities']:
                     return BadRequestResponse('"%s" quality is not available for this image' % (image_request.quality,))
 
-                # 3. Check if requested size is allowed
+                # Check if requested size is allowed
                 if image_request.request_resolution_too_large(
                     max_size_above_full=self.max_size_above_full,
                     image_info=info
                 ):
                     return NotFoundResponse('Resolution not available')
 
-                # 4. Redirect if appropriate
+                # Redirect if appropriate
                 if self.redirect_canonical_image_request:
                     if not image_request.is_canonical(info):
                         self.logger.debug('Attempting redirect to %s', image_request.canonical_request_path,)
@@ -656,25 +684,16 @@ class Loris(object):
                         r.status_code = 301
                         return r
 
-                # 5. Make an image
+                # Make an image
                 fp = self._make_image(
                     image_request=image_request,
                     image_info=info
                 )
 
-            except ResolverException as re:
-                return NotFoundResponse(str(re))
             except TransformException as te:
                 return ServerSideErrorResponse(te)
             except (RequestException, SyntaxException) as e:
                 return BadRequestResponse(str(e))
-            except ImageInfoException as ie:
-                # 500s!
-                # ImageInfoException is only raised when
-                # ImageInfo.from_image_file() can't  determine the format of the
-                # source image. It results in a 500, but isn't necessarily a
-                # developer error.
-                return ServerSideErrorResponse(ie)
             except (CalledProcessError,IOError) as e:
                 # CalledProcessError and IOError typically happen when there are
                 # permissions problems with one of the files or directories
@@ -717,27 +736,30 @@ possible that there was a problem with the source file
         )
         temp_fp = temp_file.name
 
-        transformer = self.transformers[image_info.src_format]
-        transformer.transform(
-            target_fp=temp_fp,
-            image_request=image_request,
-            image_info=image_info
-        )
+        try:
+            transformer = self.transformers[image_info.src_format]
+            transformer.transform(
+                target_fp=temp_fp,
+                image_request=image_request,
+                image_info=image_info
+            )
+            derivative_size = os.stat(temp_fp).st_size
+            if derivative_size < 1:
+                self.logger.error('empty derivative file created for %s' % image_info.src_img_fp)
+                raise TransformException()
+        except Exception:
+            unlink(temp_fp)
+            raise
 
         if self.enable_caching:
-            temp_fp = self.img_cache.upsert(
+            canonical_cache_fp = self.img_cache.upsert(
                 image_request=image_request,
                 temp_fp=temp_fp,
                 image_info=image_info
             )
-            # TODO: not sure how the non-canonical use case works
-            self.img_cache.store(
-                image_request=image_request,
-                image_info=image_info,
-                canonical_fp=temp_fp
-            )
-
-        return temp_fp
+            return canonical_cache_fp
+        else:
+            return temp_fp
 
 
 if __name__ == '__main__':

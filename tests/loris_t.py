@@ -1,20 +1,11 @@
-#!/usr/bin/env python
-#-*- coding: utf-8 -*-
-
 '''
 Superclass for integration tests.
 '''
-from __future__ import absolute_import
-
+from io import BytesIO
 import unittest
 from os import path, listdir, unlink
 from shutil import rmtree
 from logging import getLogger
-
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:  # Python 3
-    from io import BytesIO
 
 from PIL import Image
 from werkzeug.test import Client
@@ -23,6 +14,7 @@ from werkzeug.wrappers import BaseResponse
 from loris.webapp import get_debug_config, Loris
 
 logger = getLogger(__name__)
+
 
 class LorisTest(unittest.TestCase):
 

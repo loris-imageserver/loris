@@ -1,14 +1,9 @@
-# parameters.py
-# -*- coding: utf-8 -*-
-
 '''
 IIIF Image API parameters as objects.
 
 The attributes of this class should make it possible to work with most imaging
 libraries without any further need to process the IIIF syntax.
 '''
-
-from __future__ import absolute_import
 
 import re
 from decimal import Decimal
@@ -57,7 +52,7 @@ class RegionParameter(object):
 
         Args:
             uri_value (str): The region slice of an IIIF image request URI.
-            image_info (ImgInfo)
+            image_info (ImageInfo)
 
         Raises:
             SyntaxException
@@ -262,7 +257,7 @@ class SizeParameter(object):
         h (int):
             The height.
     '''
-    PCT_MODE_REGEX = re.compile(r'^pct:(?P<percentage>[0-9]+)$')
+    PCT_MODE_REGEX = re.compile(r'^pct:(?P<percentage>[0-9]+(\.[0-9]+)?)$')
     PIXEL_MODE_REGEX = re.compile(
         r'^(?P<best_fit>!?)(?P<width>[0-9]*),(?P<height>[0-9]*)$'
     )

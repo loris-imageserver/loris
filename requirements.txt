@@ -10,16 +10,13 @@ certifi==2018.1.18        # via requests
 cffi==1.11.5              # via cryptography
 chardet==3.0.4            # via requests
 configobj==5.0.0
-cryptography==2.1.4
-enum34==1.1.6             # via cryptography
+cryptography==2.3
 idna==2.6                 # via cryptography, requests
-ipaddress==1.0.19         # via cryptography
 netaddr==0.7.19
-olefile==0.45.1           # via pillow
-pillow==4.3.0
+pillow==6.2.0
 pycparser==2.18           # via cffi
 pyjwt==1.5.3
-requests==2.18.4
+requests==2.20.0
 six==1.11.0               # via cryptography
 urllib3==1.22             # via requests
-werkzeug==0.14.1
+werkzeug==0.15.3

@@ -1,4 +1,4 @@
-sudo: false
+dist: xenial
 
 addons:
   apt:
@@ -10,17 +10,22 @@ addons:
     - zlib1g-dev
     - liblcms2-2
     - liblcms2-dev
-    - liblcms-utils
-    - libtiff4-dev
+    - liblcms2-utils
+    - libopenjp2-tools
+    - libtiff5-dev
     - libwebp-dev
 
 language: python
 
 python:
-  - 2.7
-  - 3.4
   - 3.5
   - 3.6
+  - 3.7
+  - 3.8
+
+jobs:
+  allow_failures:
+  - python: 3.8
 
 install:
  - pip install -r requirements_test.txt
@@ -30,10 +35,4 @@ script:
   - "coverage run --module py.test --verbose tests/*.py"
   - "coverage report"
 
-notifications:
-  email:
-    recipients: "jpstroop@gmail.com"
-    on_success: "always"
-    on_failure: "always"
-    template:
-      - "%{repository}//%{branch}@%{commit} by %{author}: %{message} - %{build_url}"
+

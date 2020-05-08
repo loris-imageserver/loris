@@ -1,8 +1,3 @@
-# img_info.py
-# -*- encoding: utf-8
-
-from __future__ import absolute_import
-
 from collections import OrderedDict
 from datetime import datetime
 from logging import getLogger
@@ -10,24 +5,17 @@ from math import ceil
 from threading import Lock
 import json
 import os
-import struct
-
-try:
-    from urllib.parse import unquote
-except ImportError:  # Python 2
-    from urllib import unquote
+from urllib.parse import unquote
 
 import attr
 from PIL import Image
 
 from loris.constants import COMPLIANCE, CONTEXT, OPTIONAL_FEATURES, PROTOCOL
+from loris.identifiers import CacheNamer
 from loris.jp2_extractor import JP2Extractor, JP2ExtractionError
 from loris.loris_exception import ImageInfoException
-from loris.utils import mkdir_p
 
 logger = getLogger(__name__)
-
-STAR_DOT_JSON = '*.json'
 
 PIL_MODES_TO_QUALITIES = {
     # Thanks to http://stackoverflow.com/a/1996609/714478
@@ -66,21 +54,24 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         return obj
 
 
-class ImageInfo(JP2Extractor, object):
+class ImageInfo(JP2Extractor):
     '''Info about the image.
-    See: <http://iiif.io/api/image/>
+    See: <http://iiif.io/api/image/>, <https://iiif.io/api/image/2.1/#complete-response>
 
     Slots:
-        ident (str): The image identifier.
         width (int)
         height (int)
         scaleFactors [(int)]
         sizes [(str)]: the optimal sizes of the image to request
         tiles: [{}]
-        protocol (str): the protocol URI (constant)
-        service (dict): services associated with the image
         profile (Profile): Features supported by the server/available for
             this image
+        service [{}]: optional - services associated with the image
+        attribution [{}]: optional - text that must be shown when content obtained from the Image API service is 
+            displayed or used
+        license []: optional - link to an external resource that describes the license or rights statement under which
+            content obtained from the Image API service may be used
+        logo {}: optional - small image that represents an individual or organization associated with the content
 
         src_img_fp (str): the absolute path on the file system [non IIIF]
         src_format (str): the format of the source image file [non IIIF]
@@ -88,35 +79,18 @@ class ImageInfo(JP2Extractor, object):
         auth_rules (dict): extra information about authorization [non IIIF]
 
     '''
-    __slots__ = ('scaleFactors', 'width', 'tiles', 'height',
-        'ident', 'profile', 'protocol', 'sizes', 'service',
-        'attribution', 'logo', 'license', 'auth_rules',
-        'src_format', 'src_img_fp', 'color_profile_bytes')
+    __slots__ = ('width', 'height', 'scaleFactors', 'sizes', 'tiles',
+        'profile', 'service', 'attribution', 'license', 'logo',
+        'src_img_fp', 'src_format', 'color_profile_bytes', 'auth_rules')
 
-    def __init__(self, app=None, ident="", src_img_fp="", src_format="", extra={}):
-
-        self.protocol = PROTOCOL
-        self.ident = ident
+    def __init__(self, app=None, service=None, attribution=None, license=None, logo=None, src_img_fp="", src_format="", auth_rules=None):
         self.src_img_fp = src_img_fp
         self.src_format = src_format
-        self.attribution = None
-        self.logo = None
-        self.license = None
-        self.service = {}
-        self.auth_rules = extra
-
-        # The extraInfo parameter can be used to override specific attributes.
-        # If there are extra attributes, drop an error.
-        bad_attrs = []
-        for (k, v) in extra.get('extraInfo', {}).items():
-            try:
-                setattr(self, k, v)
-            except AttributeError:
-                bad_attrs.append(k)
-        if bad_attrs:
-            raise ImageInfoException(
-                "Invalid parameters in extraInfo: %s." % ', '.join(bad_attrs)
-            )
+        self.attribution = attribution
+        self.logo = logo
+        self.license = license
+        self.service = service or {}
+        self.auth_rules = auth_rules or {}
 
         # If constructed from JSON, the pixel info will already be processed
         if app:
@@ -154,13 +128,12 @@ class ImageInfo(JP2Extractor, object):
         new_inst = ImageInfo()
         j = json.loads(json_string)
 
-        new_inst.ident = j.get(u'@id')
-        new_inst.width = j.get(u'width')
-        new_inst.height = j.get(u'height')
+        new_inst.width = j.get('width')
+        new_inst.height = j.get('height')
         # TODO: make sure these are resulting in error or Nones when
         # we load from the filesystem
-        new_inst.tiles = j.get(u'tiles')
-        new_inst.sizes = j.get(u'sizes')
+        new_inst.tiles = j.get('tiles')
+        new_inst.sizes = j.get('sizes')
 
         profile_args = tuple(j.get(u'profile', []))
         new_inst.profile = Profile(*profile_args)
@@ -234,17 +207,6 @@ class ImageInfo(JP2Extractor, object):
                 )
                 raise ImageInfoException("Invalid JP2 file")
 
-    def assign_color_profile(self, jp2):
-        profile_size_bytes = jp2.read(4)
-        profile_size = int(struct.unpack(">I", profile_size_bytes)[0])
-
-        logger.debug('profile size: %d', profile_size)
-        self.color_profile_bytes = profile_size_bytes + jp2.read(profile_size-4)
-
-        # This is an assumption for now (i.e. that if you have a colour profile
-        # embedded, you're probably working with color images.
-        self.profile.description['qualities'] += ['gray', 'color']
-
     def sizes_for_scales(self, scales):
         fn = ImageInfo.scale_dim
         return [(fn(self.width, sf), fn(self.height, sf)) for sf in scales]
@@ -254,11 +216,8 @@ class ImageInfo(JP2Extractor, object):
         return int(ceil(dim_len * 1.0/scale))
 
     def _get_iiif_info(self):
-        """returns only IIIF info (not Loris-specific info like src_format)"""
         d = {}
         d['@context'] = CONTEXT
-        d['@id'] = self.ident
-        d['protocol'] = self.protocol
         d['profile'] = self.profile
         d['width'] = self.width
         d['height'] = self.height
@@ -273,11 +232,13 @@ class ImageInfo(JP2Extractor, object):
             d['logo'] = self.logo
         if self.license:
             d['license'] = self.license
-
         return d
 
-    def to_iiif_json(self):
+    def to_iiif_json(self, base_uri):
+        """returns only IIIF info (not Loris-specific info like src_format)"""
         d = self._get_iiif_info()
+        d['@id'] = base_uri
+        d['protocol'] = PROTOCOL
         return json.dumps(d, cls=EnhancedJSONEncoder)
 
     def to_full_info_json(self):
@@ -289,7 +250,7 @@ class ImageInfo(JP2Extractor, object):
         return json.dumps(d, cls=EnhancedJSONEncoder)
 
 
-class InfoCache(object):
+class InfoCache:
     """A dict-like cache for ImageInfo objects. The n most recently used are
     also kept in memory; all entries are on the file system.
 
@@ -302,13 +263,12 @@ class InfoCache(object):
     iterators, views, default, update, comparators, etc.
 
     Slots:
-        http_root (str): See below
-        https_root (str): See below
+        root (str): See below
         size (int): See below.
         _dict (OrderedDict): The map.
         _lock (Lock): The lock.
     """
-    __slots__ = ( 'http_root', 'https_root', 'size', '_dict', '_lock')
+    __slots__ = ( 'root', 'size', '_dict', '_lock')
 
     def __init__(self, root, size=500):
         """
@@ -318,50 +278,41 @@ class InfoCache(object):
             size (int):
                 Max entries before the we start popping (LRU).
         """
-        self.http_root = os.path.join(root, 'http')
-        self.https_root = os.path.join(root, 'https')
+        self.root = root
         self.size = size
         self._dict = OrderedDict()  # keyed by URL, so we don't need
                                     # to separate HTTP and HTTPS
         self._lock = Lock()
 
-    def _which_root(self, request):
-        if request.url.startswith('https'):
-            return self.https_root
-        else:
-            return self.http_root
+    def _get_ident_dir_path(self, ident):
+        ident = unquote(ident)
+        return os.path.join(
+            self.root,
+            CacheNamer.cache_directory_name(ident=ident),
+            ident
+        )
 
-    @staticmethod
-    def ident_from_request(request):
-        return '/'.join(request.path[1:].split('/')[:-1])
+    def _get_info_fp(self, ident):
+        return os.path.join(self._get_ident_dir_path(ident), 'info.json')
 
-    def _get_info_fp(self, request):
-        ident = InfoCache.ident_from_request(request)
-        cache_root = self._which_root(request)
-        path = os.path.join(cache_root, unquote(ident), 'info.json')
-        return path
+    def _get_color_profile_fp(self, ident):
+        return os.path.join(self._get_ident_dir_path(ident), 'profile.icc')
 
-    def _get_color_profile_fp(self, request):
-        ident = InfoCache.ident_from_request(request)
-        cache_root = self._which_root(request)
-        path = os.path.join(cache_root, unquote(ident), 'profile.icc')
-        return path
-
-    def get(self, request):
+    def get(self, ident):
         '''
         Returns:
             ImageInfo if it is in the cache, else None
         '''
         info_and_lastmod = None
         with self._lock:
-            info_and_lastmod = self._dict.get(request.url)
+            info_and_lastmod = self._dict.get(ident)
         if info_and_lastmod is None:
-            info_fp = self._get_info_fp(request)
+            info_fp = self._get_info_fp(ident)
             if os.path.exists(info_fp):
                 # from fs
                 info = ImageInfo.from_json_fp(info_fp)
 
-                icc_fp = self._get_color_profile_fp(request)
+                icc_fp = self._get_color_profile_fp(ident)
                 if os.path.exists(icc_fp):
                     with open(icc_fp, "rb") as f:
                         info.color_profile_bytes = f.read()
@@ -370,31 +321,38 @@ class InfoCache(object):
 
                 lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
                 info_and_lastmod = (info, lastmod)
-                logger.debug('Info for %s read from file system', request)
                 # into mem:
-                self.__setitem__(request, info, _to_fs=False)
+                self.__setitem__(ident, info, _to_fs=False)
+
+        #If a source image is referred to in a cached info.json, check that it exists on disk.
+        if info_and_lastmod:
+            info = info_and_lastmod[0]
+            if info.src_img_fp and not os.path.exists(info.src_img_fp):
+                logger.warning('%s cached info references src image which doesn\'t exist: %s' % (ident, info.src_img_fp))
+                return None
+
         return info_and_lastmod
 
-    def has_key(self, request):
-        return os.path.exists(self._get_info_fp(request))
+    def has_key(self, ident):
+        return os.path.exists(self._get_info_fp(ident))
 
-    def __contains__(self, request):
-        return self.has_key(request)
+    def __contains__(self, ident):
+        return self.has_key(ident)
 
-    def __getitem__(self, request):
-        info_lastmod = self.get(request)
+    def __getitem__(self, ident):
+        info_lastmod = self.get(ident)
         if info_lastmod is None:
             raise KeyError
         else:
             return info_lastmod
 
-    def __setitem__(self, request, info, _to_fs=True):
-        info_fp = self._get_info_fp(request)
+    def __setitem__(self, ident, info, _to_fs=True):
+        info_fp = self._get_info_fp(ident)
         if _to_fs:
             # to fs
-            logger.debug('request passed to __setitem__: %s', request)
+            logger.debug('ident passed to __setitem__: %s', ident)
             dp = os.path.dirname(info_fp)
-            mkdir_p(dp)
+            os.makedirs(dp, exist_ok=True)
             logger.debug('Created %s', dp)
 
             with open(info_fp, 'w') as f:
@@ -403,7 +361,7 @@ class InfoCache(object):
 
 
             if info.color_profile_bytes:
-                icc_fp = self._get_color_profile_fp(request)
+                icc_fp = self._get_color_profile_fp(ident)
                 with open(icc_fp, 'wb') as f:
                     f.write(info.color_profile_bytes)
                 logger.debug('Created %s', icc_fp)
@@ -412,22 +370,22 @@ class InfoCache(object):
         # The info file cache on disk must already exist before
         # this is called - it's where the mtime gets drawn from.
         # aka, nothing outside of this class should be using
-        # to_fs=False
+        # _to_fs=False
         if self.size > 0:
             lastmod = datetime.utcfromtimestamp(os.path.getmtime(info_fp))
             with self._lock:
-                self._dict[request.url] = (info,lastmod)
+                self._dict[ident] = (info,lastmod)
                 while len(self._dict) > self.size:
                     self._dict.popitem(last=False)
 
-    def __delitem__(self, request):
+    def __delitem__(self, ident):
         with self._lock:
-            del self._dict[request.url]
+            del self._dict[ident]
 
-        info_fp = self._get_info_fp(request)
+        info_fp = self._get_info_fp(ident)
         os.unlink(info_fp)
 
-        icc_fp = self._get_color_profile_fp(request)
+        icc_fp = self._get_color_profile_fp(ident)
         if os.path.exists(icc_fp):
             os.unlink(icc_fp)
 

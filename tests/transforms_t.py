@@ -1,6 +1,3 @@
-#-*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import unittest
 import operator
 
@@ -144,6 +141,17 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest,
             debug_config='kdu'
         )
 
+    def test_hung_process_gets_terminated(self):
+        config = get_debug_config('kdu')
+        config['transforms']['jp2']['kdu_expand'] = '/dev/null'
+        config['transforms']['jp2']['timeout'] = 1
+        self.build_client_from_config(config)
+        ident = self.test_jp2_color_id
+        request_path = '/%s/full/full/0/default.jpg' % ident
+        response = self.client.get(request_path)
+        assert response.status_code == 500
+        assert 'JP2 transform process timed out' in response.data.decode('utf8')
+
 
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
 
@@ -162,6 +170,17 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
             transformer='jp2',
             debug_config='opj'
         )
+
+    def test_hung_process_gets_terminated(self):
+        config = get_debug_config('opj')
+        config['transforms']['jp2']['opj_decompress'] = '/dev/null'
+        config['transforms']['jp2']['timeout'] = 1
+        self.build_client_from_config(config)
+        ident = self.test_jp2_color_id
+        request_path = '/%s/full/full/0/default.jpg' % ident
+        response = self.client.get(request_path)
+        assert response.status_code == 500
+        assert 'JP2 transform process timed out' in response.data.decode('utf8')
 
 
 class Test_PILTransformer(loris_t.LorisTest,
@@ -290,6 +309,12 @@ class Test_PILTransformer(loris_t.LorisTest,
         request_path = '/%s/full/full/0/default.webp' % ident
         image = self.request_image_from_client(request_path)
         assert image.format == 'WEBP'
+
+    def test_can_request_tif_format(self):
+        ident = self.test_jpeg_id
+        request_path = '/%s/full/full/0/default.tif' % ident
+        image = self.request_image_from_client(request_path)
+        assert image.format == 'TIFF'
 
     def test_convert_to_bitonal_with_rotation_is_mode_LA(self):
         request_path = '/%s/full/full/45/bitonal.png' % self.ident
