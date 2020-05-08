@@ -234,9 +234,6 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.sizes, self.test_gif_static_sizes)
         self.assertEqual(info.profile.compliance_uri, profile[0])
         self.assertEqual(info.profile.description, profile[1])
-        self.assertEqual(info.ident, uri)
-        self.assertEqual(info.protocol, PROTOCOL)
-
 
     def test_tiff_info_from_image(self):
         fp = self.test_tiff_fp
