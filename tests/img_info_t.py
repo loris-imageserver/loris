@@ -214,7 +214,7 @@ class InfoUnit(loris_t.LorisTest):
         info = img_info.ImageInfo(self.app, src_img_fp=fp, src_format=fmt)
 
         profile = ["http://iiif.io/api/image/2/level2.json", {
-                "formats": [ "jpg", "png", "gif", "webp" ],
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
                 "qualities": [ "default", "gray", "bitonal" ],
                 "supports": [
                     "canonicalLinkHeader",
