@@ -277,6 +277,7 @@ class SimpleHTTPResolver(_AbstractResolver):
         return (url, self.request_options())
 
     def cache_dir_path(self, ident):
+        ident = unquote(ident)
         return join(
             self.cache_root,
             CacheNamer.cache_directory_name(ident=ident),
