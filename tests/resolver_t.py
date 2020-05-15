@@ -182,6 +182,14 @@ def mock_responses():
             status=200
         )
 
+    with open('tests/img/01/04/0001.tif', 'rb') as f:
+        responses.add(
+            responses.GET, 'http://sample.sample/01/02/0003',
+            body=f.read(),
+            status=200,
+            content_type='image/tiff'
+        )
+
     body = (
         'II*\x00\x0c\x00\x00\x00\x80\x00  \x0e\x00\x00\x01\x03\x00\x01\x00\x00'
         '\x00\x01\x00\x00\x00\x01\x01\x03\x00\x01\x00\x00\x00\x01\x00\x00\x00'
@@ -309,12 +317,18 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
 
+        # Store the number of HTTP requests made after the first resolution
+        # so that we can check whether one get (erroneously) made rather than
+        # the cache being used.
+        calls_after_resolved = len(responses.calls)
+
         # Now we resolve the same identifier a second time, when the cache
         # is warm.
         ii = self.app.resolver.resolve(self.app, ident, base_uri="")
         assert ii.src_img_fp == expected_path
         assert ii.src_format == "tif"
         assert os.path.isfile(ii.src_img_fp)
+        assert len(responses.calls) == calls_after_resolved
 
         #Test with a full uri
         ident = quote_plus('http://sample.sample/0001')
@@ -338,6 +352,41 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self.assertEqual(expected_path, ii.src_img_fp)
         self.assertEqual(ii.src_format, 'tif')
         self.assertTrue(isfile(ii.src_img_fp))
+
+        # Test with an identifier including url-encodable characters
+        ident = '01/02/0003'
+        expected_path = join(self.app.resolver.cache_root, '7e')
+        expected_path = join(expected_path, 'b5c')
+        expected_path = join(expected_path, '9cf')
+        expected_path = join(expected_path, '404')
+        expected_path = join(expected_path, 'c6d')
+        expected_path = join(expected_path, 'c34')
+        expected_path = join(expected_path, 'f5c')
+        expected_path = join(expected_path, '657')
+        expected_path = join(expected_path, '9c9')
+        expected_path = join(expected_path, '016')
+        expected_path = join(expected_path, '315')
+        expected_path = join(expected_path, ident) #add identifier to the path
+        expected_path = join(expected_path, 'loris_cache.tif')
+
+        encoded_ident = quote_plus(ident)
+        ii = self.app.resolver.resolve(self.app, encoded_ident, "")
+        self.assertEqual(expected_path, ii.src_img_fp)
+        self.assertEqual(ii.src_format, 'tif')
+        self.assertTrue(isfile(ii.src_img_fp))
+
+        # Store the number of HTTP requests made after the first resolution
+        # so that we can check whether one get (erroneously) made rather than
+        # the cache being used.
+        calls_after_resolved = len(responses.calls)
+
+        # Now we resolve the same identifier a second time, when the cache
+        # is warm.
+        ii = self.app.resolver.resolve(self.app, encoded_ident, base_uri="")
+        assert ii.src_img_fp == expected_path
+        assert ii.src_format == "tif"
+        assert os.path.isfile(ii.src_img_fp)
+        assert len(responses.calls) == calls_after_resolved
 
         #Test with a bad identifier
         ident = 'DOESNOTEXIST'
