@@ -19,6 +19,7 @@ import sys
 sys.path.append('.')
 
 from configobj import ConfigObj
+from PIL import Image
 from werkzeug.http import parse_date, http_date
 
 from werkzeug.wrappers import (
@@ -379,13 +380,17 @@ class Loris(object):
         tforms = self.app_configs['transforms']
         source_formats = [k for k in tforms if isinstance(tforms[k], dict)]
         self.logger.debug('Source formats: %r', source_formats)
-        global_tranform_options = dict((k, v) for k, v in tforms.items() if not isinstance(v, dict))
-        self.logger.debug('Global transform options: %r', global_tranform_options)
+        global_transform_options = dict((k, v) for k, v in tforms.items() if not isinstance(v, dict))
+        self.logger.debug('Global transform options: %r', global_transform_options)
+
+        pil_max_image_pixels = tforms.get('pil_max_image_pixels', Image.MAX_IMAGE_PIXELS)
+        Image.MAX_IMAGE_PIXELS = pil_max_image_pixels
+        self.logger.debug('PIL maximum image pixels set to: %d', pil_max_image_pixels)
 
         transformers = {}
         for sf in source_formats:
             # merge [transforms] options and [transforms][source_format]] options
-            config = dict(list(self.app_configs['transforms'][sf].items()) + list(global_tranform_options.items()))
+            config = dict(list(self.app_configs['transforms'][sf].items()) + list(global_transform_options.items()))
             transformers[sf] = self._load_transformer(config)
         return transformers
 
