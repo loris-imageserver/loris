@@ -2,6 +2,7 @@ import unittest
 import operator
 
 import pytest
+from PIL.Image import DecompressionBombError
 
 from loris import transforms
 from loris.loris_exception import ConfigError
@@ -344,3 +345,11 @@ class Test_PILTransformer(loris_t.LorisTest,
         ident = 'png_with_transparency.png'
         request_path = '/%s/full/full/0/default.jpg' % ident
         self.request_image_from_client(request_path)
+
+    def test_respects_pil_max_image_pixels(self):
+        config = get_debug_config('kdu')
+        config['transforms']['pil_max_image_pixels'] = 1
+        self.build_client_from_config(config)
+        with pytest.raises(DecompressionBombError):
+            request_path = '/%s/full/300,300/0/default.jpg' % self.ident
+            self.request_image_from_client(request_path)
