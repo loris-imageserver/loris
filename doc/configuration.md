@@ -54,7 +54,7 @@ Any options you add here will be passed through to the resolver you implement. F
 
 Probably safe to leave these as-is unless you care about something very specific. See the [Developer Notes](develop.md#image-transformations) for when this may not be the case. The exceptions are `kdu_expand` and `kdu_libs` in the `[transforms.jp2]` (see [Installing Dependencies](dependencies.md) step 2) or if you're not concerned about color profiles (see next).
 
-If you are seeing `DecompressionBombError`s thrown for very large source images, try setting the `pil_max_image_pixels` property here. This error occurs for images that are larger than 2x PIL's MAX_IMAGE_PIXELS property, which is `1024 * 1024 * 1024 // 4 // 3 = 89478485` by default (and so the error is thrown for images larger than `2 * 89478485 = 178956970` pixels).
+If you are seeing `DecompressionBombError`s thrown for very large source images, try setting the `pil_max_image_pixels` property here. This error occurs for images that are larger than **2x** PIL's MAX_IMAGE_PIXELS property, which is `1024 * 1024 * 1024 // 4 // 3 = 89478485` by default (and so the error is thrown for images larger than `2 * 89478485 = 178956970` pixels). Note that PIL will still log a `DecompressionBombWarning` will still be logged if the image is bigger than **1x** the configured value.
 
 ### map_profile_to_srgb
 
