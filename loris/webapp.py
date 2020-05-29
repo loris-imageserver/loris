@@ -384,8 +384,12 @@ class Loris(object):
         self.logger.debug('Global transform options: %r', global_transform_options)
 
         pil_max_image_pixels = tforms.get('pil_max_image_pixels', Image.MAX_IMAGE_PIXELS)
-        Image.MAX_IMAGE_PIXELS = pil_max_image_pixels
-        self.logger.debug('PIL maximum image pixels set to: %d', pil_max_image_pixels)
+        if pil_max_image_pixels != 0:
+            Image.MAX_IMAGE_PIXELS = pil_max_image_pixels
+            self.logger.debug('PIL maximum image pixels set to: %d', pil_max_image_pixels)
+        else:
+            Image.MAX_IMAGE_PIXELS = None
+            self.logger.debug('PIL maximum image pixels limit removed.')
 
         transformers = {}
         for sf in source_formats:
