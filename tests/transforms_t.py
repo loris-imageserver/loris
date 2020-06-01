@@ -2,6 +2,7 @@ import unittest
 import operator
 
 import pytest
+from PIL import Image
 
 from loris import transforms
 from loris.loris_exception import ConfigError
@@ -344,3 +345,17 @@ class Test_PILTransformer(loris_t.LorisTest,
         ident = 'png_with_transparency.png'
         request_path = '/%s/full/full/0/default.jpg' % ident
         self.request_image_from_client(request_path)
+
+    def test_respects_pil_max_image_pixels(self):
+        default_max_pixels = Image.MAX_IMAGE_PIXELS
+        try:
+            config = get_debug_config('kdu')
+            config['transforms']['pil_max_image_pixels'] = 1
+            self.build_client_from_config(config)
+            with pytest.raises(Image.DecompressionBombError):
+                request_path = '/%s/full/300,300/0/default.jpg' % self.ident
+                self.request_image_from_client(request_path)
+        finally:
+            # Because we have to mutate a value in an external library
+            # it must be reset at the end of this test
+            Image.MAX_IMAGE_PIXELS = default_max_pixels
