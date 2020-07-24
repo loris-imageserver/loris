@@ -272,7 +272,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
     def _run_transform(self, target_fp, image_request, image_info, transform_cmd, fifo_fp):
         try:
             expand_proc = subprocess.Popen(transform_cmd, shell=True, bufsize=-1,
-                stderr=subprocess.PIPE, env=self.env)
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env)
             with open(fifo_fp, 'rb') as f:
                 # read from the named pipe
                 p = Parser()
