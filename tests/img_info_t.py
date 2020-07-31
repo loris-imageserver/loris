@@ -207,6 +207,31 @@ class InfoUnit(loris_t.LorisTest):
         self.assertEqual(info.profile.description, profile[1])
         self.assertEqual(info.sizes, self.test_png_sizes)
 
+    def test_gif_info_from_image(self):
+        fp = self.test_gif_static_fp
+        fmt = self.test_gif_static_fmt
+
+        info = img_info.ImageInfo(self.app, src_img_fp=fp, src_format=fmt)
+
+        profile = ["http://iiif.io/api/image/2/level2.json", {
+                "formats": [ "jpg", "png", "gif", "webp", "tif" ],
+                "qualities": [ "default", "gray", "bitonal" ],
+                "supports": [
+                    "canonicalLinkHeader",
+                    "profileLinkHeader",
+                    "mirroring",
+                    "rotationArbitrary",
+                    "regionSquare",
+                    "sizeAboveFull"
+                ]
+            }
+        ]
+
+        self.assertEqual(info.width, self.test_gif_static_dims[0])
+        self.assertEqual(info.height, self.test_gif_static_dims[1])
+        self.assertEqual(info.sizes, self.test_gif_static_sizes)
+        self.assertEqual(info.profile.compliance_uri, profile[0])
+        self.assertEqual(info.profile.description, profile[1])
 
     def test_tiff_info_from_image(self):
         fp = self.test_tiff_fp
