@@ -2,6 +2,7 @@
 `resolver` -- Resolve Identifiers to Image Paths
 ================================================
 """
+import cgi
 from contextlib import closing
 import glob
 import json
@@ -298,7 +299,7 @@ class SimpleHTTPResolver(_AbstractResolver):
     def cache_file_extension(self, ident, response):
         if 'content-type' in response.headers:
             try:
-                content_type = response.headers['content-type'].split(';')[0]
+                content_type = cgi.parse_header(response.headers['content-type'])[0]
                 extension = self.get_format(ident, constants.FORMATS_BY_MEDIA_TYPE[content_type])
             except KeyError:
                 logger.warn('Your server may be responding with incorrect content-types. Reported %s for ident %s.',
