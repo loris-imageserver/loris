@@ -5,16 +5,16 @@ from configobj import ConfigObj
 
 
 CONFIG_FILE_NAME = 'loris2.conf'
-CONFIG_DIR_DEFAULT = '/etc/loris2'
+CONFIG_DIR_TARGET_DEFAULT = '/etc/loris2'
 WSGI_FILE_NAME = 'loris2.wsgi'
 
 
-def _src_code_repo_root():
-    return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+def _data_directory_path():
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
 
 
 def _config_file_path():
-    return os.path.join(_src_code_repo_root(), 'etc', CONFIG_FILE_NAME)
+    return os.path.join(_data_directory_path(), CONFIG_FILE_NAME)
 
 
 def _get_default_config_content():
@@ -35,24 +35,24 @@ application = create_app(config_file_path='%s')
 
 def _write_wsgi(config):
     wsgi_content = _get_default_wsgi()
-    www_dir = config['loris.Loris']['www_dp']
-    wsgi_file_path = os.path.join(www_dir, WSGI_FILE_NAME)
+    www_target = config['loris.Loris']['www_dp']
+    wsgi_file_path = os.path.join(www_target, WSGI_FILE_NAME)
     with open(wsgi_file_path, 'w') as f:
         f.write(wsgi_content)
 
 
 def _write_config():
-    config_file_target = os.path.join(CONFIG_DIR_DEFAULT, CONFIG_FILE_NAME)
+    config_file_target = os.path.join(CONFIG_DIR_TARGET_DEFAULT, CONFIG_FILE_NAME)
     with open(config_file_target, 'wb') as f:
         f.write(_get_default_config_content().encode('utf8'))
 
 def _copy_index_and_favicon(config):
-    www_dir = config['loris.Loris']['www_dp']
-    www_src = os.path.join(_src_code_repo_root(), 'www')
+    www_target = config['loris.Loris']['www_dp']
+    www_src = os.path.join(_data_directory_path(), 'www')
     index_src = os.path.join(www_src, 'index.txt')
     favicon_src = os.path.join(www_src, 'icons/favicon.ico')
-    index_target = os.path.join(www_dir, 'index.txt')
-    favicon_target_dir = os.path.join(www_dir, 'icons')
+    index_target = os.path.join(www_target, 'index.txt')
+    favicon_target_dir = os.path.join(www_target, 'icons')
     favicon_target = os.path.join(favicon_target_dir, 'favicon.ico')
     os.makedirs(favicon_target_dir, exist_ok=True)
     shutil.copyfile(index_src, index_target)
@@ -64,12 +64,12 @@ def _make_directories(config):
     info_cache = config['img_info.InfoCache']['cache_dp']
     log_dir = config['logging']['log_dir']
     tmp_dir = config['transforms']['jp2']['tmp_dp']
-    www_dir = config['loris.Loris']['www_dp']
+    www_target = config['loris.Loris']['www_dp']
     loris_directories = [
         image_cache,
         info_cache,
         tmp_dir,
-        www_dir,
+        www_target,
         log_dir,
     ]
     for d in loris_directories:
