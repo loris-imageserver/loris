@@ -4,17 +4,16 @@
 #
 #    pip-compile requirements_test.in
 #
-asn1crypto==0.24.0        # via -r requirements.txt, cryptography
 attrs==20.2.0             # via -r requirements.txt, hypothesis
 certifi==2018.1.18        # via -r requirements.txt, requests
 cffi==1.14.3              # via -r requirements.txt, cryptography
 chardet==3.0.4            # via -r requirements.txt, requests
 configobj==5.0.0          # via -r requirements.txt
 coverage==4.4.1           # via -r requirements_test.in, pytest-cov
-cryptography==2.3         # via -r requirements.txt
+cryptography==3.1.1       # via -r requirements.txt
 flake8==3.8.4             # via -r requirements_test.in
 hypothesis==5.37.1        # via -r requirements_test.in
-idna==2.6                 # via -r requirements.txt, cryptography, requests
+idna==2.6                 # via -r requirements.txt, requests
 mccabe==0.6.1             # via flake8
 mock==2.0.0               # via responses
 netaddr==0.7.19           # via -r requirements.txt
