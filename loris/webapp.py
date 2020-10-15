@@ -44,7 +44,8 @@ getcontext().prec = 25 # Decimal precision. This should be plenty.
 def get_debug_config(debug_jp2_transformer):
     # change a few things, read the config and set up logging
     project_dp = path.dirname(path.dirname(path.realpath(__file__)))
-    config_file_path = path.join(project_dp, 'etc', 'loris2.conf')
+    data_directory = path.join(project_dp, 'loris', 'data')
+    config_file_path = path.join(data_directory, 'loris2.conf')
 
     config = read_config(config_file_path)
 
@@ -52,13 +53,13 @@ def get_debug_config(debug_jp2_transformer):
     config['logging']['log_level'] = 'DEBUG'
 
     # override some stuff to look at relative or tmp directories.
-    config['loris.Loris']['www_dp'] = path.join(project_dp, 'www')
+    config['loris.Loris']['www_dp'] = path.join(data_directory, 'www')
     config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
     config['img_info.InfoCache']['cache_dp'] = '/tmp/loris/cache/info'
     config['resolver']['impl'] = 'loris.resolver.SimpleFSResolver'
-    config['resolver']['src_img_root'] = path.join(project_dp,'tests','img')
+    config['resolver']['src_img_root'] = path.join(project_dp, 'tests', 'img')
     config['transforms']['target_formats'] = [ 'jpg', 'png', 'gif', 'webp', 'tif']
 
     if debug_jp2_transformer == 'opj':

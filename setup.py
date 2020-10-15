@@ -34,6 +34,9 @@ setup(
     license='Simplified BSD',
     version=VERSION,
     packages=['loris'],
+    package_data={
+        'loris': ['data/*', 'data/www/*', 'data/www/icons/*'],
+    },
     install_requires=install_requires,
 )
 
