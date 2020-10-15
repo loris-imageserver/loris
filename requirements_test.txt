@@ -31,7 +31,7 @@ requests==2.20.0          # via -r requirements.txt, responses
 responses==0.3.0          # via -r requirements_test.in
 six==1.11.0               # via -r requirements.txt, cryptography, mock, responses
 sortedcontainers==2.2.2   # via hypothesis
-urllib3==1.22             # via -r requirements.txt, requests
+urllib3==1.24.2           # via -r requirements.txt, requests
 werkzeug==0.15.3          # via -r requirements.txt
 
 # The following packages are considered to be unsafe in a requirements file:
