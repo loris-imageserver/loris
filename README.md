@@ -1,4 +1,4 @@
-![loris icon](www/icons/loris-circle-small.png?raw=true) Loris IIIF Image Server
+![loris icon](loris/data/www/icons/loris-circle-small.png?raw=true) Loris IIIF Image Server
 =============================================================================
 
 Loris is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).
