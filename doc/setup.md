@@ -11,7 +11,7 @@ This user needs to have a home directory (unless you want to override it in the 
 
 Finally, from the `loris` (not `loris/loris`) directory, either as root or with `sudo` run `./setup.py install` with the options of your choice.
 
-Note: on Ubuntu 20 you might have to run `python3 setup.py install` instead.
+Note: on Ubuntu 20 you might have to run `sudo python3 setup.py install` instead.
 
 There are a bunch of flags that can be passed to `setup.py install` to customize where things wind up. Assuming you run `setup.py` with appropriate permissions (probably root), the script will make any directories that don't exist and set the ownership and permissions appropriately.
 
