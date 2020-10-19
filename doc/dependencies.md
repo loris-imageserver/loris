@@ -1,7 +1,7 @@
 Installing Dependencies
 =======================
 
-These instructions are known to work with Ubuntu 14.04 and Ubuntu 16.04. If you have further information, please provide it!
+These instructions are known to work with Ubuntu 14.04 and Ubuntu 16.04. Instructions for Ubuntu 20.04 are listed separately below where they differ. If you have further information, please provide it!
 
 Loris (Pillow, actually, with the exception of Kakadu) depends on several external libraries that can't be installed with pip, so there are few steps that must be carefully followed to get going. Installing the dependencies manually is a good idea if you want to run the tests.
 
@@ -16,6 +16,12 @@ If you are deploying on a different system or architecture, you can [Download th
 [`pip`](https://pip.pypa.io/en/latest/index.html) is used to install dependencies; [`setuptools`](https://pypi.python.org/pypi/setuptools) is used to install Loris.
 
     $ sudo apt-get install python-pip python-setuptools
+
+For Ubuntu 20:
+
+    $ sudo apt update              # Do not skip this step
+    $ sudo apt install python3-pip # No need to install python3-setuptools
+    $ pip3 --version               # Verify that PIP is installed
 
 ### Install Pillow
 
@@ -39,6 +45,10 @@ For CentOS:
 Now install Pillow (setup.py would do this for you, but it's better to do separately and check):
 
     $ sudo pip install Pillow
+
+For Ubuntu 20:
+    
+    $sudo pip3 install Pillow
 
 In case you plan on working on the source code without running setup.py, the following are required python libraries that must currently exist in your Python environment:
 
