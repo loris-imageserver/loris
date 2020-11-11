@@ -38,14 +38,14 @@ Just before the closing of the last '}' bracket, add:
 
 This will load the reverse-proxy configuration stored in the loris.conf you created.
 
-Create a new file called `loris.wsgi` and place it, for instance, inside the `/var/www/loris2` folder. Open it with your editor of choice, and populate it with the following code:
+Create a new file called `loris.wsgi` and place it, for instance, inside the `/var/www/loris` folder. Open it with your editor of choice, and populate it with the following code:
 
 ```
 #!/your/python/path python
 #-*- coding: utf-8 -*-
 
 from loris.webapp import create_app
-application = create_app(debug=False, config_file_path='/root/python_ve/loris/etc/loris2.conf')
+application = create_app(debug=False, config_file_path='/root/python_ve/loris/etc/loris.conf')
 ```
 
 Now create a new file called `uwsgi.ini` and place it wherever you want. Its content will be:
@@ -54,7 +54,7 @@ Now create a new file called `uwsgi.ini` and place it wherever you want. Its con
 [uwsgi]
 http-socket = :8888
 processes = 16
-wsgi-file = /var/www/loris2/loris.wsgi # or wherever your loris.wsgi is.
+wsgi-file = /var/www/loris/loris.wsgi # or wherever your loris.wsgi is.
 ```
 
 Now you're ready to launch your application:

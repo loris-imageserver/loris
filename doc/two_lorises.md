@@ -100,7 +100,7 @@ Deactiveate the virtualenv:
 deactivate
 ```
 
-To /var/www/loris/loris2.wsgi, add:
+To /var/www/loris/loris.wsgi, add:
 
 ```
 # CHANGE /home/jstroop to whatever...
@@ -112,7 +112,7 @@ To the Apache vhost:
 ```
 # Loris 2
 AllowEncodedSlashes On
-WSGIDaemonProcess loris2 user=loris group=loris processes=5 threads=5 maximum-requests=10000
-WSGIScriptAlias /loris2 /var/www/loris/loris2.wsgi
-WSGIProcessGroup loris2
+WSGIDaemonProcess loris user=loris group=loris processes=5 threads=5 maximum-requests=10000
+WSGIScriptAlias /loris /var/www/loris/loris.wsgi
+WSGIProcessGroup loris
 ```

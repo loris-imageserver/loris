@@ -4,9 +4,9 @@ import shutil
 from configobj import ConfigObj
 
 
-CONFIG_FILE_NAME = 'loris2.conf'
-CONFIG_DIR_TARGET_DEFAULT = '/etc/loris2'
-WSGI_FILE_NAME = 'loris2.wsgi'
+CONFIG_FILE_NAME = 'loris.conf'
+CONFIG_DIR_TARGET_DEFAULT = '/etc/loris'
+WSGI_FILE_NAME = 'loris.wsgi'
 
 
 def _data_directory_path():
