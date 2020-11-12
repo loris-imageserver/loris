@@ -14,6 +14,8 @@ Installation Instructions
 -------------------------
 Loris is supported on Python 3.6+. If you need to use Python 2.7 or Python 3.4, Loris v2.3.3 is the last version to support it.
 
+If you want to run Loris on Ubuntu 20, use Loris v3.1.0 or later.
+
 These instructions need to be updated (PRs welcome!). If you are running into install problems, please open an issue. See below for some help with RedHat/CentOS and Debian.
 
 **Do Not!** Run `setup.py` until you've read the following:
