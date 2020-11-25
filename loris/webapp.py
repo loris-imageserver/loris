@@ -45,7 +45,7 @@ def get_debug_config(debug_jp2_transformer):
     # change a few things, read the config and set up logging
     project_dp = path.dirname(path.dirname(path.realpath(__file__)))
     data_directory = path.join(project_dp, 'loris', 'data')
-    config_file_path = path.join(data_directory, 'loris2.conf')
+    config_file_path = path.join(data_directory, 'loris.conf')
 
     config = read_config(config_file_path)
 

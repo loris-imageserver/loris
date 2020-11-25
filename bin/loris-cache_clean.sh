@@ -8,7 +8,7 @@
 # CAUTION - This script deletes files. Be careful where you point it!
 #
 
-LOG="/var/log/loris2/cache_clean.log"
+LOG="/var/log/loris/cache_clean.log"
 
 echo -ne "$(date +[%c]) " >> $LOG
 echo "starting" >> $LOG

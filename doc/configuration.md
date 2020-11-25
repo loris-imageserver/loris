@@ -1,7 +1,7 @@
 Configuration and Options
 =========================
 
-See `etc/loris2.conf`.
+See `etc/loris.conf`.
 
 In addition to a bunch of directory paths (items that end with `_dp`) which should be self-explanatory and the [transformation options explained below](#image-transformations), there are some options:
 
