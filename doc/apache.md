@@ -31,6 +31,11 @@ WSGIDaemonProcess loris user=loris group=loris processes=10 threads=15 maximum-r
 WSGIScriptAlias /loris /var/www/loris/loris.wsgi
 WSGIProcessGroup loris
 ```
+Note: from Python 3.8 and later, you will get a `RuntimeError: fork not supported for subinterpreters` when rendering JPEG2000 source images. To fix this, change the WSGIScriptAlias to the following:
+
+```
+WSGIScriptAlias /loris /var/www/loris/loris.wsgi process-group=loris application-group=%{GLOBAL}
+```
 
 Explanation:
 
