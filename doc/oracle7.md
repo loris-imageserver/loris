@@ -128,7 +128,7 @@ opj_decompress = '/usr/local/bin/opj_decompress' # r-x
 opj_libs = '/usr/local/lib' # r--
 ```
 
-See (here)[https://github.com/loris-imageserver/loris/blob/development/doc/apache.md] for more information for deploying Loris with Apache, including a note for Python3.8+ users.
+See [here](https://github.com/loris-imageserver/loris/blob/development/doc/apache.md) for more information for deploying Loris with Apache, including a note for Python3.8+ users.
 
 ## Restart Apache every time the configuration changes:
 
