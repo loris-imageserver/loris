@@ -98,6 +98,12 @@ WSGIScriptAlias /loris /var/www/loris/loris.wsgi
 WSGIProcessGroup loris
 ```
 
+Note: if your're using Python 3.8+ the WSGIScriptAlias line must be:
+
+`WSGIScriptAlias /loris /var/www/loris/loris.wsgi process-group=loris application-group=%{GLOBAL}`
+
+See [here](https://github.com/loris-imageserver/loris/blob/development/doc/apache.md) for more details.
+
 `nano /var/www/loris/loris.wsgi`
 
 ```
