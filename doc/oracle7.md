@@ -1,4 +1,4 @@
-# Installation instruction in a Python virtual environment for Oracle 7.x.
+# Installing Loris on a Python virtual environment and Apache mod_wsgi on Oracle 7.x.
 
 The instructions below assume that you're logged in as root. If you're not, use `sudo` where applicable.  
 They also assume that your SELinux module is set to 'permissive' or 'disabled' (in `/etc/sysconfig/selinux`). If it's enabled you might have some issues with Loris not being able to write cache and temporary files.
