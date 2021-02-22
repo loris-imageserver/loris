@@ -108,9 +108,7 @@ site.addsitedir('/usr/local/python3_venv/lib/python3.6/site-packages')
 
 ## If you're using Kakadu libraries
 
-`nano /etc/loris.conf`
-
-Change these two paths:
+Change these two paths in `/etc/loris.conf`:
 
 ```
 [[JP2]]
@@ -121,7 +119,7 @@ kdu_libs = '/usr/local/loris/lib/Linux/x86_64/' # r--
 
 ## If you're using OpenJPEG libraries
 
-Change these two paths:
+Change these two paths in `/etc/loris.conf`:
 
 ```
 [[JP2]]
