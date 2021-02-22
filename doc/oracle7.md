@@ -130,8 +130,8 @@ Change these two paths in `/etc/loris.conf`:
 ```
 [[JP2]]
 [...]
-opj_decompress = '/usr/local/bin/opj_decompress' # r-x
-opj_libs = '/usr/local/lib' # r--
+opj_decompress = '/usr/bin/opj_decompress' # r-x
+opj_libs = '/usr/lib' # r--
 ```
 
 See [here](https://github.com/loris-imageserver/loris/blob/development/doc/apache.md) for more information for deploying Loris with Apache, including a note for Python3.8+ users.
