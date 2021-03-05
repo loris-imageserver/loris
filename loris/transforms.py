@@ -2,13 +2,11 @@ from io import BytesIO
 from logging import getLogger
 from math import ceil, log
 import os
-from os import path
 import platform
 import subprocess
 import tempfile
 
 from PIL import Image
-from PIL.ImageFile import Parser
 from PIL.ImageOps import mirror
 
 # This import is only used for converting embedded color profiles to sRGB,
