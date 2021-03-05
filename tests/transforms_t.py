@@ -108,7 +108,7 @@ class UnitTest_KakaduJP2Transformer(unittest.TestCase):
 
     def test_init(self):
         config = {'kdu_expand': '', 'num_threads': 4, 'kdu_libs': '',
-                  'map_profile_to_srgb': False, 'mkfifo': '', 'tmp_dp': '/tmp/loris/tmp',
+                  'map_profile_to_srgb': False, 'tmp_dp': '/tmp/loris/tmp',
                   'srgb_profile_fp': '', 'target_formats': [], 'dither_bitonal_images': ''}
         kdu_transformer = transforms.KakaduJP2Transformer(config)
         self.assertEqual(kdu_transformer.transform_timeout, 120)
@@ -142,16 +142,16 @@ class Test_KakaduJP2Transformer(loris_t.LorisTest,
             debug_config='kdu'
         )
 
-    def test_hung_process_gets_terminated(self):
+    def test_kdu_expand_error(self):
         config = get_debug_config('kdu')
-        config['transforms']['jp2']['kdu_expand'] = '/dev/null'
+        config['transforms']['jp2']['kdu_expand'] = 'lorisrandomzzz/kdu_expand'
         config['transforms']['jp2']['timeout'] = 1
         self.build_client_from_config(config)
         ident = self.test_jp2_color_id
         request_path = '/%s/full/full/0/default.jpg' % ident
         response = self.client.get(request_path)
         assert response.status_code == 500
-        assert 'JP2 transform process timed out' in response.data.decode('utf8')
+        assert 'Server Side Error: error generating derivative image: see log (500)' in response.data.decode('utf8')
 
 
 class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
@@ -172,16 +172,16 @@ class Test_OPJ_JP2Transformer(loris_t.LorisTest, ColorConversionMixin):
             debug_config='opj'
         )
 
-    def test_hung_process_gets_terminated(self):
+    def test_opj_decompress_error(self):
         config = get_debug_config('opj')
-        config['transforms']['jp2']['opj_decompress'] = '/dev/null'
+        config['transforms']['jp2']['opj_decompress'] = 'lorisrandomzzz/opj_decompress'
         config['transforms']['jp2']['timeout'] = 1
         self.build_client_from_config(config)
         ident = self.test_jp2_color_id
         request_path = '/%s/full/full/0/default.jpg' % ident
         response = self.client.get(request_path)
         assert response.status_code == 500
-        assert 'JP2 transform process timed out' in response.data.decode('utf8')
+        assert 'Server Side Error: error generating derivative image: see log (500)' in response.data.decode('utf8')
 
 
 class Test_PILTransformer(loris_t.LorisTest,

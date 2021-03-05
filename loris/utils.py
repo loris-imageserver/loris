@@ -72,3 +72,10 @@ def safe_rename(src, dst):
             os.unlink(src)
         else:
             raise
+
+
+def decode_bytes(data):
+    try:
+        return data.decode('utf8')
+    except UnicodeDecodeError:
+        return data.decode('latin1')

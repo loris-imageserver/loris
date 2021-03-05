@@ -1,5 +1,4 @@
 from io import BytesIO
-import multiprocessing
 from logging import getLogger
 from math import ceil, log
 import os
@@ -23,6 +22,8 @@ except ImportError:
 
 from loris.loris_exception import ConfigError, TransformException
 from loris.parameters import FULL_MODE
+from loris.utils import decode_bytes
+
 
 logger = getLogger(__name__)
 
@@ -191,6 +192,7 @@ class _AbstractTransformer(object):
 
 
 class _PillowTransformer(_AbstractTransformer):
+
     def transform(self, target_fp, image_request, image_info):
         im = Image.open(image_info.src_img_fp)
         self._derive_with_pil(
@@ -220,7 +222,6 @@ class _AbstractJP2Transformer(_AbstractTransformer):
     Exits if OSError is raised during init.
     '''
     def __init__(self, config):
-        self.mkfifo = config['mkfifo']
         self.tmp_dp = config['tmp_dp']
 
         try:
@@ -233,7 +234,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             logger.fatal('Exiting')
             exit(77)
 
-        super(_AbstractJP2Transformer, self).__init__(config)
+        super().__init__(config)
         self.transform_timeout = config.get('timeout', 120)
 
     def _scale_dim(self, dim, scale):
@@ -263,31 +264,19 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             arg = str(reduce_arg)
         return arg
 
-    def _create_fifo(self, tmp):
-        fifo_fp = path.join(tmp, 'fifo.bmp')
-        mkfifo_call = [self.mkfifo, fifo_fp]
-        subprocess.check_call(mkfifo_call)
-        return fifo_fp
-
-    def _run_transform(self, target_fp, image_request, image_info, transform_cmd, fifo_fp):
+    def _process(self, transform_cmd, target_fp, image_request, image_info, tmp_img_fp):
+        #generate tmp img with opj_decompress or kdu_expand
         try:
-            expand_proc = subprocess.Popen(transform_cmd, shell=True, bufsize=-1,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env)
-            with open(fifo_fp, 'rb') as f:
-                # read from the named pipe
-                p = Parser()
-                while True:
-                    s = f.read(1024)
-                    if not s:
-                        break
-                    p.feed(s)
-                im = p.close() # a PIL.Image
-        finally:
-            _, stderrdata = expand_proc.communicate()
-            proc_exit = expand_proc.returncode
-            if proc_exit != 0:
-                map(logger.error, stderrdata)
-
+            subprocess.run(transform_cmd.split(), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env)
+        except subprocess.CalledProcessError as e:
+            msg = str(e)
+            if e.stderr:
+                msg = f'{msg}; stderr: {decode_bytes(e.stderr)}'
+            if e.stdout:
+                msg = f'{msg}; stdout: {decode_bytes(e.stdout)}'
+            raise RuntimeError(msg)
+        #now open that image with Pillow
+        im = Image.open(tmp_img_fp)
         try:
             if self.map_profile_to_srgb and image_info.color_profile_bytes:
                 emb_profile = BytesIO(image_info.color_profile_bytes)
@@ -295,6 +284,7 @@ class _AbstractJP2Transformer(_AbstractTransformer):
         except PyCMSError as err:
             logger.warn('Error converting %r to sRGB: %r', im, err)
 
+        #now do any required transformations on the image
         self._derive_with_pil(
             im=im,
             target_fp=target_fp,
@@ -303,31 +293,13 @@ class _AbstractJP2Transformer(_AbstractTransformer):
             crop=False
         )
 
-    def _process(self, cmd, target_fp, image_request, image_info, fifo_fp):
-        process = multiprocessing.Process(
-            target=self._run_transform,
-            kwargs={
-                'target_fp': target_fp,
-                'image_request': image_request,
-                'image_info': image_info,
-                'transform_cmd': cmd,
-                'fifo_fp': fifo_fp
-            }
-        )
-        process.start()
-        process.join(self.transform_timeout)
-        if process.is_alive():
-            logger.info('terminating process for %s, %s',
-                image_info.src_img_fp, target_fp)
-            process.terminate()
-            raise TransformException('JP2 transform process timed out after %d seconds' % self.transform_timeout)
-
 
 class OPJ_JP2Transformer(_AbstractJP2Transformer):
+
     def __init__(self, config):
         self.opj_decompress = config['opj_decompress']
         self.env = None
-        super(OPJ_JP2Transformer, self).__init__(config)
+        super().__init__(config)
 
     def _region_to_opj_arg(self, region_param):
         '''
@@ -352,12 +324,16 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
         reg = '-d %s' % (region_arg,) if region_arg else ''
         reduce_arg = self._scales_to_reduce_arg(image_request, image_info)
         red = '-r %s' % (reduce_arg,) if reduce_arg else ''
-        i = '-i "%s"' % (image_info.src_img_fp,)
+        i = '-i %s' % (image_info.src_img_fp,)
         with tempfile.TemporaryDirectory(dir=self.tmp_dp) as tmp:
-            fifo_fp = self._create_fifo(tmp)
-            o = '-o %s' % (fifo_fp,)
+            tmp_img_fp = os.path.join(tmp, 'image.bmp')
+            o = '-o %s' % (tmp_img_fp,)
             opj_cmd = ' '.join((self.opj_decompress,i,reg,red,o))
-            self._process(opj_cmd, target_fp, image_request, image_info, fifo_fp)
+            try:
+                self._process(opj_cmd, target_fp, image_request, image_info, tmp_img_fp)
+            except Exception as e:
+                logger.error(f'openjpeg transform error: {e}')
+                raise TransformException('error generating derivative image: see log')
 
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
@@ -369,7 +345,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             'LD_LIBRARY_PATH' : config['kdu_libs'],
             'PATH' : config['kdu_expand']
         }
-        super(KakaduJP2Transformer, self).__init__(config)
+        super().__init__(config)
 
     @staticmethod
     def local_kdu_expand_path():
@@ -397,7 +373,7 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             height = region_param.decimal_h
             width = region_param.decimal_w
 
-            arg = '\{%s,%s\},\{%s,%s\}' % (top, left, height, width)
+            arg = '{%s,%s},{%s,%s}' % (top, left, height, width)
         logger.debug('kdu region parameter: %s', arg)
         return arg
 
@@ -409,10 +385,13 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
         reg = '-region %s' % (region_arg,) if region_arg else ''
         q = '-quiet'
         t = '-num_threads %s' % self.num_threads
-        i = '-i "%s"' % image_info.src_img_fp
+        i = '-i %s' % image_info.src_img_fp
         with tempfile.TemporaryDirectory(dir=self.tmp_dp) as tmp:
-            fifo_fp = self._create_fifo(tmp)
-            o = '-o %s' % fifo_fp
+            tmp_img_fp = os.path.join(tmp, 'image.bmp')
+            o = '-o %s' % tmp_img_fp
             kdu_cmd = ' '.join((self.kdu_expand,q,i,t,reg,red,o))
-            self._process(kdu_cmd, target_fp, image_request, image_info, fifo_fp)
-
+            try:
+                self._process(kdu_cmd, target_fp, image_request, image_info, tmp_img_fp)
+            except Exception as e:
+                logger.error(f'kakadu transform error: {e}')
+                raise TransformException('error generating derivative image: see log')
