@@ -13,7 +13,7 @@ from os import path, unlink
 import re
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-from urllib.parse import unquote, quote_plus
+from urllib.parse import unquote
 
 import sys
 sys.path.append('.')
@@ -233,7 +233,7 @@ class ServerSideErrorResponse(LorisResponse):
         super(ServerSideErrorResponse, self).__init__(message, status, 'text/plain')
 
 
-class LorisRequest(object):
+class LorisRequest:
 
     def __init__(self, request, redirect_id_slash_to_info=True, proxy_path=None):
         #make sure path is unquoted, so we know what we're working with
@@ -276,7 +276,7 @@ class LorisRequest(object):
         #process image request
         if image_match:
             groups = image_match.groupdict()
-            self.ident = quote_plus(groups['ident'])
+            self.ident = groups['ident']
             self.params = {'region': groups['region'],
                       'size': groups['size'],
                       'rotation': groups['rotation'],
@@ -287,7 +287,7 @@ class LorisRequest(object):
         #process info request
         elif info_match:
             groups = info_match.groupdict()
-            self.ident = quote_plus(groups['ident'])
+            self.ident = groups['ident']
             self.params = 'info.json'
             self.request_type = 'info'
 
@@ -301,7 +301,7 @@ class LorisRequest(object):
             ident = self._path[1:]
             if ident.endswith('/') and self._redirect_id_slash_to_info:
                 ident = ident[:-1]
-            self.ident = quote_plus(ident)
+            self.ident = ident
             self.request_type = 'redirect_info'
 
 
@@ -334,7 +334,7 @@ def set_content_disposition_header(image_request, response):
     response.headers["Content-Disposition"] = "filename*=utf-8''%s" % download_filename
 
 
-class Loris(object):
+class Loris:
 
     def __init__(self, app_configs={}):
         '''The WSGI Application.
