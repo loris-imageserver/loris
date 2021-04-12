@@ -148,17 +148,17 @@ class TestLorisRequest(TestCase):
         self.test_jp2_color_id = '01%2F02%2F0001.jp2'
 
     def test_get_base_uri(self):
-        path = '/%s/' % self.test_jp2_color_id
+        path = f'/{self.test_jp2_color_id}/'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, True, None)
-        self.assertEqual(loris_request.base_uri, 'http://localhost/01%2F02%2F0001.jp2')
+        self.assertEqual(loris_request.base_uri, 'http://localhost/01/02/0001.jp2')
 
     def test_get_base_uri_proxy_path(self):
-        path = '/%s/' % self.test_jp2_color_id
+        path = f'/{self.test_jp2_color_id}/'
         req = _get_werkzeug_request(path)
         proxy_path = 'http://example.org/'
         loris_request = webapp.LorisRequest(req, True, proxy_path)
-        self.assertEqual(loris_request.base_uri, 'http://example.org/01%2F02%2F0001.jp2')
+        self.assertEqual(loris_request.base_uri, 'http://example.org/01/02/0001.jp2')
 
     def test_root_path(self):
         path = '/'
@@ -180,41 +180,41 @@ class TestLorisRequest(TestCase):
         path = '/01/02/0001.jp2/'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, True, None)
-        self.assertEqual(loris_request.ident, '01%2F02%2F0001.jp2')
+        self.assertEqual(loris_request.ident, '01/02/0001.jp2')
         self.assertEqual(loris_request.params, '')
         self.assertEqual(loris_request.request_type, 'redirect_info')
 
     def test_ident_request(self):
-        path = '/%s/' % self.test_jp2_color_id
+        path = '/01%2F02%2F0001.jp2/'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, True, None)
-        self.assertEqual(loris_request.ident, self.test_jp2_color_id)
+        self.assertEqual(loris_request.ident, '01/02/0001.jp2')
         self.assertEqual(loris_request.params, '')
         self.assertEqual(loris_request.request_type, 'redirect_info')
 
     def test_ident_request_no_redirect(self):
-        path = '/%s/' % self.test_jp2_color_id
+        path = f'/{self.test_jp2_color_id}/'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, False, None)
-        self.assertEqual(loris_request.ident, self.test_jp2_color_id + '%2F')
+        self.assertEqual(loris_request.ident, '01/02/0001.jp2/')
         self.assertEqual(loris_request.request_type, 'redirect_info')
 
     def test_info_request(self):
-        info_path = '/%s/info.json' % self.test_jp2_color_id
+        info_path = f'/{self.test_jp2_color_id}/info.json'
         req = _get_werkzeug_request(info_path)
         loris_request = webapp.LorisRequest(req, False, None)
-        self.assertEqual(loris_request.ident, self.test_jp2_color_id)
+        self.assertEqual(loris_request.ident, '01/02/0001.jp2')
         self.assertEqual(loris_request.params, 'info.json')
         self.assertEqual(loris_request.request_type, 'info')
 
     def test_img_request(self):
-        path = '/%s/full/full/0/default.jpg' % self.test_jp2_color_id
+        path = f'/{self.test_jp2_color_id}/full/full/0/default.jpg'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, False, None)
-        self.assertEqual(loris_request.ident, self.test_jp2_color_id)
-        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(loris_request.ident, '01/02/0001.jp2')
+        expected_params = {'region': 'full', 'size': 'full', 'rotation': '0', 'quality': 'default', 'format': 'jpg'}
         self.assertEqual(loris_request.params, expected_params)
-        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.request_type, 'image')
 
     def test_img_region(self):
         path = '/%s/square/full/0/default.jpg' % self.test_jp2_color_id
@@ -297,50 +297,52 @@ class TestLorisRequest(TestCase):
 
     def test_many_slash_img_request(self):
         identifier = '1/2/3/4/5/6/7/8/9/xyz'
-        encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
         path = '/%s/full/full/0/default.jpg' % identifier
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, False, None)
-        self.assertEqual(loris_request.ident, encoded_identifier)
-        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(loris_request.ident, identifier)
+        expected_params = {'region': 'full', 'size': 'full', 'rotation': '0', 'quality': 'default', 'format': 'jpg'}
         self.assertEqual(loris_request.params, expected_params)
-        self.assertEqual(loris_request.request_type, u'image')
+        self.assertEqual(loris_request.request_type, 'image')
 
     def test_https_uri_identifier(self):
         identifier = 'https://sample.sample/0001'
-        encoded_identifier = 'https%3A%2F%2Fsample.sample%2F0001'
-        path = '/%s/full/full/0/default.jpg' % identifier
+        path = f'/{identifier}/full/full/0/default.jpg'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, False, None)
-        self.assertEqual(loris_request.ident, encoded_identifier)
-        expected_params = {'region': u'full', 'size': u'full', 'rotation': u'0', 'quality': u'default', 'format': u'jpg'}
+        self.assertEqual(loris_request.ident, identifier)
+        expected_params = {'region': 'full', 'size': 'full', 'rotation': '0', 'quality': 'default', 'format': 'jpg'}
         self.assertEqual(loris_request.params, expected_params)
         self.assertEqual(loris_request.request_type, u'image')
 
-    def test_many_slash_info_request(self):
-        identifier = '1/2/3/4/5/6/7/8/9/xyz'
-        encoded_identifier = '1%2F2%2F3%2F4%2F5%2F6%2F7%2F8%2F9%2Fxyz'
-        path = '/%s/info.json' % identifier
+        encoded_identifier = 'https%3A%2F%2Fsample.sample%2F0001'
+        path = f'/{encoded_identifier}/full/full/0/default.jpg'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req, False, None)
-        self.assertEqual(loris_request.request_type, u'info')
-        self.assertEqual(loris_request.ident, encoded_identifier)
+        self.assertEqual(loris_request.ident, identifier)
+
+    def test_many_slash_info_request(self):
+        identifier = '1/2/3/4/5/6/7/8/9/xyz'
+        path = f'/{identifier}/info.json'
+        req = _get_werkzeug_request(path)
+        loris_request = webapp.LorisRequest(req, False, None)
+        self.assertEqual(loris_request.request_type, 'info')
+        self.assertEqual(loris_request.ident, identifier)
 
     def test_template_delimiter_request(self):
-        identifier = u'a:foo|bar'
-        encoded_identifier = u'a%3Afoo%7Cbar'
+        identifier = 'a:foo|bar'
         #image request
-        path = u'/%s/full/full/0/default.jpg' % identifier
+        path = f'/{identifier}/full/full/0/default.jpg'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req)
-        self.assertEqual(loris_request.request_type, u'image')
-        self.assertEqual(loris_request.ident, encoded_identifier)
+        self.assertEqual(loris_request.request_type, 'image')
+        self.assertEqual(loris_request.ident, identifier)
         #info request
-        path = u'/%s/info.json' % identifier
+        path = f'/{identifier}/info.json'
         req = _get_werkzeug_request(path)
         loris_request = webapp.LorisRequest(req)
-        self.assertEqual(loris_request.request_type, u'info')
-        self.assertEqual(loris_request.ident, encoded_identifier)
+        self.assertEqual(loris_request.request_type, 'info')
+        self.assertEqual(loris_request.ident, identifier)
 
 
 class StaticRoutes(loris_t.LorisTest):
@@ -361,12 +363,12 @@ class BareIdentifierRequests(loris_t.LorisTest):
     def test_bare_identifier_request_303(self):
         resp = self.client.get('/%s' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
-        self.assertEqual(resp.headers['Location'], 'http://localhost/01%2F02%2F0001.jp2/info.json')
+        self.assertEqual(resp.headers['Location'], 'http://localhost/01/02/0001.jp2/info.json')
 
     def test_bare_identifier_request_with_trailing_slash_303(self):
         resp = self.client.get('/%s/' % (self.test_jp2_color_id,))
         self.assertEqual(resp.status_code, 303)
-        self.assertEqual(resp.headers['Location'], 'http://localhost/01%2F02%2F0001.jp2/info.json')
+        self.assertEqual(resp.headers['Location'], 'http://localhost/01/02/0001.jp2/info.json')
 
     def test_bare_identifier_with_trailing_slash_404s_with_redir_off(self):
         self.app.redirect_id_slash_to_info = False
@@ -404,7 +406,7 @@ class InfoRequests(loris_t.LorisTest):
         uri = '/%s/info.json' % (self.test_jp2_color_id)
         resp = self.client.get(uri)
         info = json.loads(resp.data.decode('utf8'))
-        assert info['@id'] == 'http://localhost/01%2F02%2F0001.jp2' #base URI of the image including scheme, server, prefix and identifier without a trailing slash
+        assert info['@id'] == 'http://localhost/01/02/0001.jp2' #base URI of the image including scheme, server, prefix and identifier without a trailing slash
         assert info['protocol'] == PROTOCOL
 
     def test_access_control_allow_origin_on_info_requests(self):
