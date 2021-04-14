@@ -5,7 +5,7 @@ import unittest
 import responses
 
 from loris.resolver import SimpleHTTPResolver
-from loris.loris_exception import ResolverException
+from loris.loris_exception import ResolverException, ConfigError
 
 
 class SimpleHTTPResolverTest(unittest.TestCase):
@@ -151,7 +151,7 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
     def test_no_config(self):
         config = {}
         self.assertRaises(
-                ResolverException,
+                ConfigError,
                 lambda: SimpleHTTPResolver(config)
         )
 
@@ -160,7 +160,7 @@ class SimpleHTTPResolverConfigTest(unittest.TestCase):
             'cache_root': self.cache_dir
         }
         self.assertRaises(
-                ResolverException,
+                ConfigError,
                 lambda: SimpleHTTPResolver(config)
         )
 

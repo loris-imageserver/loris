@@ -47,12 +47,12 @@ def _validate_color_profile_conversion_config(config):
 
 
 class _AbstractTransformer(object):
+
     def __init__(self, config):
         _validate_color_profile_conversion_config(config)
         self.config = config
         self.target_formats = config['target_formats']
         self.dither_bitonal_images = config['dither_bitonal_images']
-        logger.debug('Initialized %s.%s', __name__, self.__class__.__name__)
 
     def transform(self, target_fp, image_request, image_info):
         '''
@@ -216,22 +216,11 @@ class PNG_Transformer(_PillowTransformer):
 class _AbstractJP2Transformer(_AbstractTransformer):
     '''
     Shared methods and configuration for the Kakadu and OpenJPEG transformers.
-
-    Exits if OSError is raised during init.
     '''
     def __init__(self, config):
         self.tmp_dp = config['tmp_dp']
-
-        try:
-            os.makedirs(self.tmp_dp, exist_ok=True)
-        except OSError as ose:
-            # Almost certainly a permissions error on one of the required dirs
-            from sys import exit
-            from os import strerror
-            logger.fatal('%s (%s)', strerror(ose.errno), ose.filename)
-            logger.fatal('Exiting')
-            exit(77)
-
+        #if there's an error making the dirs, just let it propagate up
+        os.makedirs(self.tmp_dp, exist_ok=True)
         super().__init__(config)
         self.transform_timeout = config.get('timeout', 120)
 
@@ -330,8 +319,7 @@ class OPJ_JP2Transformer(_AbstractJP2Transformer):
             try:
                 self._process(opj_cmd, target_fp, image_request, image_info, tmp_img_fp)
             except Exception as e:
-                logger.error(f'openjpeg transform error: {e}')
-                raise TransformException('error generating derivative image: see log')
+                raise TransformException(f'openjpeg transform error: {e}')
 
 
 class KakaduJP2Transformer(_AbstractJP2Transformer):
@@ -391,5 +379,4 @@ class KakaduJP2Transformer(_AbstractJP2Transformer):
             try:
                 self._process(kdu_cmd, target_fp, image_request, image_info, tmp_img_fp)
             except Exception as e:
-                logger.error(f'kakadu transform error: {e}')
-                raise TransformException('error generating derivative image: see log')
+                raise TransformException(f'kakadu transform error: {e}')

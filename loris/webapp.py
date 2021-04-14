@@ -701,7 +701,8 @@ class Loris:
                 )
 
             except TransformException as te:
-                return ServerSideErrorResponse(te)
+                self.logger.error(f'{ident} transform exception: {te}')
+                return ServerSideErrorResponse('error generating derivative image: see log')
             except (RequestException, SyntaxException) as e:
                 return BadRequestResponse(str(e))
             except (CalledProcessError,IOError) as e:

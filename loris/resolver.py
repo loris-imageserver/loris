@@ -123,7 +123,6 @@ class SimpleFSResolver(_AbstractResolver):
 
     def raise_404_for_ident(self, ident):
         message = 'Source image not found for identifier: %s.' % (ident,)
-        logger.warn(message)
         raise ResolverException(message)
 
     def source_file_path(self, ident):
@@ -211,15 +210,13 @@ class SimpleHTTPResolver(_AbstractResolver):
         if 'cache_root' in self.config:
             self.cache_root = self.config['cache_root']
         else:
-            message = 'Server Side Error: Configuration incomplete and cannot resolve. Missing setting for cache_root.'
-            logger.error(message)
-            raise ResolverException(message)
+            message = 'Configuration incomplete and cannot resolve. Missing setting for cache_root.'
+            raise ConfigError(message)
 
         if not self.uri_resolvable and self.source_prefix == '':
-            message = 'Server Side Error: Configuration incomplete and cannot resolve. Must either set uri_resolvable' \
+            message = 'Configuration incomplete and cannot resolve. Must either set uri_resolvable' \
                       ' or source_prefix settings.'
-            logger.error(message)
-            raise ResolverException(message)
+            raise ConfigError(message)
 
     def request_options(self):
         # parameters to pass to all head and get requests;
@@ -458,7 +455,6 @@ class TemplateHTTPResolver(SimpleHTTPResolver):
         # only split identifiers that look like template ids;
         # ignore other requests (e.g. favicon)
         if ':' not in ident:
-            logger.warn('Bad URL request for identifier: %r.', ident)
             raise ResolverException(
                 "Bad URL request made for identifier: %r." % ident
             )

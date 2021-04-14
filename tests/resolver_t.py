@@ -13,7 +13,7 @@ from urllib.parse import quote_plus, unquote
 import pytest
 import responses
 
-from loris.loris_exception import ResolverException
+from loris.loris_exception import ResolverException, ConfigError
 from loris.resolver import (
     _AbstractResolver,
     SimpleHTTPResolver,
@@ -233,15 +233,14 @@ class Test_SimpleHTTPResolver(loris_t.LorisTest):
         self._mock_urls()
 
         # First we test with no config...
-        config = {
-        }
-        self.assertRaises(ResolverException, lambda: SimpleHTTPResolver(config))
+        config = {}
+        self.assertRaises(ConfigError, lambda: SimpleHTTPResolver(config))
 
         # Then we test missing source_prefix and uri_resolvable
         config = {
             'cache_root' : self.SRC_IMAGE_CACHE
         }
-        self.assertRaises(ResolverException, lambda: SimpleHTTPResolver(config))
+        self.assertRaises(ConfigError, lambda: SimpleHTTPResolver(config))
 
         # Then we test with the full config...
         #TODO: More granular testing of these settings...
@@ -537,7 +536,7 @@ class Test_TemplateHTTPResolver(object):
     }
 
     def test_template_http_resolver_with_no_config_is_error(self):
-        with pytest.raises(ResolverException):
+        with pytest.raises(ConfigError):
             TemplateHTTPResolver({})
 
     def test_allow_no_template_config(self):
