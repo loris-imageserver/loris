@@ -8,7 +8,7 @@ These instructions assume you have (or will) run `sudo ./setup.py install` with 
 You can get all of the dependencies from apt:
 
 ```
-$ sudo apt-get install apache2 libapache2-mod-wsgi
+$ sudo apt-get install apache2 libapache2-mod-wsgi-py3
 ```
 
 Next enable to require modules:
