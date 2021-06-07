@@ -40,8 +40,7 @@ from loris.loris_exception import (
 
 getcontext().prec = 25 # Decimal precision. This should be plenty.
 
-
-def get_debug_config(debug_jp2_transformer):
+def get_default_config():
     # change a few things, read the config and set up logging
     project_dp = path.dirname(path.dirname(path.realpath(__file__)))
     data_directory = path.join(project_dp, 'loris', 'data')
@@ -49,8 +48,20 @@ def get_debug_config(debug_jp2_transformer):
 
     config = read_config(config_file_path)
 
-    config['logging']['log_to'] = 'console'
-    config['logging']['log_level'] = 'DEBUG'
+    if "logging" not in config:
+        config['logging'] = get_default_logging()
+
+    return config
+
+def get_default_logging():
+    return {
+        'format': '%(asctime)s (%(name)s) [%(levelname)s]: %(message)s',
+        'log_to': 'console',
+        'log_level': 'DEBUG',
+    }
+
+def get_debug_config(debug_jp2_transformer):
+    config = get_default_config()
 
     # override some stuff to look at relative or tmp directories.
     config['loris.Loris']['www_dp'] = path.join(data_directory, 'www')
@@ -96,7 +107,13 @@ def create_app(debug=False, debug_jp2_transformer='kdu', config_file_path=''):
 
 
 def read_config(config_file_path):
-    config = ConfigObj(config_file_path, unrepr=True, interpolation='template')
+    if len(config_file_path) > 0:
+        config = ConfigObj(config_file_path, unrepr=True, interpolation='template')
+    else:
+        config = get_default_config()
+        tmp_logger = configure_logging(config['logging'])
+        tmp_logger.info("No config file path defined. Using default config")
+        
     # add the OS environment variables as the DEFAULT section to support
     # interpolating their values into other keys
     # make a copy of the os.environ dictionary so that the config object can't
@@ -781,7 +798,7 @@ if __name__ == '__main__':
 
     sys.path.append(path.join(project_dp)) # to find any local resolvers
 
-    app = create_app(debug=True) # or 'opj'
+    app = create_app(debug=False) # or 'opj'
 
     run_simple('localhost', 5004, app, use_debugger=True, use_reloader=True)
     # To debug ssl:
