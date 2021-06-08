@@ -4,7 +4,7 @@ werkzeug >= 0.11.4
 # JPEG-compressed TIFFs.
 #
 # See https://github.com/loris-imageserver/loris/issues/405
-pillow >= 2.4.0, < 7.0
+pillow >= 2.4.0, < 9.0
 
 configobj >= 4.7.2,<=5.0.0
 requests >= 2.12.0
