@@ -47,6 +47,7 @@ def get_default_config():
     config_file_path = path.join(data_directory, 'loris.conf')
 
     config = read_config(config_file_path)
+    config['data_directory'] = data_directory
 
     if "logging" not in config:
         config['logging'] = get_default_logging()
@@ -64,7 +65,7 @@ def get_debug_config(debug_jp2_transformer):
     config = get_default_config()
 
     # override some stuff to look at relative or tmp directories.
-    config['loris.Loris']['www_dp'] = path.join(data_directory, 'www')
+    config['loris.Loris']['www_dp'] = path.join(config['data_directory'], 'www')
     config['loris.Loris']['tmp_dp'] = '/tmp/loris/tmp'
     config['loris.Loris']['enable_caching'] = True
     config['img.ImageCache']['cache_dp'] = '/tmp/loris/cache/img'
