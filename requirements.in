@@ -1,10 +1,6 @@
 werkzeug >= 0.11.4
 
-# We put an upper bound on the version of Pillow so we can cope with
-# JPEG-compressed TIFFs.
-#
-# See https://github.com/loris-imageserver/loris/issues/405
-pillow >= 2.4.0, < 7.0
+Pillow >= 9.2.0
 
 configobj >= 4.7.2,<=5.0.0
 requests >= 2.12.0
