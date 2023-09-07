@@ -12,7 +12,7 @@ Demos
 
 Installation Instructions
 -------------------------
-Loris is supported on Python 3.6+. If you need to use Python 2.7 or Python 3.4, Loris v2.3.3 is the last version to support it.
+Loris is supported on Python 3.7+. If you need to use old Python versions, Loris v2.3.3 is the last version to support it.
 
 If you want to run Loris on Ubuntu 20, use Loris v3.1.0 or later.
 
