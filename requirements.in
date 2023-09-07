@@ -1,10 +1,4 @@
-werkzeug >= 0.11.4
-
-# We put an upper bound on the version of Pillow so we can cope with
-# JPEG-compressed TIFFs.
-#
-# See https://github.com/loris-imageserver/loris/issues/405
-pillow >= 2.4.0, < 7.0
+Pillow >= 9.2.0
 
 configobj >= 4.7.2,<=5.0.0
 requests >= 2.12.0
@@ -14,3 +8,9 @@ cryptography >= 2.0.3
 
 # We use `attr.ib(converter=callable)` which was added in 17.4.0.
 attrs >= 17.4.0
+
+# Newer versions of importlib-metadata cause failure with flake8.
+importlib-metadata < 5.0.0
+
+# Newer versions of werkzeug cause a failure with "coverage run".
+werkzeug < 2.1.0
