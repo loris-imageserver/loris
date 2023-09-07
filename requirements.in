@@ -1,5 +1,3 @@
-werkzeug >= 0.11.4
-
 Pillow >= 9.2.0
 
 configobj >= 4.7.2,<=5.0.0
@@ -13,3 +11,6 @@ attrs >= 17.4.0
 
 # Newer versions of importlib-metadata cause failure with flake8.
 importlib-metadata < 5.0.0
+
+# Newer versions of werkzeug cause a failure with "coverage run".
+werkzeug < 2.1.0
