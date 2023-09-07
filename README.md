@@ -3,7 +3,7 @@
 
 Loris is an implementation of the [IIIF Image API 2.0](http://iiif.io/api/image/2.0/).
 
-[![Build Status](https://travis-ci.org/loris-imageserver/loris.svg?branch=development)](https://travis-ci.org/loris-imageserver/loris)
+[![Build Status](https://github.com/loris-imageserver/loris/actions/workflows/ci.yml/badge.svg)](https://github.com/loris-imageserver/loris/actions/workflows/ci.yml)
 
 Demos
 -----
